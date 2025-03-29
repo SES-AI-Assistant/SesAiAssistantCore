@@ -19,7 +19,11 @@ jobs:
           distribution: 'temurin'
           java-version: 17
 
+      - name: AWS_REGION を設定
+        run: echo "AWS_REGION=ap-northeast-11" >> $GITHUB_ENV
+
       - name: Maven パッケージをビルドしてデプロイ
         run: mvn clean deploy --settings .github/maven-settings.xml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AWS_REGION: ap-northeast-1
