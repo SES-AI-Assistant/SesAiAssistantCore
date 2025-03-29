@@ -19,6 +19,15 @@ jobs:
           distribution: 'temurin'
           java-version: 17
 
+      - name: AWS CLI のセットアップ
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-1
+          role-session-name: GitHubActionsDeployment
+          role-to-assume: arn:aws:iam::536697254314:role/SES-AI-ASSISTANT
+
       - name: Maven パッケージをビルドしてデプロイ
         run: mvn clean deploy --settings .github/maven-settings.xml
         env:
