@@ -1,0 +1,25 @@
+name: Build and Deploy to GitHub Packages（SesAiAssitantCore）
+
+on:
+  push:
+    branches:
+      - main  # main ブランチにプッシュされたときに実行
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: コードをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: JDK をセットアップ
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      - name: Maven パッケージをビルドしてデプロイ
+        run: mvn clean deploy --settings .github/maven-settings.xml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
