@@ -10,6 +10,14 @@
     <maven.compiler.target>17</maven.compiler.target>
   </properties>
 
+  <!-- GitHUB Packagesの設定 -->
+  <distributionManagement>
+    <repository>
+      <id>github</id>
+      <url>https://maven.pkg.github.com/Copel-KazuyaSuzuki/SesAiAssitantCore</url>
+    </repository>
+  </distributionManagement>
+
   <dependencies>
     <!-- AWS SDK for S3 -->
     <dependency>
