@@ -64,7 +64,7 @@ public class Gemini implements Transformer {
     }
 
     @Override
-    public String generate(final String prompt) throws IOException, RuntimeException {
+    public GptAnswer generate(final String prompt) throws IOException, RuntimeException {
         ObjectMapper objectMapper = new ObjectMapper();
 
         // リクエストボディの作成
@@ -137,11 +137,11 @@ public class Gemini implements Transformer {
                 JsonNode parts = content.path("parts");
                 if (parts.isArray() && parts.size() > 0) {
                     String resultText = parts.get(0).path("text").asText();
-                    return resultText;
+                    return new GptAnswer(resultText, Gemini.class);
                 }
             }
 
-            return null;
+            return new GptAnswer(null, Gemini.class);
         }
     }
 

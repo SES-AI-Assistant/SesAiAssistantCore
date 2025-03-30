@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import copel.sesproductpackage.core.util.Properties;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 【SES AIアシスタント】
@@ -20,6 +21,7 @@ import copel.sesproductpackage.core.util.Properties;
  * @author 鈴木一矢.
  *
  */
+@Slf4j
 public class OpenAI implements Transformer {
     /**
      * OpenAI APIのエンベディング処理のエンドポイント.
@@ -92,6 +94,7 @@ public class OpenAI implements Transformer {
         conn.setRequestProperty("Authorization", "Bearer " + this.apiKey);
         conn.setDoOutput(true);
 
+        log.info("【OpenAI】{}文字のエンベディング処理を実行しました", inputString.length());
         String jsonBody = "{\"input\": \"" + inputString.replaceAll("\\p{Cntrl}", "") + "\", \"model\": \"" + EMBEDDING_MODEL + "\"}";
         try (OutputStream os = conn.getOutputStream()) {
             byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
@@ -151,7 +154,7 @@ public class OpenAI implements Transformer {
     }
 
     @Override
-    public String generate(final String prompt) throws IOException {
+    public GptAnswer generate(final String prompt) throws IOException {
         return this.generate(prompt, COMPLETION_TEMPERATURE);
     }
 
@@ -163,7 +166,7 @@ public class OpenAI implements Transformer {
      * @return 回答
      * @throws IOException
      */
-    public String generate(final String prompt, final Float temperature) throws IOException {
+    public GptAnswer generate(final String prompt, final Float temperature) throws IOException {
         if (temperature == null || prompt == null) {
             return null;
         }
@@ -224,7 +227,7 @@ public class OpenAI implements Transformer {
 
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode jsonResponse = objectMapper.readTree(response.toString());
-        return jsonResponse.get("choices").get(0).get("message").get("content").asText();
+        return new GptAnswer(jsonResponse.get("choices").get(0).get("message").get("content").asText(), OpenAI.class);
     }
 
     /**

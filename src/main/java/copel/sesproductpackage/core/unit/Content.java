@@ -6,8 +6,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import copel.sesproductpackage.core.api.gpt.GptAnswer;
 import copel.sesproductpackage.core.api.gpt.Transformer;
 import copel.sesproductpackage.core.util.Properties;
 
@@ -130,9 +129,8 @@ public class Content {
      * @throws IOException
      * @throws RuntimeException
      */
-    @SuppressWarnings("unchecked")
     public boolean 複数判定処理実行(final Transformer transformer) throws IOException, RuntimeException {
-        String answer = null;
+        GptAnswer answer = null;
 
         // 複数の紹介文であれば配列の形で返却され、単一であれば「false」とだけ返すようなプロンプトを実行
         if (this.is要員紹介文()) {
@@ -144,21 +142,12 @@ public class Content {
         }
 
         // 10文字以上の文字列（「false」でない文字列）が返されていれば複数人の情報であると判断
-        if (answer.length() > 10) {
+        if (answer.length() > 10 && answer.isJsonArrayFormat()) {
+            // 複数紹介文フラグをtrueにし、回答をリスト形式で取得する
             this.is複数紹介文 = true;
-            // 回答が配列形式で取れていれば、[]の中を取得する
-            Pattern pattern = Pattern.compile("\\[([^]]*)\\]");
-            Matcher matcher = pattern.matcher(answer);
-            answer = matcher.find() ? matcher.group(0).trim() : null;
-            if (answer != null) {
-                answer = answer.replace("\t", "\\t");
-                answer = answer.replace("\n", "\\n");
-                ObjectMapper objectMapper = new ObjectMapper();
-                this.contentList = objectMapper.readValue(answer, List.class);
-            } else {
-                this.is複数紹介文 = false;
-            }
+            this.contentList = answer.getAsList();
         }
+
         return this.is複数紹介文;
     }
 

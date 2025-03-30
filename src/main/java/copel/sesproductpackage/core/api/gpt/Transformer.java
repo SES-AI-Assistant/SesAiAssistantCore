@@ -28,5 +28,5 @@ public interface Transformer {
      * @throws IOException
      * @throws RuntimeException
      */
-    public String generate(final String prompt) throws IOException, RuntimeException;
+    public GptAnswer generate(final String prompt) throws IOException, RuntimeException;
 }

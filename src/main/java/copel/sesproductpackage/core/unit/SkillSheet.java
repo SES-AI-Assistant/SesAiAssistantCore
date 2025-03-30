@@ -18,6 +18,7 @@ import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 
+import copel.sesproductpackage.core.api.gpt.GptAnswer;
 import copel.sesproductpackage.core.api.gpt.Transformer;
 import copel.sesproductpackage.core.util.Properties;
 import lombok.extern.slf4j.Slf4j;
@@ -155,7 +156,8 @@ public class SkillSheet {
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.append(SKILLSHEET_SUMMARIZE_PROMPT);
             stringBuilder.append(this.fileContent.replaceAll("[\\p{C}\"]", "")); // 制御文字とダブルクォーテーションを削除
-            this.fileContentSummary = transformer.generate(stringBuilder.toString());
+            GptAnswer answer = transformer.generate(stringBuilder.toString());
+            this.fileContentSummary = answer.getAnswer();
         } else {
             throw new IOException("ファイルの中身が空のため、要約の作成を中止します。");
         }
