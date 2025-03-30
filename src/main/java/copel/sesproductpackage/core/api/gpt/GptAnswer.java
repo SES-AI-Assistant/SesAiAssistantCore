@@ -16,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
  *
  * @author 鈴木一矢
  *
- * @param <T> Transformer
  */
 @Slf4j
 public class GptAnswer {
@@ -163,7 +162,7 @@ public class GptAnswer {
             arrayStr = arrayStr.replace("\t", "\\t");
             arrayStr = arrayStr.replace("\n", "\\n");
             ObjectMapper objectMapper = new ObjectMapper();
-            return objectMapper.readValue(answer, List.class);
+            return objectMapper.readValue(arrayStr, List.class);
         } else {
             return null;
         }
