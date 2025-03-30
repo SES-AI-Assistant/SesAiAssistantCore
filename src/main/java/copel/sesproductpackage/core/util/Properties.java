@@ -8,7 +8,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import lombok.extern.slf4j.Slf4j;
-import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
@@ -29,6 +30,10 @@ public class Properties {
      */
     private static final String objectKey = "config.properties";
     /**
+     * プロパティファイルが存在するリージョン.
+     */
+    private static final Region region = Region.AP_NORTHEAST_1;
+    /**
      * プロパティ.
      */
     private final static Map<String, String> properties = new HashMap<String, String>();
@@ -39,7 +44,8 @@ public class Properties {
     static {
         // S3クライアントの作成
         S3Client s3Client = S3Client.builder()
-                .credentialsProvider(ProfileCredentialsProvider.create())
+                .credentialsProvider(DefaultCredentialsProvider.create())
+                .region(region)
                 .build();
 
         try (InputStream inputStream = s3Client.getObject(GetObjectRequest.builder()

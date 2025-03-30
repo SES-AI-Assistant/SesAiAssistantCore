@@ -5,8 +5,9 @@ import java.io.InputStream;
 import java.util.Date;
 
 import lombok.extern.slf4j.Slf4j;
-import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -50,12 +51,13 @@ public class S3 {
      * @param bucketName バケット名.
      * @param objectKey オブジェクトキー.
      */
-    public S3 (final String bucketName, final String objectKey) {
+    public S3 (final String bucketName, final String objectKey, final Region region) {
         this.bucketName = bucketName;
         this.objectKey = objectKey;
         // S3クライアントの作成
         this.s3Client = S3Client.builder()
-                .credentialsProvider(ProfileCredentialsProvider.create())
+                .credentialsProvider(DefaultCredentialsProvider.create())
+                .region(region)
                 .build();
     }
 
