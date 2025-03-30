@@ -159,10 +159,17 @@ public class GptAnswer {
         Matcher matcher = pattern.matcher(this.answer);
         if (matcher.find()) {
             String arrayStr = matcher.group(0).trim();
-            arrayStr = arrayStr.replace("\t", "\\t");
-            arrayStr = arrayStr.replace("\n", "\\n");
             ObjectMapper objectMapper = new ObjectMapper();
-            return objectMapper.readValue(arrayStr, List.class);
+            try {
+                // JSON→Listにパース
+                return objectMapper.readValue(arrayStr, List.class);
+            } catch (JsonProcessingException e) {
+                // そのままJSON→Listにパースできない場合は制御文字をエスケープ
+                arrayStr = arrayStr.replace("\n", "\\n")
+                                   .replace("\t", "\\t")
+                                   .replace("\r", "\\r");
+                return objectMapper.readValue(arrayStr, List.class);
+            }
         } else {
             return null;
         }
