@@ -82,6 +82,26 @@ public class Properties {
     }
 
     /**
+     * 引数をキーにプロパティの値を整数型で取得します.
+     *
+     * @param key キー
+     * @return 整数型の値
+     */
+    public static Integer getInt(final String key) {
+        return Integer.parseInt(properties.get(key));
+    }
+
+    /**
+     * 引数をキーにプロパティの値を小数型で取得します.
+     *
+     * @param key キー
+     * @return 小数型の値
+     */
+    public static Double getDouble(final String key) {
+        return Double.parseDouble(properties.get(key));
+    }
+
+    /**
      * 引数をキーにプロパティの値を文字配列で取得します.
      *
      * @param key キー
