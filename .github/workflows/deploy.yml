@@ -36,4 +36,4 @@ jobs:
         run: mvn clean deploy --settings .github/maven-settings.xml
         env:
           GITHUB_ACTOR: ${{ secrets.GITHUB_ACTOR }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
