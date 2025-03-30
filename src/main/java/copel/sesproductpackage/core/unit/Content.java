@@ -8,7 +8,6 @@ import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import copel.sesproductpackage.core.api.gpt.Gemini;
 import copel.sesproductpackage.core.api.gpt.Transformer;
 import copel.sesproductpackage.core.util.Properties;
 
@@ -124,16 +123,15 @@ public class Content {
     }
 
     /**
-     * このメッセージが複数要員の情報を持つかどうか判定し、複数であればこのクラスのリストに結果を持ちます
+     * このメッセージが複数要員の情報を持つかどうか判定し、複数であればこのクラスのリストに結果を持ちます.
      *
-     * @param apiKey GPTのAPIキー
+     * @param transformer GPTクライアント
      * @retrun 複数であればtrue、単一であればfalse
      * @throws IOException
      * @throws RuntimeException
      */
     @SuppressWarnings("unchecked")
-    public boolean 複数判定処理実行(final String apiKey) throws IOException, RuntimeException {
-        Transformer transformer = new Gemini(apiKey);
+    public boolean 複数判定処理実行(final Transformer transformer) throws IOException, RuntimeException {
         String answer = null;
 
         // 複数の紹介文であれば配列の形で返却され、単一であれば「false」とだけ返すようなプロンプトを実行
