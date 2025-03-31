@@ -183,4 +183,9 @@ public class GptAnswer {
     public String getAnswer() {
         return this.answer;
     }
+
+    @Override
+    public String toString() {
+        return this.answer;
+    }
 }

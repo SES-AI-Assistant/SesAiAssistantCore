@@ -45,7 +45,7 @@ public class SES_AI_T_PERSONLot implements Iterable<SES_AI_T_PERSON> {
     /**
      * SES_AI_T_PERSONを複数持つLot.
      */
-    private Collection<SES_AI_T_PERSON> entityLot;
+    private List<SES_AI_T_PERSON> entityLot;
 
     /**
      * コンストラクタ.
@@ -74,6 +74,34 @@ public class SES_AI_T_PERSONLot implements Iterable<SES_AI_T_PERSON> {
             }
         }
         return null;
+    }
+
+    /**
+     * このLotにエンティティを1つ追加します.
+     *
+     * @param entity エンティティ
+     */
+    public void add(final SES_AI_T_PERSON entity) {
+        this.entityLot.add(entity);
+    }
+
+    /**
+     * このLotに登録されているレコード数を返却します.
+     *
+     * @return レコード数
+     */
+    public int size() {
+        return this.entityLot.size();
+    }
+
+    /**
+     * このLotのindex番目のレコードを返却します.
+     *
+     * @param index インデックス
+     * @return エンティティ
+     */
+    public SES_AI_T_PERSON get(final int index) {
+        return this.entityLot.get(index);
     }
 
     /**
