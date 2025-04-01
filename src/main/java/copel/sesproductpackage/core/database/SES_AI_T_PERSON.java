@@ -88,7 +88,7 @@ public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
      * @return file_idを持つならtrue、そうでないならfalse
      */
     public boolean isスキルシート登録済() {
-        return OriginalStringUtils.isEmpty(this.fileId);
+        return !OriginalStringUtils.isEmpty(this.fileId);
     }
 
     /**
