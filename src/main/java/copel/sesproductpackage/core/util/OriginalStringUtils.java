@@ -14,6 +14,6 @@ public class OriginalStringUtils {
      * @return 空であればtrue、それ以外はfalse
      */
     public static boolean isEmpty(final String str) {
-        return (str != null) ? (str.isBlank() || str.isEmpty() || str.length() == 0) : (str == null || "".equals(str));
+        return (str != null) ? (str.isBlank() || str.isEmpty() || str.length() == 0 || "".equals(str)) : true;
     }
 }
