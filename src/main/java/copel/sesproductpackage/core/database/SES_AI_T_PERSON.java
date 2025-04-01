@@ -10,6 +10,7 @@ import java.util.UUID;
 import copel.sesproductpackage.core.api.gpt.Transformer;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
+import copel.sesproductpackage.core.util.OriginalStringUtils;
 
 /**
  * 【Entityクラス】
@@ -87,11 +88,7 @@ public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
      * @return file_idを持つならtrue、そうでないならfalse
      */
     public boolean isスキルシート登録済() {
-        if (this.fileId != null) {
-            return !this.fileId.isEmpty();
-        } else {
-            return false;
-        }
+        return OriginalStringUtils.isEmpty(this.fileId);
     }
 
     /**
