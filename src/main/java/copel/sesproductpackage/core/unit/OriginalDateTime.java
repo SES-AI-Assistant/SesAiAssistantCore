@@ -3,7 +3,6 @@ package copel.sesproductpackage.core.unit;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Locale;
@@ -94,7 +93,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
         if (date == null) {
             this.dateTime = null;
         } else {
-            this.dateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault());
+            this.dateTime = date.toLocalDate().atStartOfDay();
         }
     }
 
@@ -324,7 +323,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
      */
     public void plusDays(final int days) {
         if (this.dateTime != null) {
-            this.dateTime.plusDays(days);
+            this.dateTime = this.dateTime.plusDays(days);
         }
     }
 
@@ -335,7 +334,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
      */
     public void minusMinutes(final int minutes) {
         if (this.dateTime != null) {
-            this.dateTime.minusMinutes(minutes);
+            this.dateTime = this.dateTime.minusMinutes(minutes);
         }
     }
 }
