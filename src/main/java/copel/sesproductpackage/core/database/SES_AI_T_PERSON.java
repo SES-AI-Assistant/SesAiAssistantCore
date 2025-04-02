@@ -23,15 +23,15 @@ public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
     /**
      * INSERTR文.
      */
-    private final static String INSERT_SQL = "INSERT INTO SES_AI_T_PERSON (person_id, from_group, from_id, from_name, raw_content, file_id, vector_data, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
+    private final static String INSERT_SQL = "INSERT INTO SES_AI_T_PERSON (person_id, from_group, from_id, from_name, raw_content, file_id, file_summary, vector_data, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
     /**
      * SELECT文.
      */
-    private final static String SELECT_SQL = "SELECT person_id, from_group, from_id, from_name, raw_content, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE person_id = ?";
+    private final static String SELECT_SQL = "SELECT person_id, from_group, from_id, from_name, raw_content, file_id, file_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE person_id = ?";
     /**
      * UPDATE文.
      */
-    private final static String UPDATE_SQL = "UPDATE SES_AI_T_PERSON SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, file_id = ?, vector_data = ?::vector, ttl = ? WHERE person_id = ?";
+    private final static String UPDATE_SQL = "UPDATE SES_AI_T_PERSON SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, file_id = ?, file_summary = ?, vector_data = ?::vector, ttl = ? WHERE person_id = ?";
     /**
      * 重複チェック用SQL.
      */
@@ -116,10 +116,11 @@ public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
         preparedStatement.setString(4, this.fromName);
         preparedStatement.setString(5, this.rawContent);
         preparedStatement.setString(6, this.fileId);
-        preparedStatement.setString(7, this.vectorData == null ? null : this.vectorData.toString());
-        preparedStatement.setTimestamp(8, this.registerDate == null ? null : this.registerDate.toTimestamp());
-        preparedStatement.setString(9, this.registerUser);
-        preparedStatement.setTimestamp(10, this.ttl == null ? null : this.ttl.toTimestamp());
+        preparedStatement.setString(7, this.fileSummary);
+        preparedStatement.setString(8, this.vectorData == null ? null : this.vectorData.toString());
+        preparedStatement.setTimestamp(9, this.registerDate == null ? null : this.registerDate.toTimestamp());
+        preparedStatement.setString(10, this.registerUser);
+        preparedStatement.setTimestamp(11, this.ttl == null ? null : this.ttl.toTimestamp());
         return preparedStatement.executeUpdate();
     }
 
@@ -140,9 +141,10 @@ public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
         preparedStatement.setString(3, this.fromName);
         preparedStatement.setString(4, this.rawContent);
         preparedStatement.setString(5, this.fileId);
-        preparedStatement.setString(6, this.vectorData == null ? null : this.vectorData.toString());
-        preparedStatement.setTimestamp(7, this.ttl == null ? null : this.ttl.toTimestamp());
-        preparedStatement.setString(8, this.personId);
+        preparedStatement.setString(6, this.fileSummary);
+        preparedStatement.setString(7, this.vectorData == null ? null : this.vectorData.toString());
+        preparedStatement.setTimestamp(8, this.ttl == null ? null : this.ttl.toTimestamp());
+        preparedStatement.setString(9, this.personId);
         return preparedStatement.executeUpdate() > 0;
     }
 
@@ -196,6 +198,7 @@ public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
             this.fromName = resultSet.getString("from_name");
             this.rawContent = resultSet.getString("raw_content");
             this.fileId = resultSet.getString("file_id");
+            this.fileSummary = resultSet.getString("file_summary");
             this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
             this.registerUser = resultSet.getString("register_user");
             this.ttl = new OriginalDateTime(resultSet.getString("ttl"));
@@ -214,19 +217,24 @@ public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
     @Override
     public String toString() {
         return "{"
-                + "\n  personId: " + this.personId
-                + "\n  fromGroup: " + this.fromGroup
-                + "\n  fromId: " + this.fromId
-                + "\n  fromName: " + this.fromName
-                + "\n  skillsheetId: " + this.fileId
-                + "\n  skillsheetSummary: " + this.fileSummary
-                + "\n  rawContent: " + this.rawContent
-                + "\n  vectorData: " + this.vectorData
-                + "\n  registerDate: " + this.registerDate
-                + "\n  registerUser: " + this.registerUser
+                + "\n  person_id: " + this.personId
+                + "\n  from_group: " + this.fromGroup
+                + "\n  from_id: " + this.fromId
+                + "\n  from_name: " + this.fromName
+                + "\n  raw_content: " + this.rawContent
+                + "\n  file_id: " + this.fileId
+                + "\n  file_summary: " + this.fileSummary
+                + "\n  vector_data: " + this.vectorData
+                + "\n  register_date: " + this.registerDate
+                + "\n  register_user: " + this.registerUser
                 + "\n  ttl: " + this.ttl
                 + "\n  distance: " + this.distance
                 + "\n}";
+    }
+
+    @Override
+    public int compareTo(SES_AI_T_PERSON o) {
+        return Double.compare(this.getDistance(), o.getDistance());
     }
 
     // ================================
@@ -303,10 +311,5 @@ public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
     }
     public void setDistance(double distance) {
         this.distance = distance;
-    }
-
-    @Override
-    public int compareTo(SES_AI_T_PERSON o) {
-        return Double.compare(this.getDistance(), o.getDistance());
     }
 }
