@@ -44,16 +44,22 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
         } else {
             // パースを試みるパターンのリスト
             String[] patterns = {
+                "yyyy-MM-dd HH:mm:ss.SSSSSS", 
+                "yyyy-MM-dd HH:mm:ss.SSSSS", 
+                "yyyy-MM-dd HH:mm:ss.SSSS", 
                 "yyyy-MM-dd HH:mm:ss.SSS", 
                 "yyyy-MM-dd HH:mm:ss.SS", 
                 "yyyy-MM-dd HH:mm:ss.S", 
                 "yyyy-MM-dd HH:mm:ss", 
                 "yyyy-MM-dd HH:mm", 
                 "yyyy-MM-dd",
-                "yyyy/MM/dd HH:mm:ss.SSS", 
-                "yyyy/MM/dd HH:mm:ss.SS", 
-                "yyyy/MM/dd HH:mm:ss.S", 
-                "yyyy/MM/dd HH:mm:ss", 
+                "yyyy/MM/dd HH:mm:ss.SSSSSS",
+                "yyyy/MM/dd HH:mm:ss.SSSSS",
+                "yyyy/MM/dd HH:mm:ss.SSSS",
+                "yyyy/MM/dd HH:mm:ss.SSS",
+                "yyyy/MM/dd HH:mm:ss.SS",
+                "yyyy/MM/dd HH:mm:ss.S",
+                "yyyy/MM/dd HH:mm:ss",
                 "yyyy/MM/dd HH:mm",
                 "yyyy/MM/dd"
             };

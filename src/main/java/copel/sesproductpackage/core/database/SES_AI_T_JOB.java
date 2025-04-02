@@ -144,13 +144,15 @@ public class SES_AI_T_JOB {
         PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SQL);
         preparedStatement.setString(1, this.jobId);
         ResultSet resultSet = preparedStatement.executeQuery();
-        this.fromGroup = resultSet.getString("from_group");
-        this.fromId = resultSet.getString("from_id");
-        this.fromName = resultSet.getString("from_name");
-        this.rawContent = resultSet.getString("raw_content");
-        this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
-        this.registerUser = resultSet.getString("register_user");
-        this.ttl = new OriginalDateTime(resultSet.getString("ttl"));
+        if (resultSet.next()) {
+            this.fromGroup = resultSet.getString("from_group");
+            this.fromId = resultSet.getString("from_id");
+            this.fromName = resultSet.getString("from_name");
+            this.rawContent = resultSet.getString("raw_content");
+            this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
+            this.registerUser = resultSet.getString("register_user");
+            this.ttl = new OriginalDateTime(resultSet.getString("ttl"));
+        }
     }
 
     @Override
