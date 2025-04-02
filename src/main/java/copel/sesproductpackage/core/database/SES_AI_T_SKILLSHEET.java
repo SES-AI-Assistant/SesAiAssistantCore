@@ -24,6 +24,14 @@ public class SES_AI_T_SKILLSHEET {
      */
     private final static String INSERT_SQL = "INSERT INTO SES_AI_T_SKILLSHEET (from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
     /**
+     * SELECT文.
+     */
+    private final static String SELECT_SQL = "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
+    /**
+     * SELECT文(原文抜き).
+     */
+    private final static String SELECT_WITHOUT_CONTENT_SQL = "SELECT from_group, from_id, from_name, file_id, file_name, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
+    /**
      * 重複チェック用SQL.
      */
     private final static String CHECK_SQL = "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET WHERE file_content % ? AND similarity(file_content, ?) > ?";
@@ -134,6 +142,57 @@ public class SES_AI_T_SKILLSHEET {
         return resultSet.getInt(1) < 1;
     }
 
+    /**
+     * このオブジェクトに格納されているPKをキーにレコードを1件SELECTしこのオブジェクトに持ちます.
+     *
+     * @param connection DBコネクション
+     * @throws SQLException
+     */
+    public void selectByPk(final Connection connection) throws SQLException {
+        if (connection == null || this.getFileId() == null) {
+            return;
+        }
+        PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SQL);
+        preparedStatement.setString(1, this.getFileId());
+        ResultSet resultSet = preparedStatement.executeQuery();
+        if (resultSet.next()) {
+            this.fromGroup = resultSet.getString("from_group");
+            this.fromId = resultSet.getString("from_id");
+            this.fromName = resultSet.getString("from_name");
+            this.skillSheet = new SkillSheet(resultSet.getString("file_id"), resultSet.getString("file_name"), resultSet.getString("file_content"));
+            this.skillSheet.setFileContentSummary(resultSet.getString("file_content_summary"));
+            this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
+            this.registerUser = resultSet.getString("register_user");
+            this.ttl = new OriginalDateTime(resultSet.getString("ttl"));
+        }
+    }
+
+    /**
+     * このオブジェクトに格納されているPKをキーにレコードを1件SELECTしこのオブジェクトに持ちます(原文抜きでSELECT).
+     * 原文が1.5万文字程度あり、頻繁にSELECTすると負荷を書けるため、可能であれば除外して検索する.
+     *
+     * @param connection DBコネクション
+     * @throws SQLException
+     */
+    public void selectByPkWithoutRawContent(final Connection connection) throws SQLException {
+        if (connection == null || this.getFileId() == null) {
+            return;
+        }
+        PreparedStatement preparedStatement = connection.prepareStatement(SELECT_WITHOUT_CONTENT_SQL);
+        preparedStatement.setString(1, this.getFileId());
+        ResultSet resultSet = preparedStatement.executeQuery();
+        if (resultSet.next()) {
+            this.fromGroup = resultSet.getString("from_group");
+            this.fromId = resultSet.getString("from_id");
+            this.fromName = resultSet.getString("from_name");
+            this.skillSheet = new SkillSheet(resultSet.getString("file_id"), resultSet.getString("file_name"), "");
+            this.skillSheet.setFileContentSummary(resultSet.getString("file_content_summary"));
+            this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
+            this.registerUser = resultSet.getString("register_user");
+            this.ttl = new OriginalDateTime(resultSet.getString("ttl"));
+        }
+    }
+
     @Override
     public String toString() {
         return "{\n fromGroup: " + this.fromGroup
@@ -149,6 +208,15 @@ public class SES_AI_T_SKILLSHEET {
                 + "\n ttl: " + this.ttl
                 + "\n distance: " + this.distance
                 + "\n}";
+    }
+
+    /**
+     * このレコードがもつスキルシートのダウンロードURLを返却します.
+     *
+     * @return ダウンロードURL
+     */
+    public String getFileUrl() {
+        return this.skillSheet != null ? this.skillSheet.getFileUrl() : null;
     }
 
     // ================================

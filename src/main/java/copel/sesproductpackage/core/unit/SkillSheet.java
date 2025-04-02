@@ -22,6 +22,7 @@ import copel.sesproductpackage.core.api.gpt.GptAnswer;
 import copel.sesproductpackage.core.api.gpt.Transformer;
 import copel.sesproductpackage.core.util.Properties;
 import lombok.extern.slf4j.Slf4j;
+import software.amazon.awssdk.regions.Region;
 
 /**
  * スキルシートの情報を持つクラス.
@@ -38,7 +39,11 @@ public class SkillSheet {
     /**
      * DBへ保存するスキルシートのraw_contentの最大長.
      */
-    private final static int SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH = Integer.parseInt(Properties.get("SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH"));
+    private final static int SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH = Properties.getInt("SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH");
+    /**
+     * スキルシートの保存先S3バケット名.
+     */
+    private final static String S3_BUCKET_NAME = Properties.get("S3_BUCKET_NAME");
 
     /**
      * ファイルID.
@@ -161,6 +166,15 @@ public class SkillSheet {
         } else {
             throw new IOException("ファイルの中身が空のため、要約の作成を中止します。");
         }
+    }
+
+    /**
+     * このスキルシートのダウンロードURLを返却します.
+     *
+     * @return ダウンロードURL
+     */
+    public String getFileUrl() {
+        return "https://" + S3_BUCKET_NAME + ".s3." + Region.AP_NORTHEAST_1.toString() + ".amazonaws.com/" + this.fileId + "_" + this.fileName;
     }
 
     // GETTER / SETTER
