@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
@@ -232,6 +233,48 @@ public class SES_AI_T_JOBLot implements Iterable<SES_AI_T_JOB> {
             SES_AI_T_JOB.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
             this.entityLot.add(SES_AI_T_JOB);
         }
+    }
+
+    /**
+     * 引数に指定した案件IDを持つEntityを返却する.
+     *
+     * @param jobId 案件ID
+     * @return SES_AI_T_JOB
+     */
+    public SES_AI_T_JOB getEntityByPk(final String jobId) {
+        if (jobId == null) {
+            return null;
+        }
+
+        for (SES_AI_T_JOB entity : this.entityLot) {
+            if (jobId.trim().equals(entity.getJobId().trim())) {
+                return entity;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * LLMに最もマッチする案件の案件IDを選出させるための文章に変換する.
+     *
+     * @return 変換後の文章
+     */
+    public String to案件選出用文章() {
+        String result = "";
+        int i = 1;
+        for (SES_AI_T_JOB entity : this.entityLot) {
+            result += Integer.toString(i) + "人目：" + entity.to案件選出用文章();
+        }
+        return result;
+    }
+
+    /**
+     * このLotをdistanceの昇順でソートします.
+     */
+    public void sort() {
+        this.entityLot = this.entityLot.stream()
+                .sorted()
+                .collect(Collectors.toList());
     }
 
     /**

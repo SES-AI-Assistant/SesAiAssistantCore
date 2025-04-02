@@ -18,7 +18,7 @@ import copel.sesproductpackage.core.unit.Vector;
  * @author 鈴木一矢
  *
  */
-public class SES_AI_T_JOB {
+public class SES_AI_T_JOB implements Comparable<SES_AI_T_JOB> {
     /**
      * INSERTR文.
      */
@@ -155,6 +155,15 @@ public class SES_AI_T_JOB {
         }
     }
 
+    /**
+     * LLMに最もマッチする案件の案件IDを選出させるための文章に変換する.
+     *
+     * @return 変換後の文章
+     */
+    public String to案件選出用文章() {
+        return "案件ID：" + this.jobId + "内容：" + this.rawContent;
+    }
+
     @Override
     public String toString() {
         return "{\n fromGroup: " + this.fromGroup
@@ -168,6 +177,11 @@ public class SES_AI_T_JOB {
                 + "\n ttl: " + this.ttl
                 + "\n distance: " + this.distance
                 + "\n}";
+    }
+
+    @Override
+    public int compareTo(SES_AI_T_JOB o) {
+        return Double.compare(this.getDistance(), o.getDistance());
     }
 
     // ================================
