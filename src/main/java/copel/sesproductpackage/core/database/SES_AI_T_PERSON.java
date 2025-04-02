@@ -62,6 +62,10 @@ public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
      */
     private String fileId;
     /**
+     * スキルシートの要約.
+     */
+    private String fileSummary;
+    /**
      * OpenAIベクトルデータ.
      */
     private Vector vectorData;
@@ -204,7 +208,7 @@ public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
      * @return 変換後の文章
      */
     public String to要員選出用文章() {
-    	return "要員ID：" + this.personId + "内容：" + this.rawContent;
+    	return "要員ID：" + this.personId + "内容：" + this.rawContent + this.fileSummary;
     }
 
     @Override
@@ -215,6 +219,7 @@ public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
                 + "\n  fromId: " + this.fromId
                 + "\n  fromName: " + this.fromName
                 + "\n  skillsheetId: " + this.fileId
+                + "\n  skillsheetSummary: " + this.fileSummary
                 + "\n  rawContent: " + this.rawContent
                 + "\n  vectorData: " + this.vectorData
                 + "\n  registerDate: " + this.registerDate
@@ -256,6 +261,12 @@ public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
     }
     public void setFileId(String fileId) {
         this.fileId = fileId;
+    }
+    public String getFileSummary() {
+        return fileSummary;
+    }
+    public void setFileSummary(String fileSummary) {
+        this.fileSummary = fileSummary;
     }
     public String getRawContent() {
         return rawContent;

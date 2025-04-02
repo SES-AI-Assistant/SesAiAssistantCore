@@ -26,11 +26,11 @@ public class SES_AI_T_SKILLSHEET {
     /**
      * SELECT文.
      */
-    private final static String SELECT_SQL = "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
+    private final static String SELECT_SQL = "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
     /**
      * SELECT文(原文抜き).
      */
-    private final static String SELECT_WITHOUT_CONTENT_SQL = "SELECT from_group, from_id, from_name, file_id, file_name, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
+    private final static String SELECT_WITHOUT_CONTENT_SQL = "SELECT from_group, from_id, from_name, file_id, file_name, file_content_summary, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
     /**
      * 重複チェック用SQL.
      */
