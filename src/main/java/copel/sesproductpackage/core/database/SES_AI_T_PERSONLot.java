@@ -5,12 +5,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
+import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
@@ -24,7 +22,7 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 @Slf4j
-public class SES_AI_T_PERSONLot implements Iterable<SES_AI_T_PERSON> {
+public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
     /**
      * ベクトル検索SQL.
      */
@@ -43,15 +41,10 @@ public class SES_AI_T_PERSONLot implements Iterable<SES_AI_T_PERSON> {
     private final static String SELECT_SQL_BY_REGISTER_DATE = "SELECT person_id, from_group, from_id, from_name, raw_content, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE register_date >= ?";
 
     /**
-     * SES_AI_T_PERSONを複数持つLot.
-     */
-    private List<SES_AI_T_PERSON> entityLot;
-
-    /**
      * コンストラクタ.
      */
     public SES_AI_T_PERSONLot() {
-        this.entityLot = new ArrayList<SES_AI_T_PERSON>();
+        super();
     }
 
     /**
@@ -74,43 +67,6 @@ public class SES_AI_T_PERSONLot implements Iterable<SES_AI_T_PERSON> {
             }
         }
         return null;
-    }
-
-    /**
-     * このLotにエンティティを1つ追加します.
-     *
-     * @param entity エンティティ
-     */
-    public void add(final SES_AI_T_PERSON entity) {
-        this.entityLot.add(entity);
-    }
-
-    /**
-     * このLotに登録されているレコード数を返却します.
-     *
-     * @return レコード数
-     */
-    public int size() {
-        return this.entityLot.size();
-    }
-
-    /**
-     * このLotのindex番目のレコードを返却します.
-     *
-     * @param index インデックス
-     * @return エンティティ
-     */
-    public SES_AI_T_PERSON get(final int index) {
-        return this.entityLot.get(index);
-    }
-
-    /**
-     * このLotをdistanceの昇順でソートします.
-     */
-    public void sort() {
-        this.entityLot = this.entityLot.stream()
-                .sorted()
-                .collect(Collectors.toList());
     }
 
     /**
@@ -352,20 +308,6 @@ public class SES_AI_T_PERSONLot implements Iterable<SES_AI_T_PERSON> {
         }
     }
 
-    /**
-     * このクラスの持つLotオブジェクトを返却します.
-     *
-     * @return Lot
-     */
-    public Collection<SES_AI_T_PERSON> getLot() {
-        return this.entityLot;
-    }
-
-    @Override
-    public Iterator<SES_AI_T_PERSON> iterator() {
-        return this.entityLot != null ? this.entityLot.iterator() : null;
-    }
-
     @Override
     public String toString() {
         StringBuilder stringBuilder = new StringBuilder();
@@ -375,4 +317,7 @@ public class SES_AI_T_PERSONLot implements Iterable<SES_AI_T_PERSON> {
         }
         return stringBuilder.toString();
     }
+
+    @Override
+    public void selectAll(Connection connection) throws SQLException {}
 }

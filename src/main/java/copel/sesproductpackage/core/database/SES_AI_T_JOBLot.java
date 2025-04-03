@@ -5,12 +5,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
+import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
@@ -22,7 +20,7 @@ import copel.sesproductpackage.core.unit.Vector;
  * @author 鈴木一矢
  *
  */
-public class SES_AI_T_JOBLot implements Iterable<SES_AI_T_JOB> {
+public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
     /**
      * ベクトル検索SQL.
      */
@@ -37,12 +35,10 @@ public class SES_AI_T_JOBLot implements Iterable<SES_AI_T_JOB> {
     private final static String SELECT_SQL = "SELECT job_id, from_group, from_id, from_name, raw_content, vector_data, register_date, register_user, ttl FROM SES_AI_T_JOB WHERE ";
 
     /**
-     * SES_AI_T_JOBを複数持つLot.
+     * コンストラクタ.
      */
-    private Collection<SES_AI_T_JOB> entityLot;
-
     public SES_AI_T_JOBLot() {
-        this.entityLot = new ArrayList<SES_AI_T_JOB>();
+        super();
     }
 
     /**
@@ -268,26 +264,6 @@ public class SES_AI_T_JOBLot implements Iterable<SES_AI_T_JOB> {
         return result;
     }
 
-    /**
-     * このLotをdistanceの昇順でソートします.
-     */
-    public void sort() {
-        this.entityLot = this.entityLot.stream()
-                .sorted()
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * このクラスの持つLotオブジェクトを返却します.
-     *
-     * @return Lot
-     */
-    public Collection<SES_AI_T_JOB> getLot() {
-    	return this.entityLot;
-    }
-
     @Override
-    public Iterator<SES_AI_T_JOB> iterator() {
-        return this.entityLot != null ? this.entityLot.iterator() : null;
-    }
+    public void selectAll(Connection connection) throws SQLException {}
 }

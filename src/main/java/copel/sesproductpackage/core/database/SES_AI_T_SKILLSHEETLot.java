@@ -5,11 +5,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
@@ -21,7 +20,7 @@ import copel.sesproductpackage.core.unit.Vector;
  * @author 鈴木一矢
  *
  */
-public class SES_AI_T_SKILLSHEETLot implements Iterable<SES_AI_T_SKILLSHEET> {
+public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     /**
      * ベクトル検索SQL.
      */
@@ -40,12 +39,10 @@ public class SES_AI_T_SKILLSHEETLot implements Iterable<SES_AI_T_SKILLSHEET> {
     private final static String SELECT_SQL = "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE ";
 
     /**
-     * SES_AI_T_SKILLSHEETを複数持つLot.
+     * コンストラクタ.
      */
-    private Collection<SES_AI_T_SKILLSHEET> entityLot;
-
     public SES_AI_T_SKILLSHEETLot() {
-        this.entityLot = new ArrayList<SES_AI_T_SKILLSHEET>();
+        super();
     }
 
     /**
@@ -277,17 +274,6 @@ public class SES_AI_T_SKILLSHEETLot implements Iterable<SES_AI_T_SKILLSHEET> {
         }
     }
 
-    /**
-     * このクラスの持つLotオブジェクトを返却します.
-     *
-     * @return Lot
-     */
-    public Collection<SES_AI_T_SKILLSHEET> getLot() {
-    	return this.entityLot;
-    }
-
     @Override
-    public Iterator<SES_AI_T_SKILLSHEET> iterator() {
-        return this.entityLot != null ? this.entityLot.iterator() : null;
-    }
+    public void selectAll(Connection connection) throws SQLException {}
 }

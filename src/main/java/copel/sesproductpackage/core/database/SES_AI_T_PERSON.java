@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.util.UUID;
 
 import copel.sesproductpackage.core.api.gpt.Transformer;
+import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
@@ -19,7 +20,10 @@ import copel.sesproductpackage.core.util.OriginalStringUtils;
  * @author 鈴木一矢
  *
  */
-public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
+public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
+    // ================================
+    // SQL
+    // ================================
     /**
      * INSERTR文.
      */
@@ -37,22 +41,13 @@ public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
      */
     private final static String CHECK_SQL = "SELECT COUNT(*) FROM SES_AI_T_PERSON WHERE raw_content % ? AND similarity(raw_content, ?) > ?";
 
+    // ================================
+    // メンバ
+    // ================================
     /**
      * 要員ID(PK).
      */
     private String personId;
-    /**
-     * 送信元グループ.
-     */
-    private String fromGroup;
-    /**
-     * 送信者ID.
-     */
-    private String fromId;
-    /**
-     * 送信者名.
-     */
-    private String fromName;
     /**
      * 原文.
      */
@@ -65,26 +60,18 @@ public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
      * スキルシートの要約.
      */
     private String fileSummary;
+
+    // ================================
+    // メソッド
+    // ================================
     /**
-     * OpenAIベクトルデータ.
+     * LLMに最もマッチする要員の要員IDを選出させるための文章に変換する.
+     *
+     * @return 変換後の文章
      */
-    private Vector vectorData;
-    /**
-     * 登録日時.
-     */
-    private OriginalDateTime registerDate;
-    /**
-     * 登録ユーザー.
-     */
-    private String registerUser;
-    /**
-     * 有効期限.
-     */
-    private OriginalDateTime ttl;
-    /**
-     * ユークリッド距離.
-     */
-    private double distance;
+    public String to要員選出用文章() {
+        return "要員ID：" + this.personId + "内容：" + this.rawContent + this.fileSummary;
+    }
 
     /**
      * このレコードがfile_idを持つかどうかを返却します.
@@ -95,12 +82,28 @@ public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
         return !OriginalStringUtils.isEmpty(this.fileId);
     }
 
-    /**
-     * INSERT処理を実行します.
-     *
-     * @param connection DBコネクション
-     * @throws SQLException
-     */
+    // ================================
+    // Overrideメソッド
+    // ================================
+    @Override
+    public void embedding(final Transformer embeddingProcessListener) throws IOException, RuntimeException {
+        this.vectorData = new Vector(embeddingProcessListener);
+        this.vectorData.setRawString(this.rawContent);
+        this.vectorData.embedding();
+    }
+
+    @Override
+    public boolean uniqueCheck(final Connection connection, final double similarityThreshold) throws SQLException {
+        PreparedStatement preparedStatement = connection.prepareStatement(CHECK_SQL);
+        preparedStatement.setString(1, this.rawContent);
+        preparedStatement.setString(2, this.rawContent);
+        preparedStatement.setDouble(3, similarityThreshold);
+        ResultSet resultSet = preparedStatement.executeQuery();
+        resultSet.next();
+        return resultSet.getInt(1) < 1;
+    }
+
+    @Override
     public int insert(final Connection connection) throws SQLException {
         if (connection == null) {
             return 0;
@@ -124,13 +127,7 @@ public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
         return preparedStatement.executeUpdate();
     }
 
-    /**
-     * UPDATE処理を実行します.
-     *
-     * @param connection DBコネクション
-     * @return 成功 or 失敗
-     * @throws SQLException
-     */
+    @Override
     public boolean updateByPk(final Connection connection) throws SQLException {
         if (connection == null || this.personId == null) {
             return false;
@@ -148,43 +145,7 @@ public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
         return preparedStatement.executeUpdate() > 0;
     }
 
-    /**
-     * このエンティティが持つrawContentをエンベディングする.
-     *
-     * @param embeddingProcessListener エンベディング処理リスナー
-     * @throws IOException
-     * @throws RuntimeException
-     */
-    public void embedding(final Transformer embeddingProcessListener) throws IOException, RuntimeException {
-        this.vectorData = new Vector(embeddingProcessListener);
-        this.vectorData.setRawString(this.rawContent);
-        this.vectorData.embedding();
-    }
-
-    /**
-     * SES_AI_T_PERSONテーブル内にこのエンティティの持つrawContentと類似したrawContentがあるかどうを判定する.
-     *
-     * @param connection DBコネクション
-     * @param similarityThreshold 類似度基準値(0.0～1.0で指定する。文章の一致率を示す。例えば0.8であれば、80%以上一致する文章が存在しなければユニークであると判定)
-     * @return 類似するレコードがなければtrue、あればfalse
-     * @throws SQLException
-     */
-    public boolean uniqueCheck(final Connection connection, final double similarityThreshold) throws SQLException {
-        PreparedStatement preparedStatement = connection.prepareStatement(CHECK_SQL);
-        preparedStatement.setString(1, this.rawContent);
-        preparedStatement.setString(2, this.rawContent);
-        preparedStatement.setDouble(3, similarityThreshold);
-        ResultSet resultSet = preparedStatement.executeQuery();
-        resultSet.next();
-        return resultSet.getInt(1) < 1;
-    }
-
-    /**
-     * このオブジェクトに格納されているPKをキーにレコードを1件SELECTしこのオブジェクトに持ちます.
-     *
-     * @param connection DBコネクション
-     * @throws SQLException
-     */
+    @Override
     public void selectByPk(final Connection connection) throws SQLException {
         if (connection == null || this.personId == null) {
             return;
@@ -205,13 +166,9 @@ public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
         }
     }
 
-    /**
-     * LLMに最もマッチする要員の要員IDを選出させるための文章に変換する.
-     *
-     * @return 変換後の文章
-     */
-    public String to要員選出用文章() {
-    	return "要員ID：" + this.personId + "内容：" + this.rawContent + this.fileSummary;
+    @Override
+    public boolean deleteByPk(Connection connection) throws SQLException {
+        return false;
     }
 
     @Override
@@ -232,11 +189,6 @@ public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
                 + "\n}";
     }
 
-    @Override
-    public int compareTo(SES_AI_T_PERSON o) {
-        return Double.compare(this.getDistance(), o.getDistance());
-    }
-
     // ================================
     // Getter / Setter
     // ================================
@@ -246,24 +198,6 @@ public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
 	public void setPersonId(String personId) {
 		this.personId = personId;
 	}
-    public String getFromGroup() {
-        return fromGroup;
-    }
-	public void setFromGroup(String fromGroup) {
-        this.fromGroup = fromGroup;
-    }
-    public String getFromId() {
-        return fromId;
-    }
-    public void setFromId(String fromId) {
-        this.fromId = fromId;
-    }
-    public String getFromName() {
-        return fromName;
-    }
-    public void setFromName(String fromName) {
-        this.fromName = fromName;
-    }
     public String getFileId() {
         return fileId;
     }
@@ -281,35 +215,5 @@ public class SES_AI_T_PERSON implements Comparable<SES_AI_T_PERSON> {
     }
     public void setRawContent(String rawContent) {
         this.rawContent = rawContent;
-    }
-    public Vector getVectorData() {
-        return vectorData;
-    }
-    public void setVectorData(Vector vectorData) {
-        this.vectorData = vectorData;
-    }
-    public OriginalDateTime getRegisterDate() {
-        return registerDate;
-    }
-    public void setRegisterDate(OriginalDateTime registerDate) {
-        this.registerDate = registerDate;
-    }
-    public String getRegisterUser() {
-        return registerUser;
-    }
-    public void setRegisterUser(String registerUser) {
-        this.registerUser = registerUser;
-    }
-    public OriginalDateTime getTtl() {
-        return ttl;
-    }
-    public void setTtl(OriginalDateTime ttl) {
-        this.ttl = ttl;
-    }
-    public double getDistance() {
-        return distance;
-    }
-    public void setDistance(double distance) {
-        this.distance = distance;
     }
 }
