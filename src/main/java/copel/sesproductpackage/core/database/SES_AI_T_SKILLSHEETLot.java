@@ -46,6 +46,38 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     }
 
     /**
+     * LLMに最もマッチするスキルシートのファイルIDを選出させるための文章に変換する.
+     *
+     * @return 変換後の文章
+     */
+    public String toスキルシート選出用文章() {
+        String result = "";
+        int i = 1;
+        for (SES_AI_T_SKILLSHEET entity : this.entityLot) {
+            result += Integer.toString(i) + "人目：" + entity.toスキルシート選出用文章();
+        }
+        return result;
+    }
+
+    /**
+     * 引数に指定したファイルIDを持つEntityを返却する.
+     *
+     * @param fileId ファイルID
+     * @return SES_AI_T_SKILLSHEET
+     */
+    public SES_AI_T_SKILLSHEET getEntityByPk(final String fileId) {
+        if (fileId == null) {
+            return null;
+        }
+        for (SES_AI_T_SKILLSHEET entity : this.entityLot) {
+            if (fileId.trim().equals(entity.getFileId().trim())) {
+                return entity;
+            }
+        }
+        return null;
+    }
+
+    /**
      * ベクトル検索を実行し結果をこのLotに保持します.
      *
      * @param connection DBコネクション

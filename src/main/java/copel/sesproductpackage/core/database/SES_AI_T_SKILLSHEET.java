@@ -59,6 +59,15 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
     // メソッド
     // ================================
     /**
+     * LLMに最もマッチするスキルシートのファイルIDを選出させるための文章に変換する.
+     *
+     * @return 変換後の文章
+     */
+    public String toスキルシート選出用文章() {
+        return "ファイルID：" + this.skillSheet.getFileId() + "内容：" + this.getFileContentSummary();
+    }
+
+    /**
      * このレコードがもつスキルシートのダウンロードURLを返却します.
      *
      * @return ダウンロードURL
