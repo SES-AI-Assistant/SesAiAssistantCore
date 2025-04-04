@@ -216,13 +216,13 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
         this.skillSheet.setFileContent(fileName);
     }
     public String getFileContent() {
-        return this.skillSheet == null ? null : this.skillSheet.getFileContent();
+        return this.skillSheet == null ? "" : this.skillSheet.getFileContent();
     }
     public void setFileContent(String fileContent) {
         this.skillSheet.setFileContent(fileContent);
     }
     public String getFileContentSummary() {
-        return this.skillSheet == null ? null : this.skillSheet.getFileContentSummary();
+        return this.skillSheet == null ? "" : this.skillSheet.getFileContentSummary();
     }
     public void setFileContentSummary(String fileContentSummary) {
         this.skillSheet.setFileContent(fileContentSummary);
