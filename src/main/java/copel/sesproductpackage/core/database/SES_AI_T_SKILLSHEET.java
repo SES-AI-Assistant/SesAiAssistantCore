@@ -213,7 +213,7 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
         return this.skillSheet == null ? null : this.skillSheet.getFileName();
     }
     public void setFileName(String fileName) {
-        this.skillSheet.setFileContent(fileName);
+        this.skillSheet.setFileName(fileName);
     }
     public String getFileContent() {
         return this.skillSheet == null ? "" : this.skillSheet.getFileContent();
