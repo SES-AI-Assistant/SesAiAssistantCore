@@ -180,16 +180,16 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
 
     @Override
     public String toString() {
-        return "{\n fromGroup: " + this.fromGroup
-                + "\n fromId: " + this.fromId
-                + "\n fromName: " + this.fromName
-                + "\n skillsheetId: " + this.skillSheet == null ? null : this.skillSheet.getFileId()
-                + "\n fileName: " + this.skillSheet == null ? null : this.skillSheet.getFileName()
-                + "\n fileContent: " + this.skillSheet == null ? null : this.skillSheet.getFileContent()
-                + "\n fileContentSummary: " + this.skillSheet == null ? null : this.skillSheet.getFileContentSummary()
-                + "\n vectorData: " + this.vectorData
-                + "\n registerDate: " + this.registerDate
-                + "\n registerUser: " + this.registerUser
+        return "{\n from_group: " + this.fromGroup
+                + "\n from_id: " + this.fromId
+                + "\n from_name: " + this.fromName
+                + "\n file_id: " + this.skillSheet == null ? null : this.skillSheet.getFileId()
+                + "\n file_name: " + this.skillSheet == null ? null : this.skillSheet.getFileName()
+                + "\n file_content: " + this.skillSheet == null ? null : this.skillSheet.getFileContent()
+                + "\n file_content_summary: " + this.skillSheet == null ? null : this.skillSheet.getFileContentSummary()
+                + "\n vector_data: " + this.vectorData
+                + "\n register_date: " + this.registerDate
+                + "\n register_user: " + this.registerUser
                 + "\n ttl: " + this.ttl
                 + "\n distance: " + this.distance
                 + "\n}";
@@ -225,6 +225,6 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
         return this.skillSheet == null ? "" : this.skillSheet.getFileContentSummary();
     }
     public void setFileContentSummary(String fileContentSummary) {
-        this.skillSheet.setFileContent(fileContentSummary);
+        this.skillSheet.setFileContentSummary(fileContentSummary);
     }
 }
