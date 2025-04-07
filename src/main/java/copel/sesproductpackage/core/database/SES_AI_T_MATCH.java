@@ -163,6 +163,12 @@ public class SES_AI_T_MATCH extends EntityBase {
     public String getJobId() {
         return jobId;
     }
+    public String getMatchingId() {
+        return matchingId;
+    }
+    public void setMatchingId(String matchingId) {
+        this.matchingId = matchingId;
+    }
     public void setJobId(String jobId) {
         this.jobId = jobId;
     }
