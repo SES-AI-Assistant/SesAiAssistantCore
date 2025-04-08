@@ -39,6 +39,8 @@ public class SES_AI_T_MATCH extends EntityBase {
      * マッチングID / matching_id
      */
     @Column(
+        required = true,
+        primary = true,
         physicalName = "matching_id",
         logicalName = "マッチングID")
     private String matchingId;
