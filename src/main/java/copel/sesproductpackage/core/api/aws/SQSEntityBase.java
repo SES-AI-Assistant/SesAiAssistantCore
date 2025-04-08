@@ -39,9 +39,9 @@ public abstract class SQSEntityBase {
      * このEntityの内容でSQSへメッセージをキューイングします.
      *
      * @return 送信結果
-     * @throws Exception
+     * @throws JsonProcessingException 
      */
-    public SendMessageResult sendMessage() throws Exception {
+    public SendMessageResult sendMessage() throws JsonProcessingException {
         SendMessageRequest sendMessageRequest = new SendMessageRequest()
                 .withQueueUrl(this.queueUrl)
                 .withMessageBody(this.getMessageBody());
