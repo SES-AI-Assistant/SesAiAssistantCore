@@ -7,8 +7,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 
 import copel.sesproductpackage.core.database.base.EntityLotBase;
+import copel.sesproductpackage.core.unit.MatchingStatus;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
-import copel.sesproductpackage.core.unit.マッチング状態区分;
 
 /**
  * 【Entityクラス】
@@ -40,7 +40,7 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
             SES_AI_T_MATCH.setJobContent(resultSet.getString("job_content"));
             SES_AI_T_MATCH.setPersonContent(resultSet.getString("person_content"));
             SES_AI_T_MATCH.setPersonId(resultSet.getString("person_id"));
-            SES_AI_T_MATCH.setStatus(マッチング状態区分.getEnum(resultSet.getString("status_cd")));
+            SES_AI_T_MATCH.setStatus(MatchingStatus.getEnum(resultSet.getString("status_cd")));
             SES_AI_T_MATCH.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
             SES_AI_T_MATCH.setRegisterUser(resultSet.getString("register_user"));
             this.entityLot.add(SES_AI_T_MATCH);

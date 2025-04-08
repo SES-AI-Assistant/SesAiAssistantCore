@@ -6,7 +6,7 @@ package copel.sesproductpackage.core.unit;
  * @author 鈴木一矢
  *
  */
-public enum マッチング状態区分 {
+public enum MatchingStatus {
     アンマッチ("00"),
     サジェスト中("01"),
     提案中("10"),
@@ -26,7 +26,7 @@ public enum マッチング状態区分 {
      *
      * @param code コード値.
      */
-    マッチング状態区分(final String code) {
+    MatchingStatus(final String code) {
         this.code = code;
     }
 
@@ -36,8 +36,8 @@ public enum マッチング状態区分 {
      * @param code コード値
      * @return マッチング状態区分Enum
      */
-    public static マッチング状態区分 getEnum(final String code) {
-        for (final マッチング状態区分 status : values()) {
+    public static MatchingStatus getEnum(final String code) {
+        for (final MatchingStatus status : values()) {
             if (status.code.equals(code)) {
                 return status;
             }

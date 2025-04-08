@@ -8,8 +8,8 @@ import java.util.UUID;
 
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
+import copel.sesproductpackage.core.unit.MatchingStatus;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
-import copel.sesproductpackage.core.unit.マッチング状態区分;
 
 /**
  * マッチングテーブルのエンティティ.
@@ -78,12 +78,12 @@ public class SES_AI_T_MATCH extends EntityBase {
     private String personContent;
 
     /**
-     * マッチング状態区分 / status_cd
+     * MatchingStatus / status_cd
      */
     @Column(
         physicalName = "status_cd",
-        logicalName = "マッチング状態区分")
-    private マッチング状態区分 status;
+        logicalName = "MatchingStatus")
+    private MatchingStatus status;
 
     /**
      * コンストラクタ.
@@ -126,7 +126,7 @@ public class SES_AI_T_MATCH extends EntityBase {
             this.personId = resultSet.getString("person_id");
             this.jobContent = resultSet.getString("job_content");
             this.personContent = resultSet.getString("person_content");
-            this.status = マッチング状態区分.getEnum(resultSet.getString("status_cd"));
+            this.status = MatchingStatus.getEnum(resultSet.getString("status_cd"));
             this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
             this.registerUser = resultSet.getString("register_user");
         }
@@ -192,10 +192,10 @@ public class SES_AI_T_MATCH extends EntityBase {
     public void setPersonContent(String personContent) {
         this.personContent = personContent;
     }
-    public マッチング状態区分 getStatus() {
+    public MatchingStatus getStatus() {
         return status;
     }
-    public void setStatus(マッチング状態区分 status) {
+    public void setStatus(MatchingStatus status) {
         this.status = status;
     }
 }
