@@ -21,7 +21,7 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
     /**
      * 全件SELECT文.
      */
-    private final static String SELECT_ALL_SQL = "SELECT matching_id, job_id, person_id, job_content, person_content, status_cd, register_date, register_user FROM SES_AI_T_MATCH";
+    private final static String SELECT_ALL_SQL = "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, register_date, register_user FROM SES_AI_T_MATCH";
 
     public SES_AI_T_MATCHLot() {
         super();
@@ -35,6 +35,7 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
         while (resultSet.next()) {
             SES_AI_T_MATCH SES_AI_T_MATCH = new SES_AI_T_MATCH();
             SES_AI_T_MATCH.setMatchingId(resultSet.getString("matching_id"));
+            SES_AI_T_MATCH.setUserId(resultSet.getString("user_id"));
             SES_AI_T_MATCH.setJobId(resultSet.getString("job_id"));
             SES_AI_T_MATCH.setPersonId(resultSet.getString("person_id"));
             SES_AI_T_MATCH.setJobContent(resultSet.getString("job_content"));
