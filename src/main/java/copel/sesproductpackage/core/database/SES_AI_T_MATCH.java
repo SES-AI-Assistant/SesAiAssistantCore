@@ -170,6 +170,21 @@ public class SES_AI_T_MATCH extends EntityBase {
         return preparedStatement.executeUpdate() > 0;
     }
 
+    @Override
+    public String toString() {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("{");
+        stringBuilder.append("\"matching_id\":\"" + this.matchingId + "\"");
+        stringBuilder.append(",\"user_id\":\"" + this.userId + "\"");
+        stringBuilder.append(",\"job_id\":\"" + this.jobId + "\"");
+        stringBuilder.append(",\"job_content\":\"" + this.jobContent + "\"");
+        stringBuilder.append(",\"person_id\":\"" + this.personId + "\"");
+        stringBuilder.append(",\"person_content\":\"" + this.personContent + "\"");
+        stringBuilder.append(this.status != null ? (",\"status_cd\":\"" + this.status.getCode() + "\"") : "");
+        stringBuilder.append("}");
+        return stringBuilder.toString();
+    }
+
     // ================================
     // GETTER / SETTER
     // ================================
