@@ -37,6 +37,10 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
      */
     private final static String UPDATE_SQL = "UPDATE SES_AI_T_PERSON SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, file_id = ?, file_summary = ?, vector_data = ?::vector, ttl = ? WHERE person_id = ?";
     /**
+     * UPDATE文(file_idのみ).
+     */
+    private final static String UPDATE_FILE_ID_SQL = "UPDATE SES_AI_T_PERSON SET file_id = ? WHERE person_id = ?";
+    /**
      * 重複チェック用SQL.
      */
     private final static String CHECK_SQL = "SELECT COUNT(*) FROM SES_AI_T_PERSON WHERE raw_content % ? AND similarity(raw_content, ?) > ?";
@@ -80,6 +84,23 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
      */
     public boolean isスキルシート登録済() {
         return !OriginalStringUtils.isEmpty(this.fileId);
+    }
+
+    /**
+     * このエンティティが持つファイルIDでレコードを更新します.
+     *
+     * @param connection DBコネクション
+     * @return 更新成功すればtrue、それ以外はfalse
+     * @throws SQLException
+     */
+    public boolean updateFileIdByPk(final Connection connection) throws SQLException {
+        if (connection == null || this.personId == null) {
+            return false;
+        }
+        PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_FILE_ID_SQL);
+        preparedStatement.setString(1, this.fileId);
+        preparedStatement.setString(2, this.personId);
+        return preparedStatement.executeUpdate() > 0;
     }
 
     // ================================
