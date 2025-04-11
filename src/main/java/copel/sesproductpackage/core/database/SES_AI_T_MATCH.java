@@ -21,7 +21,7 @@ public class SES_AI_T_MATCH extends EntityBase {
     /**
      * INSERTR文.
      */
-    private final static String INSERT_SQL = "INSERT INTO SES_AI_T_MATCH (matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+    private final static String INSERT_SQL = "INSERT INTO SES_AI_T_MATCH (matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     /**
      * SELECT文.
      */
@@ -117,7 +117,7 @@ public class SES_AI_T_MATCH extends EntityBase {
         preparedStatement.setString(5, this.jobContent);
         preparedStatement.setString(6, this.personContent);
         preparedStatement.setString(7, this.status == null ? null : this.status.getCode());
-        preparedStatement.setTimestamp(8, this.registerDate == null ? null : this.registerDate.toTimestamp());
+        preparedStatement.setTimestamp(8, new OriginalDateTime().toTimestamp());
         preparedStatement.setString(9, this.registerUser);
         return preparedStatement.executeUpdate();
     }
