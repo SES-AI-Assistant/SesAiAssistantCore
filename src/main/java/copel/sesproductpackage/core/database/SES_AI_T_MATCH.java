@@ -10,6 +10,7 @@ import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.MatchingStatus;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.util.OriginalStringUtils;
 
 /**
  * マッチングテーブルのエンティティ.
@@ -98,6 +99,24 @@ public class SES_AI_T_MATCH extends EntityBase {
      */
     public SES_AI_T_MATCH() {
         super();
+    }
+
+    /**
+     * このレコードがjob_idを持つかどうかを判定します.
+     *
+     * @return 持っていればtrue、持たなければfalse
+     */
+    public boolean hasJobId() {
+        return !OriginalStringUtils.isEmpty(this.jobId);
+    }
+
+    /**
+     * このレコードがperson_idを持つかどうかを判定します.
+     *
+     * @return 持っていればtrue、持たなければfalse
+     */
+    public boolean hasPersonId() {
+        return !OriginalStringUtils.isEmpty(this.personId);
     }
 
     @Override
