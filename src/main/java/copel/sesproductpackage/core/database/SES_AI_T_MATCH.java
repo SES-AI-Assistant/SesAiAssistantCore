@@ -199,6 +199,7 @@ public class SES_AI_T_MATCH extends EntityBase {
         stringBuilder.append(",\"job_content\":\"" + this.jobContent + "\"");
         stringBuilder.append(",\"person_id\":\"" + this.personId + "\"");
         stringBuilder.append(",\"person_content\":\"" + this.personContent + "\"");
+        stringBuilder.append(",\"register_date\":\"" + this.registerDate.toString() + "\"");
         stringBuilder.append(this.status != null ? (",\"status_cd\":\"" + this.status.getCode() + "\"") : "");
         stringBuilder.append("}");
         return stringBuilder.toString();
