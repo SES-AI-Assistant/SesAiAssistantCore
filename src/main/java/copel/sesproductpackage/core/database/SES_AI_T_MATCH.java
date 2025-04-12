@@ -143,7 +143,7 @@ public class SES_AI_T_MATCH extends EntityBase {
 
     @Override
     public void selectByPk(Connection connection) throws SQLException {
-        if (connection == null || this.personId == null || this.jobId == null) {
+        if (connection == null || this.matchingId == null) {
             return;
         }
         PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SQL);
@@ -163,7 +163,7 @@ public class SES_AI_T_MATCH extends EntityBase {
 
     @Override
     public boolean updateByPk(Connection connection) throws SQLException {
-        if (connection == null || this.personId == null || this.jobId == null) {
+        if (connection == null || this.matchingId ==  null) {
             return false;
         }
         PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_SQL);
@@ -181,7 +181,7 @@ public class SES_AI_T_MATCH extends EntityBase {
 
     @Override
     public boolean deleteByPk(Connection connection) throws SQLException {
-        if (connection == null || this.personId == null || this.jobId == null) {
+        if (connection == null || this.matchingId == null) {
             return false;
         }
         PreparedStatement preparedStatement = connection.prepareStatement(DELETE_SQL);
