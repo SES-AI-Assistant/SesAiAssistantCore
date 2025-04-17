@@ -30,7 +30,7 @@ public class SES_AI_T_MATCH extends EntityBase {
     /**
      * UPDATE文.
      */
-    private final static String UPDATE_SQL = "UPDATE SES_AI_T_MATCH SET matching_id = ?, user_id = ?, job_id = ?, person_id = ?, job_content = ?, person_content = ?, status_cd = ?, register_date = ?, register_user = ? WHERE matching_id = ?";
+    private final static String UPDATE_SQL = "UPDATE SES_AI_T_MATCH SET user_id = ?, job_id = ?, person_id = ?, job_content = ?, person_content = ?, status_cd = ?, register_date = ?, register_user = ? WHERE matching_id = ?";
     /**
      * DELETE文.
      */
