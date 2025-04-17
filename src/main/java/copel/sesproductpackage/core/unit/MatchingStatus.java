@@ -38,7 +38,7 @@ public enum MatchingStatus {
      */
     public static MatchingStatus getEnum(final String code) {
         for (final MatchingStatus status : values()) {
-            if (status.code.equals(code)) {
+            if (status.getCode().equals(code)) {
                 return status;
             }
         }
@@ -51,7 +51,7 @@ public enum MatchingStatus {
      * @return コード値
      */
     public String getCode() {
-        return code;
+        return this.code;
     }
 
     /**
