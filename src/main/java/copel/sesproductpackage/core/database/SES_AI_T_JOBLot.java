@@ -36,7 +36,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
     /**
      * 全件検索SQL.
      */
-    private final static String SELECT_ALL_SQL = "SELECT job_id, from_group, from_id, from_name, raw_content, register_date, register_user FROM SES_AI_T_JOB";
+    private final static String SELECT_ALL_SQL = "SELECT job_id, from_group, from_id, from_name, raw_content, register_date, register_user, ttl FROM SES_AI_T_JOB";
 
     /**
      * コンストラクタ.
