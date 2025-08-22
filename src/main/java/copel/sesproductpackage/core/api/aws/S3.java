@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
 
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -22,6 +23,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
  * @author 鈴木一矢
  *
  */
+@Data
 @Slf4j
 public class S3 {
     /**
@@ -142,32 +144,5 @@ public class S3 {
         } catch (Exception e) {
             log.error("【SesAiAssitantCore】S3ファイルの削除中にエラーが発生しました: {}", e.getMessage());
         }
-    }
-
-    /**
-     * ファイルの更新日時を取得します.
-     *
-     * @return 更新日時
-     */
-    public Date getUpdateDate() {
-        return updateDate;
-    }
-
-    /**
-     * このオブジェクトにバイナリデータをセットします.
-     *
-     * @param data バイナリデータ
-     */
-    public void setData(byte[] data) {
-        this.data = data;
-    }
-
-    /**
-     * このオブジェクトが持つバイナリデータを返却します.
-     *
-     * @return バイナリデータ
-     */
-    public byte[] getData() {
-        return this.data;
     }
 }

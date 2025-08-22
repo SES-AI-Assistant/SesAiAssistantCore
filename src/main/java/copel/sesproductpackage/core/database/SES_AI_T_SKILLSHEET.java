@@ -175,6 +175,7 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
 
     @Override
     public boolean deleteByPk(Connection connection) throws SQLException {
+        // レコード削除とS3削除を行う
         return false;
     }
 

@@ -84,6 +84,17 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
     }
 
     /**
+     * 引数のファイルIDを持つレコードが存在するかどうかを判定する.
+     *
+     * @param fileId ファイルID
+     * @return 存在すればtrue、それ以外はfalse
+     */
+    public boolean isExistByFileId(final String fileId) {
+        return fileId != null && this.entityLot.stream()
+                .anyMatch(e -> fileId.equals(e.getFileId()));
+    }
+
+    /**
      * ベクトル検索を実行し結果をこのLotに保持します.
      *
      * @param connection DBコネクション

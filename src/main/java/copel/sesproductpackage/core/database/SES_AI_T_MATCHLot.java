@@ -47,4 +47,27 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
             this.entityLot.add(SES_AI_T_MATCH);
         }
     }
+
+    /**
+     * 引数の案件IDを持つレコードが存在するかどうかを判定する.
+     *
+     * @param jobId 案件ID
+     * @return 存在すればtrue、それ以外はfalse
+     */
+    public boolean isExistByJobId(final String jobId) {
+        return jobId != null && this.entityLot.stream()
+                .anyMatch(e -> jobId.equals(e.getJobId()));
+    }
+
+    /**
+     * 引数の要員IDを持つレコードが存在するかどうかを判定する.
+     *
+     * @param personId 要員ID
+     * @return 存在すればtrue、それ以外はfalse
+     */
+    public boolean isExistByPersonId(final String personId) {
+        return personId != null && this.entityLot.stream()
+                .anyMatch(e -> personId.equals(e.getPersonId()));
+    }
 }
+
