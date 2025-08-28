@@ -330,5 +330,22 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
     }
 
     @Override
-    public void selectAll(Connection connection) throws SQLException {}
+    public void selectAll(Connection connection) throws SQLException {
+        this.entityLot = new ArrayList<SES_AI_T_PERSON>();
+        PreparedStatement preparedStatement = connection.prepareStatement("SELECT person_id, from_group, from_id, from_name, raw_content, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON");
+        ResultSet resultSet = preparedStatement.executeQuery();
+        while (resultSet.next()) {
+            SES_AI_T_PERSON SES_AI_T_PERSON = new SES_AI_T_PERSON();
+            SES_AI_T_PERSON.setPersonId(resultSet.getString("person_id"));
+            SES_AI_T_PERSON.setFromGroup(resultSet.getString("from_group"));
+            SES_AI_T_PERSON.setFromId(resultSet.getString("from_id"));
+            SES_AI_T_PERSON.setFromName(resultSet.getString("from_name"));
+            SES_AI_T_PERSON.setFileId(resultSet.getString("file_id"));
+            SES_AI_T_PERSON.setRawContent(resultSet.getString("raw_content"));
+            SES_AI_T_PERSON.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
+            SES_AI_T_PERSON.setRegisterUser(resultSet.getString("register_user"));
+            SES_AI_T_PERSON.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
+            this.entityLot.add(SES_AI_T_PERSON);
+        }
+    }
 }

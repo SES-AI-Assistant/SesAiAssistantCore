@@ -307,5 +307,23 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     }
 
     @Override
-    public void selectAll(Connection connection) throws SQLException {}
+    public void selectAll(Connection connection) throws SQLException {
+        this.entityLot = new ArrayList<SES_AI_T_SKILLSHEET>();
+        PreparedStatement preparedStatement = connection.prepareStatement("SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET");
+        ResultSet resultSet = preparedStatement.executeQuery();
+        while (resultSet.next()) {
+            SES_AI_T_SKILLSHEET SES_AI_T_SKILLSHEET = new SES_AI_T_SKILLSHEET();
+            SES_AI_T_SKILLSHEET.setFromGroup(resultSet.getString("from_group"));
+            SES_AI_T_SKILLSHEET.setFromId(resultSet.getString("from_id"));
+            SES_AI_T_SKILLSHEET.setFromName(resultSet.getString("from_name"));
+            SES_AI_T_SKILLSHEET.setFileId(resultSet.getString("file_id"));
+            SES_AI_T_SKILLSHEET.setFileName(resultSet.getString("file_name"));
+            SES_AI_T_SKILLSHEET.setFileContent(resultSet.getString("file_content"));
+            SES_AI_T_SKILLSHEET.setFileContentSummary(resultSet.getString("file_content_summary"));
+            SES_AI_T_SKILLSHEET.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
+            SES_AI_T_SKILLSHEET.setRegisterUser(resultSet.getString("register_user"));
+            SES_AI_T_SKILLSHEET.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
+            this.entityLot.add(SES_AI_T_SKILLSHEET);
+        }
+    }
 }

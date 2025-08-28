@@ -44,6 +44,18 @@
       <version>1.12.300</version>
     </dependency>
 
+    <!-- AWS DynamoDB -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>dynamodb</artifactId>
+      <version>2.25.19</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>dynamodb-enhanced</artifactId>
+      <version>2.25.19</version>
+    </dependency>
+
     <!-- Apache POI -->
     <dependency>
         <groupId>org.apache.poi</groupId>
