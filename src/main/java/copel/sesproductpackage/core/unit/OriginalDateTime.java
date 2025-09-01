@@ -180,6 +180,20 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
     }
 
     /**
+     * このオブジェクトが待つ日時をYYYYMM形式で返却します。
+     * @return YYYYMM形式の日付を表す文字列
+     */
+    public String getYYYYMM() {
+        if (this.dateTime == null) {
+            return null;
+        }
+        // DateTimeFormatterを使用してMM/dd形式にフォーマット
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMM");
+        // YYYYMM形式で日付を返却
+        return this.dateTime.format(formatter);
+    }
+
+    /**
      * このオブジェクトが待つ時刻をHH:mm形式で返却します。
      * @return HH:mm形式の日付を表す文字列
      */

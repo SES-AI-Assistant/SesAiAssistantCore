@@ -11,6 +11,10 @@ import java.nio.charset.StandardCharsets;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY;
+import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.ApiType;
+import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.Provider;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.util.Properties;
 
 /**
@@ -137,6 +141,19 @@ public class Gemini implements Transformer {
                 JsonNode parts = content.path("parts");
                 if (parts.isArray() && parts.size() > 0) {
                     String resultText = parts.get(0).path("text").asText();
+
+                    // API使用履歴テーブル（SES_AI_API_USAGE_HISTORY）に履歴を登録
+                    SES_AI_API_USAGE_HISTORY SES_AI_API_USAGE_HISTORY = new SES_AI_API_USAGE_HISTORY();
+                    SES_AI_API_USAGE_HISTORY.setProvider(Provider.Google);
+                    SES_AI_API_USAGE_HISTORY.setModel(this.completionModel);
+                    SES_AI_API_USAGE_HISTORY.setUsageMonth(new OriginalDateTime().getYYYYMM());
+                    SES_AI_API_USAGE_HISTORY.setUserId("SesAiAssitantCore");
+                    SES_AI_API_USAGE_HISTORY.setApiType(ApiType.Generate);
+                    SES_AI_API_USAGE_HISTORY.fetch();
+                    SES_AI_API_USAGE_HISTORY.addInputCount(prompt != null ? prompt.length() : 0);
+                    SES_AI_API_USAGE_HISTORY.addOutputCount(resultText != null ? resultText.length() : 0);
+                    SES_AI_API_USAGE_HISTORY.save();
+
                     return new GptAnswer(resultText, Gemini.class);
                 }
             }

@@ -60,12 +60,12 @@ public class SES_AI_API_USAGE_HISTORY extends DynamoDB<SES_AI_API_USAGE_HISTORY>
     /**
      * 入力文字数.
      */
-    private BigDecimal inputCount;
+    private BigDecimal inputCount = new BigDecimal(0);
 
     /**
      * 出力文字数.
      */
-    private BigDecimal outputCount;
+    private BigDecimal outputCount = new BigDecimal(0);
 
     @DynamoDbPartitionKey
     @DynamoDbAttribute("partitionKey")
@@ -114,6 +114,30 @@ public class SES_AI_API_USAGE_HISTORY extends DynamoDB<SES_AI_API_USAGE_HISTORY>
             this.outputCount = latest.getOutputCount();
             this.timestamp = latest.getTimestamp();
         }
+    }
+
+    /**
+     * このレコードのInputCountに値を加える.
+     *
+     * @param count 加えたい数
+     */
+    public void addInputCount(final int count) {
+        this.addInputCount(new BigDecimal(count));
+    }
+    public void addInputCount(final BigDecimal count) {
+        this.inputCount = this.inputCount.add(count);
+    }
+
+    /**
+     * このレコードのOutputCountに値を加える.
+     *
+     * @param count 加えたい数
+     */
+    public void addOutputCount(final int count) {
+        this.addOutputCount(new BigDecimal(count));
+    }
+    public void addOutputCount(final BigDecimal count) {
+        this.outputCount = this.outputCount.add(count);
     }
 
     @Override

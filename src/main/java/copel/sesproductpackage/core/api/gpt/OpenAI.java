@@ -11,6 +11,10 @@ import java.nio.charset.StandardCharsets;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY;
+import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.ApiType;
+import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.Provider;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.util.Properties;
 import lombok.extern.slf4j.Slf4j;
 
@@ -150,6 +154,19 @@ public class OpenAI implements Transformer {
         for (int i = 0; i < embeddingArray.size(); i++) {
             vectorValue[i] = embeddingArray.get(i).floatValue();
         }
+
+        // API使用履歴テーブル（SES_AI_API_USAGE_HISTORY）に履歴を登録
+        SES_AI_API_USAGE_HISTORY SES_AI_API_USAGE_HISTORY = new SES_AI_API_USAGE_HISTORY();
+        SES_AI_API_USAGE_HISTORY.setProvider(Provider.OpenAI);
+        SES_AI_API_USAGE_HISTORY.setModel(this.completionModel);
+        SES_AI_API_USAGE_HISTORY.setUsageMonth(new OriginalDateTime().getYYYYMM());
+        SES_AI_API_USAGE_HISTORY.setUserId("SesAiAssitantCore");
+        SES_AI_API_USAGE_HISTORY.setApiType(ApiType.Embedding);
+        SES_AI_API_USAGE_HISTORY.fetch();
+        SES_AI_API_USAGE_HISTORY.addInputCount(inputString != null ? inputString.length() : 0);
+        SES_AI_API_USAGE_HISTORY.addOutputCount(0);
+        SES_AI_API_USAGE_HISTORY.save();
+
         return vectorValue;
     }
 
@@ -227,7 +244,21 @@ public class OpenAI implements Transformer {
 
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode jsonResponse = objectMapper.readTree(response.toString());
-        return new GptAnswer(jsonResponse.get("choices").get(0).get("message").get("content").asText(), OpenAI.class);
+        String resultText = jsonResponse.get("choices").get(0).get("message").get("content").asText();
+
+        // API使用履歴テーブル（SES_AI_API_USAGE_HISTORY）に履歴を登録
+        SES_AI_API_USAGE_HISTORY SES_AI_API_USAGE_HISTORY = new SES_AI_API_USAGE_HISTORY();
+        SES_AI_API_USAGE_HISTORY.setProvider(Provider.OpenAI);
+        SES_AI_API_USAGE_HISTORY.setModel(this.completionModel);
+        SES_AI_API_USAGE_HISTORY.setUsageMonth(new OriginalDateTime().getYYYYMM());
+        SES_AI_API_USAGE_HISTORY.setUserId("SesAiAssitantCore");
+        SES_AI_API_USAGE_HISTORY.setApiType(ApiType.Generate);
+        SES_AI_API_USAGE_HISTORY.fetch();
+        SES_AI_API_USAGE_HISTORY.addInputCount(prompt != null ? prompt.length() : 0);
+        SES_AI_API_USAGE_HISTORY.addOutputCount(resultText != null ? resultText.length() : 0);
+        SES_AI_API_USAGE_HISTORY.save();
+
+        return new GptAnswer(resultText, OpenAI.class);
     }
 
     /**
