@@ -33,6 +33,10 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
      */
     private final static String SELECT_SQL = "SELECT job_id, from_group, from_id, from_name, raw_content, vector_data, register_date, register_user, ttl FROM SES_AI_T_JOB WHERE job_id = ?";
     /**
+     * UPDATE文.
+     */
+    private final static String UPDATE_SQL = "UPDATE SES_AI_T_JOB SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, vector_data = ?::vector, ttl = ? WHERE job_id = ?";
+    /**
      * 重複チェック用SQL.
      */
     private final static String CHECK_SQL = "SELECT COUNT(*) FROM SES_AI_T_JOB WHERE raw_content % ? AND similarity(raw_content, ?) > ?";
@@ -138,7 +142,18 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
 
     @Override
     public boolean updateByPk(Connection connection) throws SQLException {
-        return false;
+        if (connection == null || this.jobId == null) {
+            return false;
+        }
+        PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_SQL);
+        preparedStatement.setString(1, this.fromGroup);
+        preparedStatement.setString(2, this.fromId);
+        preparedStatement.setString(3, this.fromName);
+        preparedStatement.setString(4, this.rawContent);
+        preparedStatement.setString(5, this.vectorData == null ? null : this.vectorData.toString());
+        preparedStatement.setTimestamp(6, this.ttl == null ? null : this.ttl.toTimestamp());
+        preparedStatement.setString(7, this.jobId);
+        return preparedStatement.executeUpdate() > 0;
     }
 
     @Override

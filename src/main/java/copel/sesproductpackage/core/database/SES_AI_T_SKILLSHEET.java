@@ -39,6 +39,10 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
      * 重複チェック用SQL.
      */
     private final static String CHECK_SQL = "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET WHERE file_content % ? AND similarity(file_content, ?) > ?";
+    /**
+     * DELETE文.
+     */
+    private final static String DELETE_SQL = "DELETE FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
 
     // ================================
     // メンバ
@@ -175,8 +179,12 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
 
     @Override
     public boolean deleteByPk(Connection connection) throws SQLException {
-        // レコード削除とS3削除を行う
-        return false;
+        if (connection == null) {
+            return false;
+        }
+        PreparedStatement preparedStatement = connection.prepareStatement(DELETE_SQL);
+        preparedStatement.setString(1, this.getFileId());
+        return preparedStatement.executeUpdate() > 0;
     }
 
     @Override
