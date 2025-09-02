@@ -163,6 +163,8 @@ public class SkillSheet {
             stringBuilder.append(this.fileContent.replaceAll("[\\p{C}\"]", "")); // 制御文字とダブルクォーテーションを削除
             GptAnswer answer = transformer.generate(stringBuilder.toString());
             this.fileContentSummary = answer.getAnswer();
+            // 1000文字制限を超えないように調整
+            this.fileContentSummary = this.fileContentSummary.substring(0, Math.min(1000, this.fileContentSummary.length()));
         } else {
             throw new IOException("ファイルの中身が空のため、要約の作成を中止します。");
         }
