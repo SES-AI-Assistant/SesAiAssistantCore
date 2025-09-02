@@ -98,7 +98,7 @@ public class S3 {
      *
      * @throws IOException
      */
-    public void getFile() throws IOException {
+    public void read() throws IOException {
         try {
             // S3からファイルを取得
             GetObjectRequest getObjectRequest = GetObjectRequest.builder()
