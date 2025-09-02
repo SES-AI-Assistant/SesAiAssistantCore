@@ -174,7 +174,16 @@ public class SkillSheet {
      * @return ダウンロードURL
      */
     public String getFileUrl() {
-        return "https://" + S3_BUCKET_NAME + ".s3." + Region.AP_NORTHEAST_1.toString() + ".amazonaws.com/" + this.fileId + "_" + this.fileName;
+        return "https://" + S3_BUCKET_NAME + ".s3." + Region.AP_NORTHEAST_1.toString() + ".amazonaws.com/" + this.getObjectKey();
+    }
+
+    /**
+     * 紐づくS3ファイルのオブジェクトキーを返却する.
+     *
+     * @return オブジェクトキー.
+     */
+    public String getObjectKey() {
+        return this.fileId + "_" + this.fileName;
     }
 
     // GETTER / SETTER

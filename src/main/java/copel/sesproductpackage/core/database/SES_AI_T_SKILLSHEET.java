@@ -81,6 +81,15 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
     }
 
     /**
+     * 紐づくS3ファイルのオブジェクトキーを返却する.
+     *
+     * @return オブジェクトキー.
+     */
+    public String getObjectKey() {
+        return this.skillSheet.getObjectKey();
+    }
+
+    /**
      * このオブジェクトに格納されているPKをキーにレコードを1件SELECTしこのオブジェクトに持ちます(原文抜きでSELECT).
      * 原文が1.5万文字程度あり、頻繁にSELECTすると負荷を書けるため、可能であれば除外して検索する.
      *
