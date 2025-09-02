@@ -37,6 +37,10 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
      * 検索SQL.
      */
     private final static String SELECT_SQL = "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE ";
+    /**
+     * SELECT文(file_name検索).
+     */
+    private final static String SELECT_BY_FILE_NAME_SQL = "SELECT from_group, from_id, from_name, file_id, file_name, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_name = ?";
 
     /**
      * コンストラクタ.
@@ -161,6 +165,32 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
             SES_AI_T_SKILLSHEET.setFileName(resultSet.getString("file_name"));
             SES_AI_T_SKILLSHEET.setFileContent(resultSet.getString("file_content"));
             SES_AI_T_SKILLSHEET.setFileContentSummary(resultSet.getString("file_content_summary"));
+            SES_AI_T_SKILLSHEET.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
+            SES_AI_T_SKILLSHEET.setRegisterUser(resultSet.getString("register_user"));
+            SES_AI_T_SKILLSHEET.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
+            this.entityLot.add(SES_AI_T_SKILLSHEET);
+        }
+    }
+
+    /**
+     * file_nameカラムで全文検索を実行し、結果をこのLotに保持します.
+     *
+     * @param connection DBコネクション
+     * @param query 検索条件Map
+     * @throws SQLException 
+     */
+    public void selectByFileName(final Connection connection, final String fileName) throws SQLException {
+        this.entityLot = new ArrayList<SES_AI_T_SKILLSHEET>();
+        PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BY_FILE_NAME_SQL);
+        preparedStatement.setString(1, fileName);
+        ResultSet resultSet = preparedStatement.executeQuery();
+        while (resultSet.next()) {
+            SES_AI_T_SKILLSHEET SES_AI_T_SKILLSHEET = new SES_AI_T_SKILLSHEET();
+            SES_AI_T_SKILLSHEET.setFromGroup(resultSet.getString("from_group"));
+            SES_AI_T_SKILLSHEET.setFromId(resultSet.getString("from_id"));
+            SES_AI_T_SKILLSHEET.setFromName(resultSet.getString("from_name"));
+            SES_AI_T_SKILLSHEET.setFileId(resultSet.getString("file_id"));
+            SES_AI_T_SKILLSHEET.setFileName(resultSet.getString("file_name"));
             SES_AI_T_SKILLSHEET.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
             SES_AI_T_SKILLSHEET.setRegisterUser(resultSet.getString("register_user"));
             SES_AI_T_SKILLSHEET.setTtl(new OriginalDateTime(resultSet.getString("ttl")));

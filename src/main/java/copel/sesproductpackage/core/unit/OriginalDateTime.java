@@ -274,9 +274,11 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
     }
 
     /**
-     * このオブジェクトが持つ日付と引数の日付の差の日数を返却します
+     * 引数のOriginalDateTime - このオブジェクトで日付の差を出力します.
+     * 例：2024/1/8 - 2024/1/1 = 7、2024/1/1 - 2024/1/8 = -7
+     *
      * @param 比べたい日付
-     * @return 日付の差の日数（負の数が返却された場合はエラー）
+     * @return 日付の差の日数
      */
     public int betweenDays(OriginalDateTime date) {
         if (date != null && this.dateTime != null) {
@@ -287,9 +289,9 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
             // 日付の差を計算
             long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate);
 
-            return (int)daysBetween;
+            return (int) daysBetween;
         } else {
-            return -1;
+            return 0;
         }
     }
 
