@@ -3,6 +3,7 @@ package copel.sesproductpackage.core.unit;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Locale;
@@ -30,7 +31,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
      * 現在日時でこのオブジェクトを初期化
      */
     public OriginalDateTime() {
-        this.dateTime = LocalDateTime.now();
+        this.dateTime = LocalDateTime.now(ZoneId.of("Asia/Tokyo"));
     }
 
     /**
