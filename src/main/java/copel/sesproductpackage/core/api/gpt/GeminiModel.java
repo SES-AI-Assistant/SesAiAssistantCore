@@ -3,7 +3,7 @@ package copel.sesproductpackage.core.api.gpt;
 /**
  * GeminiモデルのEnum.
  */
-public enum GeminiModel {
+public enum GeminiModel implements GptModel {
     GEMINI_1_0_PRO("gemini-1.0-pro"),
     GEMINI_1_5_PRO("gemini-1.5-pro"),
     GEMINI_1_5_FLASH("gemini-1.5-flash"),
@@ -19,6 +19,7 @@ public enum GeminiModel {
         this.modelName = modelName;
     }
 
+    @Override
     public String getModelName() {
         return modelName;
     }
