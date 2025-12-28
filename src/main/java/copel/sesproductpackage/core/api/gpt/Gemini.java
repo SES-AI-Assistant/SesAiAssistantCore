@@ -32,7 +32,7 @@ public class Gemini implements Transformer {
     /**
      * 生成APIのデフォルトGPTモデル名
      */
-    private static final String COMPLETION_MODEL_DEFAULT = "gemini-2.0-flash-lite";
+    private static final String COMPLETION_MODEL_DEFAULT = GeminiModel.GEMINI_1_5_FLASH_LITE.getModelName();
     /**
      * APIキー.
      */
@@ -60,6 +60,17 @@ public class Gemini implements Transformer {
     public Gemini(final String apiKey, final String completionModel) {
         this.apiKey = apiKey;
         this.completionModel = completionModel;
+    }
+
+    /**
+     * コンストラクタ.
+     *
+     * @param apiKey APIキー
+     * @param geminiModel Geminiモデル
+     */
+    public Gemini(final String apiKey, final GeminiModel geminiModel) {
+        this.apiKey = apiKey;
+        this.completionModel = geminiModel.getModelName();
     }
 
     @Override

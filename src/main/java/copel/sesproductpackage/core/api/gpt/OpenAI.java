@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openai.models.ChatModel;
 
 import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY;
 import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.ApiType;
@@ -42,7 +43,7 @@ public class OpenAI implements Transformer {
     /**
      * OpenAIの質問応答を処理するモデル名のデフォルト値.
      */
-    private static final String COMPLETION_MODEL_DEFAULT = "gpt-3.5-turbo";
+    private static final String COMPLETION_MODEL_DEFAULT = ChatModel.GPT_3_5_TURBO.toString();
     /**
      * OpenAIの質問応答を処理する際のtemperatureパラメータのデフォルト値.
      */
