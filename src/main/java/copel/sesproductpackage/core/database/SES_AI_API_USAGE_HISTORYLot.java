@@ -11,6 +11,16 @@ public class SES_AI_API_USAGE_HISTORYLot extends DynamoDBLot<SES_AI_API_USAGE_HI
     }
 
     /**
+     * SES_AI_API_USAGE_HISTORYテーブルをusageMonthで検索する.
+     *
+     * @param yyyy yyyy形式の年
+     * @param MM MM形式の月
+     */
+    public void fetchByUsageMonth(final String yyyy, final String MM) {
+        this.fetchByColumn("usageMonth", yyyy + MM);
+    }
+
+    /**
      * SES_AI_API_USAGE_HISTORYテーブルをprovider名で検索する.
      *
      * @param provider プロバイダ
