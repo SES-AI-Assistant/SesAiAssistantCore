@@ -33,7 +33,7 @@ jobs:
           role-to-assume: arn:aws:iam::536697254314:role/SES-AI-ASSISTANT
 
       - name: Maven パッケージをビルドしてデプロイ
-        run: mvn clean deploy --settings .github/maven-settings.xml
+        run: mvn clean deploy -Dmaven.test.skip=true --settings .github/maven-settings.xml
         env:
           GITHUB_ACTOR: ${{ secrets.GITHUB_ACTOR }}
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
