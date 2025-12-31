@@ -6,7 +6,7 @@ import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.Provider;
 import copel.sesproductpackage.core.database.base.DynamoDBLot;
 
 public class SES_AI_API_USAGE_HISTORYLot extends DynamoDBLot<SES_AI_API_USAGE_HISTORY> {
-    SES_AI_API_USAGE_HISTORYLot() {
+    public SES_AI_API_USAGE_HISTORYLot() {
         super("SES_AI_API_USAGE_HISTORY", SES_AI_API_USAGE_HISTORY.class);
     }
 
@@ -17,7 +17,16 @@ public class SES_AI_API_USAGE_HISTORYLot extends DynamoDBLot<SES_AI_API_USAGE_HI
      * @param MM MM形式の月
      */
     public void fetchByUsageMonth(final String yyyy, final String MM) {
-        this.fetchByColumn("usageMonth", yyyy + MM);
+        this.fetchByUsageMonth(yyyy + MM);
+    }
+
+    /**
+     * SES_AI_API_USAGE_HISTORYテーブルをusageMonthで検索する.
+     *
+     * @param yyyyMM yyyyMM形式の日時
+     */
+    public void fetchByUsageMonth(final String yyyyMM) {
+        this.fetchByColumn("usageMonth", yyyyMM);
     }
 
     /**
