@@ -61,6 +61,23 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
         }
     }
 
+    /**
+     * このLotに引数のIDと一致するIDを持つレコードが存在するかどうかを判定します.
+     *
+     * @param targetId 対象ID
+     * @return 存在すればtrue、しなければfalse
+     */
+    public boolean containsById(String targetId) {
+        if (targetId != null && !targetId.isEmpty()) {
+            for (SES_AI_T_WATCH entity : this.entityLot) {
+                if (targetId.equals(entity.getTargetId())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     @Override
     public void selectAll(Connection connection) throws SQLException {
         PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);
