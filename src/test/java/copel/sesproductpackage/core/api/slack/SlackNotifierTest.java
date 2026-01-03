@@ -17,6 +17,16 @@ class SlackNotifierTest {
      * UT用のSlackチャンネルIDでテストを実施する.
      */
     private static final String SLACK_JUNIT_TEST_CHANNEL_ID = Properties.get("SLACK_JUNIT_TEST_CHANNEL_ID");
+    /**
+     * Slack Incoming Webhook URL.
+     *
+     * https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/?utm_source=chatgpt.com#advanced_message_formatting
+     */
+    private static final String SLACK_INCOMING_WEBHOOK_URL = Properties.get("SLACK_INCOMING_WEBHOOK_URL");
+    /**
+     * Slack Bot Token.
+     */
+    private static final String SLACK_BOT_TOKEN = Properties.get("SLACK_BOT_TOKEN");
 
     @Test
     void sendByWebhookTest() {
@@ -24,7 +34,7 @@ class SlackNotifierTest {
         entity.setText("Junitテスト(sendByWebhookTest)実行");
 
         try {
-            SlackNotifier.sendByWebhook(entity);
+            SlackNotifier.sendByWebhook(SLACK_INCOMING_WEBHOOK_URL, entity);
         } catch (Exception e) {
             e.printStackTrace();
             fail();
@@ -38,7 +48,7 @@ class SlackNotifierTest {
         entity.setText("Junitテスト(sendMessageTest)実行");
 
         try {
-            String ts = SlackNotifier.send(entity);
+            String ts = SlackNotifier.send(SLACK_BOT_TOKEN, entity);
             assertNotNull(ts);
         } catch (Exception e) {
             e.printStackTrace();
@@ -53,7 +63,7 @@ class SlackNotifierTest {
             SlackWebhookMessageEntity parentEntity = new SlackWebhookMessageEntity();
             parentEntity.setChannel(SLACK_JUNIT_TEST_CHANNEL_ID);
             parentEntity.setText("Junitテスト(sendReplyTest)実行 - 親メッセージ");
-            String parentTs = SlackNotifier.send(parentEntity);
+            String parentTs = SlackNotifier.send(SLACK_BOT_TOKEN, parentEntity);
             assertNotNull(parentTs);
 
             // 返信を送信
@@ -61,7 +71,7 @@ class SlackNotifierTest {
             replyEntity.setChannel(SLACK_JUNIT_TEST_CHANNEL_ID);
             replyEntity.setText("Junitテスト(sendReplyTest)実行 - 返信メッセージ");
             replyEntity.setThreadTs(parentTs);
-            String replyTs = SlackNotifier.send(replyEntity);
+            String replyTs = SlackNotifier.send(SLACK_BOT_TOKEN, replyEntity);
             assertNotNull(replyTs);
 
         } catch (Exception e) {
@@ -113,7 +123,7 @@ class SlackNotifierTest {
                 .build());
 
         try {
-            String ts = SlackNotifier.send(entity);
+            String ts = SlackNotifier.send(SLACK_BOT_TOKEN, entity);
             assertNotNull(ts);
         } catch (Exception e) {
             e.printStackTrace();

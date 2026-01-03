@@ -10,7 +10,6 @@ import org.apache.http.HttpException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import copel.sesproductpackage.core.api.slack.SlackWebhookMessageEntity.SlackApiResponse;
-import copel.sesproductpackage.core.util.Properties;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -28,16 +27,6 @@ public class SlackNotifier {
      * https://docs.slack.dev/reference/methods/chat.postMessage/
      */
     private static final String CHAT_POST_MESSAGE_URL = "https://slack.com/api/chat.postMessage";
-    /**
-     * Slack Incoming Webhook URL.
-     *
-     * https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/?utm_source=chatgpt.com#advanced_message_formatting
-     */
-    private static final String SLACK_INCOMING_WEBHOOK_URL = Properties.get("SLACK_INCOMING_WEBHOOK_URL");
-    /**
-     * Slack Bot Token.
-     */
-    private static final String SLACK_BOT_TOKEN = Properties.get("SLACK_BOT_TOKEN");
 
     /**
      * メッセージを送信する.
@@ -46,12 +35,12 @@ public class SlackNotifier {
      * @return 送信したメッセージのタイムスタンプ
      * @throws Exception
      */
-    public static String send(final SlackWebhookMessageEntity messageEntity) throws Exception {
+    public static String send(final String slackBotToken, final SlackWebhookMessageEntity messageEntity) throws Exception {
         log.debug("Slack Request Payload: {}", messageEntity.toJson());
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(CHAT_POST_MESSAGE_URL))
                 .header("Content-Type", "application/json; charset=UTF-8")
-                .header("Authorization", "Bearer " + SLACK_BOT_TOKEN)
+                .header("Authorization", "Bearer " + slackBotToken)
                 .POST(HttpRequest.BodyPublishers.ofString(messageEntity.toJson()))
                 .build();
 
@@ -79,9 +68,9 @@ public class SlackNotifier {
      * @param message 送信メッセージ.
      * @throws Exception
      */
-    public static void sendByWebhook(final SlackWebhookMessageEntity messageEntity) throws Exception {
+    public static void sendByWebhook(final String incomingWebhookUrl, final SlackWebhookMessageEntity messageEntity) throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(SLACK_INCOMING_WEBHOOK_URL))
+                .uri(URI.create(incomingWebhookUrl))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(messageEntity.toJson()))
                 .build();
