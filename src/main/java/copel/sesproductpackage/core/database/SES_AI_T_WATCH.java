@@ -46,6 +46,11 @@ public class SES_AI_T_WATCH extends EntityBase {
      */
     private final static String EXISTS_SQL = 
         "SELECT EXISTS (SELECT 1 FROM SES_AI_T_WATCH WHERE user_id = ? AND target_id = ?)";
+    /**
+     * EXISTS文2.
+     */
+    private final static String EXISTS_BY_TAGET_ID_SQL = 
+        "SELECT EXISTS (SELECT 1 FROM SES_AI_T_WATCH WHERE target_id = ?)";
 
     /**
      * ユーザーID / user_id
@@ -105,6 +110,23 @@ public class SES_AI_T_WATCH extends EntityBase {
         PreparedStatement preparedStatement = connection.prepareStatement(EXISTS_SQL);
         preparedStatement.setString(1, this.userId);
         preparedStatement.setString(2, this.targetId);
+        ResultSet resultSet = preparedStatement.executeQuery();
+        if (resultSet.next()) {
+            return resultSet.getBoolean(1);
+        }
+        return false;
+    }
+
+    /**
+     * このEntityの持つ対象IDを持つレコードが存在するかどうかを判定します.
+     *
+     * @param connection DBコネクション
+     * @return 存在すればtrue、存在しなければfalse
+     * @throws SQLException
+     */
+    public boolean isExistByTargetId(Connection connection) throws SQLException {
+        PreparedStatement preparedStatement = connection.prepareStatement(EXISTS_BY_TAGET_ID_SQL);
+        preparedStatement.setString(1, this.targetId);
         ResultSet resultSet = preparedStatement.executeQuery();
         if (resultSet.next()) {
             return resultSet.getBoolean(1);
