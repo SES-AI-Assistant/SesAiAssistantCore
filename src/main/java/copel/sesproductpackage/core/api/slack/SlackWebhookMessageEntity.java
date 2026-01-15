@@ -74,6 +74,13 @@ public class SlackWebhookMessageEntity {
     public static class TextObject {
         private TextType type;
         private String text;
+
+        public static TextObject コードスニペット(String text) {
+            return TextObject.builder().type(TextType.MRKDWN).text("```" + text + "```").build();
+        }
+        public static String リンクテキスト(String displayText, String link) {
+            return "<" + link + " | " + displayText + ">";
+        }
     }
 
     @Data

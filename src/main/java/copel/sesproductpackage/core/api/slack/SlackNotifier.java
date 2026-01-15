@@ -53,6 +53,7 @@ public class SlackNotifier {
         }
 
         ObjectMapper mapper = new ObjectMapper();
+        log.info("レスポンス: {}", response.body());
         SlackApiResponse responseBody = mapper.readValue(response.body(), SlackApiResponse.class);
 
         if (!responseBody.isOk()) {

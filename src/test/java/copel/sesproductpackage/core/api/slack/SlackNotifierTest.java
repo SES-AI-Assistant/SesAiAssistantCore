@@ -14,9 +14,9 @@ import copel.sesproductpackage.core.util.Properties;
 
 class SlackNotifierTest {
     /**
-     * UT用のSlackチャンネルIDでテストを実施する.
+     * ウォッチ用SlackチャンネルのID.
      */
-    private static final String SLACK_JUNIT_TEST_CHANNEL_ID = Properties.get("SLACK_JUNIT_TEST_CHANNEL_ID");
+    private static final String SLACK_WATCH_NOTIFY_CHANNEL_ID = Properties.get("SLACK_WATCH_NOTIFY_CHANNEL_ID");
     /**
      * Slack Incoming Webhook URL.
      *
@@ -44,9 +44,41 @@ class SlackNotifierTest {
     @Test
     void sendMessageTest() {
         SlackWebhookMessageEntity entity = new SlackWebhookMessageEntity();
-        entity.setChannel(SLACK_JUNIT_TEST_CHANNEL_ID);
+        entity.setChannel(SLACK_WATCH_NOTIFY_CHANNEL_ID);
         entity.setText("Junitテスト(sendMessageTest)実行");
 
+        try {
+            String ts = SlackNotifier.send(SLACK_BOT_TOKEN, entity);
+            assertNotNull(ts);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    void sendCodeSnipetMessageTest() {
+        SlackWebhookMessageEntity entity = SlackWebhookMessageEntity.builder()
+                .channel(SLACK_WATCH_NOTIFY_CHANNEL_ID)
+                .build();
+
+        // ヘッダー
+        entity.addBlock(SlackMessageBlock.builder()
+                .type(BlockType.HEADER)
+                .text(TextObject.builder()
+                        .type(TextType.PLAIN_TEXT)
+                        .text("コードスニペットのテスト")
+                        .build())
+                .build());
+
+        // コードスニペットセクション
+        entity.addBlock(SlackMessageBlock.builder()
+                .type(BlockType.SECTION)
+                .text(TextObject.builder()
+                        .type(TextType.MRKDWN)
+                        .text("```こんにちは```")
+                        .build())
+                .build());
         try {
             String ts = SlackNotifier.send(SLACK_BOT_TOKEN, entity);
             assertNotNull(ts);
@@ -61,14 +93,14 @@ class SlackNotifierTest {
         try {
             // 親メッセージを送信
             SlackWebhookMessageEntity parentEntity = new SlackWebhookMessageEntity();
-            parentEntity.setChannel(SLACK_JUNIT_TEST_CHANNEL_ID);
+            parentEntity.setChannel(SLACK_WATCH_NOTIFY_CHANNEL_ID);
             parentEntity.setText("Junitテスト(sendReplyTest)実行 - 親メッセージ");
             String parentTs = SlackNotifier.send(SLACK_BOT_TOKEN, parentEntity);
             assertNotNull(parentTs);
 
             // 返信を送信
             SlackWebhookMessageEntity replyEntity = new SlackWebhookMessageEntity();
-            replyEntity.setChannel(SLACK_JUNIT_TEST_CHANNEL_ID);
+            replyEntity.setChannel(SLACK_WATCH_NOTIFY_CHANNEL_ID);
             replyEntity.setText("Junitテスト(sendReplyTest)実行 - 返信メッセージ");
             replyEntity.setThreadTs(parentTs);
             String replyTs = SlackNotifier.send(SLACK_BOT_TOKEN, replyEntity);
@@ -83,7 +115,7 @@ class SlackNotifierTest {
     @Test
     void sendBlockMessageTest() {
         SlackWebhookMessageEntity entity = SlackWebhookMessageEntity.builder()
-                .channel(SLACK_JUNIT_TEST_CHANNEL_ID)
+                .channel(SLACK_WATCH_NOTIFY_CHANNEL_ID)
                 .text("フォールバックテキスト")
                 .build();
 
@@ -129,5 +161,67 @@ class SlackNotifierTest {
             e.printStackTrace();
             fail();
         }
+    }
+
+    @Test
+    void sendRealityTest() throws Exception {
+        String jobId = "JOBXXX";
+        String jobContent = "ここに案件内容案件内容案件内容案件内容案件内容案件内容案件内容案件内容案件内容";
+        String personId = "PERXXX";
+        String personContent = "ここに要員内容要員内容要員内容要員内容要員内容要員内容要員内容要員内容要員内容要員内容要員内容";
+
+        SlackWebhookMessageEntity slackMessage = SlackWebhookMessageEntity.builder()
+                .channel(SLACK_WATCH_NOTIFY_CHANNEL_ID)
+                .text("ウォッチ中案件・マッチング通知")
+                .build();
+        slackMessage.addBlock(SlackWebhookMessageEntity.SlackMessageBlock.builder()
+                .type(BlockType.HEADER)
+                .text(TextObject.builder().type(TextType.PLAIN_TEXT).text("ウォッチ中案件・マッチング通知").build())
+                .build());
+        slackMessage.addBlock(SlackWebhookMessageEntity.SlackMessageBlock.builder()
+                .type(BlockType.SECTION)
+                .text(TextObject.builder().type(TextType.MRKDWN).text("マッチする要員が見つかりました。\n" + TextObject.リンクテキスト("詳細はこちら", "https://google.com")).build())
+                .build());
+        slackMessage.addBlock(SlackMessageBlock.builder()
+                .type(BlockType.SECTION)
+                .text(TextObject.builder().type(TextType.MRKDWN).text("案件ID：" + jobId).build())
+                .build());
+        slackMessage.addBlock(SlackMessageBlock.builder()
+                .type(BlockType.SECTION)
+                .text(TextObject.builder().type(TextType.MRKDWN).text("要員ID：" + personId).build())
+                .build());
+        String ts = SlackNotifier.send(SLACK_BOT_TOKEN, slackMessage);
+
+        SlackWebhookMessageEntity reply = SlackWebhookMessageEntity.builder()
+                .channel(SLACK_WATCH_NOTIFY_CHANNEL_ID)
+                .threadTs(ts)
+                .text("マッチング詳細")
+                .build();
+        reply.addBlock(SlackWebhookMessageEntity.SlackMessageBlock.builder()
+            .type(BlockType.HEADER)
+            .text(TextObject.builder().type(TextType.PLAIN_TEXT).text("案件情報").build())
+            .build());
+        reply.addBlock(SlackWebhookMessageEntity.SlackMessageBlock.builder()
+            .type(BlockType.SECTION)
+            .text(TextObject.コードスニペット(jobContent))
+            .build());
+        ts = SlackNotifier.send(SLACK_BOT_TOKEN, reply);
+        reply = SlackWebhookMessageEntity.builder()
+                .channel(SLACK_WATCH_NOTIFY_CHANNEL_ID)
+                .threadTs(ts)
+                .build();
+        reply.addBlock(SlackWebhookMessageEntity.SlackMessageBlock.builder()
+            .type(BlockType.HEADER)
+            .text(TextObject.builder().type(TextType.PLAIN_TEXT).text("要員情報").build())
+            .build());
+        reply.addBlock(SlackWebhookMessageEntity.SlackMessageBlock.builder()
+                .type(BlockType.SECTION)
+                .text(TextObject.コードスニペット(personContent))
+                .build());
+        reply.addBlock(SlackWebhookMessageEntity.SlackMessageBlock.builder()
+            .type(BlockType.SECTION)
+            .text(TextObject.builder().type(TextType.MRKDWN).text("スキルシート: " + TextObject.リンクテキスト("ZZ_経歴書.xlsx", "https://google.com")).build())
+            .build());
+        SlackNotifier.send(SLACK_BOT_TOKEN, reply);
     }
 }
