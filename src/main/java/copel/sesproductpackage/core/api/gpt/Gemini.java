@@ -30,9 +30,13 @@ public class Gemini implements Transformer {
      */
     private static final String GEMINI_COMPLETION_API_URL = Properties.get("GEMINI_COMPLETION_API_URL");
     /**
-     * 生成APIのデフォルトGPTモデル名
+     * 生成APIのデフォルトGPTモデル名.
      */
     private static final String COMPLETION_MODEL_DEFAULT = GeminiModel.GEMINI_1_5_FLASH_LITE.getModelName();
+    /**
+     * エンベディングAPIのデフォルトモデル名.
+     */
+    private static final String EMBEDDING_MODEL_DEFAULT = GeminiModel.GEMINI_EMBEDDING_001.getModelName();
     /**
      * APIキー.
      */
@@ -41,6 +45,10 @@ public class Gemini implements Transformer {
      * GPTモデル.
      */
     private final String completionModel;
+    /**
+     * 埋め込みモデル.
+     */
+    private final String embeddingModel;
 
     /**
      * コンストラクタ.
@@ -50,6 +58,7 @@ public class Gemini implements Transformer {
     public Gemini(final String apiKey) {
         this.apiKey = apiKey;
         this.completionModel = COMPLETION_MODEL_DEFAULT;
+        this.embeddingModel = EMBEDDING_MODEL_DEFAULT;
     }
     /**
      * コンストラクタ.
@@ -60,6 +69,7 @@ public class Gemini implements Transformer {
     public Gemini(final String apiKey, final String completionModel) {
         this.apiKey = apiKey;
         this.completionModel = completionModel;
+        this.embeddingModel = EMBEDDING_MODEL_DEFAULT;
     }
 
     /**
@@ -71,10 +81,75 @@ public class Gemini implements Transformer {
     public Gemini(final String apiKey, final GeminiModel geminiModel) {
         this.apiKey = apiKey;
         this.completionModel = geminiModel.getModelName();
+        this.embeddingModel = EMBEDDING_MODEL_DEFAULT;
     }
 
     @Override
     public float[] embedding(final String inputString) throws IOException, RuntimeException {
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        // リクエストボディの作成
+        // モデル名を含める必要があります
+        String requestBody = String.format(
+                "{\"model\":\"%s\",\"content\":{\"parts\":[{\"text\":\"%s\"}]}}",
+                EMBEDDING_MODEL_DEFAULT,
+                inputString
+            );
+
+        // HTTPリクエストの準備
+        // エンベディングのエンドポイントは :embedContent
+        URL url = new URL("https://generativelanguage.googleapis.com/v1beta/" + EMBEDDING_MODEL_DEFAULT + ":embedContent?key=" + this.apiKey);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("POST");
+        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+        connection.setDoOutput(true);
+
+        // リクエストボディを送信
+        try (OutputStream os = connection.getOutputStream()) {
+            byte[] input = requestBody.getBytes(StandardCharsets.UTF_8);
+            os.write(input, 0, input.length);
+        }
+
+        // レスポンスの取得（generateと同じエラーハンドリングを利用可能）
+        int responseCode = connection.getResponseCode();
+        if (responseCode != HttpURLConnection.HTTP_OK) {
+            // 既存のgenerateメソッドと同様のエラー処理ロジックをここに記述、または共通化
+            throw new RuntimeException("Embedding API Error: " + responseCode);
+        }
+
+        // JSONレスポンスの解析
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+            StringBuilder response = new StringBuilder();
+            String responseLine;
+            while ((responseLine = br.readLine()) != null) {
+                response.append(responseLine.trim());
+            }
+
+            JsonNode jsonResponse = objectMapper.readTree(response.toString());
+
+            // "embedding" -> "values" から float配列を取得
+            JsonNode valuesNode = jsonResponse.path("embedding").path("values");
+            if (valuesNode.isArray()) {
+                float[] embeddings = new float[valuesNode.size()];
+                for (int i = 0; i < valuesNode.size(); i++) {
+                    embeddings[i] = (float) valuesNode.get(i).asDouble();
+                }
+
+                // API使用履歴の登録
+                SES_AI_API_USAGE_HISTORY usageHistory = new SES_AI_API_USAGE_HISTORY();
+                usageHistory.setProvider(Provider.Google);
+                usageHistory.setModel(this.embeddingModel);
+                usageHistory.setUsageMonth(new OriginalDateTime().getYYYYMM());
+                usageHistory.setUserId("SesAiAssitantCore");
+                usageHistory.setApiType(ApiType.Embedding); 
+                usageHistory.fetch();
+                usageHistory.addInputCount(inputString != null ? inputString.length() : 0);
+                usageHistory.save();
+
+                return embeddings;
+            }
+        }
+
         return null;
     }
 
