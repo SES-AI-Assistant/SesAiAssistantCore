@@ -24,19 +24,19 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
     /**
      * ベクトル検索SQL.
      */
-    private final static String RETRIEVE_SQL = "SELECT job_id, from_group, from_id, from_name, raw_content, register_date, register_user, ttl, vector_data <=> ?::vector AS distance FROM SES_AI_T_JOB ORDER BY distance LIMIT ?";
+    private final static String RETRIEVE_SQL = "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, register_date, register_user, ttl, vector_data <=> ?::vector AS distance FROM SES_AI_T_JOB ORDER BY distance LIMIT ?";
     /**
      * 全文検索SQL.
      */
-    private final static String SELECT_LIKE_SQL = "SELECT job_id, from_group, from_id, from_name, raw_content, vector_data, register_date, register_user, ttl FROM SES_AI_T_JOB WHERE raw_content LIKE ?";
+    private final static String SELECT_LIKE_SQL = "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_JOB WHERE raw_content LIKE ?";
     /**
      * 検索SQL.
      */
-    private final static String SELECT_SQL = "SELECT job_id, from_group, from_id, from_name, raw_content, vector_data, register_date, register_user, ttl FROM SES_AI_T_JOB WHERE ";
+    private final static String SELECT_SQL = "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_JOB WHERE ";
     /**
      * 全件検索SQL.
      */
-    private final static String SELECT_ALL_SQL = "SELECT job_id, from_group, from_id, from_name, raw_content, register_date, register_user, ttl FROM SES_AI_T_JOB";
+    private final static String SELECT_ALL_SQL = "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, register_date, register_user, ttl FROM SES_AI_T_JOB";
 
     /**
      * コンストラクタ.
@@ -57,6 +57,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
             SES_AI_T_JOB.setFromId(resultSet.getString("from_id"));
             SES_AI_T_JOB.setFromName(resultSet.getString("from_name"));
             SES_AI_T_JOB.setRawContent(resultSet.getString("raw_content"));
+            SES_AI_T_JOB.setContentSummary(resultSet.getString("content_summary"));
             SES_AI_T_JOB.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
             SES_AI_T_JOB.setRegisterUser(resultSet.getString("register_user"));
             SES_AI_T_JOB.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
@@ -88,6 +89,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
             SES_AI_T_JOB.setFromId(resultSet.getString("from_id"));
             SES_AI_T_JOB.setFromName(resultSet.getString("from_name"));
             SES_AI_T_JOB.setRawContent(resultSet.getString("raw_content"));
+            SES_AI_T_JOB.setContentSummary(resultSet.getString("content_summary"));
             SES_AI_T_JOB.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
             SES_AI_T_JOB.setRegisterUser(resultSet.getString("register_user"));
             SES_AI_T_JOB.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
@@ -115,6 +117,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
             SES_AI_T_JOB.setFromId(resultSet.getString("from_id"));
             SES_AI_T_JOB.setFromName(resultSet.getString("from_name"));
             SES_AI_T_JOB.setRawContent(resultSet.getString("raw_content"));
+            SES_AI_T_JOB.setContentSummary(resultSet.getString("content_summary"));
             SES_AI_T_JOB.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
             SES_AI_T_JOB.setRegisterUser(resultSet.getString("register_user"));
             SES_AI_T_JOB.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
@@ -159,6 +162,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
             SES_AI_T_JOB.setFromId(resultSet.getString("from_id"));
             SES_AI_T_JOB.setFromName(resultSet.getString("from_name"));
             SES_AI_T_JOB.setRawContent(resultSet.getString("raw_content"));
+            SES_AI_T_JOB.setContentSummary(resultSet.getString("content_summary"));
             SES_AI_T_JOB.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
             SES_AI_T_JOB.setRegisterUser(resultSet.getString("register_user"));
             SES_AI_T_JOB.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
@@ -203,6 +207,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
             SES_AI_T_JOB.setFromId(resultSet.getString("from_id"));
             SES_AI_T_JOB.setFromName(resultSet.getString("from_name"));
             SES_AI_T_JOB.setRawContent(resultSet.getString("raw_content"));
+            SES_AI_T_JOB.setContentSummary(resultSet.getString("content_summary"));
             SES_AI_T_JOB.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
             SES_AI_T_JOB.setRegisterUser(resultSet.getString("register_user"));
             SES_AI_T_JOB.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
@@ -247,6 +252,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
             SES_AI_T_JOB.setFromId(resultSet.getString("from_id"));
             SES_AI_T_JOB.setFromName(resultSet.getString("from_name"));
             SES_AI_T_JOB.setRawContent(resultSet.getString("raw_content"));
+            SES_AI_T_JOB.setContentSummary(resultSet.getString("content_summary"));
             SES_AI_T_JOB.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
             SES_AI_T_JOB.setRegisterUser(resultSet.getString("register_user"));
             SES_AI_T_JOB.setTtl(new OriginalDateTime(resultSet.getString("ttl")));

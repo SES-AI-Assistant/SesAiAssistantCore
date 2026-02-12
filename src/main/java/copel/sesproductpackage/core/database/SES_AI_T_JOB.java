@@ -12,6 +12,7 @@ import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
+import lombok.Data;
 
 /**
  * 【Entityクラス】
@@ -20,6 +21,7 @@ import copel.sesproductpackage.core.unit.Vector;
  * @author 鈴木一矢
  *
  */
+@Data
 public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
     // ================================
     // SQL
@@ -27,15 +29,15 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
     /**
      * INSERTR文.
      */
-    private final static String INSERT_SQL = "INSERT INTO SES_AI_T_JOB (job_id, from_group, from_id, from_name, raw_content, vector_data, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
+    private final static String INSERT_SQL = "INSERT INTO SES_AI_T_JOB (job_id, from_group, from_id, from_name, raw_content, content_summary, vector_data, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
     /**
      * SELECT文.
      */
-    private final static String SELECT_SQL = "SELECT job_id, from_group, from_id, from_name, raw_content, vector_data, register_date, register_user, ttl FROM SES_AI_T_JOB WHERE job_id = ?";
+    private final static String SELECT_SQL = "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_JOB WHERE job_id = ?";
     /**
      * UPDATE文.
      */
-    private final static String UPDATE_SQL = "UPDATE SES_AI_T_JOB SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, vector_data = ?::vector, ttl = ? WHERE job_id = ?";
+    private final static String UPDATE_SQL = "UPDATE SES_AI_T_JOB SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, content_summary = ?, vector_data = ?::vector, ttl = ? WHERE job_id = ?";
     /**
      * 重複チェック用SQL.
      */
@@ -65,6 +67,13 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
         physicalName = "raw_content",
         logicalName = "原文")
     private String rawContent;
+    /**
+     * 要約 / content_summary
+     */
+    @Column(
+        physicalName = "content_summary",
+        logicalName = "要約")
+    private String contentSummary;
 
     // ================================
     // メソッド
@@ -114,10 +123,11 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
         preparedStatement.setString(3, this.fromId);
         preparedStatement.setString(4, this.fromName);
         preparedStatement.setString(5, this.rawContent);
-        preparedStatement.setString(6, this.vectorData == null ? null : this.vectorData.toString());
-        preparedStatement.setTimestamp(7, this.registerDate == null ? null : this.registerDate.toTimestamp());
-        preparedStatement.setString(8, this.registerUser);
-        preparedStatement.setTimestamp(9, this.ttl == null ? null : this.ttl.toTimestamp());
+        preparedStatement.setString(6, this.contentSummary);
+        preparedStatement.setString(7, this.vectorData == null ? null : this.vectorData.toString());
+        preparedStatement.setTimestamp(8, this.registerDate == null ? null : this.registerDate.toTimestamp());
+        preparedStatement.setString(9, this.registerUser);
+        preparedStatement.setTimestamp(10, this.ttl == null ? null : this.ttl.toTimestamp());
         return preparedStatement.executeUpdate();
     }
 
@@ -134,6 +144,7 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
             this.fromId = resultSet.getString("from_id");
             this.fromName = resultSet.getString("from_name");
             this.rawContent = resultSet.getString("raw_content");
+            this.contentSummary = resultSet.getString("content_summary");
             this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
             this.registerUser = resultSet.getString("register_user");
             this.ttl = new OriginalDateTime(resultSet.getString("ttl"));
@@ -150,9 +161,10 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
         preparedStatement.setString(2, this.fromId);
         preparedStatement.setString(3, this.fromName);
         preparedStatement.setString(4, this.rawContent);
-        preparedStatement.setString(5, this.vectorData == null ? null : this.vectorData.toString());
-        preparedStatement.setTimestamp(6, this.ttl == null ? null : this.ttl.toTimestamp());
-        preparedStatement.setString(7, this.jobId);
+        preparedStatement.setString(5, this.contentSummary);
+        preparedStatement.setString(6, this.vectorData == null ? null : this.vectorData.toString());
+        preparedStatement.setTimestamp(7, this.ttl == null ? null : this.ttl.toTimestamp());
+        preparedStatement.setString(8, this.jobId);
         return preparedStatement.executeUpdate() > 0;
     }
 
@@ -173,27 +185,12 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
                 + "\n from_id: " + this.fromId
                 + "\n from_name: " + this.fromName
                 + "\n raw_content: " + this.rawContent
+                + "\n content_summary: " + this.contentSummary
                 + "\n vector_data: " + this.vectorData
                 + "\n register_date: " + this.registerDate
                 + "\n register_user: " + this.registerUser
                 + "\n ttl: " + this.ttl
                 + "\n distance: " + this.distance
                 + "\n}";
-    }
-
-    // ================================
-    // Getter / Setter
-    // ================================
-    public String getJobId() {
-		return jobId;
-	}
-	public void setJobId(String jobId) {
-		this.jobId = jobId;
-	}
-    public String getRawContent() {
-        return rawContent;
-    }
-    public void setRawContent(String rawContent) {
-        this.rawContent = rawContent;
     }
 }

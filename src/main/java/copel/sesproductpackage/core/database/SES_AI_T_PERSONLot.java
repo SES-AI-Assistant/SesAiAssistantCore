@@ -26,19 +26,23 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
     /**
      * ベクトル検索SQL.
      */
-    private final static String RETRIEVE_SQL = "SELECT person_id, from_group, from_id, from_name, raw_content, file_id, register_date, register_user, ttl, vector_data <=> ?::vector AS distance FROM SES_AI_T_PERSON ORDER BY distance LIMIT ?";
+    private final static String RETRIEVE_SQL = "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, register_date, register_user, ttl, vector_data <=> ?::vector AS distance FROM SES_AI_T_PERSON ORDER BY distance LIMIT ?";
     /**
      * 全文検索SQL.
      */
-    private final static String SELECT_LIKE_SQL = "SELECT person_id, from_group, from_id, from_name, raw_content, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE raw_content LIKE ?";
+    private final static String SELECT_LIKE_SQL = "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE raw_content LIKE ?";
     /**
      * 検索SQL.
      */
-    private final static String SELECT_SQL = "SELECT person_id, from_group, from_id, from_name, raw_content, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE ";
+    private final static String SELECT_SQL = "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE ";
     /**
      * 検索SQL(指定時間以降検索).
      */
-    private final static String SELECT_SQL_BY_REGISTER_DATE = "SELECT person_id, from_group, from_id, from_name, raw_content, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE register_date >= ?";
+    private final static String SELECT_SQL_BY_REGISTER_DATE = "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE register_date >= ?";
+    /**
+     * 全件検索SQL.
+     */
+    private final static String SELECT_ALL_SQL = "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON";
 
     /**
      * コンストラクタ.
@@ -119,6 +123,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
             SES_AI_T_PERSON.setFromName(resultSet.getString("from_name"));
             SES_AI_T_PERSON.setFileId(resultSet.getString("file_id"));
             SES_AI_T_PERSON.setRawContent(resultSet.getString("raw_content"));
+            SES_AI_T_PERSON.setContentSummary(resultSet.getString("content_summary"));
             SES_AI_T_PERSON.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
             SES_AI_T_PERSON.setRegisterUser(resultSet.getString("register_user"));
             SES_AI_T_PERSON.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
@@ -147,6 +152,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
             SES_AI_T_PERSON.setFromName(resultSet.getString("from_name"));
             SES_AI_T_PERSON.setFileId(resultSet.getString("file_id"));
             SES_AI_T_PERSON.setRawContent(resultSet.getString("raw_content"));
+            SES_AI_T_PERSON.setContentSummary(resultSet.getString("content_summary"));
             SES_AI_T_PERSON.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
             SES_AI_T_PERSON.setRegisterUser(resultSet.getString("register_user"));
             SES_AI_T_PERSON.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
@@ -192,6 +198,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
             SES_AI_T_PERSON.setFromName(resultSet.getString("from_name"));
             SES_AI_T_PERSON.setFileId(resultSet.getString("file_id"));
             SES_AI_T_PERSON.setRawContent(resultSet.getString("raw_content"));
+            SES_AI_T_PERSON.setContentSummary(resultSet.getString("content_summary"));
             SES_AI_T_PERSON.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
             SES_AI_T_PERSON.setRegisterUser(resultSet.getString("register_user"));
             SES_AI_T_PERSON.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
@@ -237,6 +244,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
             SES_AI_T_PERSON.setFromName(resultSet.getString("from_name"));
             SES_AI_T_PERSON.setFileId(resultSet.getString("file_id"));
             SES_AI_T_PERSON.setRawContent(resultSet.getString("raw_content"));
+            SES_AI_T_PERSON.setContentSummary(resultSet.getString("content_summary"));
             SES_AI_T_PERSON.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
             SES_AI_T_PERSON.setRegisterUser(resultSet.getString("register_user"));
             SES_AI_T_PERSON.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
@@ -282,6 +290,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
             SES_AI_T_PERSON.setFromName(resultSet.getString("from_name"));
             SES_AI_T_PERSON.setFileId(resultSet.getString("file_id"));
             SES_AI_T_PERSON.setRawContent(resultSet.getString("raw_content"));
+            SES_AI_T_PERSON.setContentSummary(resultSet.getString("content_summary"));
             SES_AI_T_PERSON.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
             SES_AI_T_PERSON.setRegisterUser(resultSet.getString("register_user"));
             SES_AI_T_PERSON.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
@@ -312,6 +321,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
             SES_AI_T_PERSON.setFromName(resultSet.getString("from_name"));
             SES_AI_T_PERSON.setFileId(resultSet.getString("file_id"));
             SES_AI_T_PERSON.setRawContent(resultSet.getString("raw_content"));
+            SES_AI_T_PERSON.setContentSummary(resultSet.getString("content_summary"));
             SES_AI_T_PERSON.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
             SES_AI_T_PERSON.setRegisterUser(resultSet.getString("register_user"));
             SES_AI_T_PERSON.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
@@ -332,7 +342,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
     @Override
     public void selectAll(Connection connection) throws SQLException {
         this.entityLot = new ArrayList<SES_AI_T_PERSON>();
-        PreparedStatement preparedStatement = connection.prepareStatement("SELECT person_id, from_group, from_id, from_name, raw_content, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON");
+        PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);
         ResultSet resultSet = preparedStatement.executeQuery();
         while (resultSet.next()) {
             SES_AI_T_PERSON SES_AI_T_PERSON = new SES_AI_T_PERSON();
@@ -342,6 +352,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
             SES_AI_T_PERSON.setFromName(resultSet.getString("from_name"));
             SES_AI_T_PERSON.setFileId(resultSet.getString("file_id"));
             SES_AI_T_PERSON.setRawContent(resultSet.getString("raw_content"));
+            SES_AI_T_PERSON.setContentSummary(resultSet.getString("content_summary"));
             SES_AI_T_PERSON.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
             SES_AI_T_PERSON.setRegisterUser(resultSet.getString("register_user"));
             SES_AI_T_PERSON.setTtl(new OriginalDateTime(resultSet.getString("ttl")));

@@ -8,10 +8,12 @@ import java.sql.SQLException;
 import java.util.UUID;
 
 import copel.sesproductpackage.core.api.gpt.Transformer;
+import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
+import lombok.Data;
 
 /**
  * 【Entityクラス】
@@ -20,6 +22,7 @@ import copel.sesproductpackage.core.util.OriginalStringUtils;
  * @author 鈴木一矢
  *
  */
+@Data
 public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
     // ================================
     // SQL
@@ -27,15 +30,15 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
     /**
      * INSERTR文.
      */
-    private final static String INSERT_SQL = "INSERT INTO SES_AI_T_PERSON (person_id, from_group, from_id, from_name, raw_content, file_id, file_summary, vector_data, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
+    private final static String INSERT_SQL = "INSERT INTO SES_AI_T_PERSON (person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, file_summary, vector_data, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
     /**
      * SELECT文.
      */
-    private final static String SELECT_SQL = "SELECT person_id, from_group, from_id, from_name, raw_content, file_id, file_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE person_id = ?";
+    private final static String SELECT_SQL = "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, file_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE person_id = ?";
     /**
      * UPDATE文.
      */
-    private final static String UPDATE_SQL = "UPDATE SES_AI_T_PERSON SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, file_id = ?, file_summary = ?, vector_data = ?::vector, ttl = ? WHERE person_id = ?";
+    private final static String UPDATE_SQL = "UPDATE SES_AI_T_PERSON SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, content_summary = ?, file_id = ?, file_summary = ?, vector_data = ?::vector, ttl = ? WHERE person_id = ?";
     /**
      * UPDATE文(file_idのみ).
      */
@@ -55,19 +58,40 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
     /**
      * 要員ID(PK).
      */
+    @Column(
+        required = true,
+        primary = true,
+        physicalName = "person_id",
+        logicalName = "要員ID")
     private String personId;
     /**
-     * 原文.
+     * 原文 / raw_content
      */
+    @Column(
+        physicalName = "raw_content",
+        logicalName = "原文")
     private String rawContent;
     /**
-     * ファイルID.
+     * ファイルID / file_id.
      */
+    @Column(
+        physicalName = "file_id",
+        logicalName = "ファイルID")
     private String fileId;
     /**
-     * スキルシートの要約.
+     * スキルシートの要約 / file_summary.
      */
+    @Column(
+        physicalName = "file_summary",
+        logicalName = "スキルシートの要約")
     private String fileSummary;
+    /**
+     * 要約 / content_summary
+     */
+    @Column(
+        physicalName = "content_summary",
+        logicalName = "要約")
+    private String contentSummary;
 
     // ================================
     // メソッド
@@ -143,12 +167,13 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
         preparedStatement.setString(3, this.fromId);
         preparedStatement.setString(4, this.fromName);
         preparedStatement.setString(5, this.rawContent);
-        preparedStatement.setString(6, this.fileId);
-        preparedStatement.setString(7, this.fileSummary);
-        preparedStatement.setString(8, this.vectorData == null ? null : this.vectorData.toString());
-        preparedStatement.setTimestamp(9, this.registerDate == null ? null : this.registerDate.toTimestamp());
-        preparedStatement.setString(10, this.registerUser);
-        preparedStatement.setTimestamp(11, this.ttl == null ? null : this.ttl.toTimestamp());
+        preparedStatement.setString(6, this.contentSummary);
+        preparedStatement.setString(7, this.fileId);
+        preparedStatement.setString(8, this.fileSummary);
+        preparedStatement.setString(9, this.vectorData == null ? null : this.vectorData.toString());
+        preparedStatement.setTimestamp(10, this.registerDate == null ? null : this.registerDate.toTimestamp());
+        preparedStatement.setString(11, this.registerUser);
+        preparedStatement.setTimestamp(12, this.ttl == null ? null : this.ttl.toTimestamp());
         return preparedStatement.executeUpdate();
     }
 
@@ -162,11 +187,12 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
         preparedStatement.setString(2, this.fromId);
         preparedStatement.setString(3, this.fromName);
         preparedStatement.setString(4, this.rawContent);
-        preparedStatement.setString(5, this.fileId);
-        preparedStatement.setString(6, this.fileSummary);
-        preparedStatement.setString(7, this.vectorData == null ? null : this.vectorData.toString());
-        preparedStatement.setTimestamp(8, this.ttl == null ? null : this.ttl.toTimestamp());
-        preparedStatement.setString(9, this.personId);
+        preparedStatement.setString(5, this.contentSummary);
+        preparedStatement.setString(6, this.fileId);
+        preparedStatement.setString(7, this.fileSummary);
+        preparedStatement.setString(8, this.vectorData == null ? null : this.vectorData.toString());
+        preparedStatement.setTimestamp(9, this.ttl == null ? null : this.ttl.toTimestamp());
+        preparedStatement.setString(10, this.personId);
         return preparedStatement.executeUpdate() > 0;
     }
 
@@ -183,6 +209,7 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
             this.fromId = resultSet.getString("from_id");
             this.fromName = resultSet.getString("from_name");
             this.rawContent = resultSet.getString("raw_content");
+            this.contentSummary = resultSet.getString("content_summary");
             this.fileId = resultSet.getString("file_id");
             this.fileSummary = resultSet.getString("file_summary");
             this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
@@ -209,6 +236,7 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
                 + "\n  from_id: " + this.fromId
                 + "\n  from_name: " + this.fromName
                 + "\n  raw_content: " + this.rawContent
+                + "\n  content_summary: " + this.contentSummary
                 + "\n  file_id: " + this.fileId
                 + "\n  file_summary: " + this.fileSummary
                 + "\n  vector_data: " + this.vectorData
@@ -217,33 +245,5 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
                 + "\n  ttl: " + this.ttl
                 + "\n  distance: " + this.distance
                 + "\n}";
-    }
-
-    // ================================
-    // Getter / Setter
-    // ================================
-    public String getPersonId() {
-		return personId;
-	}
-	public void setPersonId(String personId) {
-		this.personId = personId;
-	}
-    public String getFileId() {
-        return fileId;
-    }
-    public void setFileId(String fileId) {
-        this.fileId = fileId;
-    }
-    public String getFileSummary() {
-        return fileSummary;
-    }
-    public void setFileSummary(String fileSummary) {
-        this.fileSummary = fileSummary;
-    }
-    public String getRawContent() {
-        return rawContent;
-    }
-    public void setRawContent(String rawContent) {
-        this.rawContent = rawContent;
     }
 }
