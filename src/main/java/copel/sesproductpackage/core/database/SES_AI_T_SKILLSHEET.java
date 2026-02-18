@@ -119,15 +119,10 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
     // ================================
     @Override
     public void embedding(final Transformer embeddingProcessListener) throws IOException, RuntimeException {
-        this.vectorData = new Vector(embeddingProcessListener);
-        String content = this.skillSheet.getFileContent();
-        if (content != null) {
-            // 特殊文字や記号を省いた文字列をカウントし6000文字より少なければファイル内容をそのままエンベディングする
-            // 6000文字以上であればエンベディングできない可能性が高いため、要約をエンベディングする
-            content = content.replaceAll("[\\p{C}\\p{P}\"]", "");
-            this.vectorData.setRawString(content.length() < 7000 ? content : this.skillSheet.getFileContentSummary());
-            this.vectorData.embedding();
-        }
+    		this.vectorData = new Vector(embeddingProcessListener);
+        // ファイルの文字数に関わらず、常に要約をエンベディングする
+        this.vectorData.setRawString(this.skillSheet.getFileContentSummary());
+        this.vectorData.embedding();
     }
 
     @Override

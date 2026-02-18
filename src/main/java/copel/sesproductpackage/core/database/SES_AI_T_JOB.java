@@ -92,8 +92,9 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
     // ================================
     @Override
     public void embedding(final Transformer embeddingProcessListener) throws IOException, RuntimeException {
-        this.vectorData = new Vector(embeddingProcessListener);
-        this.vectorData.setRawString(this.rawContent);
+    		this.vectorData = new Vector(embeddingProcessListener);
+        // 原文ではなく要約をエンベディングする
+        this.vectorData.setRawString(this.contentSummary);
         this.vectorData.embedding();
     }
 
