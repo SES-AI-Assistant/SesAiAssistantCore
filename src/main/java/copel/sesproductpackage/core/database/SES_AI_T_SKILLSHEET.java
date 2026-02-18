@@ -119,7 +119,7 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
     // ================================
     @Override
     public void embedding(final Transformer embeddingProcessListener) throws IOException, RuntimeException {
-    		this.vectorData = new Vector(embeddingProcessListener);
+        this.vectorData = new Vector(embeddingProcessListener);
         // ファイルの文字数に関わらず、常に要約をエンベディングする
         this.vectorData.setRawString(this.skillSheet.getFileContentSummary());
         this.vectorData.embedding();
