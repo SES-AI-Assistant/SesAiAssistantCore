@@ -1,4 +1,4 @@
-        package copel.sesproductpackage.core.database;
+package copel.sesproductpackage.core.database;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -114,20 +114,16 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
             this.ttl = new OriginalDateTime(resultSet.getString("ttl"));
         }
     }
+
     // ================================
     // Overrideメソッド
     // ================================
     @Override
     public void embedding(final Transformer embeddingProcessListener) throws IOException, RuntimeException {
         this.vectorData = new Vector(embeddingProcessListener);
-        String content = this.skillSheet.getFileContent();
-        if (content != null) {
-            // 特殊文字や記号を省いた文字列をカウントし6000文字より少なければファイル内容をそのままエンベディングする
-            // 6000文字以上であればエンベディングできない可能性が高いため、要約をエンベディングする
-            content = content.replaceAll("[\\p{C}\\p{P}\"]", "");
-            this.vectorData.setRawString(content.length() < 7000 ? content : this.skillSheet.getFileContentSummary());
-            this.vectorData.embedding();
-        }
+        // ファイルの文字数に関わらず、常に要約をエンベディングする
+        this.vectorData.setRawString(this.skillSheet.getFileContentSummary());
+        this.vectorData.embedding();
     }
 
     @Override
@@ -173,7 +169,8 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
             this.fromGroup = resultSet.getString("from_group");
             this.fromId = resultSet.getString("from_id");
             this.fromName = resultSet.getString("from_name");
-            this.skillSheet = new SkillSheet(resultSet.getString("file_id"), resultSet.getString("file_name"), resultSet.getString("file_content"));
+            this.skillSheet = new SkillSheet(resultSet.getString("file_id"), resultSet.getString("file_name"),
+                    resultSet.getString("file_content"));
             this.skillSheet.setFileContentSummary(resultSet.getString("file_content_summary"));
             this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
             this.registerUser = resultSet.getString("register_user");
@@ -201,47 +198,65 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
         return "{\n from_group: " + this.fromGroup
                 + "\n from_id: " + this.fromId
                 + "\n from_name: " + this.fromName
-                + "\n file_id: " + this.skillSheet == null ? null : this.skillSheet.getFileId()
-                + "\n file_name: " + this.skillSheet == null ? null : this.skillSheet.getFileName()
-                + "\n file_content: " + this.skillSheet == null ? null : this.skillSheet.getFileContent()
-                + "\n file_content_summary: " + this.skillSheet == null ? null : this.skillSheet.getFileContentSummary()
-                + "\n vector_data: " + this.vectorData
-                + "\n register_date: " + this.registerDate
-                + "\n register_user: " + this.registerUser
-                + "\n ttl: " + this.ttl
-                + "\n distance: " + this.distance
-                + "\n}";
+                + "\n file_id: " + this.skillSheet == null ? null
+                        : this.skillSheet.getFileId()
+                                + "\n file_name: " + this.skillSheet == null ? null
+                                        : this.skillSheet.getFileName()
+                                                + "\n file_content: " + this.skillSheet == null
+                                                        ? null
+                                                        : this.skillSheet.getFileContent()
+                                                                + "\n file_content_summary: " + this.skillSheet == null
+                                                                        ? null
+                                                                        : this.skillSheet.getFileContentSummary()
+                                                                                + "\n vector_data: " + this.vectorData
+                                                                                + "\n register_date: "
+                                                                                + this.registerDate
+                                                                                + "\n register_user: "
+                                                                                + this.registerUser
+                                                                                + "\n ttl: " + this.ttl
+                                                                                + "\n distance: " + this.distance
+                                                                                + "\n}";
     }
+
     // ================================
     // Getter / Setter
     // ================================
     public SkillSheet getSkillSheet() {
         return this.skillSheet;
     }
+
     public void setSkillSheet(SkillSheet skillSheet) {
         this.skillSheet = skillSheet;
     }
+
     public String getFileId() {
         return this.skillSheet == null ? null : this.skillSheet.getFileId();
     }
+
     public void setFileId(String fileId) {
         this.skillSheet.setFileId(fileId);
     }
+
     public String getFileName() {
         return this.skillSheet == null ? null : this.skillSheet.getFileName();
     }
+
     public void setFileName(String fileName) {
         this.skillSheet.setFileName(fileName);
     }
+
     public String getFileContent() {
         return this.skillSheet == null ? "" : this.skillSheet.getFileContent();
     }
+
     public void setFileContent(String fileContent) {
         this.skillSheet.setFileContent(fileContent);
     }
+
     public String getFileContentSummary() {
         return this.skillSheet == null ? "" : this.skillSheet.getFileContentSummary();
     }
+
     public void setFileContentSummary(String fileContentSummary) {
         this.skillSheet.setFileContentSummary(fileContentSummary);
     }

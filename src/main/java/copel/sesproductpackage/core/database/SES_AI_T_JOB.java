@@ -54,25 +54,17 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
      * 【PK】
      * 案件ID* / job_id
      */
-    @Column(
-        required = true,
-        primary = true,
-        physicalName = "job_id",
-        logicalName = "案件ID")
+    @Column(required = true, primary = true, physicalName = "job_id", logicalName = "案件ID")
     private String jobId;
     /**
      * 原文 / raw_content
      */
-    @Column(
-        physicalName = "raw_content",
-        logicalName = "原文")
+    @Column(physicalName = "raw_content", logicalName = "原文")
     private String rawContent;
     /**
      * 要約 / content_summary
      */
-    @Column(
-        physicalName = "content_summary",
-        logicalName = "要約")
+    @Column(physicalName = "content_summary", logicalName = "要約")
     private String contentSummary;
 
     // ================================
@@ -93,7 +85,8 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
     @Override
     public void embedding(final Transformer embeddingProcessListener) throws IOException, RuntimeException {
         this.vectorData = new Vector(embeddingProcessListener);
-        this.vectorData.setRawString(this.rawContent);
+        // 原文ではなく要約をエンベディングする
+        this.vectorData.setRawString(this.contentSummary);
         this.vectorData.embedding();
     }
 
