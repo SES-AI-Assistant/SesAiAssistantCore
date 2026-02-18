@@ -58,39 +58,27 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
     /**
      * 要員ID(PK).
      */
-    @Column(
-        required = true,
-        primary = true,
-        physicalName = "person_id",
-        logicalName = "要員ID")
+    @Column(required = true, primary = true, physicalName = "person_id", logicalName = "要員ID")
     private String personId;
     /**
      * 原文 / raw_content
      */
-    @Column(
-        physicalName = "raw_content",
-        logicalName = "原文")
+    @Column(physicalName = "raw_content", logicalName = "原文")
     private String rawContent;
     /**
      * ファイルID / file_id.
      */
-    @Column(
-        physicalName = "file_id",
-        logicalName = "ファイルID")
+    @Column(physicalName = "file_id", logicalName = "ファイルID")
     private String fileId;
     /**
      * スキルシートの要約 / file_summary.
      */
-    @Column(
-        physicalName = "file_summary",
-        logicalName = "スキルシートの要約")
+    @Column(physicalName = "file_summary", logicalName = "スキルシートの要約")
     private String fileSummary;
     /**
      * 要約 / content_summary
      */
-    @Column(
-        physicalName = "content_summary",
-        logicalName = "要約")
+    @Column(physicalName = "content_summary", logicalName = "要約")
     private String contentSummary;
 
     // ================================
@@ -137,7 +125,8 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
     @Override
     public void embedding(final Transformer embeddingProcessListener) throws IOException, RuntimeException {
         this.vectorData = new Vector(embeddingProcessListener);
-        this.vectorData.setRawString(this.rawContent);
+        // 原文ではなく要約をエンベディングする
+        this.vectorData.setRawString(this.contentSummary);
         this.vectorData.embedding();
     }
 
