@@ -21,7 +21,7 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
     /**
      * 全件SELECT文.
      */
-    private final static String SELECT_ALL_SQL = "SELECT user_id, user_name, user_password, company_id, role_cd, register_date, register_user FROM SES_AI_WEBAPP_M_USER";
+    private final static String SELECT_ALL_SQL = "SELECT user_id, user_name, company_id, role_cd, register_date, register_user FROM SES_AI_WEBAPP_M_USER";
 
     public SES_AI_WEBAPP_M_USERLot() {
         super();
@@ -36,7 +36,6 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
             SES_AI_WEBAPP_M_USER SES_AI_WEBAPP_M_USER = new SES_AI_WEBAPP_M_USER();
             SES_AI_WEBAPP_M_USER.setUserId(resultSet.getString("user_id"));
             SES_AI_WEBAPP_M_USER.setUserName(resultSet.getString("user_name"));
-            SES_AI_WEBAPP_M_USER.setUserPassword(resultSet.getString("user_password"));
             SES_AI_WEBAPP_M_USER.setCompanyId(resultSet.getString("company_id"));
             SES_AI_WEBAPP_M_USER.setRole(Role.getEnum(resultSet.getString("role_cd")));
             SES_AI_WEBAPP_M_USER.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
