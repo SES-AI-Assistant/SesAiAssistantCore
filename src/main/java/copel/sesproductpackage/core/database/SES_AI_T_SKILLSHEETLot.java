@@ -22,9 +22,12 @@ import copel.sesproductpackage.core.unit.Vector;
  */
 public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     /**
+     * セマンティック検索SQL (類似度 k 以上、上位5件).
+     */
+    /**
      * ベクトル検索SQL.
      */
-    private final static String RETRIEVE_SQL = "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, register_date, register_user, ttl, vector_data <=> ?::vector AS distance FROM SES_AI_T_SKILLSHEET ORDER BY distance LIMIT ?";
+    private final static String RETRIEVE_SQL = "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, register_date, register_user, ttl, vector_data <=> ?::vector AS distance FROM SES_AI_T_SKILLSHEET WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance LIMIT ?";
     /**
      * 全文検索SQL(file_contentカラム).
      */
@@ -82,20 +85,48 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     }
 
     /**
-     * ベクトル検索を実行し結果をこのLotに保持します.
+     * ベクトル検索を実行し結果をこのLotに保持します(閾値デフォルト0, 上位5件).
      *
      * @param connection DBコネクション
-     * @param query 検索ベクトル
-     * @param limit 取得上限件数
+     * @param query      検索ベクトル
      * @throws SQLException
      */
-    public void retrieve(Connection connection, Vector query, int limit) throws SQLException {
+    public void retrieve(final Connection connection, final Vector query) throws SQLException {
+        retrieve(connection, query, 0, 5);
+    }
+
+    /**
+     * ベクトル検索を実行し結果をこのLotに保持します(閾値デフォルト0).
+     *
+     * @param connection DBコネクション
+     * @param query      検索ベクトル
+     * @param limit      取得上限件数
+     * @throws SQLException
+     */
+    public void retrieve(final Connection connection, final Vector query, final int limit) throws SQLException {
+        retrieve(connection, query, 0, limit);
+    }
+
+    /**
+     * ベクトル検索を実行し結果をこのLotに保持します.
+     *
+     * @param connection          DBコネクション
+     * @param query               検索ベクトル
+     * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
+     * @param limit               取得上限件数
+     * @throws SQLException
+     */
+    public void retrieve(Connection connection, Vector query, double similarityThreshold, int limit)
+            throws SQLException {
         if (connection == null) {
             return;
         }
         PreparedStatement preparedStatement = connection.prepareStatement(RETRIEVE_SQL);
-        preparedStatement.setString(1, query == null ? null : query.toString());
-        preparedStatement.setInt(2, limit);
+        String vectorStr = query == null ? null : query.toString();
+        preparedStatement.setString(1, vectorStr);
+        preparedStatement.setString(2, vectorStr);
+        preparedStatement.setDouble(3, similarityThreshold);
+        preparedStatement.setInt(4, limit);
         ResultSet resultSet = preparedStatement.executeQuery();
         this.entityLot = new ArrayList<SES_AI_T_SKILLSHEET>();
         while (resultSet.next()) {
@@ -119,8 +150,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
      * 指定したカラムで全文検索を実行し、結果をこのLotに保持します.
      *
      * @param connection DBコネクション
-     * @param query 検索条件Map
-     * @throws SQLException 
+     * @param query      検索条件Map
+     * @throws SQLException
      */
     public void selectLike(final Connection connection, final String column, final String query) throws SQLException {
         final String sql = SELECT_LIKE_SQL + column + " LIKE ?";
@@ -148,8 +179,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
      * file_contentカラムで全文検索を実行し、結果をこのLotに保持します.
      *
      * @param connection DBコネクション
-     * @param query 検索条件Map
-     * @throws SQLException 
+     * @param query      検索条件Map
+     * @throws SQLException
      */
     public void searchByFileContent(final Connection connection, final String query) throws SQLException {
         this.entityLot = new ArrayList<SES_AI_T_SKILLSHEET>();
@@ -176,8 +207,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
      * file_nameカラムで全文検索を実行し、結果をこのLotに保持します.
      *
      * @param connection DBコネクション
-     * @param query 検索条件Map
-     * @throws SQLException 
+     * @param query      検索条件Map
+     * @throws SQLException
      */
     public void selectByFileName(final Connection connection, final String fileName) throws SQLException {
         this.entityLot = new ArrayList<SES_AI_T_SKILLSHEET>();
@@ -201,10 +232,10 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     /**
      * file_contentカラムに対して複数条件で全文検索を実行し、結果をこのLotに保持します.
      *
-     * @param connection DBコネクション
+     * @param connection     DBコネクション
      * @param firstLikeQuery 1つ目のLIKE句の検索条件
-     * @param query 検索条件リスト
-     * @throws SQLException 
+     * @param query          検索条件リスト
+     * @throws SQLException
      */
     public void searchByFileContent(final Connection connection, final String firstLikeQuery, final List<LogicalOperators> query) throws SQLException {
         // 検索条件からSQLを生成
@@ -248,8 +279,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
      * SELECTをAND条件で実行する.
      *
      * @param connection DBコネクション
-     * @param andQuery カラム名と検索値をkey-valueで持つMap
-     * @throws SQLException 
+     * @param andQuery   カラム名と検索値をkey-valueで持つMap
+     * @throws SQLException
      */
     public void selectByAndQuery(final Connection connection, final Map<String, String> andQuery) throws SQLException {
         // 検索条件からSQLを生成
@@ -294,8 +325,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
      * SELECTをOR条件で実行する.
      *
      * @param connection DBコネクション
-     * @param orQuery カラム名と検索値をkey-valueで持つMap
-     * @throws SQLException 
+     * @param orQuery    カラム名と検索値をkey-valueで持つMap
+     * @throws SQLException
      */
     public void selectByOrQuery(final Connection connection, final Map<String, String> orQuery) throws SQLException {
         // 検索条件からSQLを生成
