@@ -1,20 +1,124 @@
 package copel.sesproductpackage.core.database;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import org.junit.jupiter.api.Test;
 
-import copel.sesproductpackage.core.util.DBConnection;
+import copel.sesproductpackage.core.api.gpt.Transformer;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
 
 class SES_AI_PERSONTests {
 
     @Test
-    void selectByPkTest() throws SQLException, ClassNotFoundException {
-        Connection connection = DBConnection.getConnection();
-        SES_AI_T_PERSON SES_AI_T_PERSON = new SES_AI_T_PERSON();
-        SES_AI_T_PERSON.setPersonId("0062ad24f3");
-        SES_AI_T_PERSON.selectByPk(connection);
-        System.out.println(SES_AI_T_PERSON.toString());
+    void testSelectByPk() throws SQLException {
+        Connection connection = mock(Connection.class);
+        PreparedStatement ps = mock(PreparedStatement.class);
+        ResultSet rs = mock(ResultSet.class);
+        
+        when(connection.prepareStatement(anyString())).thenReturn(ps);
+        when(ps.executeQuery()).thenReturn(rs);
+        when(rs.next()).thenReturn(true);
+        when(rs.getString("from_group")).thenReturn("group1");
+        
+        SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+        person.setPersonId("0062ad24f3");
+        person.selectByPk(connection);
+        
+        assertEquals("group1", person.getFromGroup());
+        assertNotNull(person.toString());
+    }
+
+    @Test
+    void testInsert() throws SQLException {
+        Connection connection = mock(Connection.class);
+        PreparedStatement ps = mock(PreparedStatement.class);
+        when(connection.prepareStatement(anyString())).thenReturn(ps);
+        when(ps.executeUpdate()).thenReturn(1);
+
+        SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+        person.setRegisterDate(new OriginalDateTime());
+        person.setTtl(new OriginalDateTime());
+        int result = person.insert(connection);
+        
+        assertEquals(1, result);
+        assertNotNull(person.getPersonId());
+    }
+
+    @Test
+    void testUpdateByPk() throws SQLException {
+        Connection connection = mock(Connection.class);
+        PreparedStatement ps = mock(PreparedStatement.class);
+        when(connection.prepareStatement(anyString())).thenReturn(ps);
+        when(ps.executeUpdate()).thenReturn(1);
+
+        SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+        person.setPersonId("id1");
+        boolean result = person.updateByPk(connection);
+        
+        assertTrue(result);
+    }
+
+    @Test
+    void testDeleteByPk() throws SQLException {
+        Connection connection = mock(Connection.class);
+        PreparedStatement ps = mock(PreparedStatement.class);
+        when(connection.prepareStatement(anyString())).thenReturn(ps);
+        when(ps.executeUpdate()).thenReturn(1);
+
+        SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+        person.setPersonId("id1");
+        boolean result = person.deleteByPk(connection);
+        
+        assertTrue(result);
+    }
+
+    @Test
+    void testEmbedding() throws Exception {
+        Transformer transformer = mock(Transformer.class);
+        when(transformer.embedding(anyString())).thenReturn(new float[]{0.1f});
+        
+        SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+        person.setContentSummary("summary");
+        person.embedding(transformer);
+        
+        assertNotNull(person.getVectorData());
+    }
+
+    @Test
+    void testUniqueCheck() throws SQLException {
+        Connection connection = mock(Connection.class);
+        PreparedStatement ps = mock(PreparedStatement.class);
+        ResultSet rs = mock(ResultSet.class);
+        when(connection.prepareStatement(anyString())).thenReturn(ps);
+        when(ps.executeQuery()).thenReturn(rs);
+        when(rs.next()).thenReturn(true);
+        when(rs.getInt(1)).thenReturn(0);
+
+        SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+        boolean isUnique = person.uniqueCheck(connection, 0.8);
+        assertTrue(isUnique);
+    }
+
+    @Test
+    void testTo要員選出用文章() {
+        SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+        person.setPersonId("P1");
+        person.setRawContent("Content");
+        person.setFileSummary("FileSummary");
+        assertEquals("要員ID：P1内容：ContentFileSummary", person.to要員選出用文章());
+    }
+
+    @Test
+    void testIsスキルシート登録済() {
+        SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+        assertFalse(person.isスキルシート登録済());
+        person.setFileId("F1");
+        assertTrue(person.isスキルシート登録済());
     }
 }
