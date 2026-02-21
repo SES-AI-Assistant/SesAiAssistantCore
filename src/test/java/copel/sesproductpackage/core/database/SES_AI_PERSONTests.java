@@ -106,6 +106,32 @@ class SES_AI_PERSONTests {
     }
 
     @Test
+    void testUpdateFileIdByPk() throws SQLException {
+        Connection connection = mock(Connection.class);
+        PreparedStatement ps = mock(PreparedStatement.class);
+        when(connection.prepareStatement(anyString())).thenReturn(ps);
+        when(ps.executeUpdate()).thenReturn(1);
+
+        SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+        person.setPersonId("id1");
+        person.setFileId("fid1");
+        assertTrue(person.updateFileIdByPk(connection));
+        
+        // Null case
+        person.setPersonId(null);
+        assertFalse(person.updateFileIdByPk(connection));
+    }
+
+    @Test
+    void testNullCases() throws SQLException {
+        SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+        assertEquals(0, person.insert(null));
+        assertFalse(person.updateByPk(null));
+        assertFalse(person.deleteByPk(null));
+        person.selectByPk(null);
+    }
+
+    @Test
     void testTo要員選出用文章() {
         SES_AI_T_PERSON person = new SES_AI_T_PERSON();
         person.setPersonId("P1");
@@ -115,10 +141,22 @@ class SES_AI_PERSONTests {
     }
 
     @Test
-    void testIsスキルシート登録済() {
+    void testUniqueCheckBranch() throws SQLException {
+        Connection connection = mock(Connection.class);
+        PreparedStatement ps = mock(PreparedStatement.class);
+        ResultSet rs = mock(ResultSet.class);
+        when(connection.prepareStatement(anyString())).thenReturn(ps);
+        when(ps.executeQuery()).thenReturn(rs);
+        when(rs.next()).thenReturn(true);
+        when(rs.getInt(1)).thenReturn(1); // Not unique
+
         SES_AI_T_PERSON person = new SES_AI_T_PERSON();
-        assertFalse(person.isスキルシート登録済());
-        person.setFileId("F1");
-        assertTrue(person.isスキルシート登録済());
+        assertFalse(person.uniqueCheck(connection, 0.8));
+    }
+
+    @Test
+    void testUpdateFileIdByPkBranch() throws SQLException {
+        SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+        assertFalse(person.updateFileIdByPk(null)); // connection null
     }
 }

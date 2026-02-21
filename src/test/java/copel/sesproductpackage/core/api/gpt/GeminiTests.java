@@ -5,11 +5,8 @@ import static org.mockito.Mockito.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLStreamHandler;
 import java.util.Map;
 
 import org.junit.jupiter.api.AfterEach;
@@ -20,9 +17,12 @@ import org.mockito.MockedStatic;
 
 import copel.sesproductpackage.core.util.Properties;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
 
-class GeminiTests {
+class GeminiTests extends HttpTestBase {
 
     private MockedStatic<DynamoDbClient> mockedClient;
     private MockedStatic<DynamoDbEnhancedClient> mockedEnhancedClient;
@@ -33,14 +33,32 @@ class GeminiTests {
         Field propertiesField = Properties.class.getDeclaredField("properties");
         propertiesField.setAccessible(true);
         Map<String, String> propertiesMap = (Map<String, String>) propertiesField.get(null);
-        propertiesMap.put("GEMINI_COMPLETION_API_URL", "https://example.com/");
+        propertiesMap.put("GEMINI_COMPLETION_API_URL", "http://localhost/");
     }
 
     @BeforeEach
+    @SuppressWarnings("unchecked")
     void setupMocks() {
         mockedClient = mockStatic(DynamoDbClient.class);
         mockedEnhancedClient = mockStatic(DynamoDbEnhancedClient.class);
-        // DynamoDB関連のスタックトレース回避用（実際には呼ばれないように制御するが、クラスロード時に必要）
+        
+        DynamoDbClient mockDbClient = mock(DynamoDbClient.class);
+        DynamoDbClientBuilder mockBuilder = mock(DynamoDbClientBuilder.class);
+        when(mockBuilder.region(any())).thenReturn(mockBuilder);
+        when(mockBuilder.credentialsProvider(any())).thenReturn(mockBuilder);
+        when(mockBuilder.build()).thenReturn(mockDbClient);
+        mockedClient.when(DynamoDbClient::builder).thenReturn(mockBuilder);
+
+        DynamoDbEnhancedClient mockEnhancedClient = mock(DynamoDbEnhancedClient.class);
+        DynamoDbEnhancedClient.Builder mockEnhancedBuilder = mock(DynamoDbEnhancedClient.Builder.class);
+        when(mockEnhancedBuilder.dynamoDbClient(any())).thenReturn(mockEnhancedBuilder);
+        when(mockEnhancedBuilder.build()).thenReturn(mockEnhancedClient);
+        mockedEnhancedClient.when(DynamoDbEnhancedClient::builder).thenReturn(mockEnhancedBuilder);
+
+        DynamoDbTable mockTable = mock(DynamoDbTable.class);
+        when(mockEnhancedClient.table(anyString(), any(TableSchema.class))).thenReturn(mockTable);
+
+        sharedMockConn = mock(HttpURLConnection.class);
     }
 
     @AfterEach
@@ -50,31 +68,59 @@ class GeminiTests {
     }
 
     @Test
-    void testGenerate() throws Exception {
-        String jsonResponse = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello from Gemini\"}]}}]}";
-        
-        HttpURLConnection mockConn = mock(HttpURLConnection.class);
-        when(mockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
-        when(mockConn.getInputStream()).thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
-        when(mockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+    void testConstructors() {
+        assertNotNull(new Gemini("key"));
+        assertNotNull(new Gemini("key", "model"));
+        assertNotNull(new Gemini("key", GeminiModel.GEMINI_1_5_FLASH));
+    }
 
-        // URL.openConnection() をモック化するためにスタティックモックを使用（URLはfinalなので直接は不可、URLStreamHandlerを使用）
-        URLStreamHandler handler = new URLStreamHandler() {
-            @Override
-            protected HttpURLConnection openConnection(URL u) throws IOException {
-                return mockConn;
-            }
-        };
-        URL url = new URL(null, "https://example.com", handler);
-        
-        // Gemini クラス内で new URL(...) されるため、URL コンストラクタをモック化する必要があるが、
-        // URL は java.net パッケージなので Mockito でのモック化には制限がある。
-        // ここでは Gemini クラスの内部実装が new URL を使っているため、リフレクション等で差し替えるか、
-        // もしくはテスト用の URL を受け入れるように Gemini クラスがなっていれば良いが、そうではない。
-        
-        // 指示に基づき src 配下は修正禁止。
-        // 代替案：Mockito-inline の MockedStatic<URL> は Java 17+ では難しい場合がある。
-        // しかし、Gemini.java 内で Properties.get("GEMINI_COMPLETION_API_URL") を使っているので、
-        // ここにカスタムスキーム（例: mock://...）を入れて、URL.setURLStreamHandlerFactory で制御する。
+    @Test
+    void testGenerateSuccess() throws Exception {
+        String jsonResponse = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello from Gemini\"}]}}]}";
+        when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
+        when(sharedMockConn.getInputStream()).thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
+        when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+
+        Gemini gemini = new Gemini("key");
+        GptAnswer answer = gemini.generate("hello");
+        assertEquals("Hello from Gemini", answer.getAnswer());
+    }
+
+    @Test
+    void testEmbeddingSuccess() throws Exception {
+        String jsonResponse = "{\"embedding\":{\"values\":[0.1, 0.2, 0.3]}}";
+        when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
+        when(sharedMockConn.getInputStream()).thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
+        when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+
+        Gemini gemini = new Gemini("key");
+        float[] result = gemini.embedding("hello");
+        assertArrayEquals(new float[]{0.1f, 0.2f, 0.3f}, result);
+    }
+
+    @Test
+    void testGenerateDefaultCode() throws Exception {
+        String jsonResponse = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}]}}]}";
+        when(sharedMockConn.getResponseCode()).thenReturn(201); // Default case
+        when(sharedMockConn.getInputStream()).thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
+        when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+
+        Gemini gemini = new Gemini("key");
+        GptAnswer answer = gemini.generate("hello");
+        assertEquals("Hello", answer.getAnswer());
+    }
+
+    @Test
+    void testGenerateErrorCodes() throws Exception {
+        int[] codes = {400, 401, 403, 404, 408, 429, 500, 503};
+        for (int code : codes) {
+            reset(sharedMockConn);
+            when(sharedMockConn.getResponseCode()).thenReturn(code);
+            when(sharedMockConn.getErrorStream()).thenReturn(new ByteArrayInputStream("{}".getBytes()));
+            when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+
+            Gemini gemini = new Gemini("key");
+            assertThrows(RuntimeException.class, () -> gemini.generate("hello"), "Should throw for " + code);
+        }
     }
 }

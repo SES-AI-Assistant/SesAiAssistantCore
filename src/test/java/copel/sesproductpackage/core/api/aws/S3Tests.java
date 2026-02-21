@@ -111,4 +111,36 @@ class S3Tests {
         String url = s3.createDownloadUrl();
         assertEquals("https://example.com", url);
     }
+
+    @Test
+    void testSaveError() {
+        S3 s3 = new S3(null, null, Region.AP_NORTHEAST_1);
+        s3.save(); // Should log warn and return
+        
+        s3 = new S3("b", "k", Region.AP_NORTHEAST_1);
+        s3.setData("d".getBytes());
+        doThrow(new RuntimeException("error")).when(mockS3Client).putObject(any(PutObjectRequest.class), any(software.amazon.awssdk.core.sync.RequestBody.class));
+        s3.save(); // Should catch exception
+    }
+
+    @Test
+    void testReadError() {
+        S3 s3 = new S3("b", "k", Region.AP_NORTHEAST_1);
+        when(mockS3Client.getObject(any(GetObjectRequest.class))).thenThrow(new RuntimeException("error"));
+        assertThrows(IOException.class, () -> s3.read());
+    }
+
+    @Test
+    void testDeleteError() {
+        S3 s3 = new S3("b", "k", Region.AP_NORTHEAST_1);
+        doThrow(new RuntimeException("error")).when(mockS3Client).deleteObject(any(DeleteObjectRequest.class));
+        s3.delete(); // Should catch exception
+    }
+
+    @Test
+    void testCreateDownloadUrlError() {
+        S3 s3 = new S3("b", "k", Region.AP_NORTHEAST_1);
+        when(mockS3Client.serviceClientConfiguration()).thenThrow(new RuntimeException("error"));
+        assertNull(s3.createDownloadUrl());
+    }
 }

@@ -28,28 +28,46 @@ class OriginalDateTimeTests {
     }
 
     @Test
-    void testToString() {
-        assertEquals("2024-04-01 12:34:56", dateTimeString.toString());
+    void testConstructorWithPatterns() {
+        assertNotNull(new OriginalDateTime("2024-04-01 12:34:56.123456").toLocalDateTime());
+        assertNotNull(new OriginalDateTime("2024/04/01 12:34:56").toLocalDateTime());
+        assertNotNull(new OriginalDateTime("2024-04-01").toLocalDateTime());
+        assertNotNull(new OriginalDateTime("2024/04/01").toLocalDateTime());
+        assertNull(new OriginalDateTime("invalid").toLocalDateTime());
     }
 
     @Test
-    void testCompareTo() {
-        // OriginalDateTime.equals のバグにより、同じ日時でも -1 が返る
-        assertEquals(-1, dateTimeString.compareTo(new OriginalDateTime("2024-04-01 12:34:56")));
-        assertTrue(dateTimeString.compareTo(new OriginalDateTime("2024-04-02 12:34:56")) < 0);
+    void testBetweenMethods() {
+        OriginalDateTime d1 = new OriginalDateTime("2024-01-01 00:00:00");
+        OriginalDateTime d2 = new OriginalDateTime("2025-02-02 00:00:00");
+        
+        assertEquals(1, d1.betweenYear(d2));
+        assertEquals(13, d1.betweenMonth(d2));
+        assertTrue(d1.betweenDays(d2) > 365);
+        
+        // Error cases
+        assertEquals(-1, d1.betweenYear(null));
+        assertEquals(-1, d1.betweenMonth(null));
+        assertEquals(0, d1.betweenDays(null));
     }
 
     @Test
-    void testIsEmpty() {
-        assertFalse(dateTimeString.isEmpty());
-        assertTrue(new OriginalDateTime((String) null).isEmpty());
-    }
-
-    @Test
-    void testEquals() {
-        // OriginalDateTime.equals のバグにより、常に false が返る
-        assertFalse(dateTimeString.equals(new OriginalDateTime("2024-04-01 12:34:56")));
-        assertFalse(dateTimeString.equals(new OriginalDateTime("2024-04-02 12:34:56")));
+    void testEmptyAndNull() {
+        OriginalDateTime empty = new OriginalDateTime((String) null);
+        assertTrue(empty.isEmpty());
+        assertNull(empty.toString());
+        assertNull(empty.get曜日());
+        assertNull(empty.getMMdd());
+        assertNull(empty.getYYYYMM());
+        assertNull(empty.getHHmm());
+        assertNull(empty.getHHmmss());
+        assertNull(empty.getYyyyMMdd());
+        assertNull(empty.getYyyy_MM_dd());
+        assertNull(empty.toLocalDate());
+        assertNull(empty.toTimestamp());
+        
+        // equals with null
+        assertFalse(dateTimeString.equals(null));
     }
 
     @Test

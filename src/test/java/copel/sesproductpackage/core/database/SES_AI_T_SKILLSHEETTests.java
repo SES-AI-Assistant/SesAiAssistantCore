@@ -13,7 +13,9 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.unit.SkillSheet;
 import copel.sesproductpackage.core.unit.Vector;
+import copel.sesproductpackage.core.api.gpt.Transformer;
 
 class SES_AI_T_SKILLSHEETTests {
 
@@ -40,6 +42,62 @@ class SES_AI_T_SKILLSHEETTests {
         ss.selectByPkWithoutRawContent(connection);
         assertTrue(ss.deleteByPk(connection));
         assertNotNull(ss.toString());
+    }
+
+    @Test
+    void testSKILLSHEETMethods() throws Exception {
+        SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
+        SkillSheet inner = new SkillSheet("f1", "n1", "c1");
+        inner.setFileContentSummary("sum1");
+        ss.setSkillSheet(inner);
+        
+        assertEquals("ファイルID：f1内容：sum1", ss.toスキルシート選出用文章());
+        assertNotNull(ss.getFileUrl());
+        assertEquals("f1_n1", ss.getObjectKey());
+        assertEquals("f1", ss.getFileId());
+        assertEquals("n1", ss.getFileName());
+        assertEquals("c1", ss.getFileContent());
+        assertEquals("sum1", ss.getFileContentSummary());
+        
+        // embedding
+        Transformer mockTrans = mock(Transformer.class);
+        when(mockTrans.embedding(anyString())).thenReturn(new float[]{0.1f});
+        ss.embedding(mockTrans);
+        assertNotNull(ss.getVectorData());
+        
+        // uniqueCheck
+        Connection conn = mock(Connection.class);
+        PreparedStatement ps = mock(PreparedStatement.class);
+        ResultSet rs = mock(ResultSet.class);
+        when(conn.prepareStatement(anyString())).thenReturn(ps);
+        when(ps.executeQuery()).thenReturn(rs);
+        when(rs.next()).thenReturn(true);
+        when(rs.getInt(1)).thenReturn(0);
+        assertTrue(ss.uniqueCheck(conn, 0.8));
+        
+        // Setters
+        ss.setFileId("f2");
+        ss.setFileName("n2");
+        ss.setFileContent("c2");
+        ss.setFileContentSummary("sum2");
+        assertEquals("f2", ss.getFileId());
+    }
+
+    @Test
+    void testSKILLSHEETNulls() throws SQLException {
+        SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
+        ss.setSkillSheet(null);
+        assertNull(ss.getFileId());
+        assertNull(ss.getFileName());
+        assertEquals("", ss.getFileContent());
+        assertEquals("", ss.getFileContentSummary());
+        assertNull(ss.getFileUrl());
+        
+        assertFalse(ss.deleteByPk(null));
+        assertEquals(0, ss.insert(null));
+        
+        ss.selectByPk(null);
+        ss.selectByPkWithoutRawContent(null);
     }
 
     @Test
@@ -71,5 +129,6 @@ class SES_AI_T_SKILLSHEETTests {
         lot.add(ss);
         assertEquals(ss, lot.getEntityByPk("F1"));
         assertNotNull(lot.toString());
+        assertNotNull(lot.toスキルシート選出用文章());
     }
 }
