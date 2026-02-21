@@ -83,6 +83,42 @@ class SES_AI_API_USAGE_HISTORYLotTests {
     }
 
     @Test
+    void fetchByUsageMonthTest() {
+        PageIterable<SES_AI_API_USAGE_HISTORY> mockIterable = mock(PageIterable.class);
+        software.amazon.awssdk.core.pagination.sync.SdkIterable<SES_AI_API_USAGE_HISTORY> mockItems = mock(software.amazon.awssdk.core.pagination.sync.SdkIterable.class);
+        when(mockIterable.items()).thenReturn(mockItems);
+        when(mockTable.scan(any(software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest.class))).thenReturn(mockIterable);
+
+        SES_AI_API_USAGE_HISTORYLot entityLot = new SES_AI_API_USAGE_HISTORYLot();
+        entityLot.fetchByUsageMonth("2026", "02");
+        entityLot.fetchByUsageMonth("202602");
+        verify(mockTable, times(2)).scan(any(software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest.class));
+    }
+
+    @Test
+    void testSumOutputCount() throws Exception {
+        SES_AI_API_USAGE_HISTORYLot lot = new SES_AI_API_USAGE_HISTORYLot();
+        SES_AI_API_USAGE_HISTORY h1 = new SES_AI_API_USAGE_HISTORY();
+        h1.setOutputCount(new BigDecimal(50));
+        
+        // Traverse hierarchy to find entityLot
+        java.lang.reflect.Field field = null;
+        Class<?> current = lot.getClass();
+        while (current != null && field == null) {
+            try {
+                field = current.getDeclaredField("entityLot");
+            } catch (NoSuchFieldException e) {
+                current = current.getSuperclass();
+            }
+        }
+        
+        field.setAccessible(true);
+        ((java.util.List<SES_AI_API_USAGE_HISTORY>)field.get(lot)).add(h1);
+        
+        assertEquals(new BigDecimal(50), lot.getSumOutputCount());
+    }
+
+    @Test
     void fetchByPkTest() {
         PageIterable<SES_AI_API_USAGE_HISTORY> mockIterable = mock(PageIterable.class);
         software.amazon.awssdk.core.pagination.sync.SdkIterable<SES_AI_API_USAGE_HISTORY> mockItems = mock(software.amazon.awssdk.core.pagination.sync.SdkIterable.class);

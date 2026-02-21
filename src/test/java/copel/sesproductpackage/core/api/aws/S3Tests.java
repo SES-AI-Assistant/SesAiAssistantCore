@@ -110,6 +110,61 @@ class S3Tests {
         
         String url = s3.createDownloadUrl();
         assertEquals("https://example.com", url);
+        
+        String url2 = s3.createDownloadUrl(10);
+        assertEquals("https://example.com", url2);
+        
+        verify(mockPresigner, times(2)).presignGetObject(any(GetObjectPresignRequest.class));
+    }
+
+    @Test
+    void testAccessorsAndLombok() {
+        S3 s3 = new S3("bucket", "key", Region.AP_NORTHEAST_1);
+        s3.setBucketName("b2");
+        s3.setObjectKey("k2");
+        byte[] data = "test".getBytes();
+        s3.setData(data);
+        java.util.Date now = new java.util.Date();
+        s3.setUpdateDate(now);
+        
+        assertEquals("b2", s3.getBucketName());
+        assertEquals("k2", s3.getObjectKey());
+        assertArrayEquals(data, s3.getData());
+        assertEquals(now, s3.getUpdateDate());
+        assertNotNull(s3.getS3Client());
+        
+        // Lombok equals, hashCode, toString
+        S3 s3Other = new S3("b2", "k2", Region.AP_NORTHEAST_1);
+        s3Other.setData(data);
+        s3Other.setUpdateDate(now);
+        // Note: s3Client might differ if equals is not shallow, but let's check
+        assertNotNull(s3.toString());
+        assertNotNull(s3.hashCode());
+        assertTrue(s3.equals(s3));
+        assertFalse(s3.equals(null));
+    }
+
+    @Test
+    void testDownloadUrlNullConfig() throws Exception {
+        S3 s3 = new S3("b", "k", Region.AP_NORTHEAST_1);
+        when(mockS3Client.serviceClientConfiguration()).thenReturn(null);
+        assertNull(s3.createDownloadUrl());
+    }
+
+    @Test
+    void testReadError() {
+        S3 s3 = new S3("b", "k", Region.AP_NORTHEAST_1);
+        when(mockS3Client.getObject(any(GetObjectRequest.class))).thenThrow(new RuntimeException("error"));
+        assertThrows(IOException.class, () -> s3.read());
+        
+        // Covering the case where headObject throws
+        reset(mockS3Client);
+        byte[] content = "file content".getBytes();
+        GetObjectResponse getResponse = GetObjectResponse.builder().build();
+        ResponseInputStream<GetObjectResponse> s3Stream = new ResponseInputStream<>(getResponse, new ByteArrayInputStream(content));
+        when(mockS3Client.getObject(any(GetObjectRequest.class))).thenReturn(s3Stream);
+        when(mockS3Client.headObject(any(HeadObjectRequest.class))).thenThrow(new RuntimeException("head error"));
+        assertThrows(IOException.class, () -> s3.read());
     }
 
     @Test
@@ -118,16 +173,17 @@ class S3Tests {
         s3.save(); // Should log warn and return
         
         s3 = new S3("b", "k", Region.AP_NORTHEAST_1);
+        s3.setBucketName("bucket"); // Non-null
+        s3.setObjectKey(null); // Null
+        s3.save();
+        
+        s3.setObjectKey("key");
+        s3.setData(null); // Null
+        s3.save();
+
         s3.setData("d".getBytes());
         doThrow(new RuntimeException("error")).when(mockS3Client).putObject(any(PutObjectRequest.class), any(software.amazon.awssdk.core.sync.RequestBody.class));
         s3.save(); // Should catch exception
-    }
-
-    @Test
-    void testReadError() {
-        S3 s3 = new S3("b", "k", Region.AP_NORTHEAST_1);
-        when(mockS3Client.getObject(any(GetObjectRequest.class))).thenThrow(new RuntimeException("error"));
-        assertThrows(IOException.class, () -> s3.read());
     }
 
     @Test

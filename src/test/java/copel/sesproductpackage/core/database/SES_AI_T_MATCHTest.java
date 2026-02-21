@@ -84,6 +84,18 @@ public class SES_AI_T_MATCHTest {
 
         assertEquals("user001", match.getUserId());
         assertEquals("10", match.getStatus().getCode());
+        
+        // ResultSet.next() is false
+        reset(rs);
+        when(rs.next()).thenReturn(false);
+        match.selectByPk(conn);
+        
+        // status_cd is null
+        reset(rs);
+        when(rs.next()).thenReturn(true);
+        when(rs.getString("status_cd")).thenReturn(null);
+        match.selectByPk(conn);
+        assertNull(match.getStatus());
     }
 
     @Test
@@ -114,6 +126,32 @@ public class SES_AI_T_MATCHTest {
 
         boolean result = match.deleteByPk(conn);
         assertTrue(result);
+    }
+
+    @Test
+    public void testNullScenarios() throws Exception {
+        SES_AI_T_MATCH entity = new SES_AI_T_MATCH();
+        Connection connection = mock(Connection.class);
+        
+        assertEquals(0, entity.insert(null));
+        entity.selectByPk(null);
+        entity.setMatchingId(null);
+        entity.selectByPk(connection);
+        assertFalse(entity.updateByPk(null));
+        assertFalse(entity.updateByPk(connection));
+        assertFalse(entity.deleteByPk(null));
+        assertFalse(entity.deleteByPk(connection));
+        
+        entity.setRegisterDate(null);
+        entity.setStatus(null);
+        PreparedStatement ps = mock(PreparedStatement.class);
+        when(connection.prepareStatement(anyString())).thenReturn(ps);
+        entity.setMatchingId("M1");
+        entity.insert(connection);
+        entity.updateByPk(connection);
+        
+        // toString null branches
+        assertNotNull(entity.toString());
     }
 
     @Test

@@ -83,6 +83,15 @@ class DynamoDBTests {
         assertEquals("2026-01-01", entity.getTimestamp());
         
         assertNotNull(entity.toString());
+        assertNotNull(entity.hashCode());
+        assertTrue(entity.equals(entity));
+        assertFalse(entity.equals(null));
+        
+        TestDynamoEntity other = new TestDynamoEntity();
+        other.setPartitionKey("pk");
+        other.setSortKey("sk");
+        other.setTimestamp("2026-01-01");
+        assertEquals(entity, other);
     }
 
     @Test
@@ -96,6 +105,10 @@ class DynamoDBTests {
         assertEquals(e1, it.next());
         
         assertNotNull(lot.toString());
+        
+        // Empty case
+        lot.entityLot.clear();
+        assertFalse(lot.iterator().hasNext());
     }
 
     @Test
@@ -129,6 +142,13 @@ class DynamoDBTests {
         
         verify(mockTable).query(any(software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional.class));
         verify(mockTable).scan(any(software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest.class));
+    }
+
+    @Test
+    void testTimestamp() {
+        TestDynamoEntity entity = new TestDynamoEntity();
+        entity.setTimestamp("2026-02-21T12:00:00Z");
+        assertEquals("2026-02-21T12:00:00Z", entity.getTimestamp());
     }
 
     @Test

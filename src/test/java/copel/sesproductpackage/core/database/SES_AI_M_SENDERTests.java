@@ -16,6 +16,28 @@ import copel.sesproductpackage.core.unit.OriginalDateTime;
 class SES_AI_M_SENDERTests {
 
     @Test
+    void testNullScenarios() throws SQLException {
+        SES_AI_M_SENDER entity = new SES_AI_M_SENDER();
+        Connection connection = mock(Connection.class);
+        
+        assertEquals(0, entity.insert(null));
+        entity.selectByPk(null);
+        entity.setFromId(null);
+        entity.selectByPk(connection);
+        assertFalse(entity.updateByPk(null));
+        assertFalse(entity.updateByPk(connection));
+        assertFalse(entity.deleteByPk(null));
+        assertFalse(entity.deleteByPk(connection));
+        
+        entity.setRegisterDate(null);
+        PreparedStatement ps = mock(PreparedStatement.class);
+        when(connection.prepareStatement(anyString())).thenReturn(ps);
+        entity.setFromId("S1");
+        entity.insert(connection);
+        entity.updateByPk(connection);
+    }
+
+    @Test
     void testSENDER() throws SQLException {
         Connection connection = mock(Connection.class);
         PreparedStatement ps = mock(PreparedStatement.class);

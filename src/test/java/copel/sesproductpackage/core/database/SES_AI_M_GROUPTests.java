@@ -16,6 +16,28 @@ import copel.sesproductpackage.core.unit.OriginalDateTime;
 class SES_AI_M_GROUPTests {
 
     @Test
+    void testNullScenarios() throws SQLException {
+        SES_AI_M_GROUP entity = new SES_AI_M_GROUP();
+        Connection connection = mock(Connection.class);
+        
+        assertEquals(0, entity.insert(null));
+        entity.selectByPk(null);
+        entity.setFromGroup(null);
+        entity.selectByPk(connection);
+        assertFalse(entity.updateByPk(null));
+        assertFalse(entity.updateByPk(connection));
+        assertFalse(entity.deleteByPk(null));
+        assertFalse(entity.deleteByPk(connection));
+        
+        entity.setRegisterDate(null);
+        PreparedStatement ps = mock(PreparedStatement.class);
+        when(connection.prepareStatement(anyString())).thenReturn(ps);
+        entity.setFromGroup("G1");
+        entity.insert(connection);
+        entity.updateByPk(connection);
+    }
+
+    @Test
     void testGROUP() throws SQLException {
         Connection connection = mock(Connection.class);
         PreparedStatement ps = mock(PreparedStatement.class);

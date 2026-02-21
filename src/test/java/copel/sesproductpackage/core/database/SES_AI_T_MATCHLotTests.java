@@ -16,6 +16,23 @@ import copel.sesproductpackage.core.unit.OriginalDateTime;
 class SES_AI_T_MATCHLotTests {
 
     @Test
+    void testExistMethods() {
+        SES_AI_T_MATCHLot lot = new SES_AI_T_MATCHLot();
+        SES_AI_T_MATCH match = new SES_AI_T_MATCH();
+        match.setJobId("J123");
+        match.setPersonId("P123");
+        lot.add(match);
+        
+        assertTrue(lot.isExistByJobId("J123"));
+        assertFalse(lot.isExistByJobId("J999"));
+        assertFalse(lot.isExistByJobId(null));
+        
+        assertTrue(lot.isExistByPersonId("P123"));
+        assertFalse(lot.isExistByPersonId("P999"));
+        assertFalse(lot.isExistByPersonId(null));
+    }
+
+    @Test
     void testLot() throws SQLException {
         Connection connection = mock(Connection.class);
         PreparedStatement ps = mock(PreparedStatement.class);

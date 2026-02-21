@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test;
 
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
+import copel.sesproductpackage.core.unit.LogicalOperators;
+import java.util.ArrayList;
 
 class SES_AI_T_JOBLotTests {
 
@@ -48,7 +50,8 @@ class SES_AI_T_JOBLotTests {
         ResultSet rs = mock(ResultSet.class);
         when(connection.prepareStatement(anyString())).thenReturn(ps);
         when(ps.executeQuery()).thenReturn(rs);
-        when(rs.next()).thenReturn(true, false, true, false, true, false, true, false, true, false);
+        // Ensure rs.next() returns true for each search call to fill entityLot (6 calls total)
+        when(rs.next()).thenReturn(true, false, true, false, true, false, true, false, true, false, true, false);
         when(rs.getString("job_id")).thenReturn("J1");
         when(rs.getDouble("distance")).thenReturn(0.5);
         
@@ -71,6 +74,10 @@ class SES_AI_T_JOBLotTests {
         assertEquals(1, lot.size());
 
         lot.selectByOrQuery(connection, Map.of("c", "v"));
+        assertEquals(1, lot.size());
+        
+        // searchByRawContent with operators
+        lot.searchByRawContent(connection, "q1", List.of(new LogicalOperators(LogicalOperators.論理演算子.AND, "q2")));
         assertEquals(1, lot.size());
         
         SES_AI_T_JOB job = new SES_AI_T_JOB();

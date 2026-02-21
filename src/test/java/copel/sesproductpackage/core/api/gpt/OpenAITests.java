@@ -122,15 +122,41 @@ class OpenAITests extends HttpTestBase {
 
     @Test
     void testErrorCodes() throws Exception {
-        int[] codes = {400, 401, 403, 404, 408, 429, 500, 503};
+        int[] codes = {400, 401, 403, 404, 408, 429, 500, 503, 999};
         for (int code : codes) {
             reset(sharedMockConn);
             when(sharedMockConn.getResponseCode()).thenReturn(code);
             when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
             
             OpenAI api = new OpenAI("key");
-            assertThrows(RuntimeException.class, () -> api.embedding("test"));
+            if (code == 999) {
+                // Default case
+                String jsonResponse = "{\"data\":[{\"embedding\":[0.1]}]}";
+                when(sharedMockConn.getInputStream()).thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
+                assertNotNull(api.embedding("test"));
+            } else {
+                assertThrows(RuntimeException.class, () -> api.embedding("test"), "Should throw for " + code);
+            }
         }
+    }
+
+    @Test
+    void testFineTuningErrors() throws Exception {
+        OpenAI api = new OpenAI("key");
+        
+        // Error during upload
+        reset(sharedMockConn);
+        when(sharedMockConn.getResponseCode()).thenReturn(400);
+        when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+        assertThrows(RuntimeException.class, () -> api.fineTuning("data"));
+        
+        // Error during fine-tune job start
+        reset(sharedMockConn);
+        String uploadResponse = "{\"id\":\"file-123\"}";
+        when(sharedMockConn.getResponseCode()).thenReturn(200, 400); // Upload OK, Job Start Error
+        when(sharedMockConn.getInputStream()).thenReturn(new ByteArrayInputStream(uploadResponse.getBytes()));
+        when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+        assertThrows(RuntimeException.class, () -> api.fineTuning("data"));
     }
     
     @Test

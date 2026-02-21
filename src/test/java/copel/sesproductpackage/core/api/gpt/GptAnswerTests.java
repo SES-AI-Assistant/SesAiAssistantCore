@@ -35,6 +35,9 @@ class GptAnswerTests {
 
         answer = new GptAnswer("", GptAnswer.class);
         assertEquals(0, answer.length());
+        
+        answer = new GptAnswer(null, GptAnswer.class);
+        assertEquals(0, answer.length());
     }
 
     @Test
@@ -46,6 +49,9 @@ class GptAnswerTests {
         assertTrue(answer.isYES());
 
         answer = new GptAnswer("no", GptAnswer.class);
+        assertFalse(answer.isYES());
+        
+        answer = new GptAnswer(null, GptAnswer.class);
         assertFalse(answer.isYES());
     }
 
@@ -59,6 +65,9 @@ class GptAnswerTests {
 
         answer = new GptAnswer("yes", GptAnswer.class);
         assertFalse(answer.isNO());
+        
+        answer = new GptAnswer(null, GptAnswer.class);
+        assertFalse(answer.isNO());
     }
 
     @Test
@@ -70,6 +79,9 @@ class GptAnswerTests {
         assertFalse(answer.isAlphanumeric());
 
         answer = new GptAnswer("!@#123", GptAnswer.class);
+        assertFalse(answer.isAlphanumeric());
+        
+        answer = new GptAnswer(null, GptAnswer.class);
         assertFalse(answer.isAlphanumeric());
     }
 
@@ -83,6 +95,9 @@ class GptAnswerTests {
 
         answer = new GptAnswer("123ABC", GptAnswer.class);
         assertTrue(answer.isAlphanumericWithSymbols());
+        
+        answer = new GptAnswer(null, GptAnswer.class);
+        assertFalse(answer.isAlphanumericWithSymbols());
     }
 
     @Test
@@ -92,6 +107,9 @@ class GptAnswerTests {
 
         answer = new GptAnswer("hello", GptAnswer.class);
         assertFalse(answer.isJapaneseOnly());
+        
+        answer = new GptAnswer(null, GptAnswer.class);
+        assertFalse(answer.isJapaneseOnly());
     }
 
     @Test
@@ -99,8 +117,17 @@ class GptAnswerTests {
         GptAnswer answer = new GptAnswer("Test", GptAnswer.class);
         assertTrue(answer.equals("Test"));
         assertFalse(answer.equals("NotTest"));
+        
+        answer = new GptAnswer(null, GptAnswer.class);
+        assertTrue(answer.equals(null));
+        assertFalse(answer.equals("Not null"));
     }
 
+    @Test
+    public void testToString() {
+        GptAnswer answer = new GptAnswer("Test", GptAnswer.class);
+        assertEquals("Test", answer.toString());
+    }
     @Test
     public void testAsInt() {
         GptAnswer answer = new GptAnswer("123", GptAnswer.class);
