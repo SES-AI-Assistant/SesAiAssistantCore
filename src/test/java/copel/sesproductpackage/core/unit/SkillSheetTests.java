@@ -20,6 +20,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
+import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -85,13 +86,46 @@ class SkillSheetTests {
     }
 
     @Test
-    void testGetFileContentTruncation() {
+    void testSetFileContentFromByteDocxWithTable() throws IOException {
+        try (XWPFDocument doc = new XWPFDocument();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            XWPFParagraph p = doc.createParagraph();
+            p.createRun().setText("Para");
+            XWPFTable table = doc.createTable(1, 1);
+            table.getRow(0).getCell(0).setText("Cell");
+            doc.write(out);
+            byte[] data = out.toByteArray();
+
+            SkillSheet ss = new SkillSheet("1", "test.docx", null);
+            ss.setFileContentFromByte(data);
+            assertTrue(ss.getFileContent().contains("Para"));
+            assertTrue(ss.getFileContent().contains("Cell"));
+        }
+    }
+
+    @Test
+    void testGetFileContentTruncationReal() {
         SkillSheet ss = new SkillSheet();
-        // 注入に失敗している場合、SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH はデフォルト値になる
-        // 実装を確認し、現在の値に合わせてアサーションを書くか、テストをスキップする
-        String longContent = "a".repeat(2000);
+        // Use a very long string to ensure it hits the limit (15000 in config.properties)
+        String longContent = "a".repeat(20000);
         ss.setFileContent(longContent);
-        assertNotNull(ss.getFileContent());
+        assertTrue(ss.getFileContent().length() < 20000);
+        
+        ss.setFileContent("short");
+        assertEquals("short", ss.getFileContent());
+    }
+
+    @Test
+    void testGenerateSummaryTruncation() throws Exception {
+        Transformer transformer = mock(Transformer.class);
+        GptAnswer answer = mock(GptAnswer.class);
+        String longSummary = "s".repeat(1200);
+        when(answer.getAnswer()).thenReturn(longSummary);
+        when(transformer.generate(anyString())).thenReturn(answer);
+
+        SkillSheet ss = new SkillSheet("1", "test.txt", "Content");
+        ss.generateSummary(transformer);
+        assertEquals(1000, ss.getFileContentSummary().length());
     }
 
     @Test

@@ -137,11 +137,26 @@ class S3Tests {
         S3 s3Other = new S3("b2", "k2", Region.AP_NORTHEAST_1);
         s3Other.setData(data);
         s3Other.setUpdateDate(now);
-        // Note: s3Client might differ if equals is not shallow, but let's check
+        
         assertNotNull(s3.toString());
         assertNotNull(s3.hashCode());
         assertTrue(s3.equals(s3));
+        assertTrue(s3.canEqual(s3Other));
         assertFalse(s3.equals(null));
+        assertFalse(s3.equals(new Object()));
+        
+        // Test field-by-field equals
+        s3Other.setBucketName("diff");
+        assertNotEquals(s3, s3Other);
+        s3Other.setBucketName("b2");
+        assertEquals(s3, s3Other);
+        
+        s3Other.setObjectKey(null);
+        assertNotEquals(s3, s3Other);
+        s3Other.setObjectKey("k2");
+        
+        s3Other.setData(null);
+        assertNotEquals(s3, s3Other);
     }
 
     @Test
@@ -198,5 +213,14 @@ class S3Tests {
         S3 s3 = new S3("b", "k", Region.AP_NORTHEAST_1);
         when(mockS3Client.serviceClientConfiguration()).thenThrow(new RuntimeException("error"));
         assertNull(s3.createDownloadUrl());
+        
+        // Test catch block inside createDownloadUrl(long)
+        reset(mockS3Client);
+        S3ServiceClientConfiguration mockConfig = mock(S3ServiceClientConfiguration.class);
+        when(mockConfig.region()).thenReturn(Region.AP_NORTHEAST_1);
+        when(mockS3Client.serviceClientConfiguration()).thenReturn(mockConfig);
+        
+        mockedPresigner.when(S3Presigner::builder).thenThrow(new RuntimeException("presigner error"));
+        assertNull(s3.createDownloadUrl(10));
     }
 }
