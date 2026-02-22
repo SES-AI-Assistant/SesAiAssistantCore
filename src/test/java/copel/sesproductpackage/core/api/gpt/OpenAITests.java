@@ -3,219 +3,231 @@ package copel.sesproductpackage.core.api.gpt;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import copel.sesproductpackage.core.util.Properties;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.net.HttpURLConnection;
 import java.lang.reflect.Field;
+import java.net.HttpURLConnection;
 import java.util.Map;
-
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
-
-import copel.sesproductpackage.core.util.Properties;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
+import software.amazon.awssdk.enhanced.dynamodb.model.PageIterable;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
-import software.amazon.awssdk.enhanced.dynamodb.model.PageIterable;
-import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 
 class OpenAITests extends HttpTestBase {
 
-    private MockedStatic<DynamoDbClient> mockedClient;
-    private MockedStatic<DynamoDbEnhancedClient> mockedEnhancedClient;
-    private DynamoDbTable<Object> mockTable;
+  private MockedStatic<DynamoDbClient> mockedClient;
+  private MockedStatic<DynamoDbEnhancedClient> mockedEnhancedClient;
+  private DynamoDbTable<Object> mockTable;
 
-    @BeforeAll
-    @SuppressWarnings("unchecked")
-    static void setupProperties() throws Exception {
-        Field propertiesField = Properties.class.getDeclaredField("properties");
-        propertiesField.setAccessible(true);
-        Map<String, String> propertiesMap = (Map<String, String>) propertiesField.get(null);
-        propertiesMap.put("OPEN_AI_EMBEDDING_API_URL", "http://localhost/embedding");
-        propertiesMap.put("OPEN_AI_EMBEDDING_MODEL", "text-embedding-3-small");
-        propertiesMap.put("OPEN_AI_COMPLETION_API_URL", "http://localhost/completion");
-        propertiesMap.put("OPEN_AI_COMPLETION_TEMPERATURE", "0.7");
-        propertiesMap.put("OPEN_AI_FILE_UPLOAD_URL", "http://localhost/upload");
-        propertiesMap.put("OPEN_AI_FINE_TUNE_URL", "http://localhost/finetune");
-    }
+  @BeforeAll
+  @SuppressWarnings("unchecked")
+  static void setupProperties() throws Exception {
+    Field propertiesField = Properties.class.getDeclaredField("properties");
+    propertiesField.setAccessible(true);
+    Map<String, String> propertiesMap = (Map<String, String>) propertiesField.get(null);
+    propertiesMap.put("OPEN_AI_EMBEDDING_API_URL", "http://localhost/embedding");
+    propertiesMap.put("OPEN_AI_EMBEDDING_MODEL", "text-embedding-3-small");
+    propertiesMap.put("OPEN_AI_COMPLETION_API_URL", "http://localhost/completion");
+    propertiesMap.put("OPEN_AI_COMPLETION_TEMPERATURE", "0.7");
+    propertiesMap.put("OPEN_AI_FILE_UPLOAD_URL", "http://localhost/upload");
+    propertiesMap.put("OPEN_AI_FINE_TUNE_URL", "http://localhost/finetune");
+  }
 
-    @BeforeEach
-    @SuppressWarnings("unchecked")
-    void setupMocks() {
-        mockedClient = mockStatic(DynamoDbClient.class);
-        mockedEnhancedClient = mockStatic(DynamoDbEnhancedClient.class);
-        
-        DynamoDbClient mockDbClient = mock(DynamoDbClient.class);
-        DynamoDbClientBuilder mockBuilder = mock(DynamoDbClientBuilder.class);
-        when(mockBuilder.region(any())).thenReturn(mockBuilder);
-        when(mockBuilder.credentialsProvider(any())).thenReturn(mockBuilder);
-        when(mockBuilder.build()).thenReturn(mockDbClient);
-        mockedClient.when(DynamoDbClient::builder).thenReturn(mockBuilder);
+  @BeforeEach
+  @SuppressWarnings("unchecked")
+  void setupMocks() {
+    mockedClient = mockStatic(DynamoDbClient.class);
+    mockedEnhancedClient = mockStatic(DynamoDbEnhancedClient.class);
 
-        DynamoDbEnhancedClient mockEnhancedClient = mock(DynamoDbEnhancedClient.class);
-        DynamoDbEnhancedClient.Builder mockEnhancedBuilder = mock(DynamoDbEnhancedClient.Builder.class);
-        when(mockEnhancedBuilder.dynamoDbClient(any())).thenReturn(mockEnhancedBuilder);
-        when(mockEnhancedBuilder.build()).thenReturn(mockEnhancedClient);
-        mockedEnhancedClient.when(DynamoDbEnhancedClient::builder).thenReturn(mockEnhancedBuilder);
+    DynamoDbClient mockDbClient = mock(DynamoDbClient.class);
+    DynamoDbClientBuilder mockBuilder = mock(DynamoDbClientBuilder.class);
+    when(mockBuilder.region(any())).thenReturn(mockBuilder);
+    when(mockBuilder.credentialsProvider(any())).thenReturn(mockBuilder);
+    when(mockBuilder.build()).thenReturn(mockDbClient);
+    mockedClient.when(DynamoDbClient::builder).thenReturn(mockBuilder);
 
-        mockTable = mock(DynamoDbTable.class);
-        when(mockEnhancedClient.table(anyString(), any(TableSchema.class))).thenReturn(mockTable);
-        
-        // Mock query for fetch() in SES_AI_API_USAGE_HISTORY
-        PageIterable<Object> mockPageIterable = mock(PageIterable.class);
-        SdkIterable<Object> mockSdkIterable = mock(SdkIterable.class);
-        when(mockTable.query(any(software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional.class))).thenReturn(mockPageIterable);
-        when(mockPageIterable.items()).thenReturn(mockSdkIterable);
-        when(mockSdkIterable.iterator()).thenReturn(java.util.Collections.emptyIterator());
+    DynamoDbEnhancedClient mockEnhancedClient = mock(DynamoDbEnhancedClient.class);
+    DynamoDbEnhancedClient.Builder mockEnhancedBuilder = mock(DynamoDbEnhancedClient.Builder.class);
+    when(mockEnhancedBuilder.dynamoDbClient(any())).thenReturn(mockEnhancedBuilder);
+    when(mockEnhancedBuilder.build()).thenReturn(mockEnhancedClient);
+    mockedEnhancedClient.when(DynamoDbEnhancedClient::builder).thenReturn(mockEnhancedBuilder);
 
-        sharedMockConn = mock(HttpURLConnection.class);
-    }
+    mockTable = mock(DynamoDbTable.class);
+    when(mockEnhancedClient.table(anyString(), any(TableSchema.class))).thenReturn(mockTable);
 
-    @AfterEach
-    void tearDown() {
-        mockedClient.close();
-        mockedEnhancedClient.close();
-    }
+    // Mock query for fetch() in SES_AI_API_USAGE_HISTORY
+    PageIterable<Object> mockPageIterable = mock(PageIterable.class);
+    SdkIterable<Object> mockSdkIterable = mock(SdkIterable.class);
+    when(mockTable.query(
+            any(software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional.class)))
+        .thenReturn(mockPageIterable);
+    when(mockPageIterable.items()).thenReturn(mockSdkIterable);
+    when(mockSdkIterable.iterator()).thenReturn(java.util.Collections.emptyIterator());
 
-    @Test
-    void testEmbeddingSuccess() throws Exception {
-        String jsonResponse = "{\"data\":[{\"embedding\":[0.1, 0.2]}]}";
-        when(sharedMockConn.getResponseCode()).thenReturn(200);
-        when(sharedMockConn.getInputStream()).thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
-        when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+    sharedMockConn = mock(HttpURLConnection.class);
+  }
 
-        OpenAI api = new OpenAI("key");
-        float[] result = api.embedding("test");
-        assertArrayEquals(new float[]{0.1f, 0.2f}, result);
-    }
+  @AfterEach
+  void tearDown() {
+    mockedClient.close();
+    mockedEnhancedClient.close();
+  }
 
-    @Test
-    void testGenerateSuccess() throws Exception {
-        String jsonResponse = "{\"choices\":[{\"message\":{\"content\":\"Hello\"}}]}";
-        when(sharedMockConn.getResponseCode()).thenReturn(200);
-        when(sharedMockConn.getInputStream()).thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
-        when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+  @Test
+  void testEmbeddingSuccess() throws Exception {
+    String jsonResponse = "{\"data\":[{\"embedding\":[0.1, 0.2]}]}";
+    when(sharedMockConn.getResponseCode()).thenReturn(200);
+    when(sharedMockConn.getInputStream())
+        .thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
+    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
 
-        OpenAI api = new OpenAI("key");
-        GptAnswer answer = api.generate("hi");
-        assertEquals("Hello", answer.getAnswer());
-        
-        // Test null temperature
-        assertNull(api.generate("hi", null));
-        assertNull(api.generate(null, 0.5f));
-    }
+    OpenAI api = new OpenAI("key");
+    float[] result = api.embedding("test");
+    assertArrayEquals(new float[] {0.1f, 0.2f}, result);
+  }
 
-    @Test
-    void testFineTuningSuccess() throws Exception {
-        String uploadResponse = "{\"id\":\"file-123\"}";
-        // 2回の接続があるため、thenReturn に複数の値を渡す
-        when(sharedMockConn.getResponseCode()).thenReturn(200, 200);
-        when(sharedMockConn.getInputStream()).thenReturn(new ByteArrayInputStream(uploadResponse.getBytes()), new ByteArrayInputStream("{}".getBytes()));
-        when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+  @Test
+  void testGenerateSuccess() throws Exception {
+    String jsonResponse = "{\"choices\":[{\"message\":{\"content\":\"Hello\"}}]}";
+    when(sharedMockConn.getResponseCode()).thenReturn(200);
+    when(sharedMockConn.getInputStream())
+        .thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
+    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
 
-        OpenAI api = new OpenAI("key");
-        api.fineTuning("data");
-        verify(sharedMockConn, atLeastOnce()).getOutputStream();
-    }
+    OpenAI api = new OpenAI("key");
+    GptAnswer answer = api.generate("hi");
+    assertEquals("Hello", answer.getAnswer());
 
-    @Test
-    void testEmbeddingDefaultCode() throws Exception {
+    // Test null temperature
+    assertNull(api.generate("hi", null));
+    assertNull(api.generate(null, 0.5f));
+  }
+
+  @Test
+  void testFineTuningSuccess() throws Exception {
+    String uploadResponse = "{\"id\":\"file-123\"}";
+    // 2回の接続があるため、thenReturn に複数の値を渡す
+    when(sharedMockConn.getResponseCode()).thenReturn(200, 200);
+    when(sharedMockConn.getInputStream())
+        .thenReturn(
+            new ByteArrayInputStream(uploadResponse.getBytes()),
+            new ByteArrayInputStream("{}".getBytes()));
+    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+
+    OpenAI api = new OpenAI("key");
+    api.fineTuning("data");
+    verify(sharedMockConn, atLeastOnce()).getOutputStream();
+  }
+
+  @Test
+  void testEmbeddingDefaultCode() throws Exception {
+    String jsonResponse = "{\"data\":[{\"embedding\":[0.1]}]}";
+    when(sharedMockConn.getResponseCode()).thenReturn(201); // Default
+    when(sharedMockConn.getInputStream())
+        .thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
+    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+
+    OpenAI api = new OpenAI("key");
+    assertNotNull(api.embedding("test"));
+  }
+
+  @Test
+  void testEmbeddingNull() throws Exception {
+    OpenAI api = new OpenAI("key");
+    assertNull(api.embedding(null));
+  }
+
+  @Test
+  void testErrorCodes() throws Exception {
+    int[] codes = {400, 401, 403, 404, 408, 429, 500, 503, 999};
+    for (int code : codes) {
+      // Reset for each iteration to clear mocks
+      reset(sharedMockConn);
+      when(sharedMockConn.getResponseCode()).thenReturn(code);
+      when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+
+      OpenAI api = new OpenAI("key");
+
+      // Embedding
+      if (code == 999) {
+        // Default case
         String jsonResponse = "{\"data\":[{\"embedding\":[0.1]}]}";
-        when(sharedMockConn.getResponseCode()).thenReturn(201); // Default
-        when(sharedMockConn.getInputStream()).thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
-        when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
-
-        OpenAI api = new OpenAI("key");
+        when(sharedMockConn.getInputStream())
+            .thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
         assertNotNull(api.embedding("test"));
-    }
-    
-    @Test
-    void testEmbeddingNull() throws Exception {
-        OpenAI api = new OpenAI("key");
-        assertNull(api.embedding(null));
+      } else {
+        assertThrows(
+            RuntimeException.class, () -> api.embedding("test"), "Should throw for " + code);
+      }
     }
 
-    @Test
-    void testErrorCodes() throws Exception {
-        int[] codes = {400, 401, 403, 404, 408, 429, 500, 503, 999};
-        for (int code : codes) {
-            // Reset for each iteration to clear mocks
-            reset(sharedMockConn);
-            when(sharedMockConn.getResponseCode()).thenReturn(code);
-            when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
-            
-            OpenAI api = new OpenAI("key");
-            
-            // Embedding
-            if (code == 999) {
-                // Default case
-                String jsonResponse = "{\"data\":[{\"embedding\":[0.1]}]}";
-                when(sharedMockConn.getInputStream()).thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
-                assertNotNull(api.embedding("test"));
-            } else {
-                assertThrows(RuntimeException.class, () -> api.embedding("test"), "Should throw for " + code);
-            }
-        }
-        
-        // Test Generate errors
-        for (int code : codes) {
-            reset(sharedMockConn);
-            when(sharedMockConn.getResponseCode()).thenReturn(code);
-            when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
-            
-            OpenAI api = new OpenAI("key");
-            
-            // Generate
-            if (code == 999) {
-                // Default case
-                String jsonResponse = "{\"choices\":[{\"message\":{\"content\":\"Hello\"}}]}";
-                when(sharedMockConn.getInputStream()).thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
-                assertNotNull(api.generate("hi"));
-            } else {
-                assertThrows(RuntimeException.class, () -> api.generate("hi"), "Should throw for " + code);
-            }
-        }
+    // Test Generate errors
+    for (int code : codes) {
+      reset(sharedMockConn);
+      when(sharedMockConn.getResponseCode()).thenReturn(code);
+      when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
 
-        // Test Fine-Tuning Upload errors
-        for (int code : codes) {
-            if (code == 999) continue; // Skip default for error testing loop as success is complex
-            
-            reset(sharedMockConn);
-            when(sharedMockConn.getResponseCode()).thenReturn(code);
-            when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
-            
-            OpenAI api = new OpenAI("key");
-            assertThrows(RuntimeException.class, () -> api.fineTuning("data"), "Should throw for " + code);
-        }
+      OpenAI api = new OpenAI("key");
+
+      // Generate
+      if (code == 999) {
+        // Default case
+        String jsonResponse = "{\"choices\":[{\"message\":{\"content\":\"Hello\"}}]}";
+        when(sharedMockConn.getInputStream())
+            .thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
+        assertNotNull(api.generate("hi"));
+      } else {
+        assertThrows(RuntimeException.class, () -> api.generate("hi"), "Should throw for " + code);
+      }
     }
 
-    @Test
-    void testFineTuningErrors() throws Exception {
-        OpenAI api = new OpenAI("key");
-        
-        // Error during upload
-        reset(sharedMockConn);
-        when(sharedMockConn.getResponseCode()).thenReturn(400);
-        when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
-        assertThrows(RuntimeException.class, () -> api.fineTuning("data"));
-        
-        // Error during fine-tune job start
-        reset(sharedMockConn);
-        String uploadResponse = "{\"id\":\"file-123\"}";
-        when(sharedMockConn.getResponseCode()).thenReturn(200, 400); // Upload OK, Job Start Error
-        when(sharedMockConn.getInputStream()).thenReturn(new ByteArrayInputStream(uploadResponse.getBytes()));
-        when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
-        assertThrows(RuntimeException.class, () -> api.fineTuning("data"));
+    // Test Fine-Tuning Upload errors
+    for (int code : codes) {
+      if (code == 999) {
+        continue; // Skip default for error testing loop as success is complex
+      }
+      reset(sharedMockConn);
+      when(sharedMockConn.getResponseCode()).thenReturn(code);
+      when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+
+      OpenAI api = new OpenAI("key");
+      assertThrows(
+          RuntimeException.class, () -> api.fineTuning("data"), "Should throw for " + code);
     }
-    
-    @Test
-    void testConstructor() {
-        assertNotNull(new OpenAI("key"));
-        assertNotNull(new OpenAI("key", "model"));
-    }
+  }
+
+  @Test
+  void testFineTuningErrors() throws Exception {
+    OpenAI api = new OpenAI("key");
+
+    // Error during upload
+    reset(sharedMockConn);
+    when(sharedMockConn.getResponseCode()).thenReturn(400);
+    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+    assertThrows(RuntimeException.class, () -> api.fineTuning("data"));
+
+    // Error during fine-tune job start
+    reset(sharedMockConn);
+    String uploadResponse = "{\"id\":\"file-123\"}";
+    when(sharedMockConn.getResponseCode()).thenReturn(200, 400); // Upload OK, Job Start Error
+    when(sharedMockConn.getInputStream())
+        .thenReturn(new ByteArrayInputStream(uploadResponse.getBytes()));
+    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+    assertThrows(RuntimeException.class, () -> api.fineTuning("data"));
+  }
+
+  @Test
+  void testConstructor() {
+    assertNotNull(new OpenAI("key"));
+    assertNotNull(new OpenAI("key", "model"));
+  }
 }

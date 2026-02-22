@@ -2,99 +2,108 @@ package copel.sesproductpackage.core.database.base;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Iterator;
-
 import org.junit.jupiter.api.Test;
-
-import copel.sesproductpackage.core.unit.OriginalDateTime;
 
 class EntityBaseTests {
 
-    // テスト用の具象クラス
-    static class TestEntity extends EntityBase {
-        @Override
-        public int insert(Connection connection) throws SQLException { return 0; }
-        @Override
-        public void selectByPk(Connection connection) throws SQLException {}
-        @Override
-        public boolean updateByPk(Connection connection) throws SQLException { return true; }
-        @Override
-        public boolean deleteByPk(Connection connection) throws SQLException { return true; }
-        
-        @Override
-        public String toString() { return "TestEntity"; }
+  // テスト用の具象クラス
+  static class TestEntity extends EntityBase {
+    @Override
+    public int insert(Connection connection) throws SQLException {
+      return 0;
     }
 
-    static class TestEntityLot extends EntityLotBase<TestEntity> {
-        @Override
-        public void selectAll(Connection connection) throws SQLException {}
+    @Override
+    public void selectByPk(Connection connection) throws SQLException {}
+
+    @Override
+    public boolean updateByPk(Connection connection) throws SQLException {
+      return true;
     }
 
-    @Test
-    void testEntityBaseBasic() {
-        TestEntity entity = new TestEntity();
-        OriginalDateTime now = new OriginalDateTime();
-        entity.setRegisterDate(now);
-        entity.setRegisterUser("user1");
-
-        assertEquals(now, entity.getRegisterDate());
-        assertEquals("user1", entity.getRegisterUser());
+    @Override
+    public boolean deleteByPk(Connection connection) throws SQLException {
+      return true;
     }
 
-    @Test
-    void testEntityBaseCompareTo() {
-        TestEntity e1 = new TestEntity();
-        TestEntity e2 = new TestEntity();
-        
-        // 両方 null
-        assertEquals(0, e1.compareTo(null));
-        
-        OriginalDateTime d1 = new OriginalDateTime("2026-01-01 00:00:00");
-        OriginalDateTime d2 = new OriginalDateTime("2026-01-02 00:00:00");
-        
-        e1.setRegisterDate(d1);
-        e2.setRegisterDate(d2);
-        
-        assertTrue(e1.compareTo(e2) < 0);
-        assertTrue(e2.compareTo(e1) > 0);
-        // OriginalDateTime.equals のバグにより、同じ日時でも -1 が返る
-        assertEquals(-1, e1.compareTo(e1));
+    @Override
+    public String toString() {
+      return "TestEntity";
     }
+  }
 
-    @Test
-    void testEntityLotBase() {
-        TestEntityLot lot = new TestEntityLot();
-        assertTrue(lot.isEmpty());
-        assertEquals(0, lot.size());
+  static class TestEntityLot extends EntityLotBase<TestEntity> {
+    @Override
+    public void selectAll(Connection connection) throws SQLException {}
+  }
 
-        TestEntity e1 = new TestEntity();
-        e1.setRegisterDate(new OriginalDateTime("2026-01-02 00:00:00"));
-        TestEntity e2 = new TestEntity();
-        e2.setRegisterDate(new OriginalDateTime("2026-01-01 00:00:00"));
+  @Test
+  void testEntityBaseBasic() {
+    TestEntity entity = new TestEntity();
+    OriginalDateTime now = new OriginalDateTime();
+    entity.setRegisterDate(now);
+    entity.setRegisterUser("user1");
 
-        lot.add(e1);
-        lot.add(e2);
-        
-        assertFalse(lot.isEmpty());
-        assertEquals(2, lot.size());
-        assertEquals(e1, lot.get(0));
-        assertEquals(e2, lot.get(1));
-        assertNull(lot.get(2));
+    assertEquals(now, entity.getRegisterDate());
+    assertEquals("user1", entity.getRegisterUser());
+  }
 
-        // Sort
-        lot.sort();
-        assertEquals(e2, lot.get(0)); // 2026-01-01 が先に来る
-        
-        // Iterator
-        Iterator<TestEntity> it = lot.iterator();
-        assertTrue(it.hasNext());
-        assertEquals(e2, it.next());
-        
-        // toString
-        String str = lot.toString();
-        assertTrue(str.contains("(0)TestEntity"));
-        assertTrue(str.contains("(1)TestEntity"));
-    }
+  @Test
+  void testEntityBaseCompareTo() {
+    TestEntity e1 = new TestEntity();
+    TestEntity e2 = new TestEntity();
+
+    // 両方 null
+    assertEquals(0, e1.compareTo(null));
+
+    OriginalDateTime d1 = new OriginalDateTime("2026-01-01 00:00:00");
+    OriginalDateTime d2 = new OriginalDateTime("2026-01-02 00:00:00");
+
+    e1.setRegisterDate(d1);
+    e2.setRegisterDate(d2);
+
+    assertTrue(e1.compareTo(e2) < 0);
+    assertTrue(e2.compareTo(e1) > 0);
+    // OriginalDateTime.equals のバグにより、同じ日時でも -1 が返る
+    assertEquals(-1, e1.compareTo(e1));
+  }
+
+  @Test
+  void testEntityLotBase() {
+    TestEntityLot lot = new TestEntityLot();
+    assertTrue(lot.isEmpty());
+    assertEquals(0, lot.size());
+
+    TestEntity e1 = new TestEntity();
+    e1.setRegisterDate(new OriginalDateTime("2026-01-02 00:00:00"));
+    TestEntity e2 = new TestEntity();
+    e2.setRegisterDate(new OriginalDateTime("2026-01-01 00:00:00"));
+
+    lot.add(e1);
+    lot.add(e2);
+
+    assertFalse(lot.isEmpty());
+    assertEquals(2, lot.size());
+    assertEquals(e1, lot.get(0));
+    assertEquals(e2, lot.get(1));
+    assertNull(lot.get(2));
+
+    // Sort
+    lot.sort();
+    assertEquals(e2, lot.get(0)); // 2026-01-01 が先に来る
+
+    // Iterator
+    Iterator<TestEntity> it = lot.iterator();
+    assertTrue(it.hasNext());
+    assertEquals(e2, it.next());
+
+    // toString
+    String str = lot.toString();
+    assertTrue(str.contains("(0)TestEntity"));
+    assertTrue(str.contains("(1)TestEntity"));
+  }
 }

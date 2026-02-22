@@ -6,24 +6,29 @@ import org.junit.jupiter.api.Test;
 
 class OriginalStringUtilsTests {
 
-    @Test
-    void testIsEmpty() {
-        // null の場合
-        assertTrue(OriginalStringUtils.isEmpty(null));
+  @Test
+  void testConstructor() {
+    assertNotNull(new OriginalStringUtils());
+  }
 
-        // 空文字の場合
-        assertTrue(OriginalStringUtils.isEmpty(""));
+  @Test
+  void testIsEmpty() {
+    // null の場合
+    assertTrue(OriginalStringUtils.isEmpty(null));
 
-        // 空白文字の場合
-        assertTrue(OriginalStringUtils.isEmpty(" "));
+    // 空文字の場合
+    assertTrue(OriginalStringUtils.isEmpty(""));
 
-        // "null" という文字列の場合
-        assertTrue(OriginalStringUtils.isEmpty("null"));
+    // 空白文字の場合
+    assertTrue(OriginalStringUtils.isEmpty(" "));
 
-        // 通常の文字列の場合
-        assertFalse(OriginalStringUtils.isEmpty("abc"));
+    // "null" という文字列の場合
+    assertTrue(OriginalStringUtils.isEmpty("null"));
 
-        // 前後空白のある文字列の場合
-        assertFalse(OriginalStringUtils.isEmpty(" abc "));
-    }
+    // 通常の文字列の場合
+    assertFalse(OriginalStringUtils.isEmpty("abc"));
+
+    // 前後空白のある文字列の場合
+    assertFalse(OriginalStringUtils.isEmpty(" abc "));
+  }
 }
