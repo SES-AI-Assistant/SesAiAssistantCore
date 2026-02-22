@@ -21,11 +21,14 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
+import software.amazon.awssdk.enhanced.dynamodb.model.PageIterable;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 
 class OpenAITests extends HttpTestBase {
 
     private MockedStatic<DynamoDbClient> mockedClient;
     private MockedStatic<DynamoDbEnhancedClient> mockedEnhancedClient;
+    private DynamoDbTable<Object> mockTable;
 
     @BeforeAll
     @SuppressWarnings("unchecked")
@@ -60,8 +63,15 @@ class OpenAITests extends HttpTestBase {
         when(mockEnhancedBuilder.build()).thenReturn(mockEnhancedClient);
         mockedEnhancedClient.when(DynamoDbEnhancedClient::builder).thenReturn(mockEnhancedBuilder);
 
-        DynamoDbTable mockTable = mock(DynamoDbTable.class);
+        mockTable = mock(DynamoDbTable.class);
         when(mockEnhancedClient.table(anyString(), any(TableSchema.class))).thenReturn(mockTable);
+        
+        // Mock query for fetch() in SES_AI_API_USAGE_HISTORY
+        PageIterable<Object> mockPageIterable = mock(PageIterable.class);
+        SdkIterable<Object> mockSdkIterable = mock(SdkIterable.class);
+        when(mockTable.query(any(software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional.class))).thenReturn(mockPageIterable);
+        when(mockPageIterable.items()).thenReturn(mockSdkIterable);
+        when(mockSdkIterable.iterator()).thenReturn(java.util.Collections.emptyIterator());
 
         sharedMockConn = mock(HttpURLConnection.class);
     }
@@ -94,6 +104,10 @@ class OpenAITests extends HttpTestBase {
         OpenAI api = new OpenAI("key");
         GptAnswer answer = api.generate("hi");
         assertEquals("Hello", answer.getAnswer());
+        
+        // Test null temperature
+        assertNull(api.generate("hi", null));
+        assertNull(api.generate(null, 0.5f));
     }
 
     @Test
@@ -119,16 +133,25 @@ class OpenAITests extends HttpTestBase {
         OpenAI api = new OpenAI("key");
         assertNotNull(api.embedding("test"));
     }
+    
+    @Test
+    void testEmbeddingNull() throws Exception {
+        OpenAI api = new OpenAI("key");
+        assertNull(api.embedding(null));
+    }
 
     @Test
     void testErrorCodes() throws Exception {
         int[] codes = {400, 401, 403, 404, 408, 429, 500, 503, 999};
         for (int code : codes) {
+            // Reset for each iteration to clear mocks
             reset(sharedMockConn);
             when(sharedMockConn.getResponseCode()).thenReturn(code);
             when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
             
             OpenAI api = new OpenAI("key");
+            
+            // Embedding
             if (code == 999) {
                 // Default case
                 String jsonResponse = "{\"data\":[{\"embedding\":[0.1]}]}";
@@ -137,6 +160,37 @@ class OpenAITests extends HttpTestBase {
             } else {
                 assertThrows(RuntimeException.class, () -> api.embedding("test"), "Should throw for " + code);
             }
+        }
+        
+        // Test Generate errors
+        for (int code : codes) {
+            reset(sharedMockConn);
+            when(sharedMockConn.getResponseCode()).thenReturn(code);
+            when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+            
+            OpenAI api = new OpenAI("key");
+            
+            // Generate
+            if (code == 999) {
+                // Default case
+                String jsonResponse = "{\"choices\":[{\"message\":{\"content\":\"Hello\"}}]}";
+                when(sharedMockConn.getInputStream()).thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
+                assertNotNull(api.generate("hi"));
+            } else {
+                assertThrows(RuntimeException.class, () -> api.generate("hi"), "Should throw for " + code);
+            }
+        }
+
+        // Test Fine-Tuning Upload errors
+        for (int code : codes) {
+            if (code == 999) continue; // Skip default for error testing loop as success is complex
+            
+            reset(sharedMockConn);
+            when(sharedMockConn.getResponseCode()).thenReturn(code);
+            when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+            
+            OpenAI api = new OpenAI("key");
+            assertThrows(RuntimeException.class, () -> api.fineTuning("data"), "Should throw for " + code);
         }
     }
 

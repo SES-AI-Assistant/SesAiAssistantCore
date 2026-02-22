@@ -196,10 +196,10 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
         return "{\n from_group: " + this.fromGroup
                 + "\n from_id: " + this.fromId
                 + "\n from_name: " + this.fromName
-                + "\n file_id: " + this.skillSheet == null ? null : this.skillSheet.getFileId()
-                + "\n file_name: " + this.skillSheet == null ? null : this.skillSheet.getFileName()
-                + "\n file_content: " + this.skillSheet == null ? null : this.skillSheet.getFileContent()
-                + "\n file_content_summary: " + this.skillSheet == null ? null : this.skillSheet.getFileContentSummary()
+                + "\n file_id: " + (this.skillSheet == null ? null : this.skillSheet.getFileId())
+                + "\n file_name: " + (this.skillSheet == null ? null : this.skillSheet.getFileName())
+                + "\n file_content: " + (this.skillSheet == null ? null : this.skillSheet.getFileContent())
+                + "\n file_content_summary: " + (this.skillSheet == null ? null : this.skillSheet.getFileContentSummary())
                 + "\n vector_data: " + this.vectorData
                 + "\n register_date: " + this.registerDate
                 + "\n register_user: " + this.registerUser

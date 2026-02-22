@@ -101,6 +101,28 @@
     - `System.getenv` による環境分岐や Lombok 生成の特殊な命令など、Java 17 環境下で物理的に到達不能な命令を除き、全てのビジネスロジックを網羅。
 - カバレッジレポート（`target/site/jacoco/jacoco.csv`）を出力し、目標達成を確認。
 
+# ARCHIVE: 【性能改善】要員と案件を正確に振り分ける事ができるようにする対応 (2026-02-22)
 
+## 1. 概要 (Overview)
+- `Content.java` の案件/要員判定ロジックを改善し、誤判定を削減する。
+- テストデータ（案件5種・要員5種）を用いた実データ振り分けテストを `ContentTests.java` に実装する。
+- `Content.java` の JUnit カバレッジを 100% にする。
 
+## 2. 具体的な要求事項 (Requirements)
+- `Content.java` に改善実装が完了していること
+- 実データを使用した振り分けテスト（案件5種・要員5種）が実施されていること
+- JUnit カバレッジが 100% であること
+- モック化により AWS 本番環境や外部サービス API を直接読まないこと
+
+## 3. 実施内容 (Execution)
+- `Content.java` を**重みスコアリング方式**に改善：
+  - スタティックフィールドをコンストラクタ内の動的読み込みに変更（テスト時の Properties 書き換えが確実に反映されるよう修正）
+  - 案件・要員それぞれで HIGH ワード（3点）/ LOW ワード（1点）の重みを設定可能にする
+  - `JOB_FEATURES_ARRAY_HIGH`, `JOB_FEATURES_ARRAY_LOW`, `PERSONEL_FEATURES_ARRAY_HIGH`, `PERSONEL_FEATURES_ARRAY_LOW` の4プロパティを新設
+  - 後方互換: HIGH/LOW が未設定の場合は従来の `JOB_FEATURES_ARRAY` / `PERSONEL_FEATURES_ARRAY` を使用
+- テストリソースファイルを 10 種（案件5種・要員5種）作成し `src/test/resources/content/` に配置
+- `ContentTests.java` に 16 件のテストを実装し、全件成功
+- `Content.java` の JaCoCo カバレッジ **100%** を達成
+- 全 254 テスト PASS・BUILD SUCCESS を確認
+- **ユーザーへの依頼**: S3 上の実際の `config.properties` への 4 プロパティ追加（TODO.md 参照）
 

@@ -7,6 +7,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -28,7 +30,14 @@ class SES_AI_T_SKILLSHEETTests {
         when(ps.executeUpdate()).thenReturn(1, 1, 1, 1, 1, 1);
         when(ps.executeQuery()).thenReturn(rs);
         when(rs.next()).thenReturn(true, false, true, false, true, false, true, false, true, false);
-        when(rs.getString(anyString())).thenReturn("F1");
+        // Valid date strings for selectByPk
+        when(rs.getString("register_date")).thenReturn("2023-01-01 10:00:00");
+        when(rs.getString("ttl")).thenReturn("2023-01-02 10:00:00");
+        when(rs.getString("file_id")).thenReturn("F1");
+        when(rs.getString("file_name")).thenReturn("F1.txt");
+        when(rs.getString("file_content")).thenReturn("content");
+        when(rs.getString("file_content_summary")).thenReturn("summary");
+        when(rs.getString("from_group")).thenReturn("G1");
         
         SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
         ss.setFileId("F1");
@@ -36,10 +45,14 @@ class SES_AI_T_SKILLSHEETTests {
         ss.setTtl(new OriginalDateTime());
         
         assertEquals(1, ss.insert(connection));
-        // SES_AI_T_SKILLSHEET.updateByPk は常に false を返す実装になっている
         assertFalse(ss.updateByPk(connection));
+        
         ss.selectByPk(connection);
+        assertNotNull(ss.getRegisterDate());
+        
         ss.selectByPkWithoutRawContent(connection);
+        assertNotNull(ss.getRegisterDate());
+        
         assertTrue(ss.deleteByPk(connection));
         assertNotNull(ss.toString());
     }
@@ -81,6 +94,16 @@ class SES_AI_T_SKILLSHEETTests {
         ss.setFileContent("c2");
         ss.setFileContentSummary("sum2");
         assertEquals("f2", ss.getFileId());
+        
+        // Ensure toString works with fully populated fields
+        ss.setFromGroup("G1");
+        ss.setFromId("ID1");
+        ss.setFromName("Name1");
+        ss.setRegisterDate(new OriginalDateTime());
+        ss.setRegisterUser("User1");
+        ss.setTtl(new OriginalDateTime());
+        ss.setDistance(0.5);
+        assertNotNull(ss.toString());
     }
 
     @Test
@@ -99,7 +122,8 @@ class SES_AI_T_SKILLSHEETTests {
         ss.selectByPk(null);
         ss.selectByPkWithoutRawContent(null);
         
-        // Removed toString check here because it causes NPE in source
+        // Test toString with null skillSheet
+        assertNotNull(ss.toString());
     }
 
     @Test
@@ -111,6 +135,9 @@ class SES_AI_T_SKILLSHEETTests {
         when(ps.executeQuery()).thenReturn(rs);
         when(rs.next()).thenReturn(true, false, true, false, true, false, true, false);
         when(rs.getDouble("distance")).thenReturn(0.5);
+        when(rs.getString("file_id")).thenReturn("F1");
+        when(rs.getString("register_date")).thenReturn("2023-01-01 10:00:00");
+        when(rs.getString("ttl")).thenReturn("2023-01-02 10:00:00");
         
         SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
         lot.selectAll(connection);
