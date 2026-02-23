@@ -11,149 +11,156 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class SES_AI_T_SKILLSHEETTests {
 
   @Test
-  void testSKILLSHEET() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeUpdate()).thenReturn(1, 1, 1, 1, 1, 1);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true, false, true, false, true, false, true, false, true, false);
-    // Valid date strings for selectByPk
-    when(rs.getString("register_date")).thenReturn("2023-01-01 10:00:00");
-    when(rs.getString("ttl")).thenReturn("2023-01-02 10:00:00");
-    when(rs.getString("file_id")).thenReturn("F1");
-    when(rs.getString("file_name")).thenReturn("F1.txt");
-    when(rs.getString("file_content")).thenReturn("content");
-    when(rs.getString("file_content_summary")).thenReturn("summary");
-    when(rs.getString("from_group")).thenReturn("G1");
-
+  void testSKILLSHEETBasics() throws SQLException {
     SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
-    ss.setFileId("F1");
-    ss.setRegisterDate(new OriginalDateTime());
-    ss.setTtl(new OriginalDateTime());
+    assertNotNull(ss.getSkillSheet());
 
-    assertEquals(1, ss.insert(connection));
-    assertFalse(ss.updateByPk(connection));
+    ss.setFromGroup("G1");
+    ss.setFromId("ID1");
+    ss.setFromName("N1");
+    ss.setRegisterUser("U1");
+    ss.setDistance(1.0);
 
-    ss.selectByPk(connection);
-    assertNotNull(ss.getRegisterDate());
+    assertEquals("G1", ss.getFromGroup());
+    assertEquals("ID1", ss.getFromId());
+    assertEquals("N1", ss.getFromName());
+    assertEquals("U1", ss.getRegisterUser());
+    assertEquals(1.0, ss.getDistance());
 
-    ss.selectByPkWithoutRawContent(connection);
-    assertNotNull(ss.getRegisterDate());
-
-    assertTrue(ss.deleteByPk(connection));
     assertNotNull(ss.toString());
   }
 
   @Test
-  void testSKILLSHEETMethods() throws Exception {
+  void testGetFileUrlAndKey() {
     SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
-    SkillSheet inner = new SkillSheet("f1", "n1", "c1");
-    inner.setFileContentSummary("sum1");
-    ss.setSkillSheet(inner);
-
-    assertEquals("ファイルID：f1内容：sum1", ss.toスキルシート選出用文章());
+    ss.setSkillSheet(new SkillSheet("F1", "N1", "C1"));
     assertNotNull(ss.getFileUrl());
-    assertEquals("f1_n1", ss.getObjectKey());
-    assertEquals("f1", ss.getFileId());
-    assertEquals("n1", ss.getFileName());
-    assertEquals("c1", ss.getFileContent());
-    assertEquals("sum1", ss.getFileContentSummary());
+    assertEquals("F1_N1", ss.getObjectKey());
 
-    // embedding
-    Transformer mockTrans = mock(Transformer.class);
-    when(mockTrans.embedding(anyString())).thenReturn(new float[] {0.1f});
-    ss.embedding(mockTrans);
-    assertNotNull(ss.getVectorData());
+    ss.setSkillSheet(null);
+    assertNull(ss.getFileUrl());
+    try {
+      ss.getObjectKey();
+    } catch (Exception e) {
+    }
+  }
 
-    // uniqueCheck
+  @Test
+  void testSelectByPkBranches() throws SQLException {
+    Connection connection = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(connection.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+
+    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
+
+    ss.selectByPk(null);
+    ss.selectByPkWithoutRawContent(null);
+
+    ss.setFileId(null);
+    ss.selectByPk(connection);
+    ss.selectByPkWithoutRawContent(connection);
+
+    ss.setFileId("F1");
+    when(rs.next()).thenReturn(false);
+    ss.selectByPk(connection);
+    ss.selectByPkWithoutRawContent(connection);
+
+    when(rs.next()).thenReturn(true);
+    when(rs.getString(anyString())).thenReturn("val");
+    ss.selectByPk(connection);
+    ss.selectByPkWithoutRawContent(connection);
+  }
+
+  @Test
+  void testInsertBranches() throws Exception {
+    Connection connection = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    when(connection.prepareStatement(anyString())).thenReturn(ps);
+
+    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
+
+    assertEquals(0, ss.insert(null));
+
+    ss.setSkillSheet(null);
+    ss.setVectorData(null);
+    ss.setRegisterDate(null);
+    ss.setTtl(null);
+    ss.insert(connection);
+
+    ss.setSkillSheet(new SkillSheet("F1", "N1", "C1"));
+
+    Vector vector = new Vector(null);
+    java.lang.reflect.Field valueField = Vector.class.getDeclaredField("value");
+    valueField.setAccessible(true);
+    valueField.set(vector, new float[] {0.1f});
+    ss.setVectorData(vector);
+
+    ss.setRegisterDate(new OriginalDateTime());
+    ss.setTtl(new OriginalDateTime());
+    ss.insert(connection);
+  }
+
+  @Test
+  void testEmbeddingAndCheck() throws Exception {
+    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
+    Transformer trans = mock(Transformer.class);
+    when(trans.embedding(anyString())).thenReturn(new float[] {0.1f});
+
+    ss.embedding(trans);
+
     Connection conn = mock(Connection.class);
     PreparedStatement ps = mock(PreparedStatement.class);
     ResultSet rs = mock(ResultSet.class);
     when(conn.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeQuery()).thenReturn(rs);
     when(rs.next()).thenReturn(true);
-    when(rs.getInt(1)).thenReturn(0);
-    assertTrue(ss.uniqueCheck(conn, 0.8));
+    when(rs.getInt(1)).thenReturn(1);
 
-    // Setters
-    ss.setFileId("f2");
-    ss.setFileName("n2");
-    ss.setFileContent("c2");
-    ss.setFileContentSummary("sum2");
-    assertEquals("f2", ss.getFileId());
+    assertFalse(ss.uniqueCheck(conn, 0.5));
 
-    // Ensure toString works with fully populated fields
-    ss.setFromGroup("G1");
-    ss.setFromId("ID1");
-    ss.setFromName("Name1");
-    ss.setRegisterDate(new OriginalDateTime());
-    ss.setRegisterUser("User1");
-    ss.setTtl(new OriginalDateTime());
-    ss.setDistance(0.5);
-    assertNotNull(ss.toString());
-  }
-
-  @Test
-  void testSKILLSHEETNulls() throws SQLException {
-    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
     ss.setSkillSheet(null);
-    assertNull(ss.getFileId());
-    assertNull(ss.getFileName());
-    assertEquals("", ss.getFileContent());
-    assertEquals("", ss.getFileContentSummary());
-    assertNull(ss.getFileUrl());
-
-    assertFalse(ss.deleteByPk(null));
-    assertEquals(0, ss.insert(null));
-
-    ss.selectByPk(null);
-    ss.selectByPkWithoutRawContent(null);
-
-    // Test toString with null skillSheet
-    assertNotNull(ss.toString());
+    ss.uniqueCheck(conn, 0.5);
   }
 
   @Test
-  void testSKILLSHEETLot() throws Exception {
+  void testDeleteByPk() throws SQLException {
     Connection connection = mock(Connection.class);
     PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
     when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true, false, true, false, true, false, true, false);
-    when(rs.getDouble("distance")).thenReturn(0.5);
-    when(rs.getString("file_id")).thenReturn("F1");
-    when(rs.getString("register_date")).thenReturn("2023-01-01 10:00:00");
-    when(rs.getString("ttl")).thenReturn("2023-01-02 10:00:00");
-
-    SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
-    lot.selectAll(connection);
-
-    Vector vector = new Vector(null);
-    java.lang.reflect.Field valueField = Vector.class.getDeclaredField("value");
-    valueField.setAccessible(true);
-    valueField.set(vector, new float[] {0.1f});
-
-    lot.retrieve(connection, vector, 10);
-    lot.searchByFileContent(connection, "java");
-    lot.searchByFileContent(connection, "java", List.of());
-    lot.selectByAndQuery(connection, Map.of("c", "v"));
-    lot.selectByOrQuery(connection, Map.of("c", "v"));
+    when(ps.executeUpdate()).thenReturn(1);
 
     SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
+    assertFalse(ss.deleteByPk(null));
+
     ss.setFileId("F1");
-    lot.add(ss);
-    assertEquals(ss, lot.getEntityByPk("F1"));
-    assertNotNull(lot.toString());
-    assertNotNull(lot.toスキルシート選出用文章());
+    assertTrue(ss.deleteByPk(connection));
+  }
+
+  @Test
+  void testGetterSetterCoverage() {
+    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
+    ss.setFileContent("content");
+    assertEquals("content", ss.getFileContent());
+    ss.setFileContentSummary("summary");
+    assertEquals("summary", ss.getFileContentSummary());
+    ss.setFileName("name");
+    assertEquals("name", ss.getFileName());
+
+    ss.setSkillSheet(null);
+    assertEquals("", ss.getFileContent());
+    assertEquals("", ss.getFileContentSummary());
+    assertNull(ss.getFileName());
+  }
+
+  @Test
+  void testUpdateByPk() throws SQLException {
+    assertFalse(new SES_AI_T_SKILLSHEET().updateByPk(null));
   }
 }

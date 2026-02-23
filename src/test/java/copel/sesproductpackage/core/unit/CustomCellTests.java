@@ -49,7 +49,6 @@ class CustomCellTests {
   void testGetValueDate() {
     Cell cell = mock(Cell.class);
     when(cell.getCellType()).thenReturn(CellType.NUMERIC);
-    // エクセル上の日付シリアル値(2025/04/01 あたりを想定)
     when(cell.getNumericCellValue()).thenReturn(45748.0);
     Date date = new Date();
     when(cell.getDateCellValue()).thenReturn(date);
@@ -69,7 +68,7 @@ class CustomCellTests {
     when(evaluator.evaluate(cell)).thenReturn(cellValue);
 
     CustomCell customCell = new CustomCell(cell);
-    assertEquals("\"Result\"", customCell.getValue(evaluator)); // formatAsString はダブルクォートで囲まれる
+    assertEquals("\"Result\"", customCell.getValue(evaluator));
   }
 
   @Test
@@ -90,13 +89,30 @@ class CustomCellTests {
     Cell cell = mock(Cell.class);
     CustomCell customCell = new CustomCell(cell);
 
-    when(cell.getNumericCellValue()).thenReturn(45000.0);
+    // Case: val < 1.0
+    when(cell.getNumericCellValue()).thenReturn(0.9);
+    assertFalse(customCell.isExcelDate());
+
+    // Case: 1.0 <= val <= 2958465.0 and integer
+    when(cell.getNumericCellValue()).thenReturn(1.0);
+    assertTrue(customCell.isExcelDate());
+    when(cell.getNumericCellValue()).thenReturn(2958465.0);
     assertTrue(customCell.isExcelDate());
 
-    when(cell.getNumericCellValue()).thenReturn(0.5);
+    // Case: val > 2958465.0
+    when(cell.getNumericCellValue()).thenReturn(2958466.0);
     assertFalse(customCell.isExcelDate());
 
+    // Case: val not integer
     when(cell.getNumericCellValue()).thenReturn(45000.5);
     assertFalse(customCell.isExcelDate());
+  }
+
+  @Test
+  void testGetValueDefault() {
+    Cell cell = mock(Cell.class);
+    when(cell.getCellType()).thenReturn(CellType.BLANK);
+    CustomCell customCell = new CustomCell(cell);
+    assertEquals("", customCell.getValue(null));
   }
 }

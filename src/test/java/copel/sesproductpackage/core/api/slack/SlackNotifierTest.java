@@ -1,19 +1,22 @@
 package copel.sesproductpackage.core.api.slack;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import copel.sesproductpackage.core.api.slack.SlackWebhookMessageEntity.BlockType;
-import copel.sesproductpackage.core.api.slack.SlackWebhookMessageEntity.SlackMessageBlock;
-import copel.sesproductpackage.core.api.slack.SlackWebhookMessageEntity.TextObject;
-import copel.sesproductpackage.core.api.slack.SlackWebhookMessageEntity.TextType;
 import java.net.http.HttpClient;
 import java.net.http.HttpResponse;
+
 import org.apache.http.HttpException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
+
+import copel.sesproductpackage.core.api.slack.SlackWebhookMessageEntity.BlockType;
+import copel.sesproductpackage.core.api.slack.SlackWebhookMessageEntity.SlackMessageBlock;
+import copel.sesproductpackage.core.api.slack.SlackWebhookMessageEntity.TextObject;
+import copel.sesproductpackage.core.api.slack.SlackWebhookMessageEntity.TextType;
 
 class SlackNotifierTest {
 
@@ -116,5 +119,12 @@ class SlackNotifierTest {
     TextObject obj = TextObject.builder().type(TextType.MRKDWN).text("test").build();
     assertEquals(TextType.MRKDWN, obj.getType());
     assertEquals("test", obj.getText());
+  }
+
+  @Test
+  void testConstructor() {
+      // ユーティリティクラスのインスタンス化を行い、デフォルトコンストラクタを実行する
+      SlackNotifier notifier = new SlackNotifier();
+      assertNotNull(notifier);
   }
 }

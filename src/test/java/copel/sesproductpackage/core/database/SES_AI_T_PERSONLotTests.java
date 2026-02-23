@@ -1,169 +1,180 @@
 package copel.sesproductpackage.core.database;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
+import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class SES_AI_T_PERSONLotTests {
 
+  private Connection mockConn;
+  private PreparedStatement mockStmt;
+  private ResultSet mockRs;
+
+  @BeforeEach
+  void setUp() throws SQLException {
+    mockConn = mock(Connection.class);
+    mockStmt = mock(PreparedStatement.class);
+    mockRs = mock(ResultSet.class);
+
+    when(mockConn.prepareStatement(anyString())).thenReturn(mockStmt);
+    when(mockStmt.executeQuery()).thenReturn(mockRs);
+  }
+
+  private void setupDefaultResultSet() throws SQLException {
+    when(mockRs.next()).thenReturn(true).thenReturn(false);
+    when(mockRs.getString("person_id")).thenReturn("pid1");
+    when(mockRs.getString("from_group")).thenReturn("fg1");
+    when(mockRs.getString("from_id")).thenReturn("fid1");
+    when(mockRs.getString("from_name")).thenReturn("fname1");
+    when(mockRs.getString("file_id")).thenReturn("file1");
+    when(mockRs.getString("raw_content")).thenReturn("raw1");
+    when(mockRs.getString("content_summary")).thenReturn("summary1");
+    when(mockRs.getString("register_date")).thenReturn("2023-01-01 12:00:00");
+    when(mockRs.getString("register_user")).thenReturn("user1");
+    when(mockRs.getString("ttl")).thenReturn("2024-01-01 12:00:00");
+    when(mockRs.getDouble("distance")).thenReturn(0.5);
+  }
+  
+  private Vector createTestVector() throws Exception {
+      Vector vector = new Vector(null);
+      Field valueField = Vector.class.getDeclaredField("value");
+      valueField.setAccessible(true);
+      valueField.set(vector, new float[]{1.0f, 2.0f});
+      return vector;
+  }
+
+  @Test
+  void testSelectAll() throws SQLException {
+    setupDefaultResultSet();
+    SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
+    lot.selectAll(mockConn);
+    assertEquals(1, lot.size());
+
+    // Test the bug fix for null connection
+    assertThrows(NullPointerException.class, () -> new SES_AI_T_PERSONLot().selectAll(null));
+  }
+
+  @Test
+  void testGetEntityByPk() throws SQLException {
+    setupDefaultResultSet();
+    SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
+    lot.selectAll(mockConn);
+    
+    assertNotNull(lot.getEntityByPk("pid1"));
+    assertNull(lot.getEntityByPk("nonexistent"));
+    assertNull(lot.getEntityByPk(null));
+  }
+
+  @Test
+  void testIsExistByFileId() throws SQLException {
+    setupDefaultResultSet();
+    SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
+    lot.selectAll(mockConn);
+
+    assertTrue(lot.isExistByFileId("file1"));
+    assertFalse(lot.isExistByFileId("nonexistent"));
+    assertFalse(lot.isExistByFileId(null));
+  }
+  
   @Test
   void testRetrieve() throws Exception {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true, false);
-    when(rs.getString("person_id")).thenReturn("P1");
-    when(rs.getDouble("distance")).thenReturn(0.5);
-
+    setupDefaultResultSet();
     SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
-
-    Vector vector = new Vector(null);
-    java.lang.reflect.Field valueField = Vector.class.getDeclaredField("value");
-    valueField.setAccessible(true);
-    valueField.set(vector, new float[] {0.1f});
-
-    lot.retrieve(connection, vector, 10);
-
+    lot.retrieve(mockConn, createTestVector(), 10);
     assertEquals(1, lot.size());
-    assertEquals("P1", lot.get(0).getPersonId());
+    assertEquals(0.5, lot.get(0).getDistance());
+
+    SES_AI_T_PERSONLot lotForNull = new SES_AI_T_PERSONLot();
+    lotForNull.retrieve(null, null, 0);
+    assertTrue(lotForNull.isEmpty());
+
+    lot.retrieve(mockConn, null, 1);
+    verify(mockStmt).setString(1, null);
   }
 
   @Test
-  void testSearchByRawContent() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true, false);
-
+  void testSearchByRawContentSingle() throws SQLException {
+    setupDefaultResultSet();
     SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
-    lot.searchByRawContent(connection, "query");
-
+    lot.searchByRawContent(mockConn, "query");
     assertEquals(1, lot.size());
   }
 
   @Test
-  void testSearchByRawContentMulti() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true, false);
-
+  void testSearchByRawContentMultiple() throws SQLException {
+    setupDefaultResultSet();
     SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
-    LogicalOperators op = new LogicalOperators(LogicalOperators.論理演算子.AND, "val");
-    lot.searchByRawContent(connection, "first", List.of(op));
-
+    List<LogicalOperators> queries = new ArrayList<>();
+    queries.add(new LogicalOperators(論理演算子.AND, "val1"));
+    queries.add(new LogicalOperators(論理演算子.OR, "val2"));
+    lot.searchByRawContent(mockConn, "first", queries);
     assertEquals(1, lot.size());
   }
 
   @Test
   void testSelectByAndQuery() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true, false);
-
+    setupDefaultResultSet();
     SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
-    lot.selectByAndQuery(connection, Map.of("col", "val"));
-
+    Map<String, String> query = new HashMap<>();
+    query.put("col1", "val1");
+    query.put("col2", "val2");
+    lot.selectByAndQuery(mockConn, query);
     assertEquals(1, lot.size());
   }
-
+  
   @Test
   void testSelectByOrQuery() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true, false);
-
+    setupDefaultResultSet();
     SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
-    lot.selectByOrQuery(connection, Map.of("col", "val"));
-
+    Map<String, String> query = new HashMap<>();
+    query.put("col1", "val1");
+    query.put("col2", "val2");
+    lot.selectByOrQuery(mockConn, query);
     assertEquals(1, lot.size());
   }
 
   @Test
   void testSelectByRegisterDateAfter() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true, false);
-
+    setupDefaultResultSet();
     SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
-    lot.selectByRegisterDateAfter(connection, new OriginalDateTime());
-
+    lot.selectByRegisterDateAfter(mockConn, new OriginalDateTime());
     assertEquals(1, lot.size());
+
+    // New lot to avoid state issues
+    SES_AI_T_PERSONLot lot2 = new SES_AI_T_PERSONLot();
+    setupDefaultResultSet();
+    lot2.selectByRegisterDateAfter(mockConn, null);
+    assertEquals(1, lot2.size());
   }
 
   @Test
-  void testGetEntityByPk() {
-    SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
-    SES_AI_T_PERSON p1 = new SES_AI_T_PERSON();
-    p1.setPersonId("P1");
-    lot.add(p1);
+  void testToAndToString() throws SQLException {
+      setupDefaultResultSet();
+      SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
+      lot.selectAll(mockConn);
 
-    assertEquals(p1, lot.getEntityByPk("P1"));
-    assertNull(lot.getEntityByPk("P2"));
-    assertNull(lot.getEntityByPk(null));
-  }
+      assertFalse(lot.to要員選出用文章().isEmpty());
+      assertFalse(lot.toString().isEmpty());
 
-  @Test
-  void testIsExistByFileId() {
-    SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
-    SES_AI_T_PERSON p1 = new SES_AI_T_PERSON();
-    p1.setFileId("F1");
-    lot.add(p1);
-
-    assertTrue(lot.isExistByFileId("F1"));
-    assertFalse(lot.isExistByFileId("F2"));
-    assertFalse(lot.isExistByFileId(null));
-  }
-
-  @Test
-  void testTo要員選出用文章() {
-    SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
-    SES_AI_T_PERSON p1 = new SES_AI_T_PERSON();
-    p1.setPersonId("P1");
-    p1.setRawContent("C1");
-    p1.setFileSummary("S1");
-    lot.add(p1);
-
-    String result = lot.to要員選出用文章();
-    assertTrue(result.contains("1人目："));
-  }
-
-  @Test
-  void testSelectAll() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true, false);
-
-    SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
-    lot.selectAll(connection);
-    assertEquals(1, lot.size());
+      // Empty lot
+      SES_AI_T_PERSONLot emptyLot = new SES_AI_T_PERSONLot();
+      assertTrue(emptyLot.to要員選出用文章().isEmpty());
   }
 }

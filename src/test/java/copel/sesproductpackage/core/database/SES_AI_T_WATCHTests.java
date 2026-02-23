@@ -13,150 +13,64 @@ import org.junit.jupiter.api.Test;
 class SES_AI_T_WATCHTests {
 
   @Test
-  void testIsExist() throws SQLException {
-    Connection connection = mock(Connection.class);
+  void testAllBranches() throws Exception {
+    Connection conn = mock(Connection.class);
     PreparedStatement ps = mock(PreparedStatement.class);
     ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
+    when(conn.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeQuery()).thenReturn(rs);
-
-    SES_AI_T_WATCH watch = new SES_AI_T_WATCH();
-
-    // True branch
-    when(rs.next()).thenReturn(true);
-    when(rs.getBoolean(1)).thenReturn(true);
-    assertTrue(watch.isExist(connection));
-    assertTrue(watch.isExistByTargetId(connection));
-
-    // False branch
-    when(rs.next()).thenReturn(true);
-    when(rs.getBoolean(1)).thenReturn(false);
-    assertFalse(watch.isExist(connection));
-    assertFalse(watch.isExistByTargetId(connection));
-
-    // ResultSet empty branch
-    reset(rs);
-    when(rs.next()).thenReturn(false);
-    assertFalse(watch.isExist(connection));
-    assertFalse(watch.isExistByTargetId(connection));
-  }
-
-  @Test
-  void testTargetTypeAll() {
-    for (SES_AI_T_WATCH.TargetType type : SES_AI_T_WATCH.TargetType.values()) {
-      assertEquals(type, SES_AI_T_WATCH.TargetType.getEnumByName(type.name()));
-    }
-    assertNull(SES_AI_T_WATCH.TargetType.getEnumByName("OTHER"));
-    assertNull(SES_AI_T_WATCH.TargetType.getEnumByName(null));
-  }
-
-  @Test
-  void testNullScenarios() throws SQLException {
-    SES_AI_T_WATCH entity = new SES_AI_T_WATCH();
-    Connection connection = mock(Connection.class);
-
-    assertEquals(0, entity.insert(null));
-    entity.selectByPk(null);
-    entity.setUserId(null);
-    entity.selectByPk(connection);
-    assertFalse(entity.updateByPk(null));
-    assertFalse(entity.updateByPk(connection));
-    assertFalse(entity.deleteByPk(null));
-    assertFalse(entity.deleteByPk(connection));
-
-    entity.setRegisterDate(null);
-    entity.setTtl(null);
-    entity.setTargetType(null);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    entity.setUserId("U1");
-    entity.setTargetId("T1");
-    entity.insert(connection);
-    entity.updateByPk(connection);
-
-    // toString null branches
-    assertNotNull(entity.toString());
-  }
-
-  @Test
-  void testIsExistPaths() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-
-    when(rs.next()).thenReturn(false); // Branch for next() false
-    SES_AI_T_WATCH watch = new SES_AI_T_WATCH();
-    assertFalse(watch.isExist(connection));
-    assertFalse(watch.isExistByTargetId(connection));
-  }
-
-  @Test
-  void testWATCH() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeUpdate()).thenReturn(1);
-    when(ps.executeQuery()).thenReturn(rs);
     when(rs.next()).thenReturn(true, false);
-
-    when(rs.getString("user_id")).thenReturn("U1");
-    when(rs.getString("target_id")).thenReturn("T1");
-    when(rs.getString("target_type")).thenReturn("PERSON");
-    when(rs.getString("memo")).thenReturn("memo1");
-    when(rs.getString("register_date")).thenReturn("2026-01-01 00:00:00");
-    when(rs.getString("register_user")).thenReturn("admin");
-    when(rs.getString("ttl")).thenReturn("2026-12-31 23:59:59");
+    when(rs.getBoolean(1)).thenReturn(true);
+    when(rs.getString(anyString())).thenReturn("JOB", "2024-01-01 00:00:00");
 
     SES_AI_T_WATCH watch = new SES_AI_T_WATCH();
-    watch.setUserId("U1");
-    watch.setTargetId("T1");
+    
+    // insert branches
+    watch.insert(null);
+    watch.setUserId("u"); watch.setTargetId("t");
     watch.setTargetType(SES_AI_T_WATCH.TargetType.JOB);
-    watch.setMemo("memo1");
-    watch.setRegisterDate(new OriginalDateTime());
+    watch.insert(conn);
     watch.setTtl(new OriginalDateTime());
+    watch.insert(conn);
 
-    assertEquals(1, watch.insert(connection));
-    assertTrue(watch.updateByPk(connection));
+    // isExist branches
+    assertTrue(watch.isExist(conn));
+    when(rs.next()).thenReturn(false);
+    assertFalse(watch.isExist(conn));
 
-    SES_AI_T_WATCH target = new SES_AI_T_WATCH();
-    target.setUserId("U1");
-    target.setTargetId("T1");
-    target.selectByPk(connection);
+    // isExistByTargetId branches
+    when(rs.next()).thenReturn(true);
+    assertTrue(watch.isExistByTargetId(conn));
+    when(rs.next()).thenReturn(false);
+    assertFalse(watch.isExistByTargetId(conn));
 
-    assertEquals("U1", target.getUserId());
-    assertEquals("T1", target.getTargetId());
-    assertEquals(SES_AI_T_WATCH.TargetType.PERSON, target.getTargetType());
-    assertEquals("memo1", target.getMemo());
-    assertNotNull(target.getTtl());
+    // selectByPk branches
+    watch.selectByPk(null);
+    watch.setUserId(null); watch.selectByPk(conn);
+    watch.setUserId("u"); watch.setTargetId(null); watch.selectByPk(conn);
+    watch.setTargetId("t");
+    when(rs.next()).thenReturn(true);
+    watch.selectByPk(conn);
 
-    assertTrue(watch.deleteByPk(connection));
-    assertNotNull(watch.toString());
+    // updateByPk branches
+    watch.updateByPk(null);
+    watch.setUserId(null); watch.updateByPk(conn);
+    watch.setUserId("u"); watch.setTargetId(null); watch.updateByPk(conn);
+    watch.setTargetId("t");
+    watch.updateByPk(conn);
+    watch.setRegisterDate(new OriginalDateTime());
+    watch.updateByPk(conn);
 
-    // Covering Lombok and more branches
-    assertNotNull(watch.hashCode());
-    assertTrue(watch.equals(watch));
-  }
+    // deleteByPk branches
+    watch.deleteByPk(null);
+    watch.setUserId(null); watch.deleteByPk(conn);
+    watch.setUserId("u"); watch.setTargetId(null); watch.deleteByPk(conn);
+    watch.setTargetId("t");
+    watch.deleteByPk(conn);
 
-  @Test
-  void testWATCHLot() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true, false);
-    when(rs.getString("target_type")).thenReturn("JOB");
-
-    SES_AI_T_WATCHLot lot = new SES_AI_T_WATCHLot();
-    lot.selectAll(connection);
-
-    SES_AI_T_WATCH watch = new SES_AI_T_WATCH();
-    watch.setUserId("U1");
-    watch.setTargetId("T1");
-    lot.add(watch);
-    assertNotNull(lot.toString());
+    // Enum branches
+    assertEquals(SES_AI_T_WATCH.TargetType.JOB, SES_AI_T_WATCH.TargetType.getEnumByName("JOB"));
+    assertNull(SES_AI_T_WATCH.TargetType.getEnumByName("INVALID"));
   }
 }

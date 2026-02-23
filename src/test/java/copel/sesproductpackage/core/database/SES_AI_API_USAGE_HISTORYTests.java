@@ -203,14 +203,16 @@ class SES_AI_API_USAGE_HISTORYTests {
 
   @Test
   void testEnumProvider() {
-    assertNotNull(Provider.valueOf("OpenAI"));
-    assertNotNull(Provider.values());
+    for (Provider p : Provider.values()) {
+      assertEquals(p, Provider.valueOf(p.name()));
+    }
   }
 
   @Test
   void testEnumApiType() {
-    assertNotNull(ApiType.valueOf("Generate"));
-    assertNotNull(ApiType.values());
+    for (ApiType a : ApiType.values()) {
+      assertEquals(a, ApiType.valueOf(a.name()));
+    }
   }
 
   @Test

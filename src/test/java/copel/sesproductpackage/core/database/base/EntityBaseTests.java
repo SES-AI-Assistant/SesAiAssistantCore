@@ -68,8 +68,17 @@ class EntityBaseTests {
 
     assertTrue(e1.compareTo(e2) < 0);
     assertTrue(e2.compareTo(e1) > 0);
-    // OriginalDateTime.equals のバグにより、同じ日時でも -1 が返る
-    assertEquals(-1, e1.compareTo(e1));
+    // 同一オブジェクトの比較は 0 が返る
+    assertEquals(0, e1.compareTo(e1));
+
+    // this.registerDate == null のケース
+    TestEntity e3 = new TestEntity();
+    TestEntity e4 = new TestEntity();
+    e4.setRegisterDate(d1);
+    assertEquals(-1, e3.compareTo(e4));
+    assertEquals(0, e3.compareTo(new TestEntity()));
+    assertEquals(1, e4.compareTo(e3));
+    assertEquals(1, e4.compareTo(null));
   }
 
   @Test

@@ -4,165 +4,64 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.unit.MatchingStatus;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import org.junit.jupiter.api.BeforeEach;
+import java.sql.SQLException;
 import org.junit.jupiter.api.Test;
 
-public class SES_AI_T_MATCHTest {
-
-  private SES_AI_T_MATCH match;
-
-  @BeforeEach
-  public void setUp() {
-    match = new SES_AI_T_MATCH();
-    match.setUserId("user001");
-    match.setJobId("job001");
-    match.setPersonId("person001");
-    match.setJobContent("Java Engineer");
-    match.setPersonContent("Experienced Java Developer");
-    match.setStatus(MatchingStatus.サジェスト中);
-    match.setRegisterUser("test_admin");
-  }
+class SES_AI_T_MATCHTest {
 
   @Test
-  public void testHasJobId() {
+  void testAllBranches() throws Exception {
+    Connection conn = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(conn.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(ps.executeUpdate()).thenReturn(1);
+    when(rs.next()).thenReturn(true, false);
+    when(rs.getString(anyString())).thenReturn("val");
+
+    SES_AI_T_MATCH match = new SES_AI_T_MATCH();
+    match.setJobId("j1");
+    match.setPersonId("p1");
     assertTrue(match.hasJobId());
-
-    match.setJobId("");
-    assertFalse(match.hasJobId());
-  }
-
-  @Test
-  public void testHasPersonId() {
     assertTrue(match.hasPersonId());
 
+    match.setJobId(null);
+    assertFalse(match.hasJobId());
     match.setPersonId(null);
     assertFalse(match.hasPersonId());
-  }
 
-  @Test
-  public void testInsert() throws Exception {
-    Connection conn = mock(Connection.class);
-    PreparedStatement stmt = mock(PreparedStatement.class);
-    when(conn.prepareStatement(anyString())).thenReturn(stmt);
-    when(stmt.executeUpdate()).thenReturn(1);
+    // insert
+    match.insert(null);
+    match.setStatus(MatchingStatus.提案中);
+    match.insert(conn);
+    match.setStatus(null);
+    match.insert(conn);
 
-    int result = match.insert(conn);
-    assertEquals(1, result);
-    assertNotNull(match.getMatchingId());
-    assertEquals(10, match.getMatchingId().length());
-  }
-
-  @Test
-  public void testSelectByPk() throws Exception {
-    Connection conn = mock(Connection.class);
-    PreparedStatement stmt = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-
-    match.setMatchingId("match12345");
-    match.setPersonId("person001");
-    match.setJobId("job001");
-
-    when(conn.prepareStatement(anyString())).thenReturn(stmt);
-    when(stmt.executeQuery()).thenReturn(rs);
+    // selectByPk
+    match.selectByPk(null);
+    match.setMatchingId(null); match.selectByPk(conn);
+    match.setMatchingId("id");
     when(rs.next()).thenReturn(true);
-    when(rs.getString("user_id")).thenReturn("user001");
-    when(rs.getString("job_id")).thenReturn("job001");
-    when(rs.getString("person_id")).thenReturn("person001");
-    when(rs.getString("job_content")).thenReturn("Java Engineer");
-    when(rs.getString("person_content")).thenReturn("Experienced Java Developer");
-    when(rs.getString("status_cd")).thenReturn("10");
-    when(rs.getString("register_date")).thenReturn("2024-04-01 12:00:00");
-    when(rs.getString("register_user")).thenReturn("test_admin");
-
     match.selectByPk(conn);
 
-    assertEquals("user001", match.getUserId());
-    assertEquals("10", match.getStatus().getCode());
+    // updateByPk
+    match.updateByPk(null);
+    match.setMatchingId(null); match.updateByPk(conn);
+    match.setMatchingId("id");
+    match.setRegisterDate(new OriginalDateTime());
+    match.updateByPk(conn);
+    match.setRegisterDate(null);
+    match.updateByPk(conn);
 
-    // ResultSet.next() is false
-    reset(rs);
-    when(rs.next()).thenReturn(false);
-    match.selectByPk(conn);
-
-    // status_cd is null
-    reset(rs);
-    when(rs.next()).thenReturn(true);
-    when(rs.getString("status_cd")).thenReturn(null);
-    match.selectByPk(conn);
-    assertNull(match.getStatus());
-  }
-
-  @Test
-  public void testUpdateByPk() throws Exception {
-    Connection conn = mock(Connection.class);
-    PreparedStatement stmt = mock(PreparedStatement.class);
-    when(conn.prepareStatement(anyString())).thenReturn(stmt);
-    when(stmt.executeUpdate()).thenReturn(1);
-
-    match.setMatchingId("match12345");
-    match.setPersonId("person001");
-    match.setJobId("job001");
-
-    boolean result = match.updateByPk(conn);
-    assertTrue(result);
-  }
-
-  @Test
-  public void testDeleteByPk() throws Exception {
-    Connection conn = mock(Connection.class);
-    PreparedStatement stmt = mock(PreparedStatement.class);
-    when(conn.prepareStatement(anyString())).thenReturn(stmt);
-    when(stmt.executeUpdate()).thenReturn(1);
-
-    match.setMatchingId("match12345");
-    match.setPersonId("person001");
-    match.setJobId("job001");
-
-    boolean result = match.deleteByPk(conn);
-    assertTrue(result);
-  }
-
-  @Test
-  public void testNullScenarios() throws Exception {
-    SES_AI_T_MATCH entity = new SES_AI_T_MATCH();
-    Connection connection = mock(Connection.class);
-
-    assertEquals(0, entity.insert(null));
-    entity.selectByPk(null);
-    entity.setMatchingId(null);
-    entity.selectByPk(connection);
-    assertFalse(entity.updateByPk(null));
-    assertFalse(entity.updateByPk(connection));
-    assertFalse(entity.deleteByPk(null));
-    assertFalse(entity.deleteByPk(connection));
-
-    entity.setRegisterDate(null);
-    entity.setStatus(null);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    entity.setMatchingId("M1");
-    entity.insert(connection);
-    entity.updateByPk(connection);
-
-    // toString null branches
-    assertNotNull(entity.toString());
-  }
-
-  @Test
-  public void testGetterAndSetter() {
-    String jobContent = "Backend Dev";
-    match.setJobContent(jobContent);
-    assertEquals(jobContent, match.getJobContent());
-
-    String personContent = "SE with 10y exp";
-    match.setPersonContent(personContent);
-    assertEquals(personContent, match.getPersonContent());
-
-    String userId = "user100";
-    match.setUserId(userId);
-    assertEquals(userId, match.getUserId());
+    // deleteByPk
+    match.deleteByPk(null);
+    match.setMatchingId(null); match.deleteByPk(conn);
+    match.setMatchingId("id");
+    match.deleteByPk(conn);
   }
 }

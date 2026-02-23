@@ -2,159 +2,92 @@ package copel.sesproductpackage.core.api.gpt;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.Arrays;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class GptAnswerTests {
 
-  @Test
-  public void testConstructor() {
-    GptAnswer answer = new GptAnswer("YES", GptAnswer.class);
-    assertNotNull(answer);
-    assertEquals("YES", answer.getAnswer());
-  }
+    private final Class<?> FAKE_TRANSFORMER = GptAnswerTests.class;
 
-  @Test
-  public void testIsEmpty() {
-    GptAnswer answer = new GptAnswer("", GptAnswer.class);
-    assertTrue(answer.isEmpty());
+    @Test
+    void testIsEmpty() {
+        assertTrue(new GptAnswer(null, FAKE_TRANSFORMER).isEmpty());
+        assertTrue(new GptAnswer("", FAKE_TRANSFORMER).isEmpty());
+        assertTrue(new GptAnswer(" ", FAKE_TRANSFORMER).isEmpty());
+        assertFalse(new GptAnswer("a", FAKE_TRANSFORMER).isEmpty());
+    }
 
-    answer = new GptAnswer(" ", GptAnswer.class);
-    assertTrue(answer.isEmpty());
+    @Test
+    void testLength() {
+        assertEquals(0, new GptAnswer(null, FAKE_TRANSFORMER).length());
+        assertEquals(4, new GptAnswer("test", FAKE_TRANSFORMER).length());
+    }
 
-    answer = new GptAnswer("Valid Answer", GptAnswer.class);
-    assertFalse(answer.isEmpty());
-  }
+    @Test
+    void testIsYES() {
+        assertTrue(new GptAnswer("YES", FAKE_TRANSFORMER).isYES());
+        assertTrue(new GptAnswer("はい", FAKE_TRANSFORMER).isYES());
+        assertFalse(new GptAnswer("NO", FAKE_TRANSFORMER).isYES());
+    }
 
-  @Test
-  public void testLength() {
-    GptAnswer answer = new GptAnswer("Test", GptAnswer.class);
-    assertEquals(4, answer.length());
+    @Test
+    void testIsNO() {
+        assertTrue(new GptAnswer("NO", FAKE_TRANSFORMER).isNO());
+        assertTrue(new GptAnswer("いいえ", FAKE_TRANSFORMER).isNO());
+        assertFalse(new GptAnswer("YES", FAKE_TRANSFORMER).isNO());
+    }
 
-    answer = new GptAnswer("", GptAnswer.class);
-    assertEquals(0, answer.length());
+    @Test
+    void testIsAlphanumeric() {
+        assertTrue(new GptAnswer("abc123", FAKE_TRANSFORMER).isAlphanumeric());
+        assertFalse(new GptAnswer("abc 123", FAKE_TRANSFORMER).isAlphanumeric());
+        assertFalse(new GptAnswer(null, FAKE_TRANSFORMER).isAlphanumeric());
+    }
 
-    answer = new GptAnswer(null, GptAnswer.class);
-    assertEquals(0, answer.length());
-  }
+    @Test
+    void testIsAlphanumericWithSymbols() {
+        assertTrue(new GptAnswer("a-b_c@123.!&", FAKE_TRANSFORMER).isAlphanumericWithSymbols());
+        assertFalse(new GptAnswer("日本語", FAKE_TRANSFORMER).isAlphanumericWithSymbols());
+        assertFalse(new GptAnswer(null, FAKE_TRANSFORMER).isAlphanumericWithSymbols());
+    }
+    
+    @Test
+    void testIsJapaneseOnly() {
+        assertTrue(new GptAnswer("あいうえお漢字", FAKE_TRANSFORMER).isJapaneseOnly());
+        assertFalse(new GptAnswer("abc", FAKE_TRANSFORMER).isJapaneseOnly());
+        assertFalse(new GptAnswer(null, FAKE_TRANSFORMER).isJapaneseOnly());
+    }
 
-  @Test
-  public void testIsYES() {
-    GptAnswer answer = new GptAnswer("YES", GptAnswer.class);
-    assertTrue(answer.isYES());
+    @Test
+    void testEqualsString() {
+        assertTrue(new GptAnswer("test", FAKE_TRANSFORMER).equals("test"));
+        assertFalse(new GptAnswer("test", FAKE_TRANSFORMER).equals("testing"));
+        assertTrue(new GptAnswer(null, FAKE_TRANSFORMER).equals(null));
+        assertFalse(new GptAnswer(null, FAKE_TRANSFORMER).equals("word"));
+    }
 
-    answer = new GptAnswer("yes.", GptAnswer.class);
-    assertTrue(answer.isYES());
+    @Test
+    void testAsInt() {
+        assertEquals(123, new GptAnswer("123", FAKE_TRANSFORMER).asInt());
+        assertThrows(NumberFormatException.class, () -> new GptAnswer("abc", FAKE_TRANSFORMER).asInt());
+    }
 
-    answer = new GptAnswer("no", GptAnswer.class);
-    assertFalse(answer.isYES());
+    @Test
+    void testIsJsonArrayFormat() {
+        assertTrue(new GptAnswer("[\"a\", \"b\"]", FAKE_TRANSFORMER).isJsonArrayFormat());
+        assertFalse(new GptAnswer("{\"a\": \"b\"}", FAKE_TRANSFORMER).isJsonArrayFormat());
+    }
 
-    answer = new GptAnswer(null, GptAnswer.class);
-    assertFalse(answer.isYES());
-  }
-
-  @Test
-  public void testIsNO() {
-    GptAnswer answer = new GptAnswer("NO", GptAnswer.class);
-    assertTrue(answer.isNO());
-
-    answer = new GptAnswer("no.", GptAnswer.class);
-    assertTrue(answer.isNO());
-
-    answer = new GptAnswer("yes", GptAnswer.class);
-    assertFalse(answer.isNO());
-
-    answer = new GptAnswer(null, GptAnswer.class);
-    assertFalse(answer.isNO());
-  }
-
-  @Test
-  public void testIsAlphanumeric() {
-    GptAnswer answer = new GptAnswer("123ABC", GptAnswer.class);
-    assertTrue(answer.isAlphanumeric());
-
-    answer = new GptAnswer("123 ABC", GptAnswer.class);
-    assertFalse(answer.isAlphanumeric());
-
-    answer = new GptAnswer("!@#123", GptAnswer.class);
-    assertFalse(answer.isAlphanumeric());
-
-    answer = new GptAnswer(null, GptAnswer.class);
-    assertFalse(answer.isAlphanumeric());
-  }
-
-  @Test
-  public void testIsAlphanumericWithSymbols() {
-    GptAnswer answer = new GptAnswer("123ABC!@#", GptAnswer.class);
-    assertTrue(answer.isAlphanumericWithSymbols());
-
-    answer = new GptAnswer("123 ABC", GptAnswer.class);
-    assertFalse(answer.isAlphanumericWithSymbols());
-
-    answer = new GptAnswer("123ABC", GptAnswer.class);
-    assertTrue(answer.isAlphanumericWithSymbols());
-
-    answer = new GptAnswer(null, GptAnswer.class);
-    assertFalse(answer.isAlphanumericWithSymbols());
-  }
-
-  @Test
-  public void testIsJapaneseOnly() {
-    GptAnswer answer = new GptAnswer("こんにちは", GptAnswer.class);
-    assertTrue(answer.isJapaneseOnly());
-
-    answer = new GptAnswer("hello", GptAnswer.class);
-    assertFalse(answer.isJapaneseOnly());
-
-    answer = new GptAnswer(null, GptAnswer.class);
-    assertFalse(answer.isJapaneseOnly());
-  }
-
-  @Test
-  public void testEquals() {
-    GptAnswer answer = new GptAnswer("Test", GptAnswer.class);
-    assertTrue(answer.equals("Test"));
-    assertFalse(answer.equals("NotTest"));
-
-    answer = new GptAnswer(null, GptAnswer.class);
-    assertTrue(answer.equals(null));
-    assertFalse(answer.equals("Not null"));
-  }
-
-  @Test
-  public void testToString() {
-    GptAnswer answer = new GptAnswer("Test", GptAnswer.class);
-    assertEquals("Test", answer.toString());
-  }
-
-  @Test
-  public void testAsInt() {
-    GptAnswer answer = new GptAnswer("123", GptAnswer.class);
-    assertEquals(123, answer.asInt());
-  }
-
-  @Test
-  public void testIsJsonArrayFormat() {
-    GptAnswer answer = new GptAnswer("[\"item1\", \"item2\"]", GptAnswer.class);
-    assertTrue(answer.isJsonArrayFormat());
-
-    answer = new GptAnswer("[\n\"item1\", \"item2\"]", GptAnswer.class);
-    assertTrue(answer.isJsonArrayFormat());
-
-    answer = new GptAnswer("not a json array", GptAnswer.class);
-    assertFalse(answer.isJsonArrayFormat());
-  }
-
-  @Test
-  public void testGetAsList() throws Exception {
-    GptAnswer answer = new GptAnswer("[\"\nitem1\", \"item2\"]", GptAnswer.class);
-    List<String> result = answer.getAsList();
-    assertNotNull(result);
-    assertEquals(2, result.size());
-    assertEquals(Arrays.asList("\nitem1", "item2"), result);
-
-    answer = new GptAnswer("not a json array", GptAnswer.class);
-    assertNull(answer.getAsList());
-  }
+    @Test
+    void testGetAsList() throws JsonProcessingException {
+        List<String> expected = List.of("a", "b");
+        assertEquals(expected, new GptAnswer("[\"a\", \"b\"]", FAKE_TRANSFORMER).getAsList());
+        
+        assertEquals(expected, new GptAnswer("[\"a\", \n\"b\"]", FAKE_TRANSFORMER).getAsList());
+        
+        assertNull(new GptAnswer("not a list", FAKE_TRANSFORMER).getAsList());
+        
+        assertThrows(JsonProcessingException.class, () -> new GptAnswer("[\"a, \"b\"]", FAKE_TRANSFORMER).getAsList());
+    }
 }

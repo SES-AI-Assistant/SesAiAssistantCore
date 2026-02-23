@@ -1,2 +1,17 @@
+### Eclipse Specific ###
+.metadata/
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.classpath
+.project
+.factorypath
+
+# Original
 /target/
 TODO.md
