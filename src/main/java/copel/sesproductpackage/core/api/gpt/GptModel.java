@@ -6,5 +6,5 @@ public interface GptModel {
    *
    * @return GPTモデル名
    */
-  public String getModelName();
+  String getModelName();
 }

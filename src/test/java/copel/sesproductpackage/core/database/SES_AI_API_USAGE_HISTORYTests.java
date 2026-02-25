@@ -119,10 +119,26 @@ class SES_AI_API_USAGE_HISTORYTests {
     history.setOutputCount(new BigDecimal(5));
     history.setTimestamp("2026-01-01T00:00:00Z");
 
-    when(mockTable.getItem(any(java.util.function.Consumer.class))).thenReturn(history);
+    doAnswer(
+            invocation -> {
+              java.util.function.Consumer<
+                      software.amazon.awssdk.enhanced.dynamodb.model.GetItemEnhancedRequest.Builder>
+                  consumer = invocation.getArgument(0);
+              software.amazon.awssdk.enhanced.dynamodb.model.GetItemEnhancedRequest.Builder
+                  builder =
+                      mock(
+                          software.amazon.awssdk.enhanced.dynamodb.model.GetItemEnhancedRequest
+                              .Builder.class,
+                          RETURNS_DEEP_STUBS);
+              consumer.accept(builder);
+              return history;
+            })
+        .when(mockTable)
+        .getItem(any(java.util.function.Consumer.class));
 
     SES_AI_API_USAGE_HISTORY target = new SES_AI_API_USAGE_HISTORY();
-    // Set keys so partitionKey and sortKey are generated for Key.builder() if needed by mock
+    // Set keys so partitionKey and sortKey are generated for Key.builder() if
+    // needed by mock
     // internally
     target.setProvider(Provider.OpenAI);
     target.setModel("gpt-4o-mini");

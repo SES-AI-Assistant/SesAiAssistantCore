@@ -16,7 +16,7 @@ public interface Transformer {
    * @throws IOException
    * @throws RuntimeException
    */
-  public float[] embedding(final String inputString) throws IOException, RuntimeException;
+  float[] embedding(final String inputString) throws IOException, RuntimeException;
 
   /**
    * 引数に入力された文字列を質問として、LLMに回答の生成を実行させその回答を返却します.
@@ -26,5 +26,5 @@ public interface Transformer {
    * @throws IOException
    * @throws RuntimeException
    */
-  public GptAnswer generate(final String prompt) throws IOException, RuntimeException;
+  GptAnswer generate(final String prompt) throws IOException, RuntimeException;
 }

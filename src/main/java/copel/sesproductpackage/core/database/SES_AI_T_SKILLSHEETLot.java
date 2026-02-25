@@ -10,7 +10,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 【Entityクラス】 スキルシート情報(SES_AI_T_SKILLSHEET)テーブルのLotクラス.
@@ -43,18 +42,29 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     super();
   }
 
+  @Override
+  protected String getSelectSql() {
+    return SELECT_SQL;
+  }
+
+  @Override
+  protected String getSelectLikeSql() {
+    return SELECT_LIKE_SQL;
+  }
+
   /**
    * LLMに最もマッチするスキルシートのファイルIDを選出させるための文章に変換する.
    *
    * @return 変換後の文章
    */
   public String toスキルシート選出用文章() {
-    String result = "";
+    StringBuilder result = new StringBuilder();
     int i = 1;
     for (SES_AI_T_SKILLSHEET entity : this.entityLot) {
-      result += Integer.toString(i) + "人目：" + entity.toスキルシート選出用文章();
+      result.append(i).append("人目：").append(entity.toスキルシート選出用文章());
+      i++;
     }
-    return result;
+    return result.toString();
   }
 
   /**
@@ -87,25 +97,17 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     if (connection == null) {
       return;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(RETRIEVE_SQL);
-    preparedStatement.setString(1, query == null ? null : query.toString());
-    preparedStatement.setInt(2, limit);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    this.entityLot = new ArrayList<>();
-    while (resultSet.next()) {
-      SES_AI_T_SKILLSHEET sesAiTSkillsheet = new SES_AI_T_SKILLSHEET();
-      sesAiTSkillsheet.setFromGroup(resultSet.getString("from_group"));
-      sesAiTSkillsheet.setFromId(resultSet.getString("from_id"));
-      sesAiTSkillsheet.setFromName(resultSet.getString("from_name"));
-      sesAiTSkillsheet.setFileId(resultSet.getString("file_id"));
-      sesAiTSkillsheet.setFileName(resultSet.getString("file_name"));
-      sesAiTSkillsheet.setFileContent(resultSet.getString("file_content"));
-      sesAiTSkillsheet.setFileContentSummary(resultSet.getString("file_content_summary"));
-      sesAiTSkillsheet.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTSkillsheet.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTSkillsheet.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      sesAiTSkillsheet.setDistance(resultSet.getDouble("distance"));
-      this.entityLot.add(sesAiTSkillsheet);
+    try (PreparedStatement preparedStatement = connection.prepareStatement(RETRIEVE_SQL)) {
+      preparedStatement.setString(1, query == null ? null : query.toString());
+      preparedStatement.setInt(2, limit);
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        this.entityLot = new ArrayList<>();
+        while (resultSet.next()) {
+          SES_AI_T_SKILLSHEET sesAiTSkillsheet = mapResultSet(resultSet);
+          sesAiTSkillsheet.setDistance(resultSet.getDouble("distance"));
+          this.entityLot.add(sesAiTSkillsheet);
+        }
+      }
     }
   }
 
@@ -113,30 +115,13 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * 指定したカラムで全文検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
-   * @param query 検索条件Map
+   * @param column 検索対象カラム
+   * @param query 検索文字列
    * @throws SQLException
    */
   public void selectLike(final Connection connection, final String column, final String query)
       throws SQLException {
-    final String sql = SELECT_LIKE_SQL + column + " LIKE ?";
-    this.entityLot = new ArrayList<>();
-    PreparedStatement preparedStatement = connection.prepareStatement(sql);
-    preparedStatement.setString(1, "%" + query + "%"); // ワイルドカードをつける
-    ResultSet resultSet = preparedStatement.executeQuery();
-    while (resultSet.next()) {
-      SES_AI_T_SKILLSHEET sesAiTSkillsheet = new SES_AI_T_SKILLSHEET();
-      sesAiTSkillsheet.setFromGroup(resultSet.getString("from_group"));
-      sesAiTSkillsheet.setFromId(resultSet.getString("from_id"));
-      sesAiTSkillsheet.setFromName(resultSet.getString("from_name"));
-      sesAiTSkillsheet.setFileId(resultSet.getString("file_id"));
-      sesAiTSkillsheet.setFileName(resultSet.getString("file_name"));
-      sesAiTSkillsheet.setFileContent(resultSet.getString("file_content"));
-      sesAiTSkillsheet.setFileContentSummary(resultSet.getString("file_content_summary"));
-      sesAiTSkillsheet.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTSkillsheet.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTSkillsheet.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      this.entityLot.add(sesAiTSkillsheet);
-    }
+    this.searchByField(connection, column, query);
   }
 
   /**
@@ -148,50 +133,37 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    */
   public void searchByFileContent(final Connection connection, final String query)
       throws SQLException {
-    this.entityLot = new ArrayList<>();
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_FILE_CONTENT_LIKE_SQL);
-    preparedStatement.setString(1, "%" + query + "%"); // ワイルドカードをつける
-    ResultSet resultSet = preparedStatement.executeQuery();
-    while (resultSet.next()) {
-      SES_AI_T_SKILLSHEET sesAiTSkillsheet = new SES_AI_T_SKILLSHEET();
-      sesAiTSkillsheet.setFromGroup(resultSet.getString("from_group"));
-      sesAiTSkillsheet.setFromId(resultSet.getString("from_id"));
-      sesAiTSkillsheet.setFromName(resultSet.getString("from_name"));
-      sesAiTSkillsheet.setFileId(resultSet.getString("file_id"));
-      sesAiTSkillsheet.setFileName(resultSet.getString("file_name"));
-      sesAiTSkillsheet.setFileContent(resultSet.getString("file_content"));
-      sesAiTSkillsheet.setFileContentSummary(resultSet.getString("file_content_summary"));
-      sesAiTSkillsheet.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTSkillsheet.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTSkillsheet.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      this.entityLot.add(sesAiTSkillsheet);
-    }
+    this.selectByLikeQuery(connection, SELECT_FILE_CONTENT_LIKE_SQL, "file_content", query, null);
   }
 
   /**
    * file_nameカラムで全文検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
-   * @param query 検索条件Map
+   * @param fileName ファイル名
    * @throws SQLException
    */
   public void selectByFileName(final Connection connection, final String fileName)
       throws SQLException {
-    this.entityLot = new ArrayList<>();
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BY_FILE_NAME_SQL);
-    preparedStatement.setString(1, fileName);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    while (resultSet.next()) {
-      SES_AI_T_SKILLSHEET sesAiTSkillsheet = new SES_AI_T_SKILLSHEET();
-      sesAiTSkillsheet.setFromGroup(resultSet.getString("from_group"));
-      sesAiTSkillsheet.setFromId(resultSet.getString("from_id"));
-      sesAiTSkillsheet.setFromName(resultSet.getString("from_name"));
-      sesAiTSkillsheet.setFileId(resultSet.getString("file_id"));
-      sesAiTSkillsheet.setFileName(resultSet.getString("file_name"));
-      sesAiTSkillsheet.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTSkillsheet.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTSkillsheet.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      this.entityLot.add(sesAiTSkillsheet);
+    try (PreparedStatement preparedStatement =
+        connection.prepareStatement(SELECT_BY_FILE_NAME_SQL)) {
+      preparedStatement.setString(1, fileName);
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        this.entityLot = new ArrayList<>();
+        while (resultSet.next()) {
+          SES_AI_T_SKILLSHEET sesAiTSkillsheet = new SES_AI_T_SKILLSHEET();
+          sesAiTSkillsheet.setFromGroup(resultSet.getString("from_group"));
+          sesAiTSkillsheet.setFromId(resultSet.getString("from_id"));
+          sesAiTSkillsheet.setFromName(resultSet.getString("from_name"));
+          sesAiTSkillsheet.setFileId(resultSet.getString("file_id"));
+          sesAiTSkillsheet.setFileName(resultSet.getString("file_name"));
+          sesAiTSkillsheet.setRegisterDate(
+              new OriginalDateTime(resultSet.getString("register_date")));
+          sesAiTSkillsheet.setRegisterUser(resultSet.getString("register_user"));
+          sesAiTSkillsheet.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
+          this.entityLot.add(sesAiTSkillsheet);
+        }
+      }
     }
   }
 
@@ -206,157 +178,38 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
   public void searchByFileContent(
       final Connection connection, final String firstLikeQuery, final List<LogicalOperators> query)
       throws SQLException {
-    // 検索条件からSQLを生成
-    String sql = SELECT_FILE_CONTENT_LIKE_SQL;
-    for (final LogicalOperators logicalOperator : query) {
-      logicalOperator.setColumnName("file_content");
-      sql += logicalOperator != null ? logicalOperator.getLikeQuery() : "";
-    }
-
-    // 検索条件を追加する
-    PreparedStatement preparedStatement = connection.prepareStatement(sql);
-    preparedStatement.setString(1, "%" + firstLikeQuery + "%"); // ワイルドカードをつける
-    if (query != null && !query.isEmpty()) {
-      for (int i = 0; i < query.size(); i++) {
-        if (query.get(0) != null) {
-          preparedStatement.setString(i + 2, "%" + query.get(0).getValue() + "%"); // ワイルドカードをつける
-        }
-      }
-    }
-
-    // 検索を実行する
-    this.entityLot = new ArrayList<>();
-    ResultSet resultSet = preparedStatement.executeQuery();
-    while (resultSet.next()) {
-      SES_AI_T_SKILLSHEET sesAiTSkillsheet = new SES_AI_T_SKILLSHEET();
-      sesAiTSkillsheet.setFromGroup(resultSet.getString("from_group"));
-      sesAiTSkillsheet.setFromId(resultSet.getString("from_id"));
-      sesAiTSkillsheet.setFromName(resultSet.getString("from_name"));
-      sesAiTSkillsheet.setFileId(resultSet.getString("file_id"));
-      sesAiTSkillsheet.setFileName(resultSet.getString("file_name"));
-      sesAiTSkillsheet.setFileContent(resultSet.getString("file_content"));
-      sesAiTSkillsheet.setFileContentSummary(resultSet.getString("file_content_summary"));
-      sesAiTSkillsheet.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTSkillsheet.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTSkillsheet.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      this.entityLot.add(sesAiTSkillsheet);
-    }
-  }
-
-  /**
-   * SELECTをAND条件で実行する.
-   *
-   * @param connection DBコネクション
-   * @param andQuery カラム名と検索値をkey-valueで持つMap
-   * @throws SQLException
-   */
-  public void selectByAndQuery(final Connection connection, final Map<String, String> andQuery)
-      throws SQLException {
-    // 検索条件からSQLを生成
-    String sql = SELECT_SQL;
-    boolean isFirst = true;
-    for (final String columnName : andQuery.keySet()) {
-      if (isFirst) {
-        sql += columnName + " = ?";
-      } else {
-        sql += "AND " + columnName + " = ?";
-      }
-    }
-
-    // 検索条件を追加する
-    PreparedStatement preparedStatement = connection.prepareStatement(sql);
-    int i = 1;
-    for (final String columnName : andQuery.keySet()) {
-      preparedStatement.setString(i, andQuery.get(columnName));
-      i++;
-    }
-
-    // 検索を実行する
-    this.entityLot = new ArrayList<>();
-    ResultSet resultSet = preparedStatement.executeQuery();
-    while (resultSet.next()) {
-      SES_AI_T_SKILLSHEET sesAiTSkillsheet = new SES_AI_T_SKILLSHEET();
-      sesAiTSkillsheet.setFromGroup(resultSet.getString("from_group"));
-      sesAiTSkillsheet.setFromId(resultSet.getString("from_id"));
-      sesAiTSkillsheet.setFromName(resultSet.getString("from_name"));
-      sesAiTSkillsheet.setFileId(resultSet.getString("file_id"));
-      sesAiTSkillsheet.setFileName(resultSet.getString("file_name"));
-      sesAiTSkillsheet.setFileContent(resultSet.getString("file_content"));
-      sesAiTSkillsheet.setFileContentSummary(resultSet.getString("file_content_summary"));
-      sesAiTSkillsheet.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTSkillsheet.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTSkillsheet.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      this.entityLot.add(sesAiTSkillsheet);
-    }
-  }
-
-  /**
-   * SELECTをOR条件で実行する.
-   *
-   * @param connection DBコネクション
-   * @param orQuery カラム名と検索値をkey-valueで持つMap
-   * @throws SQLException
-   */
-  public void selectByOrQuery(final Connection connection, final Map<String, String> orQuery)
-      throws SQLException {
-    // 検索条件からSQLを生成
-    String sql = SELECT_SQL;
-    boolean isFirst = true;
-    for (final String columnName : orQuery.keySet()) {
-      if (isFirst) {
-        sql += columnName + " = ?";
-      } else {
-        sql += "OR " + columnName + " = ?";
-      }
-    }
-
-    // 検索条件を追加する
-    PreparedStatement preparedStatement = connection.prepareStatement(sql);
-    int i = 1;
-    for (final String columnName : orQuery.keySet()) {
-      preparedStatement.setString(i, orQuery.get(columnName));
-      i++;
-    }
-
-    // 検索を実行する
-    this.entityLot = new ArrayList<>();
-    ResultSet resultSet = preparedStatement.executeQuery();
-    while (resultSet.next()) {
-      SES_AI_T_SKILLSHEET sesAiTSkillsheet = new SES_AI_T_SKILLSHEET();
-      sesAiTSkillsheet.setFromGroup(resultSet.getString("from_group"));
-      sesAiTSkillsheet.setFromId(resultSet.getString("from_id"));
-      sesAiTSkillsheet.setFromName(resultSet.getString("from_name"));
-      sesAiTSkillsheet.setFileId(resultSet.getString("file_id"));
-      sesAiTSkillsheet.setFileName(resultSet.getString("file_name"));
-      sesAiTSkillsheet.setFileContent(resultSet.getString("file_content"));
-      sesAiTSkillsheet.setFileContentSummary(resultSet.getString("file_content_summary"));
-      sesAiTSkillsheet.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTSkillsheet.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTSkillsheet.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      this.entityLot.add(sesAiTSkillsheet);
-    }
+    this.searchByField(connection, "file_content", firstLikeQuery, query);
   }
 
   @Override
   public void selectAll(Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
-    PreparedStatement preparedStatement =
-        connection.prepareStatement(
-            "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET");
-    ResultSet resultSet = preparedStatement.executeQuery();
-    while (resultSet.next()) {
-      SES_AI_T_SKILLSHEET sesAiTSkillsheet = new SES_AI_T_SKILLSHEET();
-      sesAiTSkillsheet.setFromGroup(resultSet.getString("from_group"));
-      sesAiTSkillsheet.setFromId(resultSet.getString("from_id"));
-      sesAiTSkillsheet.setFromName(resultSet.getString("from_name"));
-      sesAiTSkillsheet.setFileId(resultSet.getString("file_id"));
-      sesAiTSkillsheet.setFileName(resultSet.getString("file_name"));
-      sesAiTSkillsheet.setFileContent(resultSet.getString("file_content"));
-      sesAiTSkillsheet.setFileContentSummary(resultSet.getString("file_content_summary"));
-      sesAiTSkillsheet.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTSkillsheet.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTSkillsheet.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      this.entityLot.add(sesAiTSkillsheet);
+    if (connection == null) {
+      return;
     }
+    try (PreparedStatement preparedStatement =
+            connection.prepareStatement(
+                "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET");
+        ResultSet resultSet = preparedStatement.executeQuery()) {
+      while (resultSet.next()) {
+        this.entityLot.add(mapResultSet(resultSet));
+      }
+    }
+  }
+
+  @Override
+  protected SES_AI_T_SKILLSHEET mapResultSet(ResultSet resultSet) throws SQLException {
+    SES_AI_T_SKILLSHEET sesAiTSkillsheet = new SES_AI_T_SKILLSHEET();
+    sesAiTSkillsheet.setFromGroup(resultSet.getString("from_group"));
+    sesAiTSkillsheet.setFromId(resultSet.getString("from_id"));
+    sesAiTSkillsheet.setFromName(resultSet.getString("from_name"));
+    sesAiTSkillsheet.setFileId(resultSet.getString("file_id"));
+    sesAiTSkillsheet.setFileName(resultSet.getString("file_name"));
+    sesAiTSkillsheet.setFileContent(resultSet.getString("file_content"));
+    sesAiTSkillsheet.setFileContentSummary(resultSet.getString("file_content_summary"));
+    sesAiTSkillsheet.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
+    sesAiTSkillsheet.setRegisterUser(resultSet.getString("register_user"));
+    sesAiTSkillsheet.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
+    return sesAiTSkillsheet;
   }
 }

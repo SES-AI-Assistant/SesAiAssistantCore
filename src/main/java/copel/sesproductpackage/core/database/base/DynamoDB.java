@@ -4,13 +4,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
-import software.amazon.awssdk.auth.credentials.EnvironmentVariableCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 @Data
@@ -37,27 +34,7 @@ public abstract class DynamoDB<E> {
    * @param clazz クラス
    */
   public DynamoDB(final String tableName, final Class<E> clazz) {
-    DynamoDbClient client;
-
-    // Lambda上で実行された場合、クレデンシャル指定をしない
-    if (System.getenv("AWS_LAMBDA_FUNCTION_NAME") != null) {
-      client = DynamoDbClient.builder().region(Region.AP_NORTHEAST_1).build();
-      // GitHub Actions上で実行された場合、環境変数からCredentialを提供する
-    } else if (System.getenv("CI") != null) {
-      client =
-          DynamoDbClient.builder()
-              .region(Region.AP_NORTHEAST_1)
-              .credentialsProvider(EnvironmentVariableCredentialsProvider.create())
-              .build();
-      // ローカルで実行された場合、ProfileCredentialsProviderを使用する
-    } else {
-      client =
-          DynamoDbClient.builder()
-              .region(Region.AP_NORTHEAST_1)
-              .credentialsProvider(ProfileCredentialsProvider.create())
-              .build();
-    }
-
+    DynamoDbClient client = DynamoDbClientFactory.create();
     DynamoDbEnhancedClient enhancedClient =
         DynamoDbEnhancedClient.builder().dynamoDbClient(client).build();
     this.table = enhancedClient.table(tableName, TableSchema.fromBean(clazz));

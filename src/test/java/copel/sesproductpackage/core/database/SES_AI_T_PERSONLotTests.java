@@ -1,20 +1,18 @@
 package copel.sesproductpackage.core.database;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.unit.LogicalOperators;
+import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
-import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,13 +49,13 @@ class SES_AI_T_PERSONLotTests {
     when(mockRs.getString("ttl")).thenReturn("2024-01-01 12:00:00");
     when(mockRs.getDouble("distance")).thenReturn(0.5);
   }
-  
+
   private Vector createTestVector() throws Exception {
-      Vector vector = new Vector(null);
-      Field valueField = Vector.class.getDeclaredField("value");
-      valueField.setAccessible(true);
-      valueField.set(vector, new float[]{1.0f, 2.0f});
-      return vector;
+    Vector vector = new Vector(null);
+    Field valueField = Vector.class.getDeclaredField("value");
+    valueField.setAccessible(true);
+    valueField.set(vector, new float[] {1.0f, 2.0f});
+    return vector;
   }
 
   @Test
@@ -68,7 +66,7 @@ class SES_AI_T_PERSONLotTests {
     assertEquals(1, lot.size());
 
     // Test the bug fix for null connection
-    assertThrows(NullPointerException.class, () -> new SES_AI_T_PERSONLot().selectAll(null));
+    assertDoesNotThrow(() -> new SES_AI_T_PERSONLot().selectAll(null));
   }
 
   @Test
@@ -76,7 +74,7 @@ class SES_AI_T_PERSONLotTests {
     setupDefaultResultSet();
     SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
     lot.selectAll(mockConn);
-    
+
     assertNotNull(lot.getEntityByPk("pid1"));
     assertNull(lot.getEntityByPk("nonexistent"));
     assertNull(lot.getEntityByPk(null));
@@ -92,7 +90,7 @@ class SES_AI_T_PERSONLotTests {
     assertFalse(lot.isExistByFileId("nonexistent"));
     assertFalse(lot.isExistByFileId(null));
   }
-  
+
   @Test
   void testRetrieve() throws Exception {
     setupDefaultResultSet();
@@ -138,7 +136,7 @@ class SES_AI_T_PERSONLotTests {
     lot.selectByAndQuery(mockConn, query);
     assertEquals(1, lot.size());
   }
-  
+
   @Test
   void testSelectByOrQuery() throws SQLException {
     setupDefaultResultSet();
@@ -166,15 +164,35 @@ class SES_AI_T_PERSONLotTests {
 
   @Test
   void testToAndToString() throws SQLException {
-      setupDefaultResultSet();
-      SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
-      lot.selectAll(mockConn);
+    setupDefaultResultSet();
+    SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
+    lot.selectAll(mockConn);
 
-      assertFalse(lot.to要員選出用文章().isEmpty());
-      assertFalse(lot.toString().isEmpty());
+    assertFalse(lot.to要員選出用文章().isEmpty());
+    assertFalse(lot.toString().isEmpty());
 
-      // Empty lot
-      SES_AI_T_PERSONLot emptyLot = new SES_AI_T_PERSONLot();
-      assertTrue(emptyLot.to要員選出用文章().isEmpty());
+    // Empty lot
+    SES_AI_T_PERSONLot emptyLot = new SES_AI_T_PERSONLot();
+    assertTrue(emptyLot.to要員選出用文章().isEmpty());
+    assertEquals("", emptyLot.toString());
+  }
+
+  @Test
+  void testSearchByRawContentMultipleNullElement() throws SQLException {
+    setupDefaultResultSet();
+    SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
+    List<LogicalOperators> queries = new ArrayList<>();
+    queries.add(null);
+    // After fixing the bug (adding null checks), this should not throw NPE
+    lot.searchByRawContent(mockConn, "first", queries);
+    assertEquals(1, lot.size());
+  }
+
+  @Test
+  void testSearchByRawContentNullQuery() throws SQLException {
+    setupDefaultResultSet();
+    SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
+    lot.searchByRawContent(mockConn, "first", null);
+    assertEquals(1, lot.size());
   }
 }

@@ -72,5 +72,12 @@ class SES_AI_M_GROUPTests {
     group.setFromGroup("G1");
     lot.add(group);
     assertNotNull(lot.toString());
+
+    // failure branches
+    when(ps.executeUpdate()).thenReturn(0);
+    assertFalse(group.updateByPk(connection));
+    assertFalse(group.deleteByPk(connection));
+    when(rs.next()).thenReturn(false);
+    group.selectByPk(connection);
   }
 }

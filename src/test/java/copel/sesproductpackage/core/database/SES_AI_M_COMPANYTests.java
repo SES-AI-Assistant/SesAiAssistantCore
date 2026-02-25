@@ -72,5 +72,12 @@ class SES_AI_M_COMPANYTests {
     company.setCompanyId("C1");
     lot.add(company);
     assertNotNull(lot.toString());
+
+    // failure branches
+    when(ps.executeUpdate()).thenReturn(0);
+    assertFalse(company.updateByPk(connection));
+    assertFalse(company.deleteByPk(connection));
+    when(rs.next()).thenReturn(false);
+    company.selectByPk(connection);
   }
 }

@@ -31,27 +31,36 @@ public class Properties {
   /** プロパティ. */
   private static final Map<String, String> properties = new HashMap<>();
 
-  /** staticイニシャライザ. */
+  /* staticイニシャライザ. */
   static {
-    // S3クライアントの作成
-    S3Client s3Client =
+    try (S3Client s3Client =
         S3Client.builder()
             .credentialsProvider(DefaultCredentialsProvider.create())
             .region(region)
-            .build();
+            .build()) {
+      load(s3Client);
+    }
+  }
 
+  /**
+   * プロパティファイルをS3から読み込みます。
+   *
+   * @param s3Client S3クライアント
+   */
+  static void load(S3Client s3Client) {
     try (InputStream inputStream =
         s3Client.getObject(GetObjectRequest.builder().bucket(bucketName).key(objectKey).build())) {
 
       // プロパティファイルの内容を読み込む
-      BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        // 行が空でなく、'='で区切られていればプロパティとして登録
-        if (!line.trim().isEmpty() && line.contains("=")) {
-          String[] keyValue = line.split("=", 2);
-          if (keyValue.length == 2) {
-            properties.put(keyValue[0].trim(), keyValue[1].trim());
+      try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+          // 行が空でなく、'='で区切られていればプロパティとして登録
+          if (!line.trim().isEmpty() && line.contains("=")) {
+            String[] keyValue = line.split("=", 2);
+            if (keyValue.length == 2) {
+              properties.put(keyValue[0].trim(), keyValue[1].trim());
+            }
           }
         }
       }

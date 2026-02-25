@@ -93,9 +93,9 @@ public class S3 {
           GetObjectRequest.builder().bucket(this.bucketName).key(this.objectKey).build();
 
       // ファイルを取得してdataにセット
-      InputStream inputStream = this.s3Client.getObject(getObjectRequest);
-      this.data = inputStream.readAllBytes();
-      inputStream.close();
+      try (InputStream inputStream = this.s3Client.getObject(getObjectRequest)) {
+        this.data = inputStream.readAllBytes();
+      }
 
       // ファイルの保存日時を取得
       HeadObjectRequest headObjectRequest =

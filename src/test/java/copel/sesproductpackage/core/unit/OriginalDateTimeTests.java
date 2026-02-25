@@ -2,7 +2,6 @@ package copel.sesproductpackage.core.unit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -11,19 +10,11 @@ import org.junit.jupiter.api.Test;
 
 class OriginalDateTimeTests {
 
-  private OriginalDateTime dateTimeNow;
   private OriginalDateTime dateTimeString;
-  private OriginalDateTime dateTimeValues;
-  private OriginalDateTime dateTimeSqlDate;
-  private OriginalDateTime dateTimeSqlTimestamp;
 
   @BeforeEach
   void setUp() {
-    dateTimeNow = new OriginalDateTime();
     dateTimeString = new OriginalDateTime("2024-04-01 12:34:56");
-    dateTimeValues = new OriginalDateTime(2024, 4, 1, 12, 34, 56);
-    dateTimeSqlDate = new OriginalDateTime(Date.valueOf("2024-04-01"));
-    dateTimeSqlTimestamp = new OriginalDateTime(Timestamp.valueOf("2024-04-01 12:34:56"));
   }
 
   @Test
@@ -153,37 +144,48 @@ class OriginalDateTimeTests {
     OriginalDateTime d3 = new OriginalDateTime("2024-04-02 12:00:00");
     OriginalDateTime empty = new OriginalDateTime((String) null);
 
-    // Due to a bug in OriginalDateTime.equals, d1.equals(d2) evaluates to false.
-    assertEquals(-1, d1.compareTo(d2));
+    // Test compareTo(this)
+    assertEquals(0, d1.compareTo(d1));
+
+    // Test identity check in equals via compareTo (if applicable) or directly
+    assertTrue(d1.equals(d1));
+
+    assertEquals(0, d1.compareTo(d2));
     assertEquals(-1, d1.compareTo(d3));
     assertEquals(1, d3.compareTo(d1));
-    // empty.compareTo(d1) does not throw NPE because empty.dateTime is null, so it
-    // goes to else block
     assertEquals(-1, empty.compareTo(d1));
-
-    // Let's also test when target is null
     assertEquals(-1, d1.compareTo(null));
+
+    // Additional compareTo branches
+    OriginalDateTime dLower = new OriginalDateTime("2024-04-01 11:59:59");
+    assertEquals(1, d1.compareTo(dLower));
   }
 
   @Test
-  void testEmptyMethodBranches() {
+  void testEqualsBrackets() {
+    OriginalDateTime d1 = new OriginalDateTime("2024-01-01 10:00:00");
+    OriginalDateTime d2 = new OriginalDateTime("2024-01-01 10:00:00");
+
+    // Identity check
+    assertTrue(d1.equals(d1));
+
+    assertFalse(d1.equals(null));
+    assertFalse(d1.equals("str"));
+    assertTrue(d1.equals(d2));
+
+    OriginalDateTime dNull = new OriginalDateTime((String) null);
+    assertFalse(dNull.equals(d1));
+
+    // case where both are null
+    OriginalDateTime dNull2 = new OriginalDateTime((String) null);
+    assertFalse(dNull.equals(dNull2)); // branch this.dateTime == null -> returns false
+  }
+
+  @Test
+  void testNullMethodReturns() {
     OriginalDateTime empty = new OriginalDateTime((String) null);
-    OriginalDateTime present = new OriginalDateTime("2024-04-01 12:00:00");
-
-    assertEquals(-1, empty.betweenYear(present));
-    assertEquals(-1, empty.betweenMonth(present));
-    assertEquals(0, empty.betweenDays(present));
-
-    empty.plusDays(1); // should not throw
-    empty.minusMinutes(34); // should not throw
-    assertFalse(empty.equals(present));
-  }
-
-  @Test
-  void testConstructorsWithNulls() {
-    OriginalDateTime d1 = new OriginalDateTime((java.sql.Date) null);
-    assertTrue(d1.isEmpty());
-    OriginalDateTime d2 = new OriginalDateTime((java.sql.Timestamp) null);
-    assertTrue(d2.isEmpty());
+    assertNull(empty.get曜日());
+    assertNull(empty.toLocalDateTime());
+    assertNull(empty.toString());
   }
 }

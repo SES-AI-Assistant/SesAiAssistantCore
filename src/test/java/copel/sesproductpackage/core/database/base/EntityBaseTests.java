@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Iterator;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,11 @@ class EntityBaseTests {
   static class TestEntityLot extends EntityLotBase<TestEntity> {
     @Override
     public void selectAll(Connection connection) throws SQLException {}
+
+    @Override
+    protected TestEntity mapResultSet(ResultSet resultSet) throws SQLException {
+      return new TestEntity();
+    }
   }
 
   @Test

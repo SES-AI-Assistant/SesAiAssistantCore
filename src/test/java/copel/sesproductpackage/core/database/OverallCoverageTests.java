@@ -28,7 +28,7 @@ class OverallCoverageTests {
       when(mockStmt.executeUpdate()).thenReturn(1);
       doNothing().when(mockStmt).setString(anyInt(), anyString());
       doNothing().when(mockStmt).setTimestamp(anyInt(), any());
-      
+
       // Test with nulls
       try {
         EntityBase nullEntity = populatedEntity.getClass().getDeclaredConstructor().newInstance();
@@ -44,45 +44,61 @@ class OverallCoverageTests {
       populatedEntity.updateByPk(mockConn);
 
     } catch (SQLException e) {
-        // Should not happen
+      // Should not happen
     }
   }
 
   @Test
   void testRDBEntityBranches() {
-    
+
     // SES_AI_T_MATCH
     SES_AI_T_MATCH match = new SES_AI_T_MATCH();
-    match.setMatchingId("id"); match.setStatus(null); match.setRegisterDate(null);
+    match.setMatchingId("id");
+    match.setStatus(null);
+    match.setRegisterDate(null);
     testEntity(e -> ((SES_AI_T_MATCH) e).setStatus(null), match);
 
     // SES_AI_T_WATCH
     SES_AI_T_WATCH watch = new SES_AI_T_WATCH();
-    watch.setUserId("uid"); watch.setTargetId("tid"); watch.setTargetType(null); watch.setTtl(null); watch.setRegisterDate(null);
-    testEntity(e -> {
-        ((SES_AI_T_WATCH) e).setTargetType(null);
-        ((SES_AI_T_WATCH) e).setTtl(null);
-        ((SES_AI_T_WATCH) e).setRegisterDate(null);
-    }, watch);
+    watch.setUserId("uid");
+    watch.setTargetId("tid");
+    watch.setTargetType(null);
+    watch.setTtl(null);
+    watch.setRegisterDate(null);
+    testEntity(
+        e -> {
+          ((SES_AI_T_WATCH) e).setTargetType(null);
+          ((SES_AI_T_WATCH) e).setTtl(null);
+          ((SES_AI_T_WATCH) e).setRegisterDate(null);
+        },
+        watch);
 
     // SES_AI_T_PERSON (from base class)
     SES_AI_T_PERSON person = new SES_AI_T_PERSON();
-    person.setPersonId("id"); person.setRegisterDate(null);
+    person.setPersonId("id");
+    person.setRegisterDate(null);
     testEntity(e -> ((SES_AI_T_PERSON) e).setRegisterDate(null), person);
-    
+
     // SES_AI_T_SKILLSHEET (Uses fileId)
     SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
-    ss.setFileId("id"); ss.setRegisterDate(null);
+    ss.setFileId("id");
+    ss.setRegisterDate(null);
     testEntity(e -> ((SES_AI_T_SKILLSHEET) e).setRegisterDate(null), ss);
 
     // M series (from base class)
-    SES_AI_M_COMPANY comp = new SES_AI_M_COMPANY(); comp.setCompanyId("id"); comp.setRegisterDate(null);
+    SES_AI_M_COMPANY comp = new SES_AI_M_COMPANY();
+    comp.setCompanyId("id");
+    comp.setRegisterDate(null);
     testEntity(e -> ((SES_AI_M_COMPANY) e).setRegisterDate(null), comp);
-    
-    SES_AI_M_GROUP group = new SES_AI_M_GROUP(); group.setFromGroup("id"); group.setRegisterDate(null);
+
+    SES_AI_M_GROUP group = new SES_AI_M_GROUP();
+    group.setFromGroup("id");
+    group.setRegisterDate(null);
     testEntity(e -> ((SES_AI_M_GROUP) e).setRegisterDate(null), group);
 
-    SES_AI_M_SENDER sender = new SES_AI_M_SENDER(); sender.setFromId("id"); sender.setRegisterDate(null);
+    SES_AI_M_SENDER sender = new SES_AI_M_SENDER();
+    sender.setFromId("id");
+    sender.setRegisterDate(null);
     testEntity(e -> ((SES_AI_M_SENDER) e).setRegisterDate(null), sender);
   }
 }

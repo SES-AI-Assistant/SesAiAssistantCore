@@ -1,11 +1,11 @@
 package copel.sesproductpackage.core.database.base;
 
-import static com.github.stefanbirkner.systemlambda.SystemLambda.withEnvironmentVariable;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
+import copel.sesproductpackage.core.util.EnvUtils;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -38,16 +38,13 @@ class DynamoDBLotTests {
     @Override
     public void fetch() {}
 
-    // Must provide a partition key method for TableSchema.fromBean
+    @Override
     @DynamoDbPartitionKey
-    public String getId() {
-      return "id";
+    public String getPartitionKey() {
+      return super.getPartitionKey();
     }
-
-    public void setId(String id) {}
   }
 
-  // We need a subclass of DynamoDBLot to instantiate for testing
   static class TestDynamoDBLot extends DynamoDBLot<TestDynamoEntity> {
     public TestDynamoDBLot() {
       super("TestTable", TestDynamoEntity.class);
@@ -55,12 +52,12 @@ class DynamoDBLotTests {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   void testConstructorAndFetch() throws Exception {
     try (MockedStatic<DynamoDbClient> mockedClient = mockStatic(DynamoDbClient.class);
         MockedStatic<DynamoDbEnhancedClient> mockedEnhanced =
             mockStatic(DynamoDbEnhancedClient.class)) {
 
-      // Mock DynamoDbClient builder
       DynamoDbClient mockDbClient = mock(DynamoDbClient.class);
       DynamoDbClientBuilder mockDbBuilder = mock(DynamoDbClientBuilder.class);
       when(DynamoDbClient.builder()).thenReturn(mockDbBuilder);
@@ -70,7 +67,6 @@ class DynamoDBLotTests {
           .thenReturn(mockDbBuilder);
       when(mockDbBuilder.build()).thenReturn(mockDbClient);
 
-      // Mock DynamoDbEnhancedClient builder
       DynamoDbEnhancedClient mockEnhancedClient = mock(DynamoDbEnhancedClient.class);
       DynamoDbEnhancedClient.Builder mockEnhancedBuilder =
           mock(DynamoDbEnhancedClient.Builder.class);
@@ -79,27 +75,24 @@ class DynamoDBLotTests {
           .thenReturn(mockEnhancedBuilder);
       when(mockEnhancedBuilder.build()).thenReturn(mockEnhancedClient);
 
-      // Mock Table
       DynamoDbTable<TestDynamoEntity> mockTable = mock(DynamoDbTable.class);
       when(mockEnhancedClient.table(anyString(), any(TableSchema.class))).thenReturn(mockTable);
 
-      // Test Constructor with different env vars
-      withEnvironmentVariable("AWS_LAMBDA_FUNCTION_NAME", "true")
-          .execute(
-              () -> {
-                new TestDynamoDBLot();
-                verify(mockDbBuilder, atLeastOnce()).region(Region.AP_NORTHEAST_1);
-              });
+      try (MockedStatic<EnvUtils> mockedEnv = mockStatic(EnvUtils.class)) {
+        mockedEnv.when(() -> EnvUtils.get("AWS_LAMBDA_FUNCTION_NAME")).thenReturn("true");
+        new TestDynamoDBLot();
+        verify(mockDbBuilder, atLeastOnce()).region(Region.AP_NORTHEAST_1);
+      }
 
-      withEnvironmentVariable("CI", "true").execute(TestDynamoDBLot::new);
+      try (MockedStatic<EnvUtils> mockedEnv = mockStatic(EnvUtils.class)) {
+        mockedEnv.when(() -> EnvUtils.get("CI")).thenReturn("true");
+        new TestDynamoDBLot();
+      }
 
-      // Normal case (no env vars)
       new TestDynamoDBLot();
 
-      // Test fetchByPk
       TestDynamoDBLot lot = new TestDynamoDBLot();
 
-      // Mock query response
       PageIterable<TestDynamoEntity> mockPageIterable = mock(PageIterable.class);
       SdkIterable<TestDynamoEntity> mockSdkIterable = mock(SdkIterable.class);
       when(mockTable.query(
@@ -112,46 +105,54 @@ class DynamoDBLotTests {
       verify(mockTable)
           .query(any(software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional.class));
 
-      // Test fetchByColumn
       when(mockTable.scan(any(ScanEnhancedRequest.class))).thenReturn(mockPageIterable);
       lot.fetchByColumn("col", "val");
       verify(mockTable).scan(any(ScanEnhancedRequest.class));
 
-      // Test iterator and toString
       assertNotNull(lot.iterator());
       assertNotNull(lot.toString());
 
-      // Test toString exception path mapping (objectMapper failure)
-      // Since toString() in DynamoDB/Lot uses ObjectMapper, it's hard to force an
-      // exception
-      // without mocking the mapper itself, which is private static final.
-
-      // Test equals and hashCode for DynamoDB subclass
       TestDynamoEntity entity1 = new TestDynamoEntity();
       TestDynamoEntity entity2 = new TestDynamoEntity();
-      assertEquals(entity1, entity1);
-      assertNotEquals(entity1, null);
-      assertNotEquals(entity1, "string");
-      assertEquals(entity1, entity2);
+      assertTrue(entity1.equals(entity1));
+      assertFalse(entity1.equals(null));
+      assertFalse(entity1.equals("string"));
+      assertTrue(entity1.equals(entity2));
       assertEquals(entity1.hashCode(), entity2.hashCode());
 
       entity1.setPartitionKey("pk1");
-      assertNotEquals(entity1, entity2);
+      assertFalse(entity1.equals(entity2));
       entity2.setPartitionKey("pk1");
-      assertEquals(entity1, entity2);
+      assertTrue(entity1.equals(entity2));
 
       entity1.setSortKey("sk1");
-      assertNotEquals(entity1, entity2);
+      assertFalse(entity1.equals(entity2));
       entity2.setSortKey("sk1");
-      assertEquals(entity1, entity2);
+      assertTrue(entity1.equals(entity2));
 
       entity1.setTimestamp("ts1");
-      assertNotEquals(entity1, entity2);
+      assertFalse(entity1.equals(entity2));
       entity2.setTimestamp("ts1");
-      assertEquals(entity1, entity2);
+      assertTrue(entity1.equals(entity2));
 
       assertNotNull(entity1.toString());
-      assertNotNull(entity1.canEqual(entity2));
+      assertTrue(entity1.canEqual(entity2));
     }
+  }
+
+  @Test
+  void testToStringException() {
+    TestDynamoDBLot lot = new TestDynamoDBLot();
+    // Force a JsonProcessingException by adding an object that Jackson can't
+    // serialize easily if we control the list
+    // But entityLot is public, so we can inject something
+    lot.entityLot.add(
+        new TestDynamoEntity() {
+          @Override
+          public String getPartitionKey() {
+            throw new RuntimeException("Forced error");
+          }
+        });
+    assertEquals("[]", lot.toString());
   }
 }

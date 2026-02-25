@@ -1,16 +1,14 @@
 package copel.sesproductpackage.core.database;
 
-import copel.sesproductpackage.core.api.gpt.Transformer;
-import copel.sesproductpackage.core.database.base.Column;
-import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
-import copel.sesproductpackage.core.unit.OriginalDateTime;
-import copel.sesproductpackage.core.unit.Vector;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
+
+import copel.sesproductpackage.core.database.base.Column;
+import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -79,24 +77,18 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
   // Overrideメソッド
   // ================================
   @Override
-  public void embedding(final Transformer embeddingProcessListener)
-      throws IOException, RuntimeException {
-    this.vectorData = new Vector(embeddingProcessListener);
-    // 原文ではなく要約をエンベディングする
-    this.vectorData.setRawString(this.contentSummary);
-    this.vectorData.embedding();
+  public String getRawContent() {
+    return this.rawContent;
   }
 
   @Override
-  public boolean uniqueCheck(final Connection connection, final double similarityThreshold)
-      throws SQLException {
-    PreparedStatement preparedStatement = connection.prepareStatement(CHECK_SQL);
-    preparedStatement.setString(1, this.rawContent);
-    preparedStatement.setString(2, this.rawContent);
-    preparedStatement.setDouble(3, similarityThreshold);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    resultSet.next();
-    return resultSet.getInt(1) < 1;
+  public String getContentSummary() {
+    return this.contentSummary;
+  }
+
+  @Override
+  public String getCheckSql() {
+    return CHECK_SQL;
   }
 
   @Override

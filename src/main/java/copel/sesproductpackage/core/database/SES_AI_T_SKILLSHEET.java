@@ -1,11 +1,8 @@
 package copel.sesproductpackage.core.database;
 
-import copel.sesproductpackage.core.api.gpt.Transformer;
 import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.SkillSheet;
-import copel.sesproductpackage.core.unit.Vector;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -112,26 +109,18 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
   // Overrideメソッド
   // ================================
   @Override
-  public void embedding(final Transformer embeddingProcessListener)
-      throws IOException, RuntimeException {
-    this.vectorData = new Vector(embeddingProcessListener);
-    // ファイルの文字数に関わらず、常に要約をエンベディングする
-    this.vectorData.setRawString(this.skillSheet.getFileContentSummary());
-    this.vectorData.embedding();
+  protected String getRawContent() {
+    return this.getFileContent();
   }
 
   @Override
-  public boolean uniqueCheck(final Connection connection, final double similarityThreshold)
-      throws SQLException {
-    PreparedStatement preparedStatement = connection.prepareStatement(CHECK_SQL);
-    preparedStatement.setString(
-        1, this.skillSheet == null ? null : this.skillSheet.getFileContent());
-    preparedStatement.setString(
-        2, this.skillSheet == null ? null : this.skillSheet.getFileContent());
-    preparedStatement.setDouble(3, similarityThreshold);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    resultSet.next();
-    return resultSet.getInt(1) < 1;
+  protected String getContentSummary() {
+    return this.getFileContentSummary();
+  }
+
+  @Override
+  protected String getCheckSql() {
+    return CHECK_SQL;
   }
 
   @Override

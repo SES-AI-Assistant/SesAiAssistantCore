@@ -52,6 +52,7 @@ class LineMessagingAPITests {
 
   @Test
   void testSendSeparate() throws Exception {
+    @SuppressWarnings("unchecked")
     HttpResponse<String> mockResponse = mock(HttpResponse.class);
     when(mockResponse.statusCode()).thenReturn(200);
     doReturn(mockResponse).when(mockClient).send(any(), any());
@@ -64,6 +65,7 @@ class LineMessagingAPITests {
 
   @Test
   void testBroadCast() throws Exception {
+    @SuppressWarnings("unchecked")
     HttpResponse<String> mockResponse = mock(HttpResponse.class);
     when(mockResponse.statusCode()).thenReturn(200);
     doReturn(mockResponse).when(mockClient).send(any(), any());
@@ -77,6 +79,7 @@ class LineMessagingAPITests {
   @Test
   void testGetFile() throws Exception {
     byte[] content = "file".getBytes();
+    @SuppressWarnings("unchecked")
     HttpResponse<byte[]> mockResponse = mock(HttpResponse.class);
     when(mockResponse.statusCode()).thenReturn(200);
     when(mockResponse.body()).thenReturn(content);
@@ -89,6 +92,7 @@ class LineMessagingAPITests {
 
   @Test
   void testGetFileFailure() throws Exception {
+    @SuppressWarnings("unchecked")
     HttpResponse<byte[]> mockResponse = mock(HttpResponse.class);
     when(mockResponse.statusCode()).thenReturn(404);
     doReturn(mockResponse).when(mockClient).send(any(), any());

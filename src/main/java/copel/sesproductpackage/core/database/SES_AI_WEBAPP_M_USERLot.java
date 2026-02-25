@@ -29,14 +29,19 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
     ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();
     while (resultSet.next()) {
-      SES_AI_WEBAPP_M_USER sesAiWebappMUser = new SES_AI_WEBAPP_M_USER();
-      sesAiWebappMUser.setUserId(resultSet.getString("user_id"));
-      sesAiWebappMUser.setUserName(resultSet.getString("user_name"));
-      sesAiWebappMUser.setCompanyId(resultSet.getString("company_id"));
-      sesAiWebappMUser.setRole(Role.getEnum(resultSet.getString("role_cd")));
-      sesAiWebappMUser.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiWebappMUser.setRegisterUser(resultSet.getString("register_user"));
-      this.entityLot.add(sesAiWebappMUser);
+      this.entityLot.add(mapResultSet(resultSet));
     }
+  }
+
+  @Override
+  protected SES_AI_WEBAPP_M_USER mapResultSet(ResultSet resultSet) throws SQLException {
+    SES_AI_WEBAPP_M_USER sesAiWebappMUser = new SES_AI_WEBAPP_M_USER();
+    sesAiWebappMUser.setUserId(resultSet.getString("user_id"));
+    sesAiWebappMUser.setUserName(resultSet.getString("user_name"));
+    sesAiWebappMUser.setCompanyId(resultSet.getString("company_id"));
+    sesAiWebappMUser.setRole(Role.getEnum(resultSet.getString("role_cd")));
+    sesAiWebappMUser.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
+    sesAiWebappMUser.setRegisterUser(resultSet.getString("register_user"));
+    return sesAiWebappMUser;
   }
 }

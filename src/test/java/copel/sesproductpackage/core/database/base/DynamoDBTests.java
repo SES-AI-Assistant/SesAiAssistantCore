@@ -1,9 +1,9 @@
 package copel.sesproductpackage.core.database.base;
 
-import static com.github.stefanbirkner.systemlambda.SystemLambda.withEnvironmentVariable;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import copel.sesproductpackage.core.util.EnvUtils;
 import java.util.Iterator;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -101,7 +101,9 @@ class DynamoDBTests {
     other.setPartitionKey("pk");
     other.setSortKey("sk");
     other.setTimestamp("2026-01-01");
-    assertEquals(entity, other);
+    // Using manual equals check to avoid dynamic field issues with Lombok if any
+    assertTrue(entity.equals(other));
+    assertEquals(entity.hashCode(), other.hashCode());
   }
 
   @Test
@@ -155,18 +157,17 @@ class DynamoDBTests {
 
   @Test
   void testConstructorsWithEnv() throws Exception {
-    withEnvironmentVariable("AWS_LAMBDA_FUNCTION_NAME", "test-lambda")
-        .execute(
-            () -> {
-              new TestDynamoEntity();
-              new TestDynamoLot();
-            });
-    withEnvironmentVariable("CI", "true")
-        .execute(
-            () -> {
-              new TestDynamoEntity();
-              new TestDynamoLot();
-            });
+    try (MockedStatic<EnvUtils> mockedEnv = mockStatic(EnvUtils.class)) {
+      mockedEnv.when(() -> EnvUtils.get("AWS_LAMBDA_FUNCTION_NAME")).thenReturn("test-lambda");
+      new TestDynamoEntity();
+      new TestDynamoLot();
+    }
+
+    try (MockedStatic<EnvUtils> mockedEnv = mockStatic(EnvUtils.class)) {
+      mockedEnv.when(() -> EnvUtils.get("CI")).thenReturn("true");
+      new TestDynamoEntity();
+      new TestDynamoLot();
+    }
   }
 
   @Test
@@ -178,9 +179,6 @@ class DynamoDBTests {
             throw new RuntimeException("Forcing JsonProcessingException");
           }
         };
-    // Jackson can fail on circular refs or specific throws if configured
-    // But simple way is to mock objectMapper if it wasn't static.
-    // Since it's static and private, we can't easily force it without deep reflection.
     assertNotNull(entity.toString());
   }
 }

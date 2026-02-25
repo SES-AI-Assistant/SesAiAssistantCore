@@ -141,5 +141,10 @@ class SES_AI_WEBAPP_M_USERTests {
     user.setUserId("U1");
     lot.add(user);
     assertNotNull(lot.toString());
+
+    // Fails for update/delete
+    when(ps.executeUpdate()).thenReturn(0);
+    assertFalse(user.updateByPk(connection));
+    assertFalse(user.deleteByPk(connection));
   }
 }

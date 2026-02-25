@@ -87,61 +87,61 @@ public class SkillSheet {
       // Wordファイルを処理
       if (this.fileName.endsWith(".docx")) {
         StringBuilder text = new StringBuilder();
-        XWPFDocument doc = new XWPFDocument(inputStream);
-        for (XWPFParagraph paragraph : doc.getParagraphs()) {
-          text.append(paragraph.getText()).append("\n");
-        }
-        for (XWPFTable table : doc.getTables()) {
-          for (int rowIdx = 0; rowIdx < table.getRows().size(); rowIdx++) {
-            for (int cellIdx = 0;
-                cellIdx < table.getRow(rowIdx).getTableCells().size();
-                cellIdx++) {
-              XWPFTableCell cell = table.getRow(rowIdx).getCell(cellIdx);
-              text.append(cell.getText()).append("\t");
+        try (XWPFDocument doc = new XWPFDocument(inputStream)) {
+          for (XWPFParagraph paragraph : doc.getParagraphs()) {
+            text.append(paragraph.getText()).append("\n");
+          }
+          for (XWPFTable table : doc.getTables()) {
+            for (int rowIdx = 0; rowIdx < table.getRows().size(); rowIdx++) {
+              for (int cellIdx = 0;
+                  cellIdx < table.getRow(rowIdx).getTableCells().size();
+                  cellIdx++) {
+                XWPFTableCell cell = table.getRow(rowIdx).getCell(cellIdx);
+                text.append(cell.getText()).append("\t");
+              }
+              text.append("\n");
             }
-            text.append("\n");
           }
         }
-        doc.close();
         this.fileContent = text.toString();
       }
       // Wordファイルを処理
       else if (this.fileName.endsWith(".doc")) {
         StringBuilder text = new StringBuilder();
-        HWPFDocument doc = new HWPFDocument(inputStream);
-        WordExtractor extractor = new WordExtractor(doc);
-        for (String paragraphText : extractor.getParagraphText()) {
-          text.append(paragraphText);
+        try (HWPFDocument doc = new HWPFDocument(inputStream);
+            WordExtractor extractor = new WordExtractor(doc)) {
+          for (String paragraphText : extractor.getParagraphText()) {
+            text.append(paragraphText);
+          }
+          text.append(extractor.getText());
+          this.fileContent = text.toString();
         }
-        text.append(extractor.getText());
-        this.fileContent = text.toString();
-        extractor.close();
-        doc.close();
       }
       // PDFファイルを処理
       else if (this.fileName.endsWith(".pdf")) {
-        PDDocument document = PDDocument.load(inputStream);
-        PDFTextStripper stripper = new PDFTextStripper();
-        this.fileContent = stripper.getText(document);
-        document.close();
+        try (PDDocument document = PDDocument.load(inputStream)) {
+          PDFTextStripper stripper = new PDFTextStripper();
+          this.fileContent = stripper.getText(document);
+        }
       }
       // Excelファイルを処理
       else if (this.fileName.endsWith(".xlsx") || this.fileName.endsWith(".xls")) {
         StringBuilder text = new StringBuilder();
-        Workbook workbook =
+        try (Workbook workbook =
             this.fileName.endsWith(".xlsx")
                 ? new XSSFWorkbook(inputStream)
-                : new HSSFWorkbook(inputStream);
-        for (Row row : workbook.getSheetAt(0)) {
-          for (Cell cell : row) {
-            CustomCell customCell = new CustomCell(cell);
-            text.append(customCell.getValue(workbook.getCreationHelper().createFormulaEvaluator()))
-                .append(",");
+                : new HSSFWorkbook(inputStream)) {
+          for (Row row : workbook.getSheetAt(0)) {
+            for (Cell cell : row) {
+              CustomCell customCell = new CustomCell(cell);
+              text.append(
+                      customCell.getValue(workbook.getCreationHelper().createFormulaEvaluator()))
+                  .append(",");
+            }
+            text.append("\n");
           }
-          text.append("\n");
+          this.fileContent = text.toString();
         }
-        workbook.close();
-        this.fileContent = text.toString();
       }
       // その他のファイルの場合
       else {

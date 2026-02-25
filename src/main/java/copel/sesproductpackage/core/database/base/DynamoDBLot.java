@@ -1,13 +1,10 @@
 package copel.sesproductpackage.core.database.base;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
-import software.amazon.awssdk.auth.credentials.EnvironmentVariableCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
+import java.util.List;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Expression;
@@ -15,7 +12,6 @@ import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
@@ -23,46 +19,45 @@ public class DynamoDBLot<E extends DynamoDB<E>> implements Iterable<E> {
   /** JSON変換用 ObjectMapper. */
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
-  /** Lotオブジェクト. */
-  protected Collection<E> entityLot = new ArrayList<>();
+  /** ターゲットテーブル. */
+  protected final DynamoDbTable<E> table;
 
-  /** テーブルマッピング */
-  @JsonIgnore protected final DynamoDbTable<E> table;
+  /** 取得結果. */
+  public List<E> entityLot = new ArrayList<>();
 
   /**
    * コンストラクタ.
    *
-   * @param tableName テーブル
-   * @param clazz クラス
+   * @param tableName テーブル名
+   * @param clazz エンティティクラス
    */
   public DynamoDBLot(final String tableName, final Class<E> clazz) {
-    DynamoDbClient client;
-
-    // Lambda上で実行された場合、クレデンシャル指定をしない
-    if (System.getenv("AWS_LAMBDA_FUNCTION_NAME") != null) {
-      client = DynamoDbClient.builder().region(Region.AP_NORTHEAST_1).build();
-      // GitHub Actions上で実行された場合、環境変数からCredentialを提供する
-    } else if (System.getenv("CI") != null) {
-      client =
-          DynamoDbClient.builder()
-              .region(Region.AP_NORTHEAST_1)
-              .credentialsProvider(EnvironmentVariableCredentialsProvider.create())
-              .build();
-      // ローカルで実行された場合、ProfileCredentialsProviderを使用する
-    } else {
-      client =
-          DynamoDbClient.builder()
-              .region(Region.AP_NORTHEAST_1)
-              .credentialsProvider(ProfileCredentialsProvider.create())
-              .build();
-    }
-
+    DynamoDbClient client = DynamoDbClientFactory.create();
     DynamoDbEnhancedClient enhancedClient =
         DynamoDbEnhancedClient.builder().dynamoDbClient(client).build();
     this.table = enhancedClient.table(tableName, TableSchema.fromBean(clazz));
   }
 
-  /** PartitonKeyで絞り込み、検索結果をこのLotに持つ. */
+  /**
+   * 検索結果（entityLot）をJSON形式の文字列として返します。<br>
+   *
+   * @return JSON形式の文字列表現
+   */
+  @Override
+  public String toString() {
+    try {
+      return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(this.entityLot);
+    } catch (JsonProcessingException e) {
+      return "[]";
+    }
+  }
+
+  /**
+   * 指定したパーティションキーに基づきレコードを取得し、entityLotに格納します。<br>
+   * 以前のentityLotはクリアされます。
+   *
+   * @param partitionKey パーティションキーの値
+   */
   public void fetchByPk(final String partitionKey) {
     this.entityLot.clear();
     this.table
@@ -71,10 +66,15 @@ public class DynamoDBLot<E extends DynamoDB<E>> implements Iterable<E> {
         .forEach(this.entityLot::add);
   }
 
-  /** 指定のカラムで絞り込み、検索結果をこのLotに持つ. */
+  /**
+   * 指定した列名と値に対してScanを行い、一致するレコードを取得してentityLotに格納します。<br>
+   * 以前のentityLotはクリアされます。
+   *
+   * @param columnName 列名
+   * @param columnValue 代表値
+   */
   public void fetchByColumn(final String columnName, final String columnValue) {
     this.entityLot.clear();
-
     // フィルタ式
     Expression filterExpression =
         Expression.builder()
@@ -89,17 +89,13 @@ public class DynamoDBLot<E extends DynamoDB<E>> implements Iterable<E> {
         .forEach(this.entityLot::add);
   }
 
+  /**
+   * entityLotのイテレーターを返します。
+   *
+   * @return Iterator
+   */
   @Override
   public Iterator<E> iterator() {
     return this.entityLot.iterator();
-  }
-
-  @Override
-  public String toString() {
-    try {
-      return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(this.entityLot);
-    } catch (JsonProcessingException e) {
-      return "[]";
-    }
   }
 }

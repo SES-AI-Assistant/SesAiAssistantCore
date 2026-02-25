@@ -98,49 +98,11 @@ public class OpenAI implements Transformer {
     }
 
     int responseCode = conn.getResponseCode();
-    switch (responseCode) {
-      case HttpURLConnection.HTTP_OK:
-        break;
-      case HttpURLConnection.HTTP_BAD_REQUEST:
-        conn.disconnect();
-        throw new RuntimeException("400 Bad Request: 無効なパラメータ、不適切なリクエストフォーマット、支払い上限超過エラー");
-      case HttpURLConnection.HTTP_UNAUTHORIZED:
-        conn.disconnect();
-        throw new RuntimeException("401 Unauthorized: APIキーが無効、または提供されていないエラー");
-      case HttpURLConnection.HTTP_FORBIDDEN:
-        conn.disconnect();
-        throw new RuntimeException("403 Forbidden: アカウントの制限、または対象モデルが利用不可のエラー");
-      case HttpURLConnection.HTTP_NOT_FOUND:
-        conn.disconnect();
-        throw new RuntimeException("404 Not Found: APIのエンドポイントが間違っている、またはモデル名が無効のエラー");
-      case HttpURLConnection.HTTP_CLIENT_TIMEOUT:
-        conn.disconnect();
-        throw new RuntimeException("408 Request Timeout: リクエストが時間内に処理されなかったエラー");
-      case 429:
-        conn.disconnect();
-        throw new RuntimeException("429 Too Many Requests: クレジット不足、短時間に過剰なリクエストを送信したためエラーが発生しました");
-      case HttpURLConnection.HTTP_INTERNAL_ERROR:
-        conn.disconnect();
-        throw new RuntimeException("500 Internal Server Error: OpenAIのサーバーで問題が発生しました");
-      case HttpURLConnection.HTTP_UNAVAILABLE:
-        conn.disconnect();
-        throw new RuntimeException("503 Service Unavailable: OpenAIのサーバーがメンテナンス中、または負荷が高い状態です");
-      default:
-        break;
-    }
+    checkResponseCode(conn, responseCode);
 
-    StringBuilder response = new StringBuilder();
-    try (BufferedReader br =
-        new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
-      String line;
-      while ((line = br.readLine()) != null) {
-        response.append(line);
-      }
-    }
-    conn.disconnect();
-
+    String response = readResponse(conn);
     ObjectMapper objectMapper = new ObjectMapper();
-    JsonNode jsonResponse = objectMapper.readTree(response.toString());
+    JsonNode jsonResponse = objectMapper.readTree(response);
     JsonNode embeddingArray = jsonResponse.get("data").get(0).get("embedding");
 
     float[] vectorValue = new float[embeddingArray.size()];
@@ -156,7 +118,7 @@ public class OpenAI implements Transformer {
     sesAiApiUsageHistory.setUserId("SesAiAssitantCore");
     sesAiApiUsageHistory.setApiType(ApiType.Embedding);
     sesAiApiUsageHistory.fetch();
-    sesAiApiUsageHistory.addInputCount(inputString != null ? inputString.length() : 0);
+    sesAiApiUsageHistory.addInputCount(inputString.length());
     sesAiApiUsageHistory.addOutputCount(0);
     sesAiApiUsageHistory.save();
 
@@ -202,6 +164,92 @@ public class OpenAI implements Transformer {
     }
 
     int responseCode = conn.getResponseCode();
+    checkResponseCode(conn, responseCode);
+
+    String response = readResponse(conn);
+    ObjectMapper objectMapper = new ObjectMapper();
+    JsonNode jsonResponse = objectMapper.readTree(response);
+    JsonNode contentNode = jsonResponse.get("choices").get(0).get("message").get("content");
+    String resultText = contentNode == null || contentNode.isNull() ? null : contentNode.asText();
+
+    // API使用履歴テーブル（SES_AI_API_USAGE_HISTORY）に履歴を登録
+    SES_AI_API_USAGE_HISTORY sesAiApiUsageHistory = new SES_AI_API_USAGE_HISTORY();
+    sesAiApiUsageHistory.setProvider(Provider.OpenAI);
+    sesAiApiUsageHistory.setModel(this.completionModel);
+    sesAiApiUsageHistory.setUsageMonth(new OriginalDateTime().getYYYYMM());
+    sesAiApiUsageHistory.setUserId("SesAiAssitantCore");
+    sesAiApiUsageHistory.setApiType(ApiType.Generate);
+    sesAiApiUsageHistory.fetch();
+    sesAiApiUsageHistory.addInputCount(prompt.length());
+    sesAiApiUsageHistory.addOutputCount(resultText != null ? resultText.length() : 0);
+    sesAiApiUsageHistory.save();
+
+    return new GptAnswer(resultText, OpenAI.class);
+  }
+
+  /**
+   * OpenAIにこのオブジェクトがもつcompletionModelに対するファインチューニングをリクエストする.
+   *
+   * @param trainingData ファインチューニング用データ（文字列形式）
+   * @throws IOException
+   */
+  public void fineTuning(final String trainingData) throws IOException {
+    // 1. JSONLフォーマットに変換
+    String jsonlData =
+        "{\"messages\": [{\"role\": \"system\", \"content\": \"ファインチューニングデータ\"}]}\n"
+            + "{\"messages\": [{\"role\": \"user\", \"content\": \""
+            + trainingData
+            + "\"}, {\"role\": \"assistant\", \"content\": \"OK\"}]}";
+
+    // 2. OpenAI にデータをアップロード
+    URL fileUrl = new URL(FILE_UPLOAD_URL);
+    HttpURLConnection fileConn = (HttpURLConnection) fileUrl.openConnection();
+    fileConn.setRequestMethod("POST");
+    fileConn.setRequestProperty("Authorization", "Bearer " + this.apiKey);
+    fileConn.setRequestProperty("Content-Type", "application/json");
+    fileConn.setDoOutput(true);
+
+    String jsonBody = "{\"purpose\": \"fine-tune\", \"file\": \"" + jsonlData + "\"}";
+    try (OutputStream os = fileConn.getOutputStream()) {
+      byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
+      os.write(input, 0, input.length);
+    }
+
+    int fileResponseCode = fileConn.getResponseCode();
+    checkResponseCode(fileConn, fileResponseCode);
+
+    String fileResponse = readResponse(fileConn);
+    ObjectMapper objectMapper = new ObjectMapper();
+    JsonNode fileJson = objectMapper.readTree(fileResponse);
+    String fileId = fileJson.get("id").asText();
+
+    // 3. ファインチューニングジョブを開始
+    URL fineTuneUrl = new URL(FINE_TUNE_URL);
+    HttpURLConnection fineTuneConn = (HttpURLConnection) fineTuneUrl.openConnection();
+    fineTuneConn.setRequestMethod("POST");
+    fineTuneConn.setRequestProperty("Authorization", "Bearer " + this.apiKey);
+    fineTuneConn.setRequestProperty("Content-Type", "application/json");
+    fineTuneConn.setDoOutput(true);
+
+    String fineTuneBody =
+        "{\"training_file\": \"" + fileId + "\", \"model\": \"" + this.completionModel + "\"}";
+    try (OutputStream os = fineTuneConn.getOutputStream()) {
+      os.write(fineTuneBody.getBytes(StandardCharsets.UTF_8));
+    }
+
+    int responseCode = fineTuneConn.getResponseCode();
+    if (responseCode != 200) {
+      throw new RuntimeException("Fine-tuning Error: " + responseCode);
+    }
+  }
+
+  /**
+   * レスポンスコードをチェックします.
+   *
+   * @param conn コネクション
+   * @param responseCode レスポンスコード
+   */
+  private void checkResponseCode(HttpURLConnection conn, int responseCode) {
     switch (responseCode) {
       case HttpURLConnection.HTTP_OK:
         break;
@@ -232,7 +280,16 @@ public class OpenAI implements Transformer {
       default:
         break;
     }
+  }
 
+  /**
+   * レスポンスを読み込みます.
+   *
+   * @param conn コネクション
+   * @return レスポンス文字列
+   * @throws IOException
+   */
+  private String readResponse(HttpURLConnection conn) throws IOException {
     StringBuilder response = new StringBuilder();
     try (BufferedReader br =
         new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
@@ -240,121 +297,9 @@ public class OpenAI implements Transformer {
       while ((line = br.readLine()) != null) {
         response.append(line);
       }
+    } finally {
+      conn.disconnect();
     }
-    conn.disconnect();
-
-    ObjectMapper objectMapper = new ObjectMapper();
-    JsonNode jsonResponse = objectMapper.readTree(response.toString());
-    String resultText = jsonResponse.get("choices").get(0).get("message").get("content").asText();
-
-    // API使用履歴テーブル（SES_AI_API_USAGE_HISTORY）に履歴を登録
-    SES_AI_API_USAGE_HISTORY sesAiApiUsageHistory = new SES_AI_API_USAGE_HISTORY();
-    sesAiApiUsageHistory.setProvider(Provider.OpenAI);
-    sesAiApiUsageHistory.setModel(this.completionModel);
-    sesAiApiUsageHistory.setUsageMonth(new OriginalDateTime().getYYYYMM());
-    sesAiApiUsageHistory.setUserId("SesAiAssitantCore");
-    sesAiApiUsageHistory.setApiType(ApiType.Generate);
-    sesAiApiUsageHistory.fetch();
-    sesAiApiUsageHistory.addInputCount(prompt != null ? prompt.length() : 0);
-    sesAiApiUsageHistory.addOutputCount(resultText != null ? resultText.length() : 0);
-    sesAiApiUsageHistory.save();
-
-    return new GptAnswer(resultText, OpenAI.class);
-  }
-
-  /**
-   * OpenAIにこのオブジェクトがもつcompletionModelに対するファインチューニングをリクエストする.
-   *
-   * @param trainingData ファインチューニング用データ（文字列形式）
-   * @return ファインチューニングジョブのID
-   * @throws IOException
-   */
-  public void fineTuning(final String trainingData) throws IOException {
-    // 1. JSONLフォーマットに変換
-    String jsonlData =
-        "{\"messages\": [{\"role\": \"system\", \"content\": \"ファインチューニングデータ\"}]}\n"
-            + "{\"messages\": [{\"role\": \"user\", \"content\": \""
-            + trainingData
-            + "\"}, {\"role\": \"assistant\", \"content\": \"OK\"}]}";
-
-    // 2. OpenAI にデータをアップロード
-    URL fileUrl = new URL(FILE_UPLOAD_URL);
-    HttpURLConnection fileConn = (HttpURLConnection) fileUrl.openConnection();
-    fileConn.setRequestMethod("POST");
-    fileConn.setRequestProperty("Authorization", "Bearer " + this.apiKey);
-    fileConn.setRequestProperty("Content-Type", "application/json");
-    fileConn.setDoOutput(true);
-
-    String jsonBody = "{\"purpose\": \"fine-tune\", \"file\": \"" + jsonlData + "\"}";
-    try (OutputStream os = fileConn.getOutputStream()) {
-      byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
-      os.write(input, 0, input.length);
-    }
-
-    int fileResponseCode = fileConn.getResponseCode();
-    switch (fileResponseCode) {
-      case HttpURLConnection.HTTP_OK:
-        break;
-      case HttpURLConnection.HTTP_BAD_REQUEST:
-        fileConn.disconnect();
-        throw new RuntimeException("400 Bad Request: 無効なパラメータ、不適切なリクエストフォーマット、支払い上限超過エラー");
-      case HttpURLConnection.HTTP_UNAUTHORIZED:
-        fileConn.disconnect();
-        throw new RuntimeException("401 Unauthorized: APIキーが無効、または提供されていないエラー");
-      case HttpURLConnection.HTTP_FORBIDDEN:
-        fileConn.disconnect();
-        throw new RuntimeException("403 Forbidden: アカウントの制限、または対象モデルが利用不可のエラー");
-      case HttpURLConnection.HTTP_NOT_FOUND:
-        fileConn.disconnect();
-        throw new RuntimeException("404 Not Found: APIのエンドポイントが間違っている、またはモデル名が無効のエラー");
-      case HttpURLConnection.HTTP_CLIENT_TIMEOUT:
-        fileConn.disconnect();
-        throw new RuntimeException("408 Request Timeout: リクエストが時間内に処理されなかったエラー");
-      case 429:
-        fileConn.disconnect();
-        throw new RuntimeException("429 Too Many Requests: クレジット不足、短時間に過剰なリクエストを送信したためエラーが発生しました");
-      case HttpURLConnection.HTTP_INTERNAL_ERROR:
-        fileConn.disconnect();
-        throw new RuntimeException("500 Internal Server Error: OpenAIのサーバーで問題が発生しました");
-      case HttpURLConnection.HTTP_UNAVAILABLE:
-        fileConn.disconnect();
-        throw new RuntimeException("503 Service Unavailable: OpenAIのサーバーがメンテナンス中、または負荷が高い状態です");
-      default:
-        break;
-    }
-
-    StringBuilder fileResponse = new StringBuilder();
-    try (BufferedReader br =
-        new BufferedReader(
-            new InputStreamReader(fileConn.getInputStream(), StandardCharsets.UTF_8))) {
-      String line;
-      while ((line = br.readLine()) != null) {
-        fileResponse.append(line);
-      }
-    }
-    fileConn.disconnect();
-
-    ObjectMapper objectMapper = new ObjectMapper();
-    JsonNode fileJson = objectMapper.readTree(fileResponse.toString());
-    String fileId = fileJson.get("id").asText();
-
-    // 3. ファインチューニングジョブを開始
-    URL fineTuneUrl = new URL(FINE_TUNE_URL);
-    HttpURLConnection fineTuneConn = (HttpURLConnection) fineTuneUrl.openConnection();
-    fineTuneConn.setRequestMethod("POST");
-    fineTuneConn.setRequestProperty("Authorization", "Bearer " + this.apiKey);
-    fineTuneConn.setRequestProperty("Content-Type", "application/json");
-    fineTuneConn.setDoOutput(true);
-
-    String fineTuneBody =
-        "{\"training_file\": \"" + fileId + "\", \"model\": \"" + this.completionModel + "\"}";
-    try (OutputStream os = fineTuneConn.getOutputStream()) {
-      os.write(fineTuneBody.getBytes(StandardCharsets.UTF_8));
-    }
-
-    int responseCode = fineTuneConn.getResponseCode();
-    if (responseCode != 200) {
-      throw new RuntimeException("Fine-tuning Error: " + responseCode);
-    }
+    return response.toString();
   }
 }

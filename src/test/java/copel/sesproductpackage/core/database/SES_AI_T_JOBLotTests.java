@@ -1,15 +1,12 @@
 package copel.sesproductpackage.core.database;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.unit.LogicalOperators;
-import copel.sesproductpackage.core.unit.Vector;
 import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
-import copel.sesproductpackage.core.util.DBConnection;
+import copel.sesproductpackage.core.unit.Vector;
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -22,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
 
 class SES_AI_T_JOBLotTests {
 
@@ -55,11 +51,11 @@ class SES_AI_T_JOBLotTests {
   }
 
   private Vector createTestVector() throws Exception {
-      Vector vector = new Vector(null);
-      Field valueField = Vector.class.getDeclaredField("value");
-      valueField.setAccessible(true);
-      valueField.set(vector, new float[]{1.0f, 2.0f});
-      return vector;
+    Vector vector = new Vector(null);
+    Field valueField = Vector.class.getDeclaredField("value");
+    valueField.setAccessible(true);
+    valueField.set(vector, new float[] {1.0f, 2.0f});
+    return vector;
   }
 
   @Test
@@ -103,6 +99,7 @@ class SES_AI_T_JOBLotTests {
     List<LogicalOperators> queries = new ArrayList<>();
     queries.add(new LogicalOperators(論理演算子.AND, "val1"));
     queries.add(new LogicalOperators(論理演算子.OR, "val2"));
+    queries.add(null);
     lot.searchByRawContent(mockConn, "first", queries);
     assertEquals(1, lot.size());
 
@@ -111,8 +108,12 @@ class SES_AI_T_JOBLotTests {
     SES_AI_T_JOBLot lot2 = new SES_AI_T_JOBLot();
     lot2.searchByRawContent(mockConn, "first", null);
     assertEquals(1, lot2.size());
+
+    // Test selectAll null connection
+    lot2.selectAll(null);
+    assertEquals(0, lot2.size());
   }
-  
+
   @Test
   void testSelectByAndQuery() throws SQLException {
     setupDefaultResultSet();
@@ -150,18 +151,18 @@ class SES_AI_T_JOBLotTests {
     setupDefaultResultSet();
     SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
     lot.selectAll(mockConn);
-    
+
     assertNotNull(lot.getEntityByPk("jid1"));
     assertNull(lot.getEntityByPk("nonexistent"));
     assertNull(lot.getEntityByPk(null));
   }
-  
+
   @Test
   void testTo文章() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
     lot.selectAll(mockConn);
-    
+
     assertFalse(lot.to案件選出用文章().isEmpty());
 
     // Empty lot

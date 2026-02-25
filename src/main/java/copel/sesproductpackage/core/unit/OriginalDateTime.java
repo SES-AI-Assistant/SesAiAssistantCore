@@ -69,7 +69,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
             this.dateTime = LocalDateTime.parse(date, DateTimeFormatter.ofPattern(pattern));
           }
           break;
-        } catch (DateTimeParseException e) {
+        } catch (DateTimeParseException ignored) {
           // パースに失敗した場合、次のパターンを試す
         }
       }
@@ -146,7 +146,6 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
    * @return 比較結果
    */
   @Override
-  @SuppressWarnings("unlikely-arg-type")
   public boolean equals(Object obj) {
     if (obj == this) {
       return true;
@@ -154,8 +153,8 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
     if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
-    OriginalDateTime dateTime = (OriginalDateTime) obj;
-    return this.dateTime != null ? this.dateTime.equals(dateTime) : false;
+    OriginalDateTime other = (OriginalDateTime) obj;
+    return this.dateTime != null && this.dateTime.equals(other.toLocalDateTime());
   }
 
   /**
@@ -297,7 +296,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
    * @return 日付の差の日数
    */
   public int betweenDays(OriginalDateTime date) {
-    if (date != null && this.dateTime != null) {
+    if (date != null && !date.isEmpty() && this.dateTime != null) {
       // 両日付のLocalDateを取得
       LocalDate startDate = this.dateTime.toLocalDate();
       LocalDate endDate = date.toLocalDate();
@@ -318,7 +317,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
    * @return 日付の差の月数（負の数が返却された場合はエラー）
    */
   public int betweenMonth(OriginalDateTime date) {
-    if (date != null && this.dateTime != null) {
+    if (date != null && !date.isEmpty() && this.dateTime != null) {
       // 両日付のLocalDateを取得
       LocalDate startDate = this.dateTime.toLocalDate();
       LocalDate endDate = date.toLocalDate();
@@ -340,7 +339,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
    * @return 日付の差の年数（負の数が返却された場合はエラー）
    */
   public int betweenYear(OriginalDateTime date) {
-    if (date != null && this.dateTime != null) {
+    if (date != null && !date.isEmpty() && this.dateTime != null) {
       Period period = Period.between(this.dateTime.toLocalDate(), date.toLocalDate());
       return period.getYears();
     } else {

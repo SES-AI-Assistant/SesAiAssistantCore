@@ -10,7 +10,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 【Entityクラス】 案件情報(SES_AI_T_JOB)テーブルのLotクラス.
@@ -40,6 +39,16 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   }
 
   @Override
+  protected String getSelectSql() {
+    return SELECT_SQL;
+  }
+
+  @Override
+  protected String getSelectLikeSql() {
+    return SELECT_LIKE_SQL;
+  }
+
+  @Override
   public void selectAll(Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
     if (connection == null) {
@@ -48,17 +57,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
     try (PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);
         ResultSet resultSet = preparedStatement.executeQuery()) {
       while (resultSet.next()) {
-        SES_AI_T_JOB entity = new SES_AI_T_JOB();
-        entity.setJobId(resultSet.getString("job_id"));
-        entity.setFromGroup(resultSet.getString("from_group"));
-        entity.setFromId(resultSet.getString("from_id"));
-        entity.setFromName(resultSet.getString("from_name"));
-        entity.setRawContent(resultSet.getString("raw_content"));
-        entity.setContentSummary(resultSet.getString("content_summary"));
-        entity.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-        entity.setRegisterUser(resultSet.getString("register_user"));
-        entity.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-        this.add(entity);
+        this.add(mapResultSet(resultSet));
       }
     }
   }
@@ -75,24 +74,17 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
     if (connection == null) {
       return;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(RETRIEVE_SQL);
-    preparedStatement.setString(1, query == null ? null : query.toString());
-    preparedStatement.setInt(2, limit);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    this.entityLot = new ArrayList<>();
-    while (resultSet.next()) {
-      SES_AI_T_JOB sesAiTJob = new SES_AI_T_JOB();
-      sesAiTJob.setJobId(resultSet.getString("job_id"));
-      sesAiTJob.setFromGroup(resultSet.getString("from_group"));
-      sesAiTJob.setFromId(resultSet.getString("from_id"));
-      sesAiTJob.setFromName(resultSet.getString("from_name"));
-      sesAiTJob.setRawContent(resultSet.getString("raw_content"));
-      sesAiTJob.setContentSummary(resultSet.getString("content_summary"));
-      sesAiTJob.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTJob.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTJob.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      sesAiTJob.setDistance(resultSet.getDouble("distance"));
-      this.entityLot.add(sesAiTJob);
+    try (PreparedStatement preparedStatement = connection.prepareStatement(RETRIEVE_SQL)) {
+      preparedStatement.setString(1, query == null ? null : query.toString());
+      preparedStatement.setInt(2, limit);
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        this.entityLot = new ArrayList<>();
+        while (resultSet.next()) {
+          SES_AI_T_JOB sesAiTJob = mapResultSet(resultSet);
+          sesAiTJob.setDistance(resultSet.getDouble("distance"));
+          this.entityLot.add(sesAiTJob);
+        }
+      }
     }
   }
 
@@ -105,23 +97,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    */
   public void searchByRawContent(final Connection connection, final String query)
       throws SQLException {
-    this.entityLot = new ArrayList<>();
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_LIKE_SQL);
-    preparedStatement.setString(1, "%" + query + "%"); // ワイルドカードをつける
-    ResultSet resultSet = preparedStatement.executeQuery();
-    while (resultSet.next()) {
-      SES_AI_T_JOB sesAiTJob = new SES_AI_T_JOB();
-      sesAiTJob.setJobId(resultSet.getString("job_id"));
-      sesAiTJob.setFromGroup(resultSet.getString("from_group"));
-      sesAiTJob.setFromId(resultSet.getString("from_id"));
-      sesAiTJob.setFromName(resultSet.getString("from_name"));
-      sesAiTJob.setRawContent(resultSet.getString("raw_content"));
-      sesAiTJob.setContentSummary(resultSet.getString("content_summary"));
-      sesAiTJob.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTJob.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTJob.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      this.entityLot.add(sesAiTJob);
-    }
+    this.searchByField(connection, "raw_content", query);
   }
 
   /**
@@ -135,138 +111,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   public void searchByRawContent(
       final Connection connection, final String firstLikeQuery, final List<LogicalOperators> query)
       throws SQLException {
-    // 検索条件からSQLを生成
-    String sql = SELECT_LIKE_SQL;
-    if (query != null) {
-      for (final LogicalOperators logicalOperator : query) {
-        if (logicalOperator != null) {
-          logicalOperator.setColumnName("raw_content");
-          sql += logicalOperator.getLikeQuery();
-        }
-      }
-    }
-
-    // 検索条件を追加する
-    PreparedStatement preparedStatement = connection.prepareStatement(sql);
-    preparedStatement.setString(1, "%" + firstLikeQuery + "%"); // ワイルドカードをつける
-    if (query != null && !query.isEmpty()) {
-      for (int i = 0; i < query.size(); i++) {
-        if (query.get(i) != null) {
-          preparedStatement.setString(i + 2, "%" + query.get(i).getValue() + "%"); // ワイルドカードをつける
-        }
-      }
-    }
-
-    // 検索を実行する
-    this.entityLot = new ArrayList<>();
-    ResultSet resultSet = preparedStatement.executeQuery();
-    while (resultSet.next()) {
-      SES_AI_T_JOB sesAiTJob = new SES_AI_T_JOB();
-      sesAiTJob.setJobId(resultSet.getString("job_id"));
-      sesAiTJob.setFromGroup(resultSet.getString("from_group"));
-      sesAiTJob.setFromId(resultSet.getString("from_id"));
-      sesAiTJob.setFromName(resultSet.getString("from_name"));
-      sesAiTJob.setRawContent(resultSet.getString("raw_content"));
-      sesAiTJob.setContentSummary(resultSet.getString("content_summary"));
-      sesAiTJob.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTJob.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTJob.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      this.entityLot.add(sesAiTJob);
-    }
-  }
-
-  /**
-   * SELECTをAND条件で実行する.
-   *
-   * @param connection DBコネクション
-   * @param andQuery カラム名と検索値をkey-valueで持つMap
-   * @throws SQLException
-   */
-  public void selectByAndQuery(final Connection connection, final Map<String, String> andQuery)
-      throws SQLException {
-    // 検索条件からSQLを生成
-    String sql = SELECT_SQL;
-    boolean isFirst = true;
-    for (final String columnName : andQuery.keySet()) {
-      if (isFirst) {
-        sql += columnName + " = ?";
-        isFirst = false;
-      } else {
-        sql += "AND " + columnName + " = ?";
-      }
-    }
-
-    // 検索条件を追加する
-    PreparedStatement preparedStatement = connection.prepareStatement(sql);
-    int i = 1;
-    for (final String columnName : andQuery.keySet()) {
-      preparedStatement.setString(i, andQuery.get(columnName));
-      i++;
-    }
-
-    // 検索を実行する
-    this.entityLot = new ArrayList<>();
-    ResultSet resultSet = preparedStatement.executeQuery();
-    while (resultSet.next()) {
-      SES_AI_T_JOB sesAiTJob = new SES_AI_T_JOB();
-      sesAiTJob.setJobId(resultSet.getString("job_id"));
-      sesAiTJob.setFromGroup(resultSet.getString("from_group"));
-      sesAiTJob.setFromId(resultSet.getString("from_id"));
-      sesAiTJob.setFromName(resultSet.getString("from_name"));
-      sesAiTJob.setRawContent(resultSet.getString("raw_content"));
-      sesAiTJob.setContentSummary(resultSet.getString("content_summary"));
-      sesAiTJob.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTJob.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTJob.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      this.entityLot.add(sesAiTJob);
-    }
-  }
-
-  /**
-   * SELECTをOR条件で実行する.
-   *
-   * @param connection DBコネクション
-   * @param orQuery カラム名と検索値をkey-valueで持つMap
-   * @throws SQLException
-   */
-  public void selectByOrQuery(final Connection connection, final Map<String, String> orQuery)
-      throws SQLException {
-    // 検索条件からSQLを生成
-    String sql = SELECT_SQL;
-    boolean isFirst = true;
-    for (final String columnName : orQuery.keySet()) {
-      if (isFirst) {
-        sql += columnName + " = ?";
-        isFirst = false;
-      } else {
-        sql += "OR " + columnName + " = ?";
-      }
-    }
-
-    // 検索条件を追加する
-    PreparedStatement preparedStatement = connection.prepareStatement(sql);
-    int i = 1;
-    for (final String columnName : orQuery.keySet()) {
-      preparedStatement.setString(i, orQuery.get(columnName));
-      i++;
-    }
-
-    // 検索を実行する
-    this.entityLot = new ArrayList<>();
-    ResultSet resultSet = preparedStatement.executeQuery();
-    while (resultSet.next()) {
-      SES_AI_T_JOB sesAiTJob = new SES_AI_T_JOB();
-      sesAiTJob.setJobId(resultSet.getString("job_id"));
-      sesAiTJob.setFromGroup(resultSet.getString("from_group"));
-      sesAiTJob.setFromId(resultSet.getString("from_id"));
-      sesAiTJob.setFromName(resultSet.getString("from_name"));
-      sesAiTJob.setRawContent(resultSet.getString("raw_content"));
-      sesAiTJob.setContentSummary(resultSet.getString("content_summary"));
-      sesAiTJob.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTJob.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTJob.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      this.entityLot.add(sesAiTJob);
-    }
+    this.searchByField(connection, "raw_content", firstLikeQuery, query);
   }
 
   /**
@@ -294,11 +139,27 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @return 変換後の文章
    */
   public String to案件選出用文章() {
-    String result = "";
+    StringBuilder result = new StringBuilder();
     int i = 1;
     for (SES_AI_T_JOB entity : this.entityLot) {
-      result += Integer.toString(i) + "人目：" + entity.to案件選出用文章();
+      result.append(i).append("人目：").append(entity.to案件選出用文章());
+      i++;
     }
-    return result;
+    return result.toString();
+  }
+
+  @Override
+  protected SES_AI_T_JOB mapResultSet(ResultSet resultSet) throws SQLException {
+    SES_AI_T_JOB sesAiTJob = new SES_AI_T_JOB();
+    sesAiTJob.setJobId(resultSet.getString("job_id"));
+    sesAiTJob.setFromGroup(resultSet.getString("from_group"));
+    sesAiTJob.setFromId(resultSet.getString("from_id"));
+    sesAiTJob.setFromName(resultSet.getString("from_name"));
+    sesAiTJob.setRawContent(resultSet.getString("raw_content"));
+    sesAiTJob.setContentSummary(resultSet.getString("content_summary"));
+    sesAiTJob.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
+    sesAiTJob.setRegisterUser(resultSet.getString("register_user"));
+    sesAiTJob.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
+    return sesAiTJob;
   }
 }

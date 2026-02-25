@@ -72,5 +72,12 @@ class SES_AI_M_SENDERTests {
     sender.setFromId("S1");
     lot.add(sender);
     assertNotNull(lot.toString());
+
+    // failure branches
+    when(ps.executeUpdate()).thenReturn(0);
+    assertFalse(sender.updateByPk(connection));
+    assertFalse(sender.deleteByPk(connection));
+    when(rs.next()).thenReturn(false);
+    sender.selectByPk(connection);
   }
 }

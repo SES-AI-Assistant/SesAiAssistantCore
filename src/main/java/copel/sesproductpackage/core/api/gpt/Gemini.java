@@ -22,16 +22,13 @@ import java.nio.charset.StandardCharsets;
  */
 public class Gemini implements Transformer {
   /** 生成APIのエンドポイント. */
-  private static final String GEMINI_COMPLETION_API_URL =
-      Properties.get("GEMINI_COMPLETION_API_URL");
+  private static final String GEMINI_COMPLETION_API_URL = Properties.get("GEMINI_COMPLETION_API_URL");
 
   /** 生成APIのデフォルトGPTモデル名. */
-  private static final String COMPLETION_MODEL_DEFAULT =
-      GeminiModel.GEMINI_1_5_FLASH_LITE.getModelName();
+  private static final String COMPLETION_MODEL_DEFAULT = GeminiModel.GEMINI_1_5_FLASH_LITE.getModelName();
 
   /** エンベディングAPIのデフォルトモデル名. */
-  private static final String EMBEDDING_MODEL_DEFAULT =
-      GeminiModel.GEMINI_EMBEDDING_001.getModelName();
+  private static final String EMBEDDING_MODEL_DEFAULT = GeminiModel.GEMINI_EMBEDDING_001.getModelName();
 
   /** APIキー. */
   private final String apiKey;
@@ -56,7 +53,7 @@ public class Gemini implements Transformer {
   /**
    * コンストラクタ.
    *
-   * @param apiKey APIキー
+   * @param apiKey          APIキー
    * @param completionModel GPTモデル
    */
   public Gemini(final String apiKey, final String completionModel) {
@@ -68,7 +65,7 @@ public class Gemini implements Transformer {
   /**
    * コンストラクタ.
    *
-   * @param apiKey APIキー
+   * @param apiKey      APIキー
    * @param geminiModel Geminiモデル
    */
   public Gemini(final String apiKey, final GeminiModel geminiModel) {
@@ -79,23 +76,24 @@ public class Gemini implements Transformer {
 
   @Override
   public float[] embedding(final String inputString) throws IOException, RuntimeException {
+    if (inputString == null || inputString.isBlank()) {
+      return null;
+    }
     ObjectMapper objectMapper = new ObjectMapper();
 
     // リクエストボディの作成
     // モデル名を含める必要があります
-    String requestBody =
-        String.format(
-            "{\"model\":\"%s\",\"content\":{\"parts\":[{\"text\":\"%s\"}]}}",
-            EMBEDDING_MODEL_DEFAULT, inputString);
+    String requestBody = String.format(
+        "{\"model\":\"%s\",\"content\":{\"parts\":[{\"text\":\"%s\"}]}}",
+        EMBEDDING_MODEL_DEFAULT, inputString);
 
     // HTTPリクエストの準備
     // エンベディングのエンドポイントは :embedContent
-    URL url =
-        new URL(
-            "https://generativelanguage.googleapis.com/v1beta/"
-                + EMBEDDING_MODEL_DEFAULT
-                + ":embedContent?key="
-                + this.apiKey);
+    URL url = new URL(
+        "https://generativelanguage.googleapis.com/v1beta/"
+            + EMBEDDING_MODEL_DEFAULT
+            + ":embedContent?key="
+            + this.apiKey);
     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
     connection.setRequestMethod("POST");
     connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
@@ -115,9 +113,8 @@ public class Gemini implements Transformer {
     }
 
     // JSONレスポンスの解析
-    try (BufferedReader br =
-        new BufferedReader(
-            new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+    try (BufferedReader br = new BufferedReader(
+        new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
       StringBuilder response = new StringBuilder();
       String responseLine;
       while ((responseLine = br.readLine()) != null) {
@@ -154,18 +151,20 @@ public class Gemini implements Transformer {
 
   @Override
   public GptAnswer generate(final String prompt) throws IOException, RuntimeException {
+    if (prompt == null || prompt.isBlank()) {
+      return null;
+    }
     ObjectMapper objectMapper = new ObjectMapper();
 
     // リクエストボディの作成
     String requestBody = String.format("{\"contents\":[{\"parts\":[{\"text\":\"%s\"}]}]}", prompt);
 
     // HTTPリクエストの準備
-    URL url =
-        new URL(
-            GEMINI_COMPLETION_API_URL
-                + this.completionModel
-                + ":generateContent?key="
-                + this.apiKey);
+    URL url = new URL(
+        GEMINI_COMPLETION_API_URL
+            + this.completionModel
+            + ":generateContent?key="
+            + this.apiKey);
     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
     connection.setRequestMethod("POST");
     connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
@@ -211,9 +210,8 @@ public class Gemini implements Transformer {
     }
 
     // JSONレスポンスの解析
-    try (BufferedReader br =
-        new BufferedReader(
-            new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+    try (BufferedReader br = new BufferedReader(
+        new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
       StringBuilder response = new StringBuilder();
       String responseLine;
       while ((responseLine = br.readLine()) != null) {

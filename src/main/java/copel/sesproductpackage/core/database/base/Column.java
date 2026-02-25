@@ -29,26 +29,26 @@ public @interface Column {
    *
    * @return カラムの物理名
    */
-  public String physicalName() default "";
+  String physicalName() default "";
 
   /**
    * カラムの論理名を指定します。 デフォルト値は空文字列です。
    *
    * @return カラムの論理名
    */
-  public String logicalName() default "";
+  String logicalName() default "";
 
   /**
    * カラムが必須であるかどうかを指定します。 デフォルト値は false です。
    *
    * @return カラムが必須である場合は true、それ以外の場合は false
    */
-  public boolean required() default false;
+  boolean required() default false;
 
   /**
    * カラムが主キーであるかどうかを指定します。 デフォルト値は false です。
    *
    * @return カラムが主キーである場合は true、それ以外の場合は false
    */
-  public boolean primary() default false;
+  boolean primary() default false;
 }

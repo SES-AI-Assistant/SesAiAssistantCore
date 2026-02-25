@@ -5,6 +5,8 @@ import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -50,8 +52,12 @@ public abstract class SES_AI_T_EntityBase extends EntityBase {
    * @throws IOException
    * @throws RuntimeException
    */
-  public abstract void embedding(final Transformer transformer)
-      throws IOException, RuntimeException;
+  public void embedding(final Transformer transformer) throws IOException, RuntimeException {
+    this.vectorData = new Vector(transformer);
+    // 元データではなく要約をエンベディングする
+    this.vectorData.setRawString(this.getContentSummary());
+    this.vectorData.embedding();
+  }
 
   /**
    * テーブル内にこのエンティティの持つ内容と類似したレコードがあるかどうを判定する.
@@ -62,8 +68,39 @@ public abstract class SES_AI_T_EntityBase extends EntityBase {
    * @return 類似するレコードがなければtrue、あればfalse
    * @throws SQLException
    */
-  public abstract boolean uniqueCheck(final Connection connection, final double similarityThreshold)
-      throws SQLException;
+  public boolean uniqueCheck(final Connection connection, final double similarityThreshold)
+      throws SQLException {
+    PreparedStatement preparedStatement = connection.prepareStatement(getCheckSql());
+    preparedStatement.setString(1, this.getRawContent());
+    preparedStatement.setString(2, this.getRawContent());
+    preparedStatement.setDouble(3, similarityThreshold);
+    ResultSet resultSet = preparedStatement.executeQuery();
+    if (resultSet.next()) {
+      return resultSet.getInt(1) < 1;
+    }
+    return true;
+  }
+
+  /**
+   * 原文を取得します.
+   *
+   * @return 原文
+   */
+  protected abstract String getRawContent();
+
+  /**
+   * 要約を取得します.
+   *
+   * @return 要約
+   */
+  protected abstract String getContentSummary();
+
+  /**
+   * 重複チェック用SQLを取得します.
+   *
+   * @return SQL
+   */
+  protected abstract String getCheckSql();
 
   /**
    * このレコードのユークリッド距離で比較する.

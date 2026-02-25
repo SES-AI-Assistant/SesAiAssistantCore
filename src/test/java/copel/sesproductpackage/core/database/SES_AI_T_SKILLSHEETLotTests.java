@@ -1,12 +1,11 @@
 package copel.sesproductpackage.core.database;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.unit.LogicalOperators;
-import copel.sesproductpackage.core.unit.Vector;
 import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
+import copel.sesproductpackage.core.unit.Vector;
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -51,11 +50,11 @@ class SES_AI_T_SKILLSHEETLotTests {
   }
 
   private Vector createTestVector() throws Exception {
-      Vector vector = new Vector(null);
-      Field valueField = Vector.class.getDeclaredField("value");
-      valueField.setAccessible(true);
-      valueField.set(vector, new float[]{1.0f, 2.0f});
-      return vector;
+    Vector vector = new Vector(null);
+    Field valueField = Vector.class.getDeclaredField("value");
+    valueField.setAccessible(true);
+    valueField.set(vector, new float[] {1.0f, 2.0f});
+    return vector;
   }
 
   @Test
@@ -65,13 +64,13 @@ class SES_AI_T_SKILLSHEETLotTests {
     lot.selectAll(mockConn);
     assertEquals(1, lot.size());
   }
-  
+
   @Test
   void testGetEntityByPk() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
     lot.selectAll(mockConn);
-    
+
     assertNotNull(lot.getEntityByPk("id1"));
     assertNull(lot.getEntityByPk("nonexistent"));
     assertNull(lot.getEntityByPk(null));
@@ -116,13 +115,14 @@ class SES_AI_T_SKILLSHEETLotTests {
     lot.selectByFileName(mockConn, "file1.pdf");
     assertEquals(1, lot.size());
   }
-  
+
   @Test
   void testSearchByFileContentMultiple() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
     List<LogicalOperators> queries = new ArrayList<>();
     queries.add(new LogicalOperators(論理演算子.AND, "val1"));
+    queries.add(null);
     queries.add(new LogicalOperators(論理演算子.OR, "val2"));
     lot.searchByFileContent(mockConn, "first", queries);
     assertEquals(1, lot.size());
@@ -149,16 +149,39 @@ class SES_AI_T_SKILLSHEETLotTests {
     lot.selectByOrQuery(mockConn, query);
     assertEquals(1, lot.size());
   }
-  
+
   @Test
   void testTo文章() throws SQLException {
-      setupDefaultResultSet();
-      SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
-      lot.selectAll(mockConn);
-      
-      assertFalse(lot.toスキルシート選出用文章().isEmpty());
+    setupDefaultResultSet();
+    SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
+    lot.selectAll(mockConn);
 
-      SES_AI_T_SKILLSHEETLot emptyLot = new SES_AI_T_SKILLSHEETLot();
-      assertTrue(emptyLot.toスキルシート選出用文章().isEmpty());
+    assertFalse(lot.toスキルシート選出用文章().isEmpty());
+
+    SES_AI_T_SKILLSHEETLot emptyLot = new SES_AI_T_SKILLSHEETLot();
+    assertTrue(emptyLot.toスキルシート選出用文章().isEmpty());
+  }
+
+  @Test
+  void testBoundaryCases() throws SQLException {
+    SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
+    // EntityLotBase test (get index < 0)
+    assertNull(lot.get(-1));
+    assertNull(lot.get(100));
+    assertTrue(lot.isEmpty());
+    assertEquals(0, lot.size());
+
+    // SES_AI_T_SKILLSHEETLot method coverage (empty maps)
+    Map<String, String> emptyMap = new java.util.HashMap<>();
+    lot.selectByAndQuery(mockConn, emptyMap);
+    lot.selectByOrQuery(mockConn, emptyMap);
+
+    lot.add(new SES_AI_T_SKILLSHEET());
+    assertNotNull(lot.get(0));
+    assertFalse(lot.isEmpty());
+    assertEquals(1, lot.size());
+
+    lot.sort();
+    assertNotNull(lot.toString());
   }
 }

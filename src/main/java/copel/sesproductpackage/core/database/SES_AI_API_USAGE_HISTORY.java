@@ -35,10 +35,10 @@ public class SES_AI_API_USAGE_HISTORY extends DynamoDB<SES_AI_API_USAGE_HISTORY>
   private ApiType apiType;
 
   /** 入力文字数. */
-  private BigDecimal inputCount = new BigDecimal(0);
+  private BigDecimal inputCount = BigDecimal.ZERO;
 
   /** 出力文字数. */
-  private BigDecimal outputCount = new BigDecimal(0);
+  private BigDecimal outputCount = BigDecimal.ZERO;
 
   @DynamoDbPartitionKey
   @DynamoDbAttribute("partitionKey")
@@ -123,11 +123,6 @@ public class SES_AI_API_USAGE_HISTORY extends DynamoDB<SES_AI_API_USAGE_HISTORY>
 
   public void addOutputCount(final BigDecimal count) {
     this.outputCount = this.outputCount.add(count);
-  }
-
-  @Override
-  public String toString() {
-    return super.toString();
   }
 
   /**

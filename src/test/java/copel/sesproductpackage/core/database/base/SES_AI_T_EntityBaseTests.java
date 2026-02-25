@@ -3,10 +3,8 @@ package copel.sesproductpackage.core.database.base;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import copel.sesproductpackage.core.api.gpt.Transformer;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import org.junit.jupiter.api.Test;
@@ -33,12 +31,18 @@ class SES_AI_T_EntityBaseTests {
     }
 
     @Override
-    public void embedding(Transformer transformer) throws IOException, RuntimeException {}
+    protected String getRawContent() {
+      return "";
+    }
 
     @Override
-    public boolean uniqueCheck(Connection connection, double similarityThreshold)
-        throws SQLException {
-      return true;
+    protected String getContentSummary() {
+      return "";
+    }
+
+    @Override
+    protected String getCheckSql() {
+      return "";
     }
   }
 

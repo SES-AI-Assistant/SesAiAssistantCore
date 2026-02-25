@@ -184,10 +184,9 @@ public class Content {
    * @return 案件紹介文と判定すればtrue、それ以外はfalse
    */
   public boolean is案件紹介文() {
-    return this.isEmpty()
-        ? false
-        : (this.rawContent.length() >= this.targetNumberOfCriteria)
-            && (this.jobScore > this.personelScore);
+    return !this.isEmpty()
+        && this.rawContent.length() >= this.targetNumberOfCriteria
+        && this.jobScore > this.personelScore;
   }
 
   /**
@@ -196,10 +195,9 @@ public class Content {
    * @return 要員紹介文と判定すればtrue、それ以外はfalse
    */
   public boolean is要員紹介文() {
-    return this.isEmpty()
-        ? false
-        : (this.rawContent.length() >= this.targetNumberOfCriteria)
-            && (this.personelScore > this.jobScore);
+    return !this.isEmpty()
+        && this.rawContent.length() >= this.targetNumberOfCriteria
+        && this.personelScore > this.jobScore;
   }
 
   /**

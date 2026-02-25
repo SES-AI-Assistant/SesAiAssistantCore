@@ -28,13 +28,18 @@ public class SES_AI_M_SENDERLot extends EntityLotBase<SES_AI_M_SENDER> {
     ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();
     while (resultSet.next()) {
-      SES_AI_M_SENDER sesAiMSender = new SES_AI_M_SENDER();
-      sesAiMSender.setFromId(resultSet.getString("from_id"));
-      sesAiMSender.setFromName(resultSet.getString("from_name"));
-      sesAiMSender.setCompanyId(resultSet.getString("company_id"));
-      sesAiMSender.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiMSender.setRegisterUser(resultSet.getString("register_user"));
-      this.entityLot.add(sesAiMSender);
+      this.entityLot.add(mapResultSet(resultSet));
     }
+  }
+
+  @Override
+  protected SES_AI_M_SENDER mapResultSet(ResultSet resultSet) throws SQLException {
+    SES_AI_M_SENDER sesAiMSender = new SES_AI_M_SENDER();
+    sesAiMSender.setFromId(resultSet.getString("from_id"));
+    sesAiMSender.setFromName(resultSet.getString("from_name"));
+    sesAiMSender.setCompanyId(resultSet.getString("company_id"));
+    sesAiMSender.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
+    sesAiMSender.setRegisterUser(resultSet.getString("register_user"));
+    return sesAiMSender;
   }
 }

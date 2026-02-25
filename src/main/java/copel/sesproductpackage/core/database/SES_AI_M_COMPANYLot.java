@@ -28,13 +28,18 @@ public class SES_AI_M_COMPANYLot extends EntityLotBase<SES_AI_M_COMPANY> {
     ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();
     while (resultSet.next()) {
-      SES_AI_M_COMPANY sesAiMCompany = new SES_AI_M_COMPANY();
-      sesAiMCompany.setCompanyId(resultSet.getString("company_id"));
-      sesAiMCompany.setCompanyName(resultSet.getString("company_name"));
-      sesAiMCompany.setMemo(resultSet.getString("memo"));
-      sesAiMCompany.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiMCompany.setRegisterUser(resultSet.getString("register_user"));
-      this.entityLot.add(sesAiMCompany);
+      this.entityLot.add(mapResultSet(resultSet));
     }
+  }
+
+  @Override
+  protected SES_AI_M_COMPANY mapResultSet(ResultSet resultSet) throws SQLException {
+    SES_AI_M_COMPANY sesAiMCompany = new SES_AI_M_COMPANY();
+    sesAiMCompany.setCompanyId(resultSet.getString("company_id"));
+    sesAiMCompany.setCompanyName(resultSet.getString("company_name"));
+    sesAiMCompany.setMemo(resultSet.getString("memo"));
+    sesAiMCompany.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
+    sesAiMCompany.setRegisterUser(resultSet.getString("register_user"));
+    return sesAiMCompany;
   }
 }

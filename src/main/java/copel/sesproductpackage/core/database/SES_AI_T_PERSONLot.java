@@ -10,11 +10,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 【Entityクラス】 要員情報(SES_AI_T_PERSON)テーブルのLotクラス.
+ * 【Entityクラス】 要員情報(SES_AI_T_PERSON)テーブル의 Lotクラス.
  *
  * @author 鈴木一矢
  */
@@ -45,6 +44,16 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
     super();
   }
 
+  @Override
+  protected String getSelectSql() {
+    return SELECT_SQL;
+  }
+
+  @Override
+  protected String getSelectLikeSql() {
+    return SELECT_LIKE_SQL;
+  }
+
   /**
    * 引数に指定した要員IDを持つEntityを返却する.
    *
@@ -73,12 +82,13 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
    * @return 変換後の文章
    */
   public String to要員選出用文章() {
-    String result = "";
+    StringBuilder result = new StringBuilder();
     int i = 1;
     for (SES_AI_T_PERSON entity : this.entityLot) {
-      result += Integer.toString(i) + "人目：" + entity.to要員選出用文章();
+      result.append(i).append("人目：").append(entity.to要員選出用文章());
+      i++;
     }
-    return result;
+    return result.toString();
   }
 
   /**
@@ -103,25 +113,17 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
     if (connection == null) {
       return;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(RETRIEVE_SQL);
-    preparedStatement.setString(1, query == null ? null : query.toString());
-    preparedStatement.setInt(2, limit);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    this.entityLot = new ArrayList<>();
-    while (resultSet.next()) {
-      SES_AI_T_PERSON sesAiTPerson = new SES_AI_T_PERSON();
-      sesAiTPerson.setPersonId(resultSet.getString("person_id"));
-      sesAiTPerson.setFromGroup(resultSet.getString("from_group"));
-      sesAiTPerson.setFromId(resultSet.getString("from_id"));
-      sesAiTPerson.setFromName(resultSet.getString("from_name"));
-      sesAiTPerson.setFileId(resultSet.getString("file_id"));
-      sesAiTPerson.setRawContent(resultSet.getString("raw_content"));
-      sesAiTPerson.setContentSummary(resultSet.getString("content_summary"));
-      sesAiTPerson.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTPerson.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTPerson.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      sesAiTPerson.setDistance(resultSet.getDouble("distance"));
-      this.entityLot.add(sesAiTPerson);
+    try (PreparedStatement preparedStatement = connection.prepareStatement(RETRIEVE_SQL)) {
+      preparedStatement.setString(1, query == null ? null : query.toString());
+      preparedStatement.setInt(2, limit);
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        this.entityLot = new ArrayList<>();
+        while (resultSet.next()) {
+          SES_AI_T_PERSON sesAiTPerson = mapResultSet(resultSet);
+          sesAiTPerson.setDistance(resultSet.getDouble("distance"));
+          this.entityLot.add(sesAiTPerson);
+        }
+      }
     }
   }
 
@@ -134,24 +136,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
    */
   public void searchByRawContent(final Connection connection, final String query)
       throws SQLException {
-    this.entityLot = new ArrayList<>();
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_LIKE_SQL);
-    preparedStatement.setString(1, "%" + query + "%"); // ワイルドカードをつける
-    ResultSet resultSet = preparedStatement.executeQuery();
-    while (resultSet.next()) {
-      SES_AI_T_PERSON sesAiTPerson = new SES_AI_T_PERSON();
-      sesAiTPerson.setPersonId(resultSet.getString("person_id"));
-      sesAiTPerson.setFromGroup(resultSet.getString("from_group"));
-      sesAiTPerson.setFromId(resultSet.getString("from_id"));
-      sesAiTPerson.setFromName(resultSet.getString("from_name"));
-      sesAiTPerson.setFileId(resultSet.getString("file_id"));
-      sesAiTPerson.setRawContent(resultSet.getString("raw_content"));
-      sesAiTPerson.setContentSummary(resultSet.getString("content_summary"));
-      sesAiTPerson.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTPerson.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTPerson.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      this.entityLot.add(sesAiTPerson);
-    }
+    this.searchByField(connection, "raw_content", query);
   }
 
   /**
@@ -165,135 +150,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
   public void searchByRawContent(
       final Connection connection, final String firstLikeQuery, final List<LogicalOperators> query)
       throws SQLException {
-    // 検索条件からSQLを生成
-    String sql = SELECT_LIKE_SQL;
-    for (final LogicalOperators logicalOperator : query) {
-      logicalOperator.setColumnName("raw_content");
-      sql += logicalOperator != null ? logicalOperator.getLikeQuery() : "";
-    }
-
-    // 検索条件を追加する
-    PreparedStatement preparedStatement = connection.prepareStatement(sql);
-    preparedStatement.setString(1, "%" + firstLikeQuery + "%"); // ワイルドカードをつける
-    if (query != null && !query.isEmpty()) {
-      for (int i = 0; i < query.size(); i++) {
-        if (query.get(0) != null) {
-          preparedStatement.setString(i + 2, "%" + query.get(0).getValue() + "%"); // ワイルドカードをつける
-        }
-      }
-    }
-
-    // 検索を実行する
-    this.entityLot = new ArrayList<>();
-    ResultSet resultSet = preparedStatement.executeQuery();
-    while (resultSet.next()) {
-      SES_AI_T_PERSON sesAiTPerson = new SES_AI_T_PERSON();
-      sesAiTPerson.setPersonId(resultSet.getString("person_id"));
-      sesAiTPerson.setFromGroup(resultSet.getString("from_group"));
-      sesAiTPerson.setFromId(resultSet.getString("from_id"));
-      sesAiTPerson.setFromName(resultSet.getString("from_name"));
-      sesAiTPerson.setFileId(resultSet.getString("file_id"));
-      sesAiTPerson.setRawContent(resultSet.getString("raw_content"));
-      sesAiTPerson.setContentSummary(resultSet.getString("content_summary"));
-      sesAiTPerson.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTPerson.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTPerson.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      this.entityLot.add(sesAiTPerson);
-    }
-  }
-
-  /**
-   * SELECTをAND条件で実行する.
-   *
-   * @param connection DBコネクション
-   * @param andQuery カラム名と検索値をkey-valueで持つMap
-   * @throws SQLException
-   */
-  public void selectByAndQuery(final Connection connection, final Map<String, String> andQuery)
-      throws SQLException {
-    // 検索条件からSQLを生成
-    String sql = SELECT_SQL;
-    boolean isFirst = true;
-    for (final String columnName : andQuery.keySet()) {
-      if (isFirst) {
-        sql += columnName + " = ?";
-      } else {
-        sql += "AND " + columnName + " = ?";
-      }
-    }
-
-    // 検索条件を追加する
-    PreparedStatement preparedStatement = connection.prepareStatement(sql);
-    int i = 1;
-    for (final String columnName : andQuery.keySet()) {
-      preparedStatement.setString(i, andQuery.get(columnName));
-      i++;
-    }
-
-    // 検索を実行する
-    this.entityLot = new ArrayList<>();
-    ResultSet resultSet = preparedStatement.executeQuery();
-    while (resultSet.next()) {
-      SES_AI_T_PERSON sesAiTPerson = new SES_AI_T_PERSON();
-      sesAiTPerson.setPersonId(resultSet.getString("person_id"));
-      sesAiTPerson.setFromGroup(resultSet.getString("from_group"));
-      sesAiTPerson.setFromId(resultSet.getString("from_id"));
-      sesAiTPerson.setFromName(resultSet.getString("from_name"));
-      sesAiTPerson.setFileId(resultSet.getString("file_id"));
-      sesAiTPerson.setRawContent(resultSet.getString("raw_content"));
-      sesAiTPerson.setContentSummary(resultSet.getString("content_summary"));
-      sesAiTPerson.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTPerson.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTPerson.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      this.entityLot.add(sesAiTPerson);
-    }
-  }
-
-  /**
-   * SELECTをOR条件で実行する.
-   *
-   * @param connection DBコネクション
-   * @param orQuery カラム名と検索値をkey-valueで持つMap
-   * @throws SQLException
-   */
-  public void selectByOrQuery(final Connection connection, final Map<String, String> orQuery)
-      throws SQLException {
-    // 検索条件からSQLを生成
-    String sql = SELECT_SQL;
-    boolean isFirst = true;
-    for (final String columnName : orQuery.keySet()) {
-      if (isFirst) {
-        sql += columnName + " = ?";
-      } else {
-        sql += "OR " + columnName + " = ?";
-      }
-    }
-
-    // 検索条件を追加する
-    PreparedStatement preparedStatement = connection.prepareStatement(sql);
-    int i = 1;
-    for (final String columnName : orQuery.keySet()) {
-      preparedStatement.setString(i, orQuery.get(columnName));
-      i++;
-    }
-
-    // 検索を実行する
-    this.entityLot = new ArrayList<>();
-    ResultSet resultSet = preparedStatement.executeQuery();
-    while (resultSet.next()) {
-      SES_AI_T_PERSON sesAiTPerson = new SES_AI_T_PERSON();
-      sesAiTPerson.setPersonId(resultSet.getString("person_id"));
-      sesAiTPerson.setFromGroup(resultSet.getString("from_group"));
-      sesAiTPerson.setFromId(resultSet.getString("from_id"));
-      sesAiTPerson.setFromName(resultSet.getString("from_name"));
-      sesAiTPerson.setFileId(resultSet.getString("file_id"));
-      sesAiTPerson.setRawContent(resultSet.getString("raw_content"));
-      sesAiTPerson.setContentSummary(resultSet.getString("content_summary"));
-      sesAiTPerson.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTPerson.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTPerson.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      this.entityLot.add(sesAiTPerson);
-    }
+    this.searchByField(connection, "raw_content", firstLikeQuery, query);
   }
 
   /**
@@ -305,27 +162,22 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
    */
   public void selectByRegisterDateAfter(
       final Connection connection, final OriginalDateTime fromDate) throws SQLException {
+    if (connection == null) {
+      return;
+    }
     // 検索条件を追加する
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SQL_BY_REGISTER_DATE);
-    preparedStatement.setTimestamp(
-        1, fromDate != null ? fromDate.toTimestamp() : new OriginalDateTime().toTimestamp());
+    try (PreparedStatement preparedStatement =
+        connection.prepareStatement(SELECT_SQL_BY_REGISTER_DATE)) {
+      preparedStatement.setTimestamp(
+          1, fromDate != null ? fromDate.toTimestamp() : new OriginalDateTime().toTimestamp());
 
-    // 検索を実行する
-    this.entityLot = new ArrayList<>();
-    ResultSet resultSet = preparedStatement.executeQuery();
-    while (resultSet.next()) {
-      SES_AI_T_PERSON sesAiTPerson = new SES_AI_T_PERSON();
-      sesAiTPerson.setPersonId(resultSet.getString("person_id"));
-      sesAiTPerson.setFromGroup(resultSet.getString("from_group"));
-      sesAiTPerson.setFromId(resultSet.getString("from_id"));
-      sesAiTPerson.setFromName(resultSet.getString("from_name"));
-      sesAiTPerson.setFileId(resultSet.getString("file_id"));
-      sesAiTPerson.setRawContent(resultSet.getString("raw_content"));
-      sesAiTPerson.setContentSummary(resultSet.getString("content_summary"));
-      sesAiTPerson.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTPerson.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTPerson.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      this.entityLot.add(sesAiTPerson);
+      // 検索を実行する
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        this.entityLot = new ArrayList<>();
+        while (resultSet.next()) {
+          this.entityLot.add(mapResultSet(resultSet));
+        }
+      }
     }
   }
 
@@ -342,21 +194,30 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
   @Override
   public void selectAll(Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    while (resultSet.next()) {
-      SES_AI_T_PERSON sesAiTPerson = new SES_AI_T_PERSON();
-      sesAiTPerson.setPersonId(resultSet.getString("person_id"));
-      sesAiTPerson.setFromGroup(resultSet.getString("from_group"));
-      sesAiTPerson.setFromId(resultSet.getString("from_id"));
-      sesAiTPerson.setFromName(resultSet.getString("from_name"));
-      sesAiTPerson.setFileId(resultSet.getString("file_id"));
-      sesAiTPerson.setRawContent(resultSet.getString("raw_content"));
-      sesAiTPerson.setContentSummary(resultSet.getString("content_summary"));
-      sesAiTPerson.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTPerson.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTPerson.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      this.entityLot.add(sesAiTPerson);
+    if (connection == null) {
+      return;
     }
+    try (PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);
+        ResultSet resultSet = preparedStatement.executeQuery()) {
+      while (resultSet.next()) {
+        this.entityLot.add(mapResultSet(resultSet));
+      }
+    }
+  }
+
+  @Override
+  protected SES_AI_T_PERSON mapResultSet(ResultSet resultSet) throws SQLException {
+    SES_AI_T_PERSON sesAiTPerson = new SES_AI_T_PERSON();
+    sesAiTPerson.setPersonId(resultSet.getString("person_id"));
+    sesAiTPerson.setFromGroup(resultSet.getString("from_group"));
+    sesAiTPerson.setFromId(resultSet.getString("from_id"));
+    sesAiTPerson.setFromName(resultSet.getString("from_name"));
+    sesAiTPerson.setFileId(resultSet.getString("file_id"));
+    sesAiTPerson.setRawContent(resultSet.getString("raw_content"));
+    sesAiTPerson.setContentSummary(resultSet.getString("content_summary"));
+    sesAiTPerson.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
+    sesAiTPerson.setRegisterUser(resultSet.getString("register_user"));
+    sesAiTPerson.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
+    return sesAiTPerson;
   }
 }

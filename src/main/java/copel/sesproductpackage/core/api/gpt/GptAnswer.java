@@ -16,10 +16,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class GptAnswer {
   /** YESを意味する単語. */
-  private static final String[] YES_ARRAY = {"ＹＥＳ", "YES", "yes", "YES.", "yes.", "はい", "はい。"};
+  private static final String[] YES_ARRAY = { "ＹＥＳ", "YES", "yes", "YES.", "yes.", "はい", "はい。" };
 
   /** NOを意味する単語. */
-  private static final String[] NO_ARRAY = {"ＮＯ", "NO", "no", "NO.", "no.", "いいえ", "いいえ。"};
+  private static final String[] NO_ARRAY = { "ＮＯ", "NO", "no", "NO.", "no.", "いいえ", "いいえ。" };
 
   /** 回答. */
   private String answer;
@@ -40,7 +40,7 @@ public class GptAnswer {
    * @return NULLまたは空文字であればtrue、それ以外はfalse
    */
   public boolean isEmpty() {
-    return this.answer != null ? (this.answer.isBlank() || this.answer.isEmpty()) : true;
+    return this.answer == null || this.answer.isBlank();
   }
 
   /**

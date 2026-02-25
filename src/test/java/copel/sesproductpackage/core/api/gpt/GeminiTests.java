@@ -1,19 +1,22 @@
 package copel.sesproductpackage.core.api.gpt;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import copel.sesproductpackage.core.util.Properties;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
 import java.util.Map;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
+
+import copel.sesproductpackage.core.util.Properties;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
@@ -74,8 +77,7 @@ class GeminiTests extends HttpTestBase {
 
   @Test
   void testGenerateSuccess() throws Exception {
-    String jsonResponse =
-        "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello from Gemini\"}]}}]}";
+    String jsonResponse = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello from Gemini\"}]}}]}";
     when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
     when(sharedMockConn.getInputStream())
         .thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
@@ -96,7 +98,7 @@ class GeminiTests extends HttpTestBase {
 
     Gemini gemini = new Gemini("key");
     float[] result = gemini.embedding("hello");
-    assertArrayEquals(new float[] {0.1f, 0.2f, 0.3f}, result);
+    assertArrayEquals(new float[] { 0.1f, 0.2f, 0.3f }, result);
   }
 
   @Test
@@ -114,7 +116,7 @@ class GeminiTests extends HttpTestBase {
 
   @Test
   void testGenerateErrorCodes() throws Exception {
-    int[] codes = {400, 401, 403, 404, 408, 429, 500, 503};
+    int[] codes = { 400, 401, 403, 404, 408, 429, 500, 503 };
     for (int code : codes) {
       reset(sharedMockConn);
       when(sharedMockConn.getResponseCode()).thenReturn(code);
@@ -171,8 +173,9 @@ class GeminiTests extends HttpTestBase {
     when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
 
     Gemini gemini = new Gemini("key");
-    GptAnswer answer = gemini.generate(null);
-    assertEquals("Hello", answer.getAnswer());
+    assertNull(gemini.generate(null));
+    assertNull(gemini.generate(""));
+    assertNull(gemini.generate("   "));
   }
 
   @Test
@@ -196,6 +199,8 @@ class GeminiTests extends HttpTestBase {
     when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
 
     Gemini gemini = new Gemini("key");
-    assertNotNull(gemini.embedding(null));
+    assertNull(gemini.embedding(null));
+    assertNull(gemini.embedding(""));
+    assertNull(gemini.embedding("   "));
   }
 }

@@ -43,15 +43,7 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
     ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();
     while (resultSet.next()) {
-      SES_AI_T_WATCH sesAiTWatch = new SES_AI_T_WATCH();
-      sesAiTWatch.setUserId(resultSet.getString("user_id"));
-      sesAiTWatch.setTargetId(resultSet.getString("target_id"));
-      sesAiTWatch.setTargetType(TargetType.getEnumByName(resultSet.getString("target_type")));
-      sesAiTWatch.setMemo(resultSet.getString("memo"));
-      sesAiTWatch.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTWatch.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTWatch.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      this.entityLot.add(sesAiTWatch);
+      this.entityLot.add(mapResultSet(resultSet));
     }
   }
 
@@ -78,15 +70,20 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
     ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();
     while (resultSet.next()) {
-      SES_AI_T_WATCH sesAiTWatch = new SES_AI_T_WATCH();
-      sesAiTWatch.setUserId(resultSet.getString("user_id"));
-      sesAiTWatch.setTargetId(resultSet.getString("target_id"));
-      sesAiTWatch.setTargetType(TargetType.getEnumByName(resultSet.getString("target_type")));
-      sesAiTWatch.setMemo(resultSet.getString("memo"));
-      sesAiTWatch.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTWatch.setRegisterUser(resultSet.getString("register_user"));
-      sesAiTWatch.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-      this.entityLot.add(sesAiTWatch);
+      this.entityLot.add(mapResultSet(resultSet));
     }
+  }
+
+  @Override
+  protected SES_AI_T_WATCH mapResultSet(ResultSet resultSet) throws SQLException {
+    SES_AI_T_WATCH sesAiTWatch = new SES_AI_T_WATCH();
+    sesAiTWatch.setUserId(resultSet.getString("user_id"));
+    sesAiTWatch.setTargetId(resultSet.getString("target_id"));
+    sesAiTWatch.setTargetType(TargetType.getEnumByName(resultSet.getString("target_type")));
+    sesAiTWatch.setMemo(resultSet.getString("memo"));
+    sesAiTWatch.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
+    sesAiTWatch.setRegisterUser(resultSet.getString("register_user"));
+    sesAiTWatch.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
+    return sesAiTWatch;
   }
 }

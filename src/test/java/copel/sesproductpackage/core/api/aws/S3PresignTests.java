@@ -1,16 +1,14 @@
 package copel.sesproductpackage.core.api.aws;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.*;
 
 import java.net.URL;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
-
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
@@ -29,7 +27,11 @@ class S3PresignTests {
     mockedPresigner = mockStatic(S3Presigner.class);
   }
 
-  @AfterEach void tearDown() { mockedS3Client.close(); mockedPresigner.close(); }
+  @AfterEach
+  void tearDown() {
+    mockedS3Client.close();
+    mockedPresigner.close();
+  }
 
   @Test
   void testCreateDownloadUrl() throws Exception {
@@ -55,7 +57,8 @@ class S3PresignTests {
 
     PresignedGetObjectRequest mockPresignRes = mock(PresignedGetObjectRequest.class);
     when(mockPresignRes.url()).thenReturn(new URL("https://example.com"));
-    when(mockPresignerObj.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(mockPresignRes);
+    when(mockPresignerObj.presignGetObject(any(GetObjectPresignRequest.class)))
+        .thenReturn(mockPresignRes);
 
     assertEquals("https://example.com", s3.createDownloadUrl());
   }
@@ -91,7 +94,7 @@ class S3PresignTests {
 
     // 実行：例外が発生して catch ブロックに入り、null が返ることを確認
     String url = s3.createDownloadUrl();
-    
+
     assertNull(url);
   }
 }

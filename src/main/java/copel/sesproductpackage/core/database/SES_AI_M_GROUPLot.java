@@ -28,12 +28,17 @@ public class SES_AI_M_GROUPLot extends EntityLotBase<SES_AI_M_GROUP> {
     ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();
     while (resultSet.next()) {
-      SES_AI_M_GROUP sesAiMGroup = new SES_AI_M_GROUP();
-      sesAiMGroup.setFromGroup(resultSet.getString("from_group"));
-      sesAiMGroup.setGroupName(resultSet.getString("group_name"));
-      sesAiMGroup.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiMGroup.setRegisterUser(resultSet.getString("register_user"));
-      this.entityLot.add(sesAiMGroup);
+      this.entityLot.add(mapResultSet(resultSet));
     }
+  }
+
+  @Override
+  protected SES_AI_M_GROUP mapResultSet(ResultSet resultSet) throws SQLException {
+    SES_AI_M_GROUP sesAiMGroup = new SES_AI_M_GROUP();
+    sesAiMGroup.setFromGroup(resultSet.getString("from_group"));
+    sesAiMGroup.setGroupName(resultSet.getString("group_name"));
+    sesAiMGroup.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
+    sesAiMGroup.setRegisterUser(resultSet.getString("register_user"));
+    return sesAiMGroup;
   }
 }

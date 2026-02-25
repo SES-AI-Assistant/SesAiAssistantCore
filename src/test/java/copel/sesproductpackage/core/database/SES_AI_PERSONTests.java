@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.api.gpt.Transformer;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.unit.Vector;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -176,11 +177,29 @@ class SES_AI_PERSONTests {
     person.insert(connection);
     person.updateByPk(connection);
 
-    // ResultSet.next() false
+    // selectByPk branches
+    person.setPersonId("P1");
     ResultSet rs = mock(ResultSet.class);
     when(ps.executeQuery()).thenReturn(rs);
     when(rs.next()).thenReturn(false);
     person.selectByPk(connection);
+
+    // deleteByPk failed branch
+    when(ps.executeUpdate()).thenReturn(0);
+    assertFalse(person.deleteByPk(connection));
+
+    // Vector data non-null coverage
+    Vector v = new Vector(null);
+    try {
+      java.lang.reflect.Field valueField = Vector.class.getDeclaredField("value");
+      valueField.setAccessible(true);
+      valueField.set(v, new float[] {0.1f});
+    } catch (Exception e) {
+      // ignore
+    }
+    person.setVectorData(v);
+    person.insert(connection);
+    person.updateByPk(connection);
 
     // Covering Lombok
     assertNotNull(person.toString());
@@ -215,5 +234,72 @@ class SES_AI_PERSONTests {
   void testUpdateFileIdByPkBranch() throws SQLException {
     SES_AI_T_PERSON person = new SES_AI_T_PERSON();
     assertFalse(person.updateFileIdByPk(null)); // connection null
+  }
+
+  @Test
+  void testSES_AI_T_PERSONLombok() {
+    SES_AI_T_PERSON p1 = new SES_AI_T_PERSON();
+    SES_AI_T_PERSON p2 = new SES_AI_T_PERSON();
+    p1.setPersonId("id1");
+    p2.setPersonId("id1");
+    assertEquals(p1, p1);
+    assertEquals(p1, p2);
+    assertEquals(p1.hashCode(), p2.hashCode());
+    assertNotNull(p1.toString());
+    assertTrue(p1.canEqual(p2));
+    assertNotEquals(p1, null);
+    assertNotEquals(p1, "str");
+
+    p2.setPersonId("id2");
+    assertNotEquals(p1, p2);
+    p1.setPersonId("id2");
+    assertEquals(p1, p2);
+
+    p2.setFromName("n1");
+    assertNotEquals(p1, p2);
+    p1.setFromName("n1");
+    assertEquals(p1, p2);
+
+    p2.setRegisterUser("user1");
+    assertNotEquals(p1, p2);
+    p1.setRegisterUser("user1");
+    assertEquals(p1, p2);
+
+    // Coverage for more fields
+    p2.setFromGroup("g1");
+    assertNotEquals(p1, p2);
+    p1.setFromGroup("g1");
+    p2.setRawContent("r1");
+    assertNotEquals(p1, p2);
+    p1.setRawContent("r1");
+    p2.setContentSummary("s1");
+    assertNotEquals(p1, p2);
+    p1.setContentSummary("s1");
+    p2.setFileId("f1");
+    assertNotEquals(p1, p2);
+    p1.setFileId("f1");
+    p2.setFileSummary("fs1");
+    assertNotEquals(p1, p2);
+    p1.setFileSummary("fs1");
+    Vector v1 = new Vector(null);
+    try {
+      java.lang.reflect.Field valueField = Vector.class.getDeclaredField("value");
+      valueField.setAccessible(true);
+      valueField.set(v1, new float[] {0.1f});
+    } catch (Exception e) {
+      // ignore
+    }
+    p2.setVectorData(v1);
+    assertNotEquals(p1, p2);
+    p1.setVectorData(v1);
+    p2.setRegisterDate(new OriginalDateTime("2024-01-01"));
+    assertNotEquals(p1, p2);
+    p1.setRegisterDate(new OriginalDateTime("2024-01-01"));
+    assertEquals(p1, p2);
+
+    p2.setTtl(new OriginalDateTime("2024-01-01"));
+    assertNotEquals(p1, p2);
+    p1.setTtl(new OriginalDateTime("2024-01-01"));
+    assertEquals(p1, p2);
   }
 }

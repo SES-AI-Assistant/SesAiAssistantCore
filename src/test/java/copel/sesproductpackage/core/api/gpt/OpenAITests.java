@@ -203,6 +203,18 @@ class OpenAITests extends HttpTestBase {
       assertThrows(
           RuntimeException.class, () -> api.fineTuning("data"), "Should throw for " + code);
     }
+
+    // Default case for fineTuning upload (201 etc)
+    reset(sharedMockConn);
+    when(sharedMockConn.getResponseCode())
+        .thenReturn(201, 200); // 201 for upload (hits default), 200 for job
+    String uploadResponse = "{\"id\":\"file-123\"}";
+    when(sharedMockConn.getInputStream())
+        .thenReturn(
+            new ByteArrayInputStream(uploadResponse.getBytes()),
+            new ByteArrayInputStream("{}".getBytes()));
+    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+    new OpenAI("key").fineTuning("data");
   }
 
   @Test

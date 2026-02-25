@@ -29,18 +29,7 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
     ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();
     while (resultSet.next()) {
-      SES_AI_T_MATCH sesAiTMatch = new SES_AI_T_MATCH();
-      sesAiTMatch.setMatchingId(resultSet.getString("matching_id"));
-      sesAiTMatch.setUserId(resultSet.getString("user_id"));
-      sesAiTMatch.setJobId(resultSet.getString("job_id"));
-      sesAiTMatch.setPersonId(resultSet.getString("person_id"));
-      sesAiTMatch.setJobContent(resultSet.getString("job_content"));
-      sesAiTMatch.setPersonContent(resultSet.getString("person_content"));
-      sesAiTMatch.setPersonId(resultSet.getString("person_id"));
-      sesAiTMatch.setStatus(MatchingStatus.getEnum(resultSet.getString("status_cd")));
-      sesAiTMatch.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-      sesAiTMatch.setRegisterUser(resultSet.getString("register_user"));
-      this.entityLot.add(sesAiTMatch);
+      this.entityLot.add(mapResultSet(resultSet));
     }
   }
 
@@ -63,5 +52,20 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
   public boolean isExistByPersonId(final String personId) {
     return personId != null
         && this.entityLot.stream().anyMatch(e -> personId.equals(e.getPersonId()));
+  }
+
+  @Override
+  protected SES_AI_T_MATCH mapResultSet(ResultSet resultSet) throws SQLException {
+    SES_AI_T_MATCH sesAiTMatch = new SES_AI_T_MATCH();
+    sesAiTMatch.setMatchingId(resultSet.getString("matching_id"));
+    sesAiTMatch.setUserId(resultSet.getString("user_id"));
+    sesAiTMatch.setJobId(resultSet.getString("job_id"));
+    sesAiTMatch.setPersonId(resultSet.getString("person_id"));
+    sesAiTMatch.setJobContent(resultSet.getString("job_content"));
+    sesAiTMatch.setPersonContent(resultSet.getString("person_content"));
+    sesAiTMatch.setStatus(MatchingStatus.getEnum(resultSet.getString("status_cd")));
+    sesAiTMatch.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
+    sesAiTMatch.setRegisterUser(resultSet.getString("register_user"));
+    return sesAiTMatch;
   }
 }
