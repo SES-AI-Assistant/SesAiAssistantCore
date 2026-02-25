@@ -109,6 +109,9 @@ public class SES_AI_API_USAGE_HISTORY extends DynamoDB<SES_AI_API_USAGE_HISTORY>
   }
 
   public void addInputCount(final BigDecimal count) {
+    if (this.inputCount == null) {
+      this.inputCount = BigDecimal.ZERO;
+    }
     this.inputCount = this.inputCount.add(count);
   }
 
@@ -122,6 +125,9 @@ public class SES_AI_API_USAGE_HISTORY extends DynamoDB<SES_AI_API_USAGE_HISTORY>
   }
 
   public void addOutputCount(final BigDecimal count) {
+    if (this.outputCount == null) {
+      this.outputCount = BigDecimal.ZERO;
+    }
     this.outputCount = this.outputCount.add(count);
   }
 

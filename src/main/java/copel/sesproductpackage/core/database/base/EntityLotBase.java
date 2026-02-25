@@ -192,7 +192,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       final boolean isAnd)
       throws SQLException {
     this.entityLot = new ArrayList<>();
-    if (connection == null || query == null) {
+    if (connection == null || query == null || query.isEmpty()) {
       return;
     }
 

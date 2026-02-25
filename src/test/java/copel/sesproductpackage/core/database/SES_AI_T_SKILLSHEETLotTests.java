@@ -66,6 +66,13 @@ class SES_AI_T_SKILLSHEETLotTests {
   }
 
   @Test
+  void testSelectAllWithNullConnection() throws SQLException {
+    SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
+    lot.selectAll(null);
+    assertTrue(lot.isEmpty());
+  }
+
+  @Test
   void testGetEntityByPk() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();

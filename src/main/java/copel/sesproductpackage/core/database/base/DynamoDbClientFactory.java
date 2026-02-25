@@ -7,6 +7,10 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 /** DynamoDbClientを生成するファクトリクラス. */
 public class DynamoDbClientFactory {
+  private DynamoDbClientFactory() {
+    throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
+  }
+
   /**
    * DynamoDbClientを生成します.
    *

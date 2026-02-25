@@ -174,13 +174,14 @@ class CoverageFinalBoosterTest extends HttpTestBase {
     // doc (Mock)
     ss.setFileName("t.doc");
     try (MockedConstruction<HWPFDocument> mockedDoc = mockConstruction(HWPFDocument.class);
-        MockedConstruction<WordExtractor> mockedExtractor = mockConstruction(
-            WordExtractor.class,
-            (mock, context) -> {
-              when(mock.getParagraphText()).thenReturn(new String[] { "p1" });
-              when(mock.getText()).thenReturn("t1");
-            })) {
-      ss.setFileContentFromByte(new byte[] { 1 });
+        MockedConstruction<WordExtractor> mockedExtractor =
+            mockConstruction(
+                WordExtractor.class,
+                (mock, context) -> {
+                  when(mock.getParagraphText()).thenReturn(new String[] {"p1"});
+                  when(mock.getText()).thenReturn("t1");
+                })) {
+      ss.setFileContentFromByte(new byte[] {1});
     }
 
     // pdf
@@ -227,7 +228,7 @@ class CoverageFinalBoosterTest extends HttpTestBase {
 
     // Other
     ss.setFileName("t.txt");
-    ss.setFileContentFromByte(new byte[] { 1 });
+    ss.setFileContentFromByte(new byte[] {1});
 
     // misc
     ss.getFileUrl();

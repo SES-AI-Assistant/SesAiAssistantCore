@@ -137,9 +137,6 @@ class SES_AI_API_USAGE_HISTORYTests {
         .getItem(any(java.util.function.Consumer.class));
 
     SES_AI_API_USAGE_HISTORY target = new SES_AI_API_USAGE_HISTORY();
-    // Set keys so partitionKey and sortKey are generated for Key.builder() if
-    // needed by mock
-    // internally
     target.setProvider(Provider.OpenAI);
     target.setModel("gpt-4o-mini");
     target.setUsageMonth("202501");
@@ -179,42 +176,126 @@ class SES_AI_API_USAGE_HISTORYTests {
   }
 
   @Test
-  void testLombokAndAccessors() {
-    SES_AI_API_USAGE_HISTORY h1 = new SES_AI_API_USAGE_HISTORY();
-    h1.setProvider(Provider.OpenAI);
-    h1.setModel("m1");
-    h1.setUsageMonth("202501");
-    h1.setUserId("u1");
-    h1.setApiType(ApiType.Generate);
-    h1.setInputCount(new BigDecimal(10));
-    h1.setOutputCount(new BigDecimal(5));
-    h1.setTimestamp("2026");
-
-    assertEquals(Provider.OpenAI, h1.getProvider());
-    assertEquals("m1", h1.getModel());
-    assertEquals("202501", h1.getUsageMonth());
-    assertEquals("u1", h1.getUserId());
-    assertEquals(ApiType.Generate, h1.getApiType());
-    assertEquals(new BigDecimal(10), h1.getInputCount());
-    assertEquals(new BigDecimal(5), h1.getOutputCount());
-    assertEquals("2026", h1.getTimestamp());
-
-    // equals, hashCode, toString
-    SES_AI_API_USAGE_HISTORY h2 = new SES_AI_API_USAGE_HISTORY();
-    h2.setProvider(Provider.OpenAI);
-    h2.setModel("m1");
-    h2.setUsageMonth("202501");
-    h2.setUserId("u1");
-    h2.setApiType(ApiType.Generate);
-    h2.setInputCount(new BigDecimal(10));
-    h2.setOutputCount(new BigDecimal(5));
-    h2.setTimestamp("2026");
+  void testEqualsBasic() {
+    SES_AI_API_USAGE_HISTORY h1 = createFullHistory("u1");
+    SES_AI_API_USAGE_HISTORY h2 = createFullHistory("u1");
 
     assertEquals(h1, h2);
     assertEquals(h1.hashCode(), h2.hashCode());
-    assertNotNull(h1.toString());
+    assertTrue(h1.canEqual(h2));
     assertFalse(h1.equals(null));
     assertFalse(h1.equals(new Object()));
+    assertEquals(h1, h1);
+  }
+
+  @Test
+  void testEqualsFieldByField() {
+    SES_AI_API_USAGE_HISTORY h1 = createFullHistory("u1");
+
+    // Provider
+    SES_AI_API_USAGE_HISTORY h2 = createFullHistory("u1");
+    h2.setProvider(Provider.Google);
+    assertNotEquals(h1, h2);
+
+    // Model
+    h2 = createFullHistory("u1");
+    h2.setModel("different");
+    assertNotEquals(h1, h2);
+
+    // UsageMonth
+    h2 = createFullHistory("u1");
+    h2.setUsageMonth("different");
+    assertNotEquals(h1, h2);
+
+    // UserId
+    h2 = createFullHistory("u1");
+    h2.setUserId("different");
+    assertNotEquals(h1, h2);
+
+    // ApiType
+    h2 = createFullHistory("u1");
+    h2.setApiType(ApiType.Embedding);
+    assertNotEquals(h1, h2);
+
+    // InputCount
+    h2 = createFullHistory("u1");
+    h2.setInputCount(new BigDecimal(999));
+    assertNotEquals(h1, h2);
+    h2.setInputCount(new BigDecimal("10.0")); // Different scale
+    assertNotEquals(h1, h2);
+
+    // OutputCount
+    h2 = createFullHistory("u1");
+    h2.setOutputCount(new BigDecimal(999));
+    assertNotEquals(h1, h2);
+    h2.setOutputCount(new BigDecimal("5.0")); // Different scale
+    assertNotEquals(h1, h2);
+  }
+
+  @Test
+  void testEqualsNullFields() {
+    SES_AI_API_USAGE_HISTORY h1 = new SES_AI_API_USAGE_HISTORY();
+    SES_AI_API_USAGE_HISTORY h2 = new SES_AI_API_USAGE_HISTORY();
+    assertEquals(h1, h2);
+
+    h1.setProvider(Provider.OpenAI);
+    assertNotEquals(h1, h2);
+    h2.setProvider(Provider.OpenAI);
+    assertEquals(h1, h2);
+
+    h1.setModel("m");
+    assertNotEquals(h1, h2);
+    h2.setModel("m");
+    assertEquals(h1, h2);
+
+    h1.setUsageMonth("2025");
+    assertNotEquals(h1, h2);
+    h2.setUsageMonth("2025");
+    assertEquals(h1, h2);
+
+    h1.setUserId("u");
+    assertNotEquals(h1, h2);
+    h2.setUserId("u");
+    assertEquals(h1, h2);
+
+    h1.setApiType(ApiType.Generate);
+    assertNotEquals(h1, h2);
+    h2.setApiType(ApiType.Generate);
+    assertEquals(h1, h2);
+
+    h1.setInputCount(new BigDecimal(1));
+    assertNotEquals(h1, h2);
+    h2.setInputCount(new BigDecimal(1));
+    assertEquals(h1, h2);
+
+    h1.setOutputCount(new BigDecimal(1));
+    assertNotEquals(h1, h2);
+    h2.setOutputCount(new BigDecimal(1));
+    assertEquals(h1, h2);
+  }
+
+  @Test
+  void testEqualsTimestamp() {
+    SES_AI_API_USAGE_HISTORY h1 = createFullHistory("u1");
+    SES_AI_API_USAGE_HISTORY h2 = createFullHistory("u1");
+    h2.setTimestamp("different");
+    // Since callSuper=false and timestamp is in DynamoDB base class,
+    // it should be EQUAL if Lombok is working as configured.
+    // But if it's NOT equal, then it's being included somehow.
+    assertEquals(h1, h2, "Timestamp should be ignored in equals due to callSuper=false");
+  }
+
+  private SES_AI_API_USAGE_HISTORY createFullHistory(String userId) {
+    SES_AI_API_USAGE_HISTORY h = new SES_AI_API_USAGE_HISTORY();
+    h.setProvider(Provider.OpenAI);
+    h.setModel("m1");
+    h.setUsageMonth("202501");
+    h.setUserId(userId);
+    h.setApiType(ApiType.Generate);
+    h.setInputCount(new BigDecimal(10));
+    h.setOutputCount(new BigDecimal(5));
+    h.setTimestamp("2026");
+    return h;
   }
 
   @Test
@@ -291,6 +372,15 @@ class SES_AI_API_USAGE_HISTORYTests {
     assertEquals(new BigDecimal(15), history.getInputCount());
     history.addOutputCount(new BigDecimal(5));
     assertEquals(new BigDecimal(25), history.getOutputCount());
+
+    // Null cases
+    history.setInputCount(null);
+    history.addInputCount(10);
+    assertEquals(new BigDecimal(10), history.getInputCount());
+
+    history.setOutputCount(null);
+    history.addOutputCount(20);
+    assertEquals(new BigDecimal(20), history.getOutputCount());
 
     // Covering toString and other Lombok methods
     assertNotNull(history.toString());

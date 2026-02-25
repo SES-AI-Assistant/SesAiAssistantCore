@@ -1,12 +1,9 @@
 package copel.sesproductpackage.core.database;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import copel.sesproductpackage.core.unit.LogicalOperators;
-import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
-import copel.sesproductpackage.core.unit.Vector;
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -17,8 +14,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import copel.sesproductpackage.core.unit.LogicalOperators;
+import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
+import copel.sesproductpackage.core.unit.Vector;
 
 class SES_AI_T_JOBLotTests {
 
@@ -127,7 +129,7 @@ class SES_AI_T_JOBLotTests {
     setupDefaultResultSet();
     SES_AI_T_JOBLot lot2 = new SES_AI_T_JOBLot();
     lot2.selectByAndQuery(mockConn, Collections.emptyMap());
-    assertEquals(1, lot2.size());
+    assertEquals(0, lot2.size());
   }
 
   @Test
@@ -143,7 +145,7 @@ class SES_AI_T_JOBLotTests {
     setupDefaultResultSet();
     SES_AI_T_JOBLot lot2 = new SES_AI_T_JOBLot();
     lot2.selectByOrQuery(mockConn, Collections.emptyMap());
-    assertEquals(1, lot2.size());
+    assertEquals(0, lot2.size());
   }
 
   @Test

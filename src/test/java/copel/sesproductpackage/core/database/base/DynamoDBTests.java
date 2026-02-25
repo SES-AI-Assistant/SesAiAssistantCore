@@ -96,14 +96,34 @@ class DynamoDBTests {
     assertNotNull(entity.hashCode());
     assertTrue(entity.equals(entity));
     assertFalse(entity.equals(null));
+    assertFalse(entity.equals(new Object()));
 
     TestDynamoEntity other = new TestDynamoEntity();
     other.setPartitionKey("pk");
     other.setSortKey("sk");
     other.setTimestamp("2026-01-01");
-    // Using manual equals check to avoid dynamic field issues with Lombok if any
     assertTrue(entity.equals(other));
     assertEquals(entity.hashCode(), other.hashCode());
+
+    // Null/Different fields
+    other.setPartitionKey(null);
+    assertNotEquals(entity, other);
+    other.setPartitionKey("pk");
+
+    other.setSortKey(null);
+    assertNotEquals(entity, other);
+    other.setSortKey("sk");
+
+    other.setTimestamp(null);
+    assertNotEquals(entity, other);
+    other.setTimestamp("2026-01-01");
+
+    entity.setPartitionKey(null);
+    assertNotEquals(entity, other);
+    entity.setPartitionKey("pk");
+
+    // canEqual
+    assertTrue(entity.canEqual(other));
   }
 
   @Test

@@ -1,13 +1,19 @@
 package copel.sesproductpackage.core.database.base;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 class SES_AI_T_EntityBaseTests {
 
@@ -32,18 +38,62 @@ class SES_AI_T_EntityBaseTests {
 
     @Override
     protected String getRawContent() {
-      return "";
+      return "raw content";
     }
 
     @Override
     protected String getContentSummary() {
-      return "";
+      return "summary";
     }
 
     @Override
     protected String getCheckSql() {
-      return "";
+      return "SELECT COUNT(*) FROM test_table;";
     }
+  }
+
+  @Test
+  void testUniqueCheck_NoResult() throws SQLException {
+    TestVectorEntity entity = new TestVectorEntity();
+    Connection connection = Mockito.mock(Connection.class);
+    PreparedStatement preparedStatement = Mockito.mock(PreparedStatement.class);
+    ResultSet resultSet = Mockito.mock(ResultSet.class);
+
+    when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
+    when(preparedStatement.executeQuery()).thenReturn(resultSet);
+    when(resultSet.next()).thenReturn(false);
+
+    assertTrue(entity.uniqueCheck(connection, 0.8));
+  }
+
+  @Test
+  void testUniqueCheck_Unique() throws SQLException {
+    TestVectorEntity entity = new TestVectorEntity();
+    Connection connection = Mockito.mock(Connection.class);
+    PreparedStatement preparedStatement = Mockito.mock(PreparedStatement.class);
+    ResultSet resultSet = Mockito.mock(ResultSet.class);
+
+    when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
+    when(preparedStatement.executeQuery()).thenReturn(resultSet);
+    when(resultSet.next()).thenReturn(true);
+    when(resultSet.getInt(1)).thenReturn(0);
+
+    assertTrue(entity.uniqueCheck(connection, 0.8));
+  }
+
+  @Test
+  void testUniqueCheck_Duplicate() throws SQLException {
+    TestVectorEntity entity = new TestVectorEntity();
+    Connection connection = Mockito.mock(Connection.class);
+    PreparedStatement preparedStatement = Mockito.mock(PreparedStatement.class);
+    ResultSet resultSet = Mockito.mock(ResultSet.class);
+
+    when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
+    when(preparedStatement.executeQuery()).thenReturn(resultSet);
+    when(resultSet.next()).thenReturn(true);
+    when(resultSet.getInt(1)).thenReturn(1);
+
+    assertFalse(entity.uniqueCheck(connection, 0.8));
   }
 
   @Test

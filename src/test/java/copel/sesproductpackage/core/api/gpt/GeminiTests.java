@@ -4,19 +4,18 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import copel.sesproductpackage.core.util.Properties;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
 import java.util.Map;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
-
-import copel.sesproductpackage.core.util.Properties;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
@@ -70,14 +69,17 @@ class GeminiTests extends HttpTestBase {
 
   @Test
   void testConstructors() {
-    assertNotNull(new Gemini("key"));
+    Gemini gemini = new Gemini("key");
+    assertNotNull(gemini);
     assertNotNull(new Gemini("key", "model"));
     assertNotNull(new Gemini("key", GeminiModel.GEMINI_1_5_FLASH));
+    assertTrue(gemini.canEqual(new Gemini("key2")));
   }
 
   @Test
   void testGenerateSuccess() throws Exception {
-    String jsonResponse = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello from Gemini\"}]}}]}";
+    String jsonResponse =
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello from Gemini\"}]}}]}";
     when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
     when(sharedMockConn.getInputStream())
         .thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
@@ -86,6 +88,12 @@ class GeminiTests extends HttpTestBase {
     Gemini gemini = new Gemini("key");
     GptAnswer answer = gemini.generate("hello");
     assertEquals("Hello from Gemini", answer.getAnswer());
+
+    // Test with null resultText
+    String nullTextResponse = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":null}]}}]}";
+    when(sharedMockConn.getInputStream())
+        .thenReturn(new ByteArrayInputStream(nullTextResponse.getBytes()));
+    gemini.generate("hello");
   }
 
   @Test
@@ -98,7 +106,7 @@ class GeminiTests extends HttpTestBase {
 
     Gemini gemini = new Gemini("key");
     float[] result = gemini.embedding("hello");
-    assertArrayEquals(new float[] { 0.1f, 0.2f, 0.3f }, result);
+    assertArrayEquals(new float[] {0.1f, 0.2f, 0.3f}, result);
   }
 
   @Test
@@ -116,7 +124,7 @@ class GeminiTests extends HttpTestBase {
 
   @Test
   void testGenerateErrorCodes() throws Exception {
-    int[] codes = { 400, 401, 403, 404, 408, 429, 500, 503 };
+    int[] codes = {400, 401, 403, 404, 408, 429, 500, 503};
     for (int code : codes) {
       reset(sharedMockConn);
       when(sharedMockConn.getResponseCode()).thenReturn(code);
@@ -131,11 +139,16 @@ class GeminiTests extends HttpTestBase {
 
   @Test
   void testEmbeddingErrorCodes() throws Exception {
-    when(sharedMockConn.getResponseCode()).thenReturn(400);
-    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+    int[] codes = {400, 401, 403, 404, 500};
+    for (int code : codes) {
+      reset(sharedMockConn);
+      when(sharedMockConn.getResponseCode()).thenReturn(code);
+      when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
 
-    Gemini gemini = new Gemini("key");
-    assertThrows(RuntimeException.class, () -> gemini.embedding("hello"));
+      Gemini gemini = new Gemini("key");
+      assertThrows(
+          RuntimeException.class, () -> gemini.embedding("hello"), "Should throw for HTTP " + code);
+    }
   }
 
   @Test
@@ -166,12 +179,6 @@ class GeminiTests extends HttpTestBase {
 
   @Test
   void testGenerateNullPrompt() throws Exception {
-    String jsonResponse = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}]}}]}";
-    when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
-    when(sharedMockConn.getInputStream())
-        .thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
-    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
-
     Gemini gemini = new Gemini("key");
     assertNull(gemini.generate(null));
     assertNull(gemini.generate(""));
@@ -179,8 +186,8 @@ class GeminiTests extends HttpTestBase {
   }
 
   @Test
-  void testEmbeddingNotArray() throws Exception {
-    String jsonResponse = "{\"embedding\":{\"values\":{}}}";
+  void testEmbeddingNoEmbeddingField() throws Exception {
+    String jsonResponse = "{\"wrong_field\":123}";
     when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
     when(sharedMockConn.getInputStream())
         .thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
@@ -191,16 +198,96 @@ class GeminiTests extends HttpTestBase {
   }
 
   @Test
-  void testEmbeddingNullInputString() throws Exception {
-    String jsonResponse = "{\"embedding\":{\"values\":[0.1]}}";
+  void testGenerateNoCandidatesField() throws Exception {
+    String jsonResponse = "{\"wrong_field\":123}";
     when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
     when(sharedMockConn.getInputStream())
         .thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
     when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
 
     Gemini gemini = new Gemini("key");
+    GptAnswer answer = gemini.generate("hello");
+    assertNull(answer.getAnswer());
+  }
+
+  @Test
+  void testEmbeddingNotArray() throws Exception {
+    String jsonResponse = "{\"embedding\":{\"values\":123}}"; // Not an array
+    when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
+    when(sharedMockConn.getInputStream())
+        .thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
+    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+
+    Gemini gemini = new Gemini("key");
+    assertNull(gemini.embedding("hello"));
+  }
+
+  @Test
+  void testGenerateNotArray() throws Exception {
+    String jsonResponse = "{\"candidates\":123}"; // Not an array
+    when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
+    when(sharedMockConn.getInputStream())
+        .thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
+    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+
+    Gemini gemini = new Gemini("key");
+    GptAnswer answer = gemini.generate("hello");
+    assertNull(answer.getAnswer());
+  }
+
+  @Test
+  void testGenerateEmptyPartsArray() throws Exception {
+    String jsonResponse = "{\"candidates\":[{\"content\":{\"parts\":[]}}]}";
+    when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
+    when(sharedMockConn.getInputStream())
+        .thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
+    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+    Gemini gemini = new Gemini("key");
+    GptAnswer answer = gemini.generate("hello");
+    assertNull(answer.getAnswer());
+  }
+
+  @Test
+  void testEmbeddingNullInputString() throws Exception {
+    Gemini gemini = new Gemini("key");
     assertNull(gemini.embedding(null));
     assertNull(gemini.embedding(""));
     assertNull(gemini.embedding("   "));
+  }
+
+  @Test
+  void testGenerateJsonParseError() throws Exception {
+    when(sharedMockConn.getResponseCode()).thenReturn(200);
+    when(sharedMockConn.getInputStream())
+        .thenReturn(new ByteArrayInputStream("{invalid}".getBytes()));
+    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+    Gemini gemini = new Gemini("key");
+    assertThrows(IOException.class, () -> gemini.generate("hello"));
+  }
+
+  @Test
+  void testEmbeddingJsonParseError() throws Exception {
+    when(sharedMockConn.getResponseCode()).thenReturn(200);
+    when(sharedMockConn.getInputStream())
+        .thenReturn(new ByteArrayInputStream("{invalid}".getBytes()));
+    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+    Gemini gemini = new Gemini("key");
+    assertThrows(IOException.class, () -> gemini.embedding("hello"));
+  }
+
+  @Test
+  void testGenerateIOException() throws Exception {
+    when(sharedMockConn.getResponseCode()).thenThrow(new IOException("Forced"));
+    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+    Gemini gemini = new Gemini("key");
+    assertThrows(IOException.class, () -> gemini.generate("hello"));
+  }
+
+  @Test
+  void testEmbeddingIOException() throws Exception {
+    when(sharedMockConn.getResponseCode()).thenThrow(new IOException("Forced"));
+    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+    Gemini gemini = new Gemini("key");
+    assertThrows(IOException.class, () -> gemini.embedding("hello"));
   }
 }

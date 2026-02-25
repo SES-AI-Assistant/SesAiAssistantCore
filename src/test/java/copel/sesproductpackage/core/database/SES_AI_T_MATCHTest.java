@@ -50,7 +50,10 @@ class SES_AI_T_MATCHTest {
     // insert branches
     assertEquals(0, match.insert(null));
     when(ps.executeUpdate()).thenReturn(1);
-    assertEquals(1, match.insert(conn));
+    match.setStatus(MatchingStatus.提案中);
+    assertEquals(1, match.insert(conn)); // status not null
+    match.setStatus(null);
+    assertEquals(1, match.insert(conn)); // status null
 
     // selectByPk branches
     match.selectByPk(null);
@@ -63,12 +66,27 @@ class SES_AI_T_MATCHTest {
     when(rs.getString("status_cd")).thenReturn("提案中");
     match.selectByPk(conn);
 
-    // null status for insert/update
-    match.setStatus(null);
-    match.insert(conn);
-    match.updateByPk(conn);
-
     // updateByPk branches
+    when(ps.executeUpdate()).thenReturn(1);
+    match.setMatchingId("id");
+
+    // Test all combinations of status and registerDate for updateByPk
+    match.setStatus(MatchingStatus.提案中);
+    match.setRegisterDate(new OriginalDateTime());
+    assertTrue(match.updateByPk(conn));
+
+    match.setStatus(null);
+    match.setRegisterDate(new OriginalDateTime());
+    assertTrue(match.updateByPk(conn));
+
+    match.setStatus(MatchingStatus.提案中);
+    match.setRegisterDate(null);
+    assertTrue(match.updateByPk(conn));
+
+    match.setStatus(null);
+    match.setRegisterDate(null);
+    assertTrue(match.updateByPk(conn));
+
     assertFalse(match.updateByPk(null));
     match.setMatchingId(null);
     assertFalse(match.updateByPk(conn));
@@ -116,6 +134,7 @@ class SES_AI_T_MATCHTest {
     assertEquals(m1, m2);
 
     assertTrue(m1.canEqual(m2));
+    assertFalse(m1.canEqual(new Object()));
 
     // Coverage for other fields in equals
     m2.setJobId("j1");
@@ -135,8 +154,53 @@ class SES_AI_T_MATCHTest {
     m1.setStatus(MatchingStatus.提案中);
     m2.setRegisterDate(new OriginalDateTime("2024-01-01"));
     assertNotEquals(m1, m2);
-    // assertEquals omitted due to OriginalDateTime bug when registerDate is set
     m1.setRegisterDate(new OriginalDateTime("2024-01-01"));
+    assertEquals(m1, m2);
+
+    // More equals branches with nulls
+    m2.setRegisterDate(null);
+    assertNotEquals(m1, m2);
+    m1.setRegisterDate(null);
+    assertEquals(m1, m2);
+
+    m2.setStatus(null);
+    assertNotEquals(m1, m2);
+    m1.setStatus(null);
+    assertEquals(m1, m2);
+
+    m2.setPersonContent(null);
+    assertNotEquals(m1, m2);
+    m1.setPersonContent(null);
+    assertEquals(m1, m2);
+
+    m2.setPersonId(null);
+    assertNotEquals(m1, m2);
+    m1.setPersonId(null);
+    assertEquals(m1, m2);
+
+    m2.setJobContent(null);
+    assertNotEquals(m1, m2);
+    m1.setJobContent(null);
+    assertEquals(m1, m2);
+
+    m2.setJobId(null);
+    assertNotEquals(m1, m2);
+    m1.setJobId(null);
+    assertEquals(m1, m2);
+
+    m2.setRegisterUser(null);
+    assertNotEquals(m1, m2);
+    m1.setRegisterUser(null);
+    assertEquals(m1, m2);
+
+    m2.setUserId(null);
+    assertNotEquals(m1, m2);
+    m1.setUserId(null);
+    assertEquals(m1, m2);
+
+    m2.setMatchingId(null);
+    assertNotEquals(m1, m2);
+    m1.setMatchingId(null);
     assertEquals(m1, m2);
   }
 }
