@@ -274,12 +274,13 @@ class SES_AI_T_SKILLSHEET_PERSONTest {
     assertFalse(entity1.canEqual(null));
 
     // Cover branch: !other.canEqual((Object) this)
-    SES_AI_T_SKILLSHEET_PERSON entitySub = new SES_AI_T_SKILLSHEET_PERSON() {
-      @Override
-      protected boolean canEqual(Object other) {
-        return false;
-      }
-    };
+    SES_AI_T_SKILLSHEET_PERSON entitySub =
+        new SES_AI_T_SKILLSHEET_PERSON() {
+          @Override
+          protected boolean canEqual(Object other) {
+            return false;
+          }
+        };
     assertFalse(entity1.equals(entitySub));
   }
 }

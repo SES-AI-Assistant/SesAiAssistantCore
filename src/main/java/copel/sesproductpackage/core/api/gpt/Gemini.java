@@ -1,5 +1,12 @@
 package copel.sesproductpackage.core.api.gpt;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY;
+import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.ApiType;
+import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.Provider;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.util.Properties;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -7,15 +14,6 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY;
-import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.ApiType;
-import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.Provider;
-import copel.sesproductpackage.core.unit.OriginalDateTime;
-import copel.sesproductpackage.core.util.Properties;
 import lombok.Data;
 
 /**

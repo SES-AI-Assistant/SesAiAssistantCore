@@ -1,15 +1,14 @@
 package copel.sesproductpackage.core.database;
 
+import copel.sesproductpackage.core.database.base.EntityLotBase;
+import copel.sesproductpackage.core.unit.LogicalOperators;
+import copel.sesproductpackage.core.unit.Vector;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-
-import copel.sesproductpackage.core.database.base.EntityLotBase;
-import copel.sesproductpackage.core.unit.LogicalOperators;
-import copel.sesproductpackage.core.unit.Vector;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -20,21 +19,25 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLSHEET_PERSON> {
 
-  private static final String RETRIEVE_BY_PERSON_VECTOR_SQL = "SELECT s.file_id, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.vector_data <=> ?::vector AS distance "
-      + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
-      + "WHERE 1 - (p.vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
+  private static final String RETRIEVE_BY_PERSON_VECTOR_SQL =
+      "SELECT s.file_id, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.vector_data <=> ?::vector AS distance "
+          + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
+          + "WHERE 1 - (p.vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
 
-  private static final String RETRIEVE_BY_SKILLSHEET_VECTOR_SQL = "SELECT s.file_id, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, s.vector_data <=> ?::vector AS distance "
-      + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
-      + "WHERE 1 - (s.vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
+  private static final String RETRIEVE_BY_SKILLSHEET_VECTOR_SQL =
+      "SELECT s.file_id, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, s.vector_data <=> ?::vector AS distance "
+          + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
+          + "WHERE 1 - (s.vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
 
-  private static final String SELECT_BY_PERSON_RAW_CONTENT_SQL = "SELECT s.file_id, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name "
-      + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
-      + "WHERE p.raw_content LIKE ?";
+  private static final String SELECT_BY_PERSON_RAW_CONTENT_SQL =
+      "SELECT s.file_id, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name "
+          + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
+          + "WHERE p.raw_content LIKE ?";
 
-  private static final String SELECT_BY_SKILLSHEET_RAW_CONTENT_SQL = "SELECT s.file_id, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name "
-      + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
-      + "WHERE s.file_content LIKE ?";
+  private static final String SELECT_BY_SKILLSHEET_RAW_CONTENT_SQL =
+      "SELECT s.file_id, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name "
+          + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
+          + "WHERE s.file_content LIKE ?";
 
   /** コンストラクタ. */
   public SES_AI_T_SKILLSHEET_PERSONLot() {
@@ -44,10 +47,10 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
   /**
    * 要員のベクトルデータに対してセマンティック検索を実行し、結果をこのLotに保持します.
    *
-   * @param connection          DBコネクション
-   * @param query               検索ベクトル
+   * @param connection DBコネクション
+   * @param query 検索ベクトル
    * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
-   * @param limit               取得上限件数
+   * @param limit 取得上限件数
    * @throws SQLException
    */
   public void retrieveByPersonVector(
@@ -62,10 +65,10 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
   /**
    * スキルシートのベクトルデータに対してセマンティック検索を実行し、結果をこのLotに保持します.
    *
-   * @param connection          DBコネクション
-   * @param query               検索ベクトル
+   * @param connection DBコネクション
+   * @param query 検索ベクトル
    * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
-   * @param limit               取得上限件数
+   * @param limit 取得上限件数
    * @throws SQLException
    */
   public void retrieveBySkillSheetVector(
@@ -110,7 +113,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * 要員の全文情報(raw_content)に対して検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
-   * @param query      検索キーワード
+   * @param query 検索キーワード
    * @throws SQLException
    */
   public void retrieveByPersonRawContent(final Connection connection, final String query)
@@ -122,9 +125,9 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
   /**
    * 要員の全文情報(raw_content)に対して複数条件で検索を実行し、結果をこのLotに保持します.
    *
-   * @param connection     DBコネクション
+   * @param connection DBコネクション
    * @param firstLikeQuery 1つ目の検索キーワード
-   * @param query          追加の検索条件
+   * @param query 追加の検索条件
    * @throws SQLException
    */
   public void retrieveByPersonRawContent(
@@ -138,7 +141,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * スキルシートの全文情報(file_content)に対して検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
-   * @param query      検索キーワード
+   * @param query 検索キーワード
    * @throws SQLException
    */
   public void retrieveBySkillSheetRawContent(final Connection connection, final String query)
@@ -150,9 +153,9 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
   /**
    * スキルシートの全文情報(file_content)に対して複数条件で検索を実行し、結果をこのLotに保持します.
    *
-   * @param connection     DBコネクション
+   * @param connection DBコネクション
    * @param firstLikeQuery 1つ目の検索キーワード
-   * @param query          追加の検索条件
+   * @param query 追加の検索条件
    * @throws SQLException
    */
   public void retrieveBySkillSheetRawContent(

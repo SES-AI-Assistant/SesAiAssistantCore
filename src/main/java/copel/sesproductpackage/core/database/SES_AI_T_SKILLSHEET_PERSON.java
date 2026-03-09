@@ -78,21 +78,25 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
     return false;
   }
 
-  private static final String SELECT_BY_PERSON_ID_SQL = "SELECT s.file_id, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name "
-      + "FROM SES_AI_T_PERSON p INNER JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
-      + "WHERE p.person_id = ?";
+  private static final String SELECT_BY_PERSON_ID_SQL =
+      "SELECT s.file_id, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name "
+          + "FROM SES_AI_T_PERSON p INNER JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
+          + "WHERE p.person_id = ?";
 
-  private static final String SELECT_BY_FILE_ID_SQL = "SELECT s.file_id, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name "
-      + "FROM SES_AI_T_PERSON p INNER JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
-      + "WHERE s.file_id = ?";
+  private static final String SELECT_BY_FILE_ID_SQL =
+      "SELECT s.file_id, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name "
+          + "FROM SES_AI_T_PERSON p INNER JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
+          + "WHERE s.file_id = ?";
 
-  private static final String SELECT_OUTER_JOIN_BY_PERSON_ID_SQL = "SELECT s.file_id, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name "
-      + "FROM SES_AI_T_PERSON p LEFT JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
-      + "WHERE p.person_id = ?";
+  private static final String SELECT_OUTER_JOIN_BY_PERSON_ID_SQL =
+      "SELECT s.file_id, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name "
+          + "FROM SES_AI_T_PERSON p LEFT JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
+          + "WHERE p.person_id = ?";
 
-  private static final String SELECT_OUTER_JOIN_BY_FILE_ID_SQL = "SELECT s.file_id, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, s.register_date, s.register_user, COALESCE(s.from_group, p.from_group) AS from_group, COALESCE(s.from_id, p.from_id) AS from_id, COALESCE(s.from_name, p.from_name) AS from_name "
-      + "FROM SES_AI_T_SKILLSHEET s LEFT JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
-      + "WHERE s.file_id = ?";
+  private static final String SELECT_OUTER_JOIN_BY_FILE_ID_SQL =
+      "SELECT s.file_id, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, s.register_date, s.register_user, COALESCE(s.from_group, p.from_group) AS from_group, COALESCE(s.from_id, p.from_id) AS from_id, COALESCE(s.from_name, p.from_name) AS from_name "
+          + "FROM SES_AI_T_SKILLSHEET s LEFT JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
+          + "WHERE s.file_id = ?";
 
   // ================================
   // メソッド
@@ -113,12 +117,13 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
    * person_idをキーにしてJOIN検索し、取得結果をEntityにセットする.
    *
    * @param connection DBコネクション
-   * @param personId   要員ID
+   * @param personId 要員ID
    * @throws java.sql.SQLException
    */
   public void selectByPersonId(java.sql.Connection connection, String personId)
       throws java.sql.SQLException {
-    try (java.sql.PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BY_PERSON_ID_SQL)) {
+    try (java.sql.PreparedStatement preparedStatement =
+        connection.prepareStatement(SELECT_BY_PERSON_ID_SQL)) {
       preparedStatement.setString(1, personId);
       try (java.sql.ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
@@ -129,17 +134,16 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
   }
 
   /**
-   * person_idをキーにしてOUTER JOIN検索し、取得結果をEntityにセットする.
-   * 要員とスキルシートが両方揃っていれば両方の情報を、片方なら片方の情報を返却する.
+   * person_idをキーにしてOUTER JOIN検索し、取得結果をEntityにセットする. 要員とスキルシートが両方揃っていれば両方の情報を、片方なら片方の情報を返却する.
    *
    * @param connection DBコネクション
-   * @param personId   要員ID
+   * @param personId 要員ID
    * @throws java.sql.SQLException
    */
   public void selectOuterJoinByPersonId(java.sql.Connection connection, String personId)
       throws java.sql.SQLException {
-    try (java.sql.PreparedStatement preparedStatement = connection
-        .prepareStatement(SELECT_OUTER_JOIN_BY_PERSON_ID_SQL)) {
+    try (java.sql.PreparedStatement preparedStatement =
+        connection.prepareStatement(SELECT_OUTER_JOIN_BY_PERSON_ID_SQL)) {
       preparedStatement.setString(1, personId);
       try (java.sql.ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
@@ -153,12 +157,13 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
    * file_idをキーにしてJOIN検索し、取得結果をEntityにセットする.
    *
    * @param connection DBコネクション
-   * @param fileId     ファイルID
+   * @param fileId ファイルID
    * @throws java.sql.SQLException
    */
   public void selectByFileId(java.sql.Connection connection, String fileId)
       throws java.sql.SQLException {
-    try (java.sql.PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BY_FILE_ID_SQL)) {
+    try (java.sql.PreparedStatement preparedStatement =
+        connection.prepareStatement(SELECT_BY_FILE_ID_SQL)) {
       preparedStatement.setString(1, fileId);
       try (java.sql.ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
@@ -169,16 +174,16 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
   }
 
   /**
-   * file_idをキーにしてOUTER JOIN検索し、取得結果をEntityにセットする.
-   * 要員とスキルシートが両方揃っていれば両方の情報を、片方なら片方の情報を返却する.
+   * file_idをキーにしてOUTER JOIN検索し、取得結果をEntityにセットする. 要員とスキルシートが両方揃っていれば両方の情報を、片方なら片方の情報を返却する.
    *
    * @param connection DBコネクション
-   * @param fileId     ファイルID
+   * @param fileId ファイルID
    * @throws java.sql.SQLException
    */
   public void selectOuterJoinByFileId(java.sql.Connection connection, String fileId)
       throws java.sql.SQLException {
-    try (java.sql.PreparedStatement preparedStatement = connection.prepareStatement(SELECT_OUTER_JOIN_BY_FILE_ID_SQL)) {
+    try (java.sql.PreparedStatement preparedStatement =
+        connection.prepareStatement(SELECT_OUTER_JOIN_BY_FILE_ID_SQL)) {
       preparedStatement.setString(1, fileId);
       try (java.sql.ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
