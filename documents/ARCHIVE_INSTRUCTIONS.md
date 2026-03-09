@@ -169,3 +169,19 @@
   - テスト結果から判明した `ResultSetMetaData` 判定時の分岐条件を削減（`getColumnLabel` のみに集約）し、null例外や該当データがない分岐（`query == null` のケースや `resultSet.next()`=false のケース）を完全にカバーして 100% (Line/Branch) カバレッジを維持。
 - **静的コード解析の実行**:
   - Spotless によるコードフォーマット、PMD、Checkstyle などの各プラクティス検証を通過（※既存のSpotBugs例外設定ファイル喪失に伴う設定追加でビルドパイプラインを修復）。
+
+# ARCHIVE: SES_AI_T_SKILLSHEET_PERSONのOUTER JOINメソッド追加 (2026-03-09)
+
+## 1. 概要 (Overview)
+- SES_AI_T_SKILLSHEET_PERSONにOUTER JOINで検索するメソッドを追加
+
+## 2. 具体的な要求事項 (Requirements)
+- `SES_AI_T_SKILLSHEET_PERSON` に OUTER JOIN で `selectByPersonId` するメソッドと、 `selectByFileId` するメソッドを追加する。
+- 「要員とスキルシートが両方揃ってれば両方の情報を返したいし、片方なら片方の分だけ返したい」というユースケースに対応できるようにするためのメソッドを追加。
+
+## 3. 実施内容 (Execution)
+- `SES_AI_T_SKILLSHEET_PERSON` に `selectOuterJoinByPersonId` と `selectOuterJoinByFileId` メソッドを新設。
+- それぞれ `LEFT JOIN` を用い、片方のデータしか存在しない場合でも正しく Entity がマッピングされるようにSQLを定義した。
+- `SES_AI_T_SKILLSHEET_PERSON` と `SES_AI_T_SKILLSHEET_PERSONLot` の各種 SELECT / RETRIEVE 系の SQL で `COALESCE` を用いて不足していた `from_group`, `from_id`, `from_name` を引くように修正し、Entityへのセット処理を追加した。
+- `SES_AI_T_SKILLSHEET_PERSONTest` に Lombok 自動生成メソッドのテストと継承の等価性（`canEqual`）のテストなどのテストケースを追加し、新規メソッドに対するJUnit カバレッジ 100% (Line, Branch) を維持。
+- Checkstyle 等の各種静的コードチェック (SpotBugs の既存課題を除く) に合格したことを確認。
