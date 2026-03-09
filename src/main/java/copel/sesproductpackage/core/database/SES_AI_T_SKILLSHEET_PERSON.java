@@ -1,0 +1,160 @@
+package copel.sesproductpackage.core.database;
+
+import copel.sesproductpackage.core.database.base.Column;
+import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
+import lombok.Data;
+
+/**
+ * 【Entityクラス】 スキルシート情報と要員情報を結合したEntityクラス. スキルシートの要約と要員の要約を保持する.
+ *
+ * @author
+ */
+@Data
+@lombok.EqualsAndHashCode(callSuper = false)
+public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
+
+  /** ファイルID / file_id */
+  @Column(physicalName = "file_id", logicalName = "ファイルID")
+  private String fileId;
+
+  /** スキルシートの要約 / file_content_summary */
+  @Column(physicalName = "file_summary", logicalName = "スキルシートの要約")
+  private String fileContentSummary;
+
+  /** 要員ID / person_id */
+  @Column(physicalName = "person_id", logicalName = "要員ID")
+  private String personId;
+
+  /** 要約 / content_summary */
+  @Column(physicalName = "content_summary", logicalName = "要約")
+  private String contentSummary;
+
+  /** コンストラクタ. */
+  public SES_AI_T_SKILLSHEET_PERSON() {
+    super();
+  }
+
+  // ================================
+  // Overrideメソッド (EntityBaseの抽象メソッド実装)
+  // ================================
+
+  // このEntityはJOIN用のため、単体でのINSERT/UPDATE/DELETE/SELECT等はサポートしない想定だが、
+  // EntityBaseを継承しているためダミー実装または例外スローが必要であれば実装する。
+  // 今回は使用しないため空実装またはfalseを返す。
+
+  @Override
+  public void embedding(copel.sesproductpackage.core.api.gpt.Transformer embeddingProcessListener)
+      throws java.io.IOException, RuntimeException {
+    // 何もしない
+  }
+
+  @Override
+  public boolean uniqueCheck(java.sql.Connection connection, double similarityThreshold)
+      throws java.sql.SQLException {
+    return false;
+  }
+
+  @Override
+  public int insert(java.sql.Connection connection) throws java.sql.SQLException {
+    return 0;
+  }
+
+  @Override
+  public void selectByPk(java.sql.Connection connection) throws java.sql.SQLException {
+    // 何もしない
+  }
+
+  @Override
+  public boolean updateByPk(java.sql.Connection connection) throws java.sql.SQLException {
+    return false;
+  }
+
+  @Override
+  public boolean deleteByPk(java.sql.Connection connection) throws java.sql.SQLException {
+    return false;
+  }
+
+  private static final String SELECT_BY_PERSON_ID_SQL =
+      "SELECT s.file_id, s.file_content_summary, p.person_id, p.content_summary, p.register_date, p.register_user "
+          + "FROM SES_AI_T_PERSON p INNER JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
+          + "WHERE p.person_id = ?";
+
+  private static final String SELECT_BY_FILE_ID_SQL =
+      "SELECT s.file_id, s.file_content_summary, p.person_id, p.content_summary, p.register_date, p.register_user "
+          + "FROM SES_AI_T_PERSON p INNER JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
+          + "WHERE s.file_id = ?";
+
+  /**
+   * person_idをキーにしてJOIN検索し、取得結果をEntityにセットする.
+   *
+   * @param connection DBコネクション
+   * @param personId 要員ID
+   * @throws java.sql.SQLException
+   */
+  public void selectByPersonId(java.sql.Connection connection, String personId)
+      throws java.sql.SQLException {
+    try (java.sql.PreparedStatement preparedStatement =
+        connection.prepareStatement(SELECT_BY_PERSON_ID_SQL)) {
+      preparedStatement.setString(1, personId);
+      try (java.sql.ResultSet resultSet = preparedStatement.executeQuery()) {
+        if (resultSet.next()) {
+          setEntityDataFromResultSet(resultSet);
+        }
+      }
+    }
+  }
+
+  /**
+   * file_idをキーにしてJOIN検索し、取得結果をEntityにセットする.
+   *
+   * @param connection DBコネクション
+   * @param fileId ファイルID
+   * @throws java.sql.SQLException
+   */
+  public void selectByFileId(java.sql.Connection connection, String fileId)
+      throws java.sql.SQLException {
+    try (java.sql.PreparedStatement preparedStatement =
+        connection.prepareStatement(SELECT_BY_FILE_ID_SQL)) {
+      preparedStatement.setString(1, fileId);
+      try (java.sql.ResultSet resultSet = preparedStatement.executeQuery()) {
+        if (resultSet.next()) {
+          setEntityDataFromResultSet(resultSet);
+        }
+      }
+    }
+  }
+
+  /**
+   * ResultSetからEntityにデータをセットする共通メソッド.
+   *
+   * @param resultSet ResultSet
+   * @throws java.sql.SQLException
+   */
+  public void setEntityDataFromResultSet(java.sql.ResultSet resultSet)
+      throws java.sql.SQLException {
+    this.fileId = resultSet.getString("file_id");
+    this.fileContentSummary = resultSet.getString("file_content_summary");
+    this.personId = resultSet.getString("person_id");
+    this.contentSummary = resultSet.getString("content_summary");
+    java.sql.Timestamp ts = resultSet.getTimestamp("register_date");
+    if (ts != null) {
+      this.registerDate = new copel.sesproductpackage.core.unit.OriginalDateTime(ts);
+    }
+    this.registerUser = resultSet.getString("register_user");
+  }
+
+  @Override
+  protected String getRawContent() {
+    return null; // 今回は使用しない
+  }
+
+  @Override
+  protected String getContentSummary() {
+    return this.contentSummary;
+  }
+
+  @Override
+  protected String getCheckSql() {
+    return null; // 今回は使用しない
+  }
+}

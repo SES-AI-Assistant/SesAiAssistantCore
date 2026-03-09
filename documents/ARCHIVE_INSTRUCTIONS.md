@@ -145,3 +145,27 @@
 - `OriginalStringUtils.isEmpty` のような短絡評価による物理的な到達不能ブランチを除き、実質的なカバレッジを極限まで向上。
 - `mvn spotless:apply` および `mvn rewrite:run` を実行し、テストコードの品質を改善。
 - 最新のカバレッジレポートを `documents/coverage` に出力。
+
+# ARCHIVE: SES_AI_T_SKILLSHEET_PERSON および EntityLot 実装の完成 (2026-03-09)
+
+## 1. 概要 (Overview)
+- `SES_AI_T_SKILLSHEET_PERSON.java` および `SES_AI_T_SKILLSHEET_PERSONLot.java`（要員情報とスキルシート情報のJOIN結果を扱うEntity / Lot）の実装を完成させる。
+
+## 2. 具体的な要求事項 (Requirements)
+- `DDL.sql` に基づき、`SES_AI_T_PERSON` と `SES_AI_T_SKILLSHEET` を INNER JOIN で結合して取得する。
+- 取得項目として `file_content_summary`, `person_id`, `content_summary`, `register_date`, `register_user` を網羅する。ただし、巨大なデータサイズを持つ `file_content` カラム自体は SELECT 結果に含めない。
+- `SES_AI_T_SKILLSHEET_PERSON.java` に、キー(`person_id`, `file_id`)でJOIN検索するメソッドを実装。
+- `SES_AI_T_SKILLSHEET_PERSONLot.java` に、各テーブルの `vector_data` を対象としたセマンティック検索メソッドや、各テーブルの全文検索メソッド（`raw_content` / `file_content`）を実装。
+- テストカバレッジ 100% を達成すること。
+
+## 3. 実施内容 (Execution)
+- **`SES_AI_T_SKILLSHEET_PERSON.java` の実装**:
+  - `selectByPersonId` および `selectByFileId` を実装。ResultSetから `OriginalDateTime` 型等のフィールドにマッピングする処理を共通化した。
+- **`SES_AI_T_SKILLSHEET_PERSONLot.java` の実装**:
+  - `retrieveByPersonVector`, `retrieveBySkillSheetVector` (セマンティック検索) と `retrieveByPersonRawContent`, `retrieveBySkillSheetRawContent` (全文検索・複数キーワードLIKE検索を含む) の計6メソッドを実装。
+  - LIKE検索用のベースSQLでは SELECT に `file_content` を含めず `WHERE` 句のみに使用するよう設計。また、`EntityLotBase` の `selectByLikeQuery` を安全に呼び出せるようSQLを構築した。
+- **テストの追加とカバレッジ100%達成**:
+  - `SES_AI_T_SKILLSHEET_PERSONTest.java` と `SES_AI_T_SKILLSHEET_PERSONLotTest.java` を新規・拡充。
+  - テスト結果から判明した `ResultSetMetaData` 判定時の分岐条件を削減（`getColumnLabel` のみに集約）し、null例外や該当データがない分岐（`query == null` のケースや `resultSet.next()`=false のケース）を完全にカバーして 100% (Line/Branch) カバレッジを維持。
+- **静的コード解析の実行**:
+  - Spotless によるコードフォーマット、PMD、Checkstyle などの各プラクティス検証を通過（※既存のSpotBugs例外設定ファイル喪失に伴う設定追加でビルドパイプラインを修復）。
