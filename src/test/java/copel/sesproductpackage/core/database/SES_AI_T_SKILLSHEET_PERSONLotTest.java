@@ -151,4 +151,37 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
     assertDoesNotThrow(() -> lot.selectAll(mockConnection));
   }
+
+  @Test
+  void testGetEntityByPk() throws SQLException {
+    prepareMockResultSet(false);
+
+    SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
+    lot.retrieveByPersonRawContent(mockConnection, "keyword"); // loads "p1" into the lot
+
+    org.junit.jupiter.api.Assertions.assertNotNull(lot.getEntityByPk("p1"));
+    org.junit.jupiter.api.Assertions.assertNotNull(lot.getEntityByPk(" p1 "));
+    org.junit.jupiter.api.Assertions.assertNull(lot.getEntityByPk("p2"));
+    org.junit.jupiter.api.Assertions.assertNull(lot.getEntityByPk(null));
+
+    SES_AI_T_SKILLSHEET_PERSONLot emptyLot = new SES_AI_T_SKILLSHEET_PERSONLot();
+    org.junit.jupiter.api.Assertions.assertNull(emptyLot.getEntityByPk("p1"));
+  }
+
+  @Test
+  void testTo要員選出用文章() throws SQLException {
+    prepareMockResultSet(false);
+
+    SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
+    lot.retrieveByPersonRawContent(mockConnection, "keyword"); // loads "p1"
+
+    lot.get(0).setContentSummary("cs");
+    lot.get(0).setFileContentSummary("fs");
+
+    String result = lot.to要員選出用文章();
+    assertEquals("1人目：要員ID：p1 内容：csfs\n", result);
+
+    SES_AI_T_SKILLSHEET_PERSONLot emptyLot = new SES_AI_T_SKILLSHEET_PERSONLot();
+    assertEquals("", emptyLot.to要員選出用文章());
+  }
 }

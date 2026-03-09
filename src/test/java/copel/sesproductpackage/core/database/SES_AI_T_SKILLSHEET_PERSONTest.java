@@ -108,4 +108,17 @@ class SES_AI_T_SKILLSHEET_PERSONTest {
     entity.setContentSummary("hoge");
     assertEquals("hoge", entity.getContentSummary());
   }
+
+  @Test
+  void testTo要員選出用文章() {
+    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON();
+    entity.setPersonId("p3");
+    entity.setContentSummary("cSummary");
+    entity.setFileContentSummary("fSummary");
+    assertEquals("要員ID：p3 内容：cSummaryfSummary", entity.to要員選出用文章());
+
+    entity.setContentSummary(null);
+    entity.setFileContentSummary(null);
+    assertEquals("要員ID：p3 内容：", entity.to要員選出用文章());
+  }
 }
