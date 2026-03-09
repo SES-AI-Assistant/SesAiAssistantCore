@@ -191,6 +191,9 @@ public class SkillSheet {
    * @return オブジェクトキー.
    */
   public String getObjectKey() {
+    if (this.fileId != null && this.fileName != null && this.fileId.endsWith("_" + this.fileName)) {
+      return this.fileId;
+    }
     return this.fileId + "_" + this.fileName;
   }
 
