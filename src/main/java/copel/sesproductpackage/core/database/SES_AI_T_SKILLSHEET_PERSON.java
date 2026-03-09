@@ -212,7 +212,7 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
   }
 
   @Override
-  protected String getRawContent() {
+  public String getRawContent() {
     return this.rawContent;
   }
 
