@@ -25,6 +25,10 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
   @Column(physicalName = "person_id", logicalName = "要員ID")
   private String personId;
 
+  /** 原文 / raw_content */
+  @Column(physicalName = "raw_content", logicalName = "原文")
+  private String rawContent;
+
   /** 要約 / content_summary */
   @Column(physicalName = "content_summary", logicalName = "要約")
   private String contentSummary;
@@ -74,19 +78,19 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
     return false;
   }
 
-  private static final String SELECT_BY_PERSON_ID_SQL = "SELECT s.file_id, s.file_content_summary, p.person_id, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name "
+  private static final String SELECT_BY_PERSON_ID_SQL = "SELECT s.file_id, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name "
       + "FROM SES_AI_T_PERSON p INNER JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
       + "WHERE p.person_id = ?";
 
-  private static final String SELECT_BY_FILE_ID_SQL = "SELECT s.file_id, s.file_content_summary, p.person_id, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name "
+  private static final String SELECT_BY_FILE_ID_SQL = "SELECT s.file_id, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name "
       + "FROM SES_AI_T_PERSON p INNER JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
       + "WHERE s.file_id = ?";
 
-  private static final String SELECT_OUTER_JOIN_BY_PERSON_ID_SQL = "SELECT s.file_id, s.file_content_summary, p.person_id, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name "
+  private static final String SELECT_OUTER_JOIN_BY_PERSON_ID_SQL = "SELECT s.file_id, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name "
       + "FROM SES_AI_T_PERSON p LEFT JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
       + "WHERE p.person_id = ?";
 
-  private static final String SELECT_OUTER_JOIN_BY_FILE_ID_SQL = "SELECT s.file_id, s.file_content_summary, p.person_id, p.content_summary, s.register_date, s.register_user, COALESCE(s.from_group, p.from_group) AS from_group, COALESCE(s.from_id, p.from_id) AS from_id, COALESCE(s.from_name, p.from_name) AS from_name "
+  private static final String SELECT_OUTER_JOIN_BY_FILE_ID_SQL = "SELECT s.file_id, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, s.register_date, s.register_user, COALESCE(s.from_group, p.from_group) AS from_group, COALESCE(s.from_id, p.from_id) AS from_id, COALESCE(s.from_name, p.from_name) AS from_name "
       + "FROM SES_AI_T_SKILLSHEET s LEFT JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
       + "WHERE s.file_id = ?";
 
@@ -195,6 +199,7 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
     this.fileId = resultSet.getString("file_id");
     this.fileContentSummary = resultSet.getString("file_content_summary");
     this.personId = resultSet.getString("person_id");
+    this.rawContent = resultSet.getString("raw_content");
     this.contentSummary = resultSet.getString("content_summary");
     java.sql.Timestamp ts = resultSet.getTimestamp("register_date");
     if (ts != null) {
@@ -208,7 +213,7 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
 
   @Override
   protected String getRawContent() {
-    return null; // 今回は使用しない
+    return this.rawContent;
   }
 
   @Override
