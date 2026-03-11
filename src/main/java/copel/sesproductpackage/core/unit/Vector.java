@@ -6,7 +6,7 @@ import java.io.IOException;
 /**
  * 【SES AIアシスタント】 ベクトルクラス.
  *
- * @author 鈴木一矢.
+ * @author Copel Co., Ltd..
  */
 public class Vector {
   /** エンベディング処理の対象となる文字列. */

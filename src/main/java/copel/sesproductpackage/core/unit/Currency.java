@@ -3,7 +3,7 @@ package copel.sesproductpackage.core.unit;
 /**
  * 通貨を扱う列挙型. 為替レートは2025/4/1現在のため、更新が必要.
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 public enum Currency {
   JPY("Japanese Yen", 1.0),

@@ -3,7 +3,7 @@ package copel.sesproductpackage.core.unit;
 /**
  * お金を扱うクラス.
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 public class Money {
   /** 金額. */
@@ -15,7 +15,7 @@ public class Money {
   /**
    * コンストラクタ.
    *
-   * @param amount 金額
+   * @param amount   金額
    * @param currency 通貨
    */
   public Money(final double amount, final Currency currency) {

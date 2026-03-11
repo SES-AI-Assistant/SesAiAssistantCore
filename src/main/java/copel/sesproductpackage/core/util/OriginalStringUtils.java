@@ -3,7 +3,7 @@ package copel.sesproductpackage.core.util;
 /**
  * 文字列操作ユーティリティクラス.
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 public class OriginalStringUtils {
   /**

@@ -8,7 +8,7 @@ import lombok.Data;
 /**
  * エンティティの基底クラス.
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 @Data
 public abstract class EntityBase implements Comparable<EntityBase> {

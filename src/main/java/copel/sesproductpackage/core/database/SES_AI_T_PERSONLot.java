@@ -15,29 +15,24 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * 【Entityクラス】 要員情報(SES_AI_T_PERSON)テーブル의 Lotクラス.
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 @Slf4j
 public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
   /** ベクトル検索SQL. */
-  private static final String RETRIEVE_SQL =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, register_date, register_user, ttl, vector_data <=> ?::vector AS distance FROM SES_AI_T_PERSON ORDER BY distance LIMIT ?";
+  private static final String RETRIEVE_SQL = "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, register_date, register_user, ttl, vector_data <=> ?::vector AS distance FROM SES_AI_T_PERSON ORDER BY distance LIMIT ?";
 
   /** 全文検索SQL. */
-  private static final String SELECT_LIKE_SQL =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE raw_content LIKE ?";
+  private static final String SELECT_LIKE_SQL = "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE raw_content LIKE ?";
 
   /** 検索SQL. */
-  private static final String SELECT_SQL =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE ";
+  private static final String SELECT_SQL = "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE ";
 
   /** 検索SQL(指定時間以降検索). */
-  private static final String SELECT_SQL_BY_REGISTER_DATE =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE register_date >= ?";
+  private static final String SELECT_SQL_BY_REGISTER_DATE = "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE register_date >= ?";
 
   /** 全件検索SQL. */
-  private static final String SELECT_ALL_SQL =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON";
+  private static final String SELECT_ALL_SQL = "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON";
 
   /** コンストラクタ. */
   public SES_AI_T_PERSONLot() {
@@ -105,8 +100,8 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
    * ベクトル検索を実行し結果をこのLotに保持します.
    *
    * @param connection DBコネクション
-   * @param query 検索ベクトル
-   * @param limit 取得上限件数
+   * @param query      検索ベクトル
+   * @param limit      取得上限件数
    * @throws SQLException
    */
   public void retrieve(Connection connection, Vector query, int limit) throws SQLException {
@@ -131,7 +126,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
    * raw_contentカラムで全文検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
-   * @param query 検索条件Map
+   * @param query      検索条件Map
    * @throws SQLException
    */
   public void searchByRawContent(final Connection connection, final String query)
@@ -142,9 +137,9 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
   /**
    * raw_contentカラムに対して複数条件で全文検索を実行し、結果をこのLotに保持します.
    *
-   * @param connection DBコネクション
+   * @param connection     DBコネクション
    * @param firstLikeQuery 1つ目のLIKE句の検索条件
-   * @param query 検索条件リスト
+   * @param query          検索条件リスト
    * @throws SQLException
    */
   public void searchByRawContent(
@@ -157,7 +152,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
    * 指定した時刻以降に登録されたレコードを全て取得する.
    *
    * @param connection DBコネクション
-   * @param fromDate 時刻
+   * @param fromDate   時刻
    * @throws SQLException
    */
   public void selectByRegisterDateAfter(
@@ -166,8 +161,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
       return;
     }
     // 検索条件を追加する
-    try (PreparedStatement preparedStatement =
-        connection.prepareStatement(SELECT_SQL_BY_REGISTER_DATE)) {
+    try (PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SQL_BY_REGISTER_DATE)) {
       preparedStatement.setTimestamp(
           1, fromDate != null ? fromDate.toTimestamp() : new OriginalDateTime().toTimestamp());
 

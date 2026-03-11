@@ -9,7 +9,7 @@ import org.apache.poi.ss.usermodel.FormulaEvaluator;
 /**
  * org.apache.poi.ss.usermodel.Cellのカスタムクラス.
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 public class CustomCell {
   /** セル. */

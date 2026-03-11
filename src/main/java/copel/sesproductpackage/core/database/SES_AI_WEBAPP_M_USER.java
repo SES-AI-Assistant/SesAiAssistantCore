@@ -20,7 +20,7 @@ import lombok.ToString;
 /**
  * システムユーザーマスタテーブルのエンティティ.
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

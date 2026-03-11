@@ -8,18 +8,23 @@ import java.lang.annotation.Target;
 /**
  * 【FW部品】カラムアノテーション
  *
- * <p>このアノテーションは、データベースのカラムに関連する情報をマークアップするために使用されます。 通常、エンティティクラスのフィールドにこのアノテーションを適用し、
+ * <p>
+ * このアノテーションは、データベースのカラムに関連する情報をマークアップするために使用されます。
+ * 通常、エンティティクラスのフィールドにこのアノテーションを適用し、
  * カラムの物理名、論理名、必須フラグ、主キーフラグなどの情報を提供します。
  *
- * <p>使用例:
+ * <p>
+ * 使用例:
  *
- * <p>{@code @Column(physicalName = "user_name", logicalName = "User Name", required = true, primary
+ * <p>
+ * {@code @Column(physicalName = "user_name", logicalName = "User Name", required = true, primary
  * = true) private String userName; }
  *
- * <p>この例では、"userName" フィールドがデータベースのカラムに関連付けられており、物理名は "user_name"、論理名は "User
+ * <p>
+ * この例では、"userName" フィールドがデータベースのカラムに関連付けられており、物理名は "user_name"、論理名は "User
  * Name"、必須フラグと主キーフラグが設定されています。
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)

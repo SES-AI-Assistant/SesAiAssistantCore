@@ -6,7 +6,7 @@ import java.util.Set;
 /**
  * プラン.
  *
- * @author antigravity
+ * @author Copel Co., Ltd.
  */
 public enum Plan {
     FREE(

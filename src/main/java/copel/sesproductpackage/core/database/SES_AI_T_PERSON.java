@@ -17,7 +17,7 @@ import lombok.ToString;
 /**
  * 【Entityクラス】 要員情報(SES_AI_T_PERSON)テーブル.
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -28,24 +28,19 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
   // SQL
   // ================================
   /** INSERTR文. */
-  private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_PERSON (person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, file_summary, vector_data, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
+  private static final String INSERT_SQL = "INSERT INTO SES_AI_T_PERSON (person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, file_summary, vector_data, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
 
   /** SELECT文. */
-  private static final String SELECT_SQL =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, file_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE person_id = ?";
+  private static final String SELECT_SQL = "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, file_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE person_id = ?";
 
   /** UPDATE文. */
-  private static final String UPDATE_SQL =
-      "UPDATE SES_AI_T_PERSON SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, content_summary = ?, file_id = ?, file_summary = ?, vector_data = ?::vector, ttl = ? WHERE person_id = ?";
+  private static final String UPDATE_SQL = "UPDATE SES_AI_T_PERSON SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, content_summary = ?, file_id = ?, file_summary = ?, vector_data = ?::vector, ttl = ? WHERE person_id = ?";
 
   /** UPDATE文(file_idのみ). */
-  private static final String UPDATE_FILE_ID_SQL =
-      "UPDATE SES_AI_T_PERSON SET file_id = ? WHERE person_id = ?";
+  private static final String UPDATE_FILE_ID_SQL = "UPDATE SES_AI_T_PERSON SET file_id = ? WHERE person_id = ?";
 
   /** 重複チェック用SQL. */
-  private static final String CHECK_SQL =
-      "SELECT COUNT(*) FROM SES_AI_T_PERSON WHERE raw_content % ? AND similarity(raw_content, ?) > ?";
+  private static final String CHECK_SQL = "SELECT COUNT(*) FROM SES_AI_T_PERSON WHERE raw_content % ? AND similarity(raw_content, ?) > ?";
 
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_T_PERSON WHERE person_id = ?";

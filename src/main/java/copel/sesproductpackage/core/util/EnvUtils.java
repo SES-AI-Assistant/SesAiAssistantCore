@@ -3,7 +3,7 @@ package copel.sesproductpackage.core.util;
 /**
  * 環境変数を取得するためのユーティリティクラス. テスト時に環境変数をモック化しやすくするために作成されました。
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 public class EnvUtils {
   /**

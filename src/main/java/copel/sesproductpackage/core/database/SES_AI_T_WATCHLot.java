@@ -12,16 +12,14 @@ import java.util.ArrayList;
 /**
  * 【Entityクラス】 ウォッチ管理テーブル(SES_AI_T_WATCH)のLotクラス.
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
   /** 全件SELECT文. */
-  private static final String SELECT_ALL_SQL =
-      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl FROM SES_AI_T_WATCH";
+  private static final String SELECT_ALL_SQL = "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl FROM SES_AI_T_WATCH";
 
   /** SELECT文(ユーザーIDキー). */
-  private static final String SELECT_BY_USER_ID_SQL =
-      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl FROM SES_AI_T_WATCH WHERE user_id = ?";
+  private static final String SELECT_BY_USER_ID_SQL = "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl FROM SES_AI_T_WATCH WHERE user_id = ?";
 
   public SES_AI_T_WATCHLot() {
     super();
@@ -31,7 +29,7 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
    * ユーザーIDが一致するレコードを全て取得し、このLotに格納します.
    *
    * @param connection DBコネクション
-   * @param userId ユーザーID
+   * @param userId     ユーザーID
    * @throws SQLException
    */
   public void selectByUserId(Connection connection, String userId) throws SQLException {

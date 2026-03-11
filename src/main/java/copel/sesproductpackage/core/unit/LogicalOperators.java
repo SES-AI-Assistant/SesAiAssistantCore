@@ -3,7 +3,7 @@ package copel.sesproductpackage.core.unit;
 /**
  * 論理演算子.
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 public class LogicalOperators {
   /** 論理演算子. */
@@ -19,7 +19,7 @@ public class LogicalOperators {
    * コンストラクタ.
    *
    * @param logicOperator 論理演算子
-   * @param value 値
+   * @param value         値
    */
   public LogicalOperators(final 論理演算子 logicOperator, final String value) {
     this.logicOperator = logicOperator;
@@ -66,7 +66,7 @@ public class LogicalOperators {
   /**
    * 論理演算子列挙型クラス.
    *
-   * @author 鈴木一矢
+   * @author Copel Co., Ltd.
    */
   public enum 論理演算子 {
     AND,

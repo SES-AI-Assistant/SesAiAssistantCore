@@ -5,7 +5,7 @@ import java.io.IOException;
 /**
  * 【SES AIアシスタント】 GPT処理リスナー.
  *
- * @author 鈴木一矢.
+ * @author Copel Co., Ltd..
  */
 public interface Transformer {
   /**

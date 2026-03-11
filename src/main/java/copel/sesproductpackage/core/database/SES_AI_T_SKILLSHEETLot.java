@@ -14,28 +14,23 @@ import java.util.List;
 /**
  * 【Entityクラス】 スキルシート情報(SES_AI_T_SKILLSHEET)テーブルのLotクラス.
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
   /** ベクトル検索SQL. */
-  private static final String RETRIEVE_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, register_date, register_user, ttl, vector_data <=> ?::vector AS distance FROM SES_AI_T_SKILLSHEET ORDER BY distance LIMIT ?";
+  private static final String RETRIEVE_SQL = "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, register_date, register_user, ttl, vector_data <=> ?::vector AS distance FROM SES_AI_T_SKILLSHEET ORDER BY distance LIMIT ?";
 
   /** 全文検索SQL(file_contentカラム). */
-  private static final String SELECT_FILE_CONTENT_LIKE_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_content LIKE ?";
+  private static final String SELECT_FILE_CONTENT_LIKE_SQL = "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_content LIKE ?";
 
   /** 全文検索SQL. */
-  private static final String SELECT_LIKE_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE ";
+  private static final String SELECT_LIKE_SQL = "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE ";
 
   /** 検索SQL. */
-  private static final String SELECT_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE ";
+  private static final String SELECT_SQL = "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE ";
 
   /** SELECT文(file_name検索). */
-  private static final String SELECT_BY_FILE_NAME_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_name = ?";
+  private static final String SELECT_BY_FILE_NAME_SQL = "SELECT from_group, from_id, from_name, file_id, file_name, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_name = ?";
 
   /** コンストラクタ. */
   public SES_AI_T_SKILLSHEETLot() {
@@ -89,8 +84,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * ベクトル検索を実行し結果をこのLotに保持します.
    *
    * @param connection DBコネクション
-   * @param query 検索ベクトル
-   * @param limit 取得上限件数
+   * @param query      検索ベクトル
+   * @param limit      取得上限件数
    * @throws SQLException
    */
   public void retrieve(Connection connection, Vector query, int limit) throws SQLException {
@@ -115,8 +110,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * 指定したカラムで全文検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
-   * @param column 検索対象カラム
-   * @param query 検索文字列
+   * @param column     検索対象カラム
+   * @param query      検索文字列
    * @throws SQLException
    */
   public void selectLike(final Connection connection, final String column, final String query)
@@ -128,7 +123,7 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * file_contentカラムで全文検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
-   * @param query 検索条件Map
+   * @param query      検索条件Map
    * @throws SQLException
    */
   public void searchByFileContent(final Connection connection, final String query)
@@ -140,13 +135,12 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * file_nameカラムで全文検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
-   * @param fileName ファイル名
+   * @param fileName   ファイル名
    * @throws SQLException
    */
   public void selectByFileName(final Connection connection, final String fileName)
       throws SQLException {
-    try (PreparedStatement preparedStatement =
-        connection.prepareStatement(SELECT_BY_FILE_NAME_SQL)) {
+    try (PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BY_FILE_NAME_SQL)) {
       preparedStatement.setString(1, fileName);
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         this.entityLot = new ArrayList<>();
@@ -170,9 +164,9 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
   /**
    * file_contentカラムに対して複数条件で全文検索を実行し、結果をこのLotに保持します.
    *
-   * @param connection DBコネクション
+   * @param connection     DBコネクション
    * @param firstLikeQuery 1つ目のLIKE句の検索条件
-   * @param query 検索条件リスト
+   * @param query          検索条件リスト
    * @throws SQLException
    */
   public void searchByFileContent(
@@ -187,9 +181,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     if (connection == null) {
       return;
     }
-    try (PreparedStatement preparedStatement =
-            connection.prepareStatement(
-                "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET");
+    try (PreparedStatement preparedStatement = connection.prepareStatement(
+        "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET");
         ResultSet resultSet = preparedStatement.executeQuery()) {
       while (resultSet.next()) {
         this.entityLot.add(mapResultSet(resultSet));

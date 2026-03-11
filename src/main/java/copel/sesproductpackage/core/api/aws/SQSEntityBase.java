@@ -10,7 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 /**
  * SQSメッセージのリクエストエンティティの基底クラス.
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 public abstract class SQSEntityBase {
   /** キューイング対象のSQSのURL. */
@@ -36,8 +36,8 @@ public abstract class SQSEntityBase {
    * @throws JsonProcessingException
    */
   public SendMessageResult sendMessage() throws JsonProcessingException {
-    SendMessageRequest sendMessageRequest =
-        new SendMessageRequest().withQueueUrl(this.queueUrl).withMessageBody(this.getMessageBody());
+    SendMessageRequest sendMessageRequest = new SendMessageRequest().withQueueUrl(this.queueUrl)
+        .withMessageBody(this.getMessageBody());
     return this.sqsClient.sendMessage(sendMessageRequest);
   }
 

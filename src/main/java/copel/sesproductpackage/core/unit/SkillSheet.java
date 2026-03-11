@@ -28,18 +28,17 @@ import software.amazon.awssdk.regions.Region;
 /**
  * スキルシートの情報を持つクラス.
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 @Slf4j
 @Data
 public class SkillSheet {
   /** 要約用プロンプト. */
-  private static final String SKILLSHEET_SUMMARIZE_PROMPT =
-      Properties.get("SKILLSHEET_SUMMARIZE_PROMPT");
+  private static final String SKILLSHEET_SUMMARIZE_PROMPT = Properties.get("SKILLSHEET_SUMMARIZE_PROMPT");
 
   /** DBへ保存するスキルシートのraw_contentの最大長. */
-  private static final int SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH =
-      Properties.getInt("SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH");
+  private static final int SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH = Properties
+      .getInt("SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH");
 
   /** スキルシートの保存先S3バケット名. */
   private static final String S3_BUCKET_NAME = Properties.get("S3_BUCKET_NAME");
@@ -58,13 +57,14 @@ public class SkillSheet {
   private String fileContentSummary;
 
   /** デフォルトコンストラクタ. */
-  public SkillSheet() {}
+  public SkillSheet() {
+  }
 
   /**
    * コンストラクタ.
    *
-   * @param fileId ファイルID
-   * @param fileName ファイル名
+   * @param fileId      ファイルID
+   * @param fileName    ファイル名
    * @param fileContent ファイル内容
    */
   public SkillSheet(final String fileId, final String fileName, final String fileContent) {
@@ -93,9 +93,7 @@ public class SkillSheet {
           }
           for (XWPFTable table : doc.getTables()) {
             for (int rowIdx = 0; rowIdx < table.getRows().size(); rowIdx++) {
-              for (int cellIdx = 0;
-                  cellIdx < table.getRow(rowIdx).getTableCells().size();
-                  cellIdx++) {
+              for (int cellIdx = 0; cellIdx < table.getRow(rowIdx).getTableCells().size(); cellIdx++) {
                 XWPFTableCell cell = table.getRow(rowIdx).getCell(cellIdx);
                 text.append(cell.getText()).append("\t");
               }
@@ -127,15 +125,14 @@ public class SkillSheet {
       // Excelファイルを処理
       else if (this.fileName.endsWith(".xlsx") || this.fileName.endsWith(".xls")) {
         StringBuilder text = new StringBuilder();
-        try (Workbook workbook =
-            this.fileName.endsWith(".xlsx")
-                ? new XSSFWorkbook(inputStream)
-                : new HSSFWorkbook(inputStream)) {
+        try (Workbook workbook = this.fileName.endsWith(".xlsx")
+            ? new XSSFWorkbook(inputStream)
+            : new HSSFWorkbook(inputStream)) {
           for (Row row : workbook.getSheetAt(0)) {
             for (Cell cell : row) {
               CustomCell customCell = new CustomCell(cell);
               text.append(
-                      customCell.getValue(workbook.getCreationHelper().createFormulaEvaluator()))
+                  customCell.getValue(workbook.getCreationHelper().createFormulaEvaluator()))
                   .append(",");
             }
             text.append("\n");
@@ -164,8 +161,7 @@ public class SkillSheet {
       GptAnswer answer = transformer.generate(stringBuilder.toString());
       this.fileContentSummary = answer.getAnswer();
       // 1000文字制限を超えないように調整
-      this.fileContentSummary =
-          this.fileContentSummary.substring(0, Math.min(1000, this.fileContentSummary.length()));
+      this.fileContentSummary = this.fileContentSummary.substring(0, Math.min(1000, this.fileContentSummary.length()));
     } else {
       throw new IOException("ファイルの中身が空のため、要約の作成を中止します。");
     }

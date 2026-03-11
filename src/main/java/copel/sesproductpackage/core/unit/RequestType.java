@@ -3,7 +3,7 @@ package copel.sesproductpackage.core.unit;
 /**
  * リクエスト種別
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 public enum RequestType {
   LineMessage("11"),

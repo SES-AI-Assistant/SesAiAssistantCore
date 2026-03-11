@@ -3,7 +3,7 @@ package copel.sesproductpackage.core.unit;
 /**
  * システム内の各機能の利用権限を定義するEnum.
  *
- * @author antigravity
+ * @author Copel Co., Ltd.
  */
 public enum Permission {
     // 画面閲覧系

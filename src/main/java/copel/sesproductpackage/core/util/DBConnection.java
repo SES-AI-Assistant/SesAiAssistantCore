@@ -7,7 +7,7 @@ import java.sql.SQLException;
 /**
  * 【フレームワーク部品】 DBコネクションを取得するためのクラス.
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 public class DBConnection {
   /** RDBのエンドポイントURL. */

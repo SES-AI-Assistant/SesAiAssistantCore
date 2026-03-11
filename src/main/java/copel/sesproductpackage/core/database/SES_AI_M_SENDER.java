@@ -15,7 +15,7 @@ import lombok.ToString;
 /**
  * 送信者マスタテーブルのエンティティ.
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -23,16 +23,13 @@ import lombok.ToString;
 @ToString(callSuper = true)
 public class SES_AI_M_SENDER extends EntityBase {
   /** INSERTR文. */
-  private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_M_SENDER (from_id, from_name, company_id, register_date, register_user) VALUES (?, ?, ?, ?, ?)";
+  private static final String INSERT_SQL = "INSERT INTO SES_AI_M_SENDER (from_id, from_name, company_id, register_date, register_user) VALUES (?, ?, ?, ?, ?)";
 
   /** SELECT文. */
-  private static final String SELECT_SQL =
-      "SELECT from_id, from_name, company_id, register_date, register_user FROM SES_AI_M_SENDER WHERE from_id = ?";
+  private static final String SELECT_SQL = "SELECT from_id, from_name, company_id, register_date, register_user FROM SES_AI_M_SENDER WHERE from_id = ?";
 
   /** UPDATE文. */
-  private static final String UPDATE_SQL =
-      "UPDATE SES_AI_M_SENDER SET from_id = ?, from_name = ?, company_id = ?, register_date = ?, register_user = ? WHERE from_id = ?";
+  private static final String UPDATE_SQL = "UPDATE SES_AI_M_SENDER SET from_id = ?, from_name = ?, company_id = ?, register_date = ?, register_user = ? WHERE from_id = ?";
 
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_M_SENDER WHERE from_id = ?";

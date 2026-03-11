@@ -6,7 +6,7 @@ import java.util.Set;
 /**
  * ロール.
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 public enum Role {
   システム利用不可("00", EnumSet.noneOf(Permission.class)),

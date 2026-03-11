@@ -16,7 +16,7 @@ import lombok.ToString;
 /**
  * 【Entityクラス】 案件情報(SES_AI_T_JOB)テーブル.
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -27,20 +27,16 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
   // SQL
   // ================================
   /** INSERTR文. */
-  private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_JOB (job_id, from_group, from_id, from_name, raw_content, content_summary, vector_data, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
+  private static final String INSERT_SQL = "INSERT INTO SES_AI_T_JOB (job_id, from_group, from_id, from_name, raw_content, content_summary, vector_data, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
 
   /** SELECT文. */
-  private static final String SELECT_SQL =
-      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_JOB WHERE job_id = ?";
+  private static final String SELECT_SQL = "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_JOB WHERE job_id = ?";
 
   /** UPDATE文. */
-  private static final String UPDATE_SQL =
-      "UPDATE SES_AI_T_JOB SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, content_summary = ?, vector_data = ?::vector, ttl = ? WHERE job_id = ?";
+  private static final String UPDATE_SQL = "UPDATE SES_AI_T_JOB SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, content_summary = ?, vector_data = ?::vector, ttl = ? WHERE job_id = ?";
 
   /** 重複チェック用SQL. */
-  private static final String CHECK_SQL =
-      "SELECT COUNT(*) FROM SES_AI_T_JOB WHERE raw_content % ? AND similarity(raw_content, ?) > ?";
+  private static final String CHECK_SQL = "SELECT COUNT(*) FROM SES_AI_T_JOB WHERE raw_content % ? AND similarity(raw_content, ?) > ?";
 
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_T_JOB WHERE job_id = ?";

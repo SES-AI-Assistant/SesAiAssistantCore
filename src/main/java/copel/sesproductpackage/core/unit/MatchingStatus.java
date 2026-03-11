@@ -3,7 +3,7 @@ package copel.sesproductpackage.core.unit;
 /**
  * マッチング状態区分.
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 public enum MatchingStatus {
   アンマッチ("00"),

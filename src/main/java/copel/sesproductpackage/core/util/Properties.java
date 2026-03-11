@@ -15,7 +15,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 /**
  * プロパティファイルを扱うクラス.
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 @Slf4j
 public class Properties {
@@ -33,11 +33,10 @@ public class Properties {
 
   /* staticイニシャライザ. */
   static {
-    try (S3Client s3Client =
-        S3Client.builder()
-            .credentialsProvider(DefaultCredentialsProvider.create())
-            .region(region)
-            .build()) {
+    try (S3Client s3Client = S3Client.builder()
+        .credentialsProvider(DefaultCredentialsProvider.create())
+        .region(region)
+        .build()) {
       load(s3Client);
     }
   }
@@ -48,8 +47,8 @@ public class Properties {
    * @param s3Client S3クライアント
    */
   static void load(S3Client s3Client) {
-    try (InputStream inputStream =
-        s3Client.getObject(GetObjectRequest.builder().bucket(bucketName).key(objectKey).build())) {
+    try (InputStream inputStream = s3Client
+        .getObject(GetObjectRequest.builder().bucket(bucketName).key(objectKey).build())) {
 
       // プロパティファイルの内容を読み込む
       try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {

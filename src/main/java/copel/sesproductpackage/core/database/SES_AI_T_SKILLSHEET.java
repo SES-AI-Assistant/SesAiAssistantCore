@@ -14,7 +14,7 @@ import lombok.ToString;
 /**
  * 【Entityクラス】 スキルシート情報(SES_AI_T_SKILLSHEET)テーブル.
  *
- * @author 鈴木一矢
+ * @author Copel Co., Ltd.
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -24,20 +24,16 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
   // SQL
   // ================================
   /** INSERTR文. */
-  private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_SKILLSHEET (from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
+  private static final String INSERT_SQL = "INSERT INTO SES_AI_T_SKILLSHEET (from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
 
   /** SELECT文. */
-  private static final String SELECT_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
+  private static final String SELECT_SQL = "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
 
   /** SELECT文(原文抜き). */
-  private static final String SELECT_WITHOUT_CONTENT_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content_summary, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
+  private static final String SELECT_WITHOUT_CONTENT_SQL = "SELECT from_group, from_id, from_name, file_id, file_name, file_content_summary, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
 
   /** 重複チェック用SQL. */
-  private static final String CHECK_SQL =
-      "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET WHERE file_content % ? AND similarity(file_content, ?) > ?";
+  private static final String CHECK_SQL = "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET WHERE file_content % ? AND similarity(file_content, ?) > ?";
 
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
@@ -96,8 +92,7 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
       this.fromGroup = resultSet.getString("from_group");
       this.fromId = resultSet.getString("from_id");
       this.fromName = resultSet.getString("from_name");
-      this.skillSheet =
-          new SkillSheet(resultSet.getString("file_id"), resultSet.getString("file_name"), "");
+      this.skillSheet = new SkillSheet(resultSet.getString("file_id"), resultSet.getString("file_name"), "");
       this.skillSheet.setFileContentSummary(resultSet.getString("file_content_summary"));
       this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
       this.registerUser = resultSet.getString("register_user");
@@ -158,11 +153,10 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
       this.fromGroup = resultSet.getString("from_group");
       this.fromId = resultSet.getString("from_id");
       this.fromName = resultSet.getString("from_name");
-      this.skillSheet =
-          new SkillSheet(
-              resultSet.getString("file_id"),
-              resultSet.getString("file_name"),
-              resultSet.getString("file_content"));
+      this.skillSheet = new SkillSheet(
+          resultSet.getString("file_id"),
+          resultSet.getString("file_name"),
+          resultSet.getString("file_content"));
       this.skillSheet.setFileContentSummary(resultSet.getString("file_content_summary"));
       this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
       this.registerUser = resultSet.getString("register_user");
