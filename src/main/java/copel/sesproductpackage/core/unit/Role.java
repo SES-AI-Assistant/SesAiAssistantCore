@@ -1,27 +1,34 @@
 package copel.sesproductpackage.core.unit;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 /**
  * ロール.
  *
  * @author 鈴木一矢
  */
 public enum Role {
-  システム利用不可("00"),
-  システムユーザー("10"),
-  開発("20"),
-  運用("30"),
-  システム管理者("99");
+  システム利用不可("00", EnumSet.noneOf(Permission.class)),
+  システムユーザー("10", EnumSet.of(Permission.MANAGE_WATCH)),
+  開発("20", EnumSet.of(Permission.MANAGE_WATCH)),
+  運用("30", EnumSet.of(Permission.MANAGE_WATCH)),
+  システム管理者("99", EnumSet.allOf(Permission.class));
 
   /** コード値. */
   private String code;
+  /** 権限セット. */
+  private final Set<Permission> permissions;
 
   /**
    * コンストラクタ.
    *
-   * @param code コード値.
+   * @param code        コード値.
+   * @param permissions 権限セット.
    */
-  Role(final String code) {
+  Role(final String code, final Set<Permission> permissions) {
     this.code = code;
+    this.permissions = permissions;
   }
 
   /**
@@ -64,5 +71,14 @@ public enum Role {
    */
   public void setCode(String code) {
     this.code = code;
+  }
+
+  /**
+   * 権限セットを返却します.
+   *
+   * @return 権限セット
+   */
+  public Set<Permission> getPermissions() {
+    return permissions;
   }
 }

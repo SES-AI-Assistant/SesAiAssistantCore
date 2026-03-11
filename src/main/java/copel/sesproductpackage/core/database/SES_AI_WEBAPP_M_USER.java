@@ -3,11 +3,15 @@ package copel.sesproductpackage.core.database;
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.unit.Permission;
+import copel.sesproductpackage.core.unit.Plan;
 import copel.sesproductpackage.core.unit.Role;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashSet;
+import java.util.Set;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -24,16 +28,13 @@ import lombok.ToString;
 @ToString(callSuper = true)
 public class SES_AI_WEBAPP_M_USER extends EntityBase {
   /** INSERTR文. */
-  private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_WEBAPP_M_USER (user_id, user_name, company_id, role_cd, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?)";
+  private static final String INSERT_SQL = "INSERT INTO SES_AI_WEBAPP_M_USER (user_id, user_name, company_id, role_cd, plan_cd, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文. */
-  private static final String SELECT_SQL =
-      "SELECT user_id, user_name, company_id, role_cd, register_date, register_user FROM SES_AI_WEBAPP_M_USER WHERE user_id = ?";
+  private static final String SELECT_SQL = "SELECT user_id, user_name, company_id, role_cd, plan_cd, register_date, register_user FROM SES_AI_WEBAPP_M_USER WHERE user_id = ?";
 
   /** UPDATE文. */
-  private static final String UPDATE_SQL =
-      "UPDATE SES_AI_WEBAPP_M_USER SET user_id = ?, user_name = ?, company_id = ?, role_cd = ?, register_date = ?, register_user = ? WHERE user_id = ?";
+  private static final String UPDATE_SQL = "UPDATE SES_AI_WEBAPP_M_USER SET user_id = ?, user_name = ?, company_id = ?, role_cd = ?, plan_cd = ?, register_date = ?, register_user = ? WHERE user_id = ?";
 
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_WEBAPP_M_USER WHERE user_id = ?";
@@ -54,13 +55,33 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
   @Column(physicalName = "role_cd", logicalName = "ロール")
   private Role role;
 
+  /** プラン / plan_cd */
+  @Column(physicalName = "plan_cd", logicalName = "プラン")
+  private Plan plan;
+
   /**
    * このユーザーがシステム利用可能であるかどうかを判定します.
    *
    * @return 利用可能であればtrue、不可であればfalse
    */
   public boolean hasSystemUseAuth() {
-    return this.role.isSystemUseAuth();
+    return this.role != null && this.role.isSystemUseAuth();
+  }
+
+  /**
+   * ユーザーが持つ全ての権限を取得します.
+   *
+   * @return 権限セット
+   */
+  public Set<Permission> getPermissions() {
+    Set<Permission> permissions = new HashSet<>();
+    if (this.role != null) {
+      permissions.addAll(this.role.getPermissions());
+    }
+    if (this.plan != null) {
+      permissions.addAll(this.plan.getPermissions());
+    }
+    return permissions;
   }
 
   @Override
@@ -73,9 +94,10 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
     preparedStatement.setString(2, this.userName);
     preparedStatement.setString(3, this.companyId);
     preparedStatement.setString(4, this.role == null ? null : this.role.getCode());
+    preparedStatement.setString(5, this.plan == null ? null : this.plan.getCode());
     preparedStatement.setTimestamp(
-        5, this.registerDate == null ? null : this.registerDate.toTimestamp());
-    preparedStatement.setString(6, this.registerUser);
+        6, this.registerDate == null ? null : this.registerDate.toTimestamp());
+    preparedStatement.setString(7, this.registerUser);
     return preparedStatement.executeUpdate();
   }
 
@@ -92,6 +114,7 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
       this.userName = resultSet.getString("user_name");
       this.companyId = resultSet.getString("company_id");
       this.role = Role.getEnum(resultSet.getString("role_cd"));
+      this.plan = Plan.getEnum(resultSet.getString("plan_cd"));
       this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
       this.registerUser = resultSet.getString("register_user");
     }
@@ -107,10 +130,11 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
     preparedStatement.setString(2, this.userName);
     preparedStatement.setString(3, this.companyId);
     preparedStatement.setString(4, this.role == null ? null : this.role.getCode());
+    preparedStatement.setString(5, this.plan == null ? null : this.plan.getCode());
     preparedStatement.setTimestamp(
-        5, this.registerDate == null ? null : this.registerDate.toTimestamp());
-    preparedStatement.setString(6, this.registerUser);
-    preparedStatement.setString(7, this.userId);
+        6, this.registerDate == null ? null : this.registerDate.toTimestamp());
+    preparedStatement.setString(7, this.registerUser);
+    preparedStatement.setString(8, this.userId);
     return preparedStatement.executeUpdate() > 0;
   }
 
