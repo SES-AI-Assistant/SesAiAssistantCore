@@ -107,7 +107,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * SELECTをAND条件で実行する.
    *
    * @param connection DBコネクション
-   * @param andQuery   カラム名と検索値をkey-valueで持つMap
+   * @param andQuery カラム名と検索値をkey-valueで持つMap
    * @throws SQLException
    */
   public void selectByAndQuery(final Connection connection, final Map<String, String> andQuery)
@@ -119,7 +119,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * SELECTをOR条件で実行する.
    *
    * @param connection DBコネクション
-   * @param orQuery    カラム名と検索値をkey-valueで持つMap
+   * @param orQuery カラム名と検索値をkey-valueで持つMap
    * @throws SQLException
    */
   public void selectByOrQuery(final Connection connection, final Map<String, String> orQuery)
@@ -131,8 +131,8 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * 指定したカラムで全文検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
-   * @param column     検索対象カラム
-   * @param query      検索文字列
+   * @param column 検索対象カラム
+   * @param query 検索文字列
    * @throws SQLException
    */
   public void searchByField(final Connection connection, final String column, final String query)
@@ -143,10 +143,10 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   /**
    * 指定したカラムに対して複数条件で全文検索を実行し、結果をこのLotに保持します.
    *
-   * @param connection     DBコネクション
-   * @param column         検索対象カラム
+   * @param connection DBコネクション
+   * @param column 検索対象カラム
    * @param firstLikeQuery 1つ目のLIKE句の検索条件
-   * @param query          検索条件リスト
+   * @param query 検索条件リスト
    * @throws SQLException
    */
   public void searchByField(
@@ -180,9 +180,9 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * 条件を指定して検索を実行します.
    *
    * @param connection DBコネクション
-   * @param baseSql    基底SQL
-   * @param query      検索条件Map
-   * @param isAnd      AND検索ならtrue, OR検索ならfalse
+   * @param baseSql 基底SQL
+   * @param query 検索条件Map
+   * @param isAnd AND検索ならtrue, OR検索ならfalse
    * @throws SQLException
    */
   protected void selectByQuery(
@@ -225,11 +225,11 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   /**
    * あいまい検索を実行します.
    *
-   * @param connection     DBコネクション
-   * @param baseSql        基底SQL(LIKE句の前まで)
-   * @param columnName     検索対象カラム名
+   * @param connection DBコネクション
+   * @param baseSql 基底SQL(LIKE句の前まで)
+   * @param columnName 検索対象カラム名
    * @param firstLikeQuery 最初の検索ワード
-   * @param query          追加の検索条件リスト
+   * @param query 追加の検索条件リスト
    * @throws SQLException
    */
   protected void selectByLikeQuery(

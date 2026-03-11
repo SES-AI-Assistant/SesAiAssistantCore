@@ -39,31 +39,32 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
     } else {
       // パースを試みるパターンのリスト
       String[] patterns = {
-          "yyyy-MM-dd HH:mm:ss.SSSSSS",
-          "yyyy-MM-dd HH:mm:ss.SSSSS",
-          "yyyy-MM-dd HH:mm:ss.SSSS",
-          "yyyy-MM-dd HH:mm:ss.SSS",
-          "yyyy-MM-dd HH:mm:ss.SS",
-          "yyyy-MM-dd HH:mm:ss.S",
-          "yyyy-MM-dd HH:mm:ss",
-          "yyyy-MM-dd HH:mm",
-          "yyyy-MM-dd",
-          "yyyy/MM/dd HH:mm:ss.SSSSSS",
-          "yyyy/MM/dd HH:mm:ss.SSSSS",
-          "yyyy/MM/dd HH:mm:ss.SSSS",
-          "yyyy/MM/dd HH:mm:ss.SSS",
-          "yyyy/MM/dd HH:mm:ss.SS",
-          "yyyy/MM/dd HH:mm:ss.S",
-          "yyyy/MM/dd HH:mm:ss",
-          "yyyy/MM/dd HH:mm",
-          "yyyy/MM/dd"
+        "yyyy-MM-dd HH:mm:ss.SSSSSS",
+        "yyyy-MM-dd HH:mm:ss.SSSSS",
+        "yyyy-MM-dd HH:mm:ss.SSSS",
+        "yyyy-MM-dd HH:mm:ss.SSS",
+        "yyyy-MM-dd HH:mm:ss.SS",
+        "yyyy-MM-dd HH:mm:ss.S",
+        "yyyy-MM-dd HH:mm:ss",
+        "yyyy-MM-dd HH:mm",
+        "yyyy-MM-dd",
+        "yyyy/MM/dd HH:mm:ss.SSSSSS",
+        "yyyy/MM/dd HH:mm:ss.SSSSS",
+        "yyyy/MM/dd HH:mm:ss.SSSS",
+        "yyyy/MM/dd HH:mm:ss.SSS",
+        "yyyy/MM/dd HH:mm:ss.SS",
+        "yyyy/MM/dd HH:mm:ss.S",
+        "yyyy/MM/dd HH:mm:ss",
+        "yyyy/MM/dd HH:mm",
+        "yyyy/MM/dd"
       };
       // パースを試みる
       for (String pattern : patterns) {
         try {
           if ("yyyy-MM-dd".equals(pattern) || "yyyy/MM/dd".equals(pattern)) {
-            this.dateTime = LocalDateTime.parse(
-                date + " 00:00:00", DateTimeFormatter.ofPattern(pattern + " HH:mm:ss"));
+            this.dateTime =
+                LocalDateTime.parse(
+                    date + " 00:00:00", DateTimeFormatter.ofPattern(pattern + " HH:mm:ss"));
           } else {
             this.dateTime = LocalDateTime.parse(date, DateTimeFormatter.ofPattern(pattern));
           }
@@ -289,8 +290,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
   }
 
   /**
-   * 引数のOriginalDateTime - このオブジェクトで日付の差を出力します. 例：2024/1/8 - 2024/1/1 = 7、2024/1/1
-   * - 2024/1/8 = -7
+   * 引数のOriginalDateTime - このオブジェクトで日付の差を出力します. 例：2024/1/8 - 2024/1/1 = 7、2024/1/1 - 2024/1/8 = -7
    *
    * @param 比べたい日付
    * @return 日付の差の日数

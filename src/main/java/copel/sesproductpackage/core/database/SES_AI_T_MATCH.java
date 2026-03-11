@@ -26,13 +26,16 @@ import lombok.ToString;
 @ToString(callSuper = true)
 public class SES_AI_T_MATCH extends EntityBase {
   /** INSERTR文. */
-  private static final String INSERT_SQL = "INSERT INTO SES_AI_T_MATCH (matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+  private static final String INSERT_SQL =
+      "INSERT INTO SES_AI_T_MATCH (matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文. */
-  private static final String SELECT_SQL = "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, register_date, register_user FROM SES_AI_T_MATCH WHERE matching_id = ?";
+  private static final String SELECT_SQL =
+      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, register_date, register_user FROM SES_AI_T_MATCH WHERE matching_id = ?";
 
   /** UPDATE文. */
-  private static final String UPDATE_SQL = "UPDATE SES_AI_T_MATCH SET user_id = ?, job_id = ?, person_id = ?, job_content = ?, person_content = ?, status_cd = ?, register_date = ?, register_user = ? WHERE matching_id = ?";
+  private static final String UPDATE_SQL =
+      "UPDATE SES_AI_T_MATCH SET user_id = ?, job_id = ?, person_id = ?, job_content = ?, person_content = ?, status_cd = ?, register_date = ?, register_user = ? WHERE matching_id = ?";
 
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_T_MATCH WHERE matching_id = ?";

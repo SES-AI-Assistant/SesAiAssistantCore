@@ -23,25 +23,31 @@ import lombok.ToString;
 @ToString(callSuper = true)
 public class SES_AI_T_WATCH extends EntityBase {
   /** INSERT文. */
-  private static final String INSERT_SQL = "INSERT INTO SES_AI_T_WATCH (user_id, target_id, target_type, memo, register_date, register_user, ttl) "
-      + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+  private static final String INSERT_SQL =
+      "INSERT INTO SES_AI_T_WATCH (user_id, target_id, target_type, memo, register_date, register_user, ttl) "
+          + "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文. */
-  private static final String SELECT_SQL = "SELECT user_id, target_id, target_type, memo, register_date, register_user ttl"
-      + "FROM SES_AI_T_WATCH WHERE user_id = ? AND target_id = ?";
+  private static final String SELECT_SQL =
+      "SELECT user_id, target_id, target_type, memo, register_date, register_user ttl"
+          + "FROM SES_AI_T_WATCH WHERE user_id = ? AND target_id = ?";
 
   /** UPDATE文. */
-  private static final String UPDATE_SQL = "UPDATE SES_AI_T_WATCH SET target_type = ?, memo = ?, register_date = ?, register_user = ?, ttl = ? "
-      + "WHERE user_id = ? AND target_id = ?";
+  private static final String UPDATE_SQL =
+      "UPDATE SES_AI_T_WATCH SET target_type = ?, memo = ?, register_date = ?, register_user = ?, ttl = ? "
+          + "WHERE user_id = ? AND target_id = ?";
 
   /** DELETE文. */
-  private static final String DELETE_SQL = "DELETE FROM SES_AI_T_WATCH WHERE user_id = ? AND target_id = ?";
+  private static final String DELETE_SQL =
+      "DELETE FROM SES_AI_T_WATCH WHERE user_id = ? AND target_id = ?";
 
   /** EXISTS文. */
-  private static final String EXISTS_SQL = "SELECT EXISTS (SELECT 1 FROM SES_AI_T_WATCH WHERE user_id = ? AND target_id = ?)";
+  private static final String EXISTS_SQL =
+      "SELECT EXISTS (SELECT 1 FROM SES_AI_T_WATCH WHERE user_id = ? AND target_id = ?)";
 
   /** EXISTS文2. */
-  private static final String EXISTS_BY_TAGET_ID_SQL = "SELECT EXISTS (SELECT 1 FROM SES_AI_T_WATCH WHERE target_id = ?)";
+  private static final String EXISTS_BY_TAGET_ID_SQL =
+      "SELECT EXISTS (SELECT 1 FROM SES_AI_T_WATCH WHERE target_id = ?)";
 
   /** ユーザーID / user_id */
   @Column(physicalName = "user_id", logicalName = "ユーザーID")

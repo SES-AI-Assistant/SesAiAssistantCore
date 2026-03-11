@@ -15,7 +15,7 @@ public class Money {
   /**
    * コンストラクタ.
    *
-   * @param amount   金額
+   * @param amount 金額
    * @param currency 通貨
    */
   public Money(final double amount, final Currency currency) {

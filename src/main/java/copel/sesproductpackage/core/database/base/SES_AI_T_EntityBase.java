@@ -62,9 +62,9 @@ public abstract class SES_AI_T_EntityBase extends EntityBase {
   /**
    * テーブル内にこのエンティティの持つ内容と類似したレコードがあるかどうを判定する.
    *
-   * @param connection          DBコネクション
+   * @param connection DBコネクション
    * @param similarityThreshold
-   *                            類似度基準値(0.0～1.0で指定する。文章の一致率を示す。例えば0.8であれば、80%以上一致する文章が存在しなければユニークであると判定)
+   *     類似度基準値(0.0～1.0で指定する。文章の一致率を示す。例えば0.8であれば、80%以上一致する文章が存在しなければユニークであると判定)
    * @return 類似するレコードがなければtrue、あればfalse
    * @throws SQLException
    */

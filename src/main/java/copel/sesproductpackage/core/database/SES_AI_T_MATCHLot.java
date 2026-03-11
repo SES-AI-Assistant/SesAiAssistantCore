@@ -16,7 +16,8 @@ import java.util.ArrayList;
  */
 public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
   /** 全件SELECT文. */
-  private static final String SELECT_ALL_SQL = "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, register_date, register_user FROM SES_AI_T_MATCH";
+  private static final String SELECT_ALL_SQL =
+      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, register_date, register_user FROM SES_AI_T_MATCH";
 
   public SES_AI_T_MATCHLot() {
     super();

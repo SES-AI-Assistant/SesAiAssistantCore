@@ -31,11 +31,13 @@ class ExternalFileLinkTests {
 
   @Test
   void testIsDownloadable_GoogleDrive_ReturnsTrue() throws Exception {
-    HttpResponse<Void> mockResponse = createMockVoidResponse("https://drive.google.com/file/d/TESTID/view");
+    HttpResponse<Void> mockResponse =
+        createMockVoidResponse("https://drive.google.com/file/d/TESTID/view");
     when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
         .thenReturn(mockResponse);
 
-    ExternalFileLink link = new ExternalFileLink("https://drive.google.com/file/d/TESTID/view", mockHttpClient);
+    ExternalFileLink link =
+        new ExternalFileLink("https://drive.google.com/file/d/TESTID/view", mockHttpClient);
     assertTrue(link.isDownloadable());
     // directUrl が変換されているか確認
     assertTrue(link.getDirectUrl().contains("uc?export=download&id=TESTID"));
@@ -43,55 +45,65 @@ class ExternalFileLinkTests {
 
   @Test
   void testIsDownloadable_GoogleSheets_ReturnsTrue() throws Exception {
-    HttpResponse<Void> mockResponse = createMockVoidResponse("https://docs.google.com/spreadsheets/d/SHEETID/edit");
+    HttpResponse<Void> mockResponse =
+        createMockVoidResponse("https://docs.google.com/spreadsheets/d/SHEETID/edit");
     when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
         .thenReturn(mockResponse);
 
-    ExternalFileLink link = new ExternalFileLink("https://docs.google.com/spreadsheets/d/SHEETID/edit", mockHttpClient);
+    ExternalFileLink link =
+        new ExternalFileLink("https://docs.google.com/spreadsheets/d/SHEETID/edit", mockHttpClient);
     assertTrue(link.isDownloadable());
     assertTrue(link.getDirectUrl().contains("/export?format=xlsx"));
   }
 
   @Test
   void testIsDownloadable_GoogleDocs_ReturnsTrue() throws Exception {
-    HttpResponse<Void> mockResponse = createMockVoidResponse("https://docs.google.com/document/d/DOCID/edit");
+    HttpResponse<Void> mockResponse =
+        createMockVoidResponse("https://docs.google.com/document/d/DOCID/edit");
     when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
         .thenReturn(mockResponse);
 
-    ExternalFileLink link = new ExternalFileLink("https://docs.google.com/document/d/DOCID/edit", mockHttpClient);
+    ExternalFileLink link =
+        new ExternalFileLink("https://docs.google.com/document/d/DOCID/edit", mockHttpClient);
     assertTrue(link.isDownloadable());
     assertTrue(link.getDirectUrl().contains("/export?format=docx"));
   }
 
   @Test
   void testIsDownloadable_GoogleSlides_ReturnsTrue() throws Exception {
-    HttpResponse<Void> mockResponse = createMockVoidResponse("https://docs.google.com/presentation/d/SLIDEID/edit");
+    HttpResponse<Void> mockResponse =
+        createMockVoidResponse("https://docs.google.com/presentation/d/SLIDEID/edit");
     when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
         .thenReturn(mockResponse);
 
-    ExternalFileLink link = new ExternalFileLink("https://docs.google.com/presentation/d/SLIDEID/edit", mockHttpClient);
+    ExternalFileLink link =
+        new ExternalFileLink("https://docs.google.com/presentation/d/SLIDEID/edit", mockHttpClient);
     assertTrue(link.isDownloadable());
     assertTrue(link.getDirectUrl().contains("/export?format=pdf"));
   }
 
   @Test
   void testIsDownloadable_Dropbox_ReturnsTrue() throws Exception {
-    HttpResponse<Void> mockResponse = createMockVoidResponse("https://www.dropbox.com/s/HASH/file.xlsx?dl=0");
+    HttpResponse<Void> mockResponse =
+        createMockVoidResponse("https://www.dropbox.com/s/HASH/file.xlsx?dl=0");
     when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
         .thenReturn(mockResponse);
 
-    ExternalFileLink link = new ExternalFileLink("https://www.dropbox.com/s/HASH/file.xlsx?dl=0", mockHttpClient);
+    ExternalFileLink link =
+        new ExternalFileLink("https://www.dropbox.com/s/HASH/file.xlsx?dl=0", mockHttpClient);
     assertTrue(link.isDownloadable());
     assertTrue(link.getDirectUrl().endsWith("?dl=1"));
   }
 
   @Test
   void testIsDownloadable_DropboxScl_ReturnsTrue() throws Exception {
-    HttpResponse<Void> mockResponse = createMockVoidResponse("https://www.dropbox.com/scl/fi/HASH/file.xlsx?dl=0");
+    HttpResponse<Void> mockResponse =
+        createMockVoidResponse("https://www.dropbox.com/scl/fi/HASH/file.xlsx?dl=0");
     when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
         .thenReturn(mockResponse);
 
-    ExternalFileLink link = new ExternalFileLink("https://www.dropbox.com/scl/fi/HASH/file.xlsx?dl=0", mockHttpClient);
+    ExternalFileLink link =
+        new ExternalFileLink("https://www.dropbox.com/scl/fi/HASH/file.xlsx?dl=0", mockHttpClient);
     assertTrue(link.isDownloadable());
     assertTrue(link.getDirectUrl().endsWith("?dl=1"));
   }
@@ -109,25 +121,28 @@ class ExternalFileLinkTests {
 
   @Test
   void testIsDownloadable_SharePoint_ReturnsTrue() throws Exception {
-    HttpResponse<Void> mockResponse = createMockVoidResponse("https://company.sharepoint.com/sites/shared/file.xlsx");
+    HttpResponse<Void> mockResponse =
+        createMockVoidResponse("https://company.sharepoint.com/sites/shared/file.xlsx");
     when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
         .thenReturn(mockResponse);
 
-    ExternalFileLink link = new ExternalFileLink(
-        "https://company.sharepoint.com/sites/shared/file.xlsx", mockHttpClient);
+    ExternalFileLink link =
+        new ExternalFileLink(
+            "https://company.sharepoint.com/sites/shared/file.xlsx", mockHttpClient);
     assertTrue(link.isDownloadable());
     assertTrue(link.getDirectUrl().contains("download=1"));
   }
 
   @Test
   void testIsDownloadable_SharePoint_WithQueryString_AppendsAmpersand() throws Exception {
-    HttpResponse<Void> mockResponse = createMockVoidResponse(
-        "https://company.sharepoint.com/sites/shared/file.xlsx?param=1");
+    HttpResponse<Void> mockResponse =
+        createMockVoidResponse("https://company.sharepoint.com/sites/shared/file.xlsx?param=1");
     when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
         .thenReturn(mockResponse);
 
-    ExternalFileLink link = new ExternalFileLink(
-        "https://company.sharepoint.com/sites/shared/file.xlsx?param=1", mockHttpClient);
+    ExternalFileLink link =
+        new ExternalFileLink(
+            "https://company.sharepoint.com/sites/shared/file.xlsx?param=1", mockHttpClient);
     assertTrue(link.isDownloadable());
     assertTrue(link.getDirectUrl().contains("&download=1"));
   }
@@ -138,7 +153,8 @@ class ExternalFileLinkTests {
     when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
         .thenReturn(mockResponse);
 
-    ExternalFileLink link = new ExternalFileLink("https://www.example.com/page.html", mockHttpClient);
+    ExternalFileLink link =
+        new ExternalFileLink("https://www.example.com/page.html", mockHttpClient);
     assertFalse(link.isDownloadable());
   }
 
@@ -181,17 +197,20 @@ class ExternalFileLinkTests {
   @Test
   void testDownload_Success() throws Exception {
     // isDownloadable()をまず成功させる
-    HttpResponse<Void> headResponse = createMockVoidResponse("https://drive.google.com/file/d/TESTID/view");
+    HttpResponse<Void> headResponse =
+        createMockVoidResponse("https://drive.google.com/file/d/TESTID/view");
     when(mockHttpClient.send(any(HttpRequest.class), eq(HttpResponse.BodyHandlers.discarding())))
         .thenReturn(headResponse);
 
     byte[] expectedData = "PDF content".getBytes();
-    HttpResponse<byte[]> getResponse = createMockByteResponse(
-        200, expectedData, "application/pdf", "attachment; filename=\"skill.pdf\"");
+    HttpResponse<byte[]> getResponse =
+        createMockByteResponse(
+            200, expectedData, "application/pdf", "attachment; filename=\"skill.pdf\"");
     when(mockHttpClient.send(any(HttpRequest.class), eq(HttpResponse.BodyHandlers.ofByteArray())))
         .thenReturn(getResponse);
 
-    ExternalFileLink link = new ExternalFileLink("https://drive.google.com/file/d/TESTID/view", mockHttpClient);
+    ExternalFileLink link =
+        new ExternalFileLink("https://drive.google.com/file/d/TESTID/view", mockHttpClient);
     link.isDownloadable();
     link.download();
 
@@ -202,7 +221,8 @@ class ExternalFileLinkTests {
 
   @Test
   void testDownload_HttpError_ThrowsIOException() throws Exception {
-    HttpResponse<Void> headResponse = createMockVoidResponse("https://drive.google.com/file/d/TESTID/view");
+    HttpResponse<Void> headResponse =
+        createMockVoidResponse("https://drive.google.com/file/d/TESTID/view");
     when(mockHttpClient.send(any(HttpRequest.class), eq(HttpResponse.BodyHandlers.discarding())))
         .thenReturn(headResponse);
 
@@ -210,47 +230,55 @@ class ExternalFileLinkTests {
     when(mockHttpClient.send(any(HttpRequest.class), eq(HttpResponse.BodyHandlers.ofByteArray())))
         .thenReturn(getResponse);
 
-    ExternalFileLink link = new ExternalFileLink("https://drive.google.com/file/d/TESTID/view", mockHttpClient);
+    ExternalFileLink link =
+        new ExternalFileLink("https://drive.google.com/file/d/TESTID/view", mockHttpClient);
     link.isDownloadable();
     assertThrows(IOException.class, link::download);
   }
 
   @Test
   void testDownload_HtmlContentType_ThrowsIOException() throws Exception {
-    HttpResponse<Void> headResponse = createMockVoidResponse("https://drive.google.com/file/d/TESTID/view");
+    HttpResponse<Void> headResponse =
+        createMockVoidResponse("https://drive.google.com/file/d/TESTID/view");
     when(mockHttpClient.send(any(HttpRequest.class), eq(HttpResponse.BodyHandlers.discarding())))
         .thenReturn(headResponse);
 
-    HttpResponse<byte[]> getResponse = createMockByteResponse(
-        200, "<html>Confirm</html>".getBytes(), "text/html; charset=utf-8", "");
+    HttpResponse<byte[]> getResponse =
+        createMockByteResponse(
+            200, "<html>Confirm</html>".getBytes(), "text/html; charset=utf-8", "");
     when(mockHttpClient.send(any(HttpRequest.class), eq(HttpResponse.BodyHandlers.ofByteArray())))
         .thenReturn(getResponse);
 
-    ExternalFileLink link = new ExternalFileLink("https://drive.google.com/file/d/TESTID/view", mockHttpClient);
+    ExternalFileLink link =
+        new ExternalFileLink("https://drive.google.com/file/d/TESTID/view", mockHttpClient);
     link.isDownloadable();
     assertThrows(IOException.class, link::download);
   }
 
   @Test
   void testDownload_FileSizeExceedsLimit_ThrowsIOException() throws Exception {
-    HttpResponse<Void> headResponse = createMockVoidResponse("https://drive.google.com/file/d/TESTID/view");
+    HttpResponse<Void> headResponse =
+        createMockVoidResponse("https://drive.google.com/file/d/TESTID/view");
     when(mockHttpClient.send(any(HttpRequest.class), eq(HttpResponse.BodyHandlers.discarding())))
         .thenReturn(headResponse);
 
     // 21MB のダミーデータ
     byte[] largeData = new byte[(int) (ExternalFileLink.MAX_FILE_SIZE_BYTES + 1)];
-    HttpResponse<byte[]> getResponse = createMockByteResponse(200, largeData, "application/pdf", "");
+    HttpResponse<byte[]> getResponse =
+        createMockByteResponse(200, largeData, "application/pdf", "");
     when(mockHttpClient.send(any(HttpRequest.class), eq(HttpResponse.BodyHandlers.ofByteArray())))
         .thenReturn(getResponse);
 
-    ExternalFileLink link = new ExternalFileLink("https://drive.google.com/file/d/TESTID/view", mockHttpClient);
+    ExternalFileLink link =
+        new ExternalFileLink("https://drive.google.com/file/d/TESTID/view", mockHttpClient);
     link.isDownloadable();
     assertThrows(IOException.class, link::download);
   }
 
   @Test
   void testDownload_DirectUrlNotSet_ThrowsIOException() {
-    ExternalFileLink link = new ExternalFileLink("https://drive.google.com/file/d/TESTID/view", mockHttpClient);
+    ExternalFileLink link =
+        new ExternalFileLink("https://drive.google.com/file/d/TESTID/view", mockHttpClient);
     // isDownloadable() を呼ばずにdownload()
     assertThrows(IOException.class, link::download);
   }
@@ -299,27 +327,32 @@ class ExternalFileLinkTests {
 
   @Test
   void testExtractFileName_FromContentDisposition_Quoted() throws Exception {
-    ExternalFileLink link = new ExternalFileLink("https://drive.google.com/file/d/ID/view", mockHttpClient);
-    HttpResponse<byte[]> response = createMockByteResponse(
-        200, new byte[0], "application/pdf", "attachment; filename=\"mySkillSheet.pdf\"");
+    ExternalFileLink link =
+        new ExternalFileLink("https://drive.google.com/file/d/ID/view", mockHttpClient);
+    HttpResponse<byte[]> response =
+        createMockByteResponse(
+            200, new byte[0], "application/pdf", "attachment; filename=\"mySkillSheet.pdf\"");
     assertEquals("mySkillSheet.pdf", link.extractFileName(response, "https://example.com/file"));
   }
 
   @Test
   void testExtractFileName_FromContentDisposition_Rfc5987() throws Exception {
-    ExternalFileLink link = new ExternalFileLink("https://drive.google.com/file/d/ID/view", mockHttpClient);
-    HttpResponse<byte[]> response = createMockByteResponse(
-        200,
-        new byte[0],
-        "application/pdf",
-        "attachment; filename*=UTF-8''%E3%82%B9%E3%82%AD%E3%83%AB.pdf");
+    ExternalFileLink link =
+        new ExternalFileLink("https://drive.google.com/file/d/ID/view", mockHttpClient);
+    HttpResponse<byte[]> response =
+        createMockByteResponse(
+            200,
+            new byte[0],
+            "application/pdf",
+            "attachment; filename*=UTF-8''%E3%82%B9%E3%82%AD%E3%83%AB.pdf");
     String name = link.extractFileName(response, "https://example.com/file");
     assertFalse(name.isBlank());
   }
 
   @Test
   void testExtractFileName_FromUrlPath() throws Exception {
-    ExternalFileLink link = new ExternalFileLink("https://drive.google.com/file/d/ID/view", mockHttpClient);
+    ExternalFileLink link =
+        new ExternalFileLink("https://drive.google.com/file/d/ID/view", mockHttpClient);
     HttpResponse<byte[]> response = createMockByteResponse(200, new byte[0], "application/pdf", "");
     assertEquals(
         "resume.pdf", link.extractFileName(response, "https://example.com/path/resume.pdf"));
@@ -327,7 +360,8 @@ class ExternalFileLinkTests {
 
   @Test
   void testExtractFileName_FallbackToTimestamp() throws Exception {
-    ExternalFileLink link = new ExternalFileLink("https://drive.google.com/file/d/ID/view", mockHttpClient);
+    ExternalFileLink link =
+        new ExternalFileLink("https://drive.google.com/file/d/ID/view", mockHttpClient);
     HttpResponse<byte[]> response = createMockByteResponse(200, new byte[0], "application/pdf", "");
     // パスが空(エントリがルート"/")となるURLでフォールバックをテスト
     String name = link.extractFileName(response, "https://example.com/");
@@ -336,7 +370,8 @@ class ExternalFileLinkTests {
 
   @Test
   void testExtractFileName_FallbackWhenInvalidUri() throws Exception {
-    ExternalFileLink link = new ExternalFileLink("https://drive.google.com/file/d/ID/view", mockHttpClient);
+    ExternalFileLink link =
+        new ExternalFileLink("https://drive.google.com/file/d/ID/view", mockHttpClient);
     HttpResponse<byte[]> response = createMockByteResponse(200, new byte[0], "application/pdf", "");
     // URLにスペースが含まれるなどURIパースが失敗するケース
     String name = link.extractFileName(response, "not a valid url with spaces");

@@ -36,8 +36,8 @@ public abstract class SQSEntityBase {
    * @throws JsonProcessingException
    */
   public SendMessageResult sendMessage() throws JsonProcessingException {
-    SendMessageRequest sendMessageRequest = new SendMessageRequest().withQueueUrl(this.queueUrl)
-        .withMessageBody(this.getMessageBody());
+    SendMessageRequest sendMessageRequest =
+        new SendMessageRequest().withQueueUrl(this.queueUrl).withMessageBody(this.getMessageBody());
     return this.sqsClient.sendMessage(sendMessageRequest);
   }
 

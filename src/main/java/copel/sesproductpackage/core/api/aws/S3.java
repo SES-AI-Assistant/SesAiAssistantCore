@@ -45,16 +45,17 @@ public class S3 {
    * コンストラクタ.
    *
    * @param bucketName バケット名.
-   * @param objectKey  オブジェクトキー.
+   * @param objectKey オブジェクトキー.
    */
   public S3(final String bucketName, final String objectKey, final Region region) {
     this.bucketName = bucketName;
     this.objectKey = objectKey;
     // S3クライアントの作成
-    this.s3Client = S3Client.builder()
-        .credentialsProvider(DefaultCredentialsProvider.create())
-        .region(region)
-        .build();
+    this.s3Client =
+        S3Client.builder()
+            .credentialsProvider(DefaultCredentialsProvider.create())
+            .region(region)
+            .build();
   }
 
   /** このオブジェクトに持つdataをS3に保存します. */
@@ -88,8 +89,8 @@ public class S3 {
   public void read() throws IOException {
     try {
       // S3からファイルを取得
-      GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(this.bucketName).key(this.objectKey)
-          .build();
+      GetObjectRequest getObjectRequest =
+          GetObjectRequest.builder().bucket(this.bucketName).key(this.objectKey).build();
 
       // ファイルを取得してdataにセット
       try (InputStream inputStream = this.s3Client.getObject(getObjectRequest)) {
@@ -97,8 +98,8 @@ public class S3 {
       }
 
       // ファイルの保存日時を取得
-      HeadObjectRequest headObjectRequest = HeadObjectRequest.builder().bucket(this.bucketName).key(this.objectKey)
-          .build();
+      HeadObjectRequest headObjectRequest =
+          HeadObjectRequest.builder().bucket(this.bucketName).key(this.objectKey).build();
 
       // ファイルのメタデータを取得
       HeadObjectResponse headObjectResponse = s3Client.headObject(headObjectRequest);
@@ -115,8 +116,8 @@ public class S3 {
   /** このオブジェクトが持つバケット内のファイルを削除する. */
   public void delete() {
     try {
-      DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder().bucket(this.bucketName)
-          .key(this.objectKey).build();
+      DeleteObjectRequest deleteObjectRequest =
+          DeleteObjectRequest.builder().bucket(this.bucketName).key(this.objectKey).build();
 
       this.s3Client.deleteObject(deleteObjectRequest);
 
@@ -139,18 +140,20 @@ public class S3 {
   }
 
   public String createDownloadUrl(final long expireMinutes) {
-    try (S3Presigner presigner = S3Presigner.builder()
-        .region(this.s3Client.serviceClientConfiguration().region())
-        .credentialsProvider(DefaultCredentialsProvider.create())
-        .build()) {
+    try (S3Presigner presigner =
+        S3Presigner.builder()
+            .region(this.s3Client.serviceClientConfiguration().region())
+            .credentialsProvider(DefaultCredentialsProvider.create())
+            .build()) {
 
-      GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(this.bucketName).key(this.objectKey)
-          .build();
+      GetObjectRequest getObjectRequest =
+          GetObjectRequest.builder().bucket(this.bucketName).key(this.objectKey).build();
 
-      GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-          .signatureDuration(Duration.ofMinutes(expireMinutes))
-          .getObjectRequest(getObjectRequest)
-          .build();
+      GetObjectPresignRequest presignRequest =
+          GetObjectPresignRequest.builder()
+              .signatureDuration(Duration.ofMinutes(expireMinutes))
+              .getObjectRequest(getObjectRequest)
+              .build();
 
       return presigner.presignGetObject(presignRequest).url().toString();
     } catch (Exception e) {

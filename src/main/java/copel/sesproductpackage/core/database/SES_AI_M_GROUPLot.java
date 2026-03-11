@@ -15,7 +15,8 @@ import java.util.ArrayList;
  */
 public class SES_AI_M_GROUPLot extends EntityLotBase<SES_AI_M_GROUP> {
   /** 全件SELECT文. */
-  private static final String SELECT_ALL_SQL = "SELECT from_group, group_name, register_date, register_user FROM SES_AI_M_GROUP";
+  private static final String SELECT_ALL_SQL =
+      "SELECT from_group, group_name, register_date, register_user FROM SES_AI_M_GROUP";
 
   public SES_AI_M_GROUPLot() {
     super();

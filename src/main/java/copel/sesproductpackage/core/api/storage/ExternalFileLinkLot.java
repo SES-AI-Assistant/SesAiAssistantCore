@@ -10,8 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * 【SES AIアシスタント】 テキストから抽出した ExternalFileLink のリストを管理するLotクラス.
  *
- * <p>
- * テキスト（Geminiが生成した要約文など）から外部ストレージのURLを正規表現で抽出し、 一括ダウンロード処理を提供する。
+ * <p>テキスト（Geminiが生成した要約文など）から外部ストレージのURLを正規表現で抽出し、 一括ダウンロード処理を提供する。
  *
  * @author Copel Co., Ltd.
  */
@@ -19,7 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 public class ExternalFileLinkLot {
 
   /** URLを抽出する正規表現パターン. */
-  static final Pattern URL_PATTERN = Pattern.compile("https?://[\\w/:%#\\$&\\?\\(\\)~\\.=\\+\\-@!,;]+");
+  static final Pattern URL_PATTERN =
+      Pattern.compile("https?://[\\w/:%#\\$&\\?\\(\\)~\\.=\\+\\-@!,;]+");
 
   /** 抽出されたURLのリスト. */
   private final List<ExternalFileLink> links;
@@ -43,8 +43,7 @@ public class ExternalFileLinkLot {
   /**
    * ダウンロード可能なリンクが1件以上あるかを返す.
    *
-   * <p>
-   * 内部でisDownloadable()を呼び出すため、HEADリクエストが発生する。
+   * <p>内部でisDownloadable()を呼び出すため、HEADリクエストが発生する。
    *
    * @return ダウンロード可能なリンクが1件以上あればtrue
    */
@@ -55,8 +54,7 @@ public class ExternalFileLinkLot {
   /**
    * 全リンクのダウンロードを試みる.
    *
-   * <p>
-   * 失敗したリンクはwarningログのみ出力してスキップし、処理を継続する。
+   * <p>失敗したリンクはwarningログのみ出力してスキップし、処理を継続する。
    */
   public void downloadAll() {
     for (ExternalFileLink link : links) {

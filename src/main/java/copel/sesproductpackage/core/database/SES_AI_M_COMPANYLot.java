@@ -15,7 +15,8 @@ import java.util.ArrayList;
  */
 public class SES_AI_M_COMPANYLot extends EntityLotBase<SES_AI_M_COMPANY> {
   /** 全件SELECT文. */
-  private static final String SELECT_ALL_SQL = "SELECT company_id, company_name, memo, register_date, register_user FROM SES_AI_M_COMPANY";
+  private static final String SELECT_ALL_SQL =
+      "SELECT company_id, company_name, memo, register_date, register_user FROM SES_AI_M_COMPANY";
 
   public SES_AI_M_COMPANYLot() {
     super();

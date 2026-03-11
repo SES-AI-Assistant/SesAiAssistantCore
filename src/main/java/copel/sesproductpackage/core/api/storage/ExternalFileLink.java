@@ -13,9 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * 【SES AIアシスタント】 外部ストレージ上の共有URLを1件分表すクラス.
  *
- * <p>
- * Google Drive, Dropbox, OneDrive/SharePoint の共有リンクを検出し、
- * ダウンロード可能な直リンクへ変換してファイルを取得する。
+ * <p>Google Drive, Dropbox, OneDrive/SharePoint の共有リンクを検出し、 ダウンロード可能な直リンクへ変換してファイルを取得する。
  *
  * @author Copel Co., Ltd.
  */
@@ -53,16 +51,17 @@ public class ExternalFileLink {
    */
   public ExternalFileLink(final String rawUrl) {
     this.rawUrl = rawUrl;
-    this.httpClient = HttpClient.newBuilder()
-        .followRedirects(HttpClient.Redirect.ALWAYS)
-        .connectTimeout(Duration.ofSeconds(HTTP_TIMEOUT_SECONDS))
-        .build();
+    this.httpClient =
+        HttpClient.newBuilder()
+            .followRedirects(HttpClient.Redirect.ALWAYS)
+            .connectTimeout(Duration.ofSeconds(HTTP_TIMEOUT_SECONDS))
+            .build();
   }
 
   /**
    * テスト用コンストラクタ（HttpClientを注入可能）.
    *
-   * @param rawUrl     元URL
+   * @param rawUrl 元URL
    * @param httpClient テスト用HttpClient
    */
   ExternalFileLink(final String rawUrl, final HttpClient httpClient) {
@@ -73,9 +72,7 @@ public class ExternalFileLink {
   /**
    * サポート対象のストレージサービスへのリンクか否かを返す.
    *
-   * <p>
-   * HEADリクエストでリダイレクトを解決し、最終URLのドメインで判定する。 判定に成功した場合は内部に resolvedUrl と directUrl
-   * をセットする。
+   * <p>HEADリクエストでリダイレクトを解決し、最終URLのドメインで判定する。 判定に成功した場合は内部に resolvedUrl と directUrl をセットする。
    *
    * @return サポート対象であれば true
    */
@@ -84,12 +81,14 @@ public class ExternalFileLink {
       return false;
     }
     try {
-      HttpRequest request = HttpRequest.newBuilder()
-          .uri(URI.create(rawUrl))
-          .method("HEAD", HttpRequest.BodyPublishers.noBody())
-          .timeout(Duration.ofSeconds(HTTP_TIMEOUT_SECONDS))
-          .build();
-      HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+      HttpRequest request =
+          HttpRequest.newBuilder()
+              .uri(URI.create(rawUrl))
+              .method("HEAD", HttpRequest.BodyPublishers.noBody())
+              .timeout(Duration.ofSeconds(HTTP_TIMEOUT_SECONDS))
+              .build();
+      HttpResponse<Void> response =
+          httpClient.send(request, HttpResponse.BodyHandlers.discarding());
       this.resolvedUrl = response.uri().toString();
       this.directUrl = convertToDirectUrl(this.resolvedUrl);
       return isSupportedDomain(this.resolvedUrl);
@@ -102,19 +101,21 @@ public class ExternalFileLink {
   /**
    * 直リンクURLからファイルをダウンロードし fileData に格納する.
    *
-   * @throws IOException          ダウンロード失敗時
+   * @throws IOException ダウンロード失敗時
    * @throws InterruptedException HTTPリクエスト中断時
    */
   public void download() throws IOException, InterruptedException {
     if (directUrl == null || directUrl.isBlank()) {
       throw new IOException("directUrl が未設定です。isDownloadable() を先に呼び出してください。");
     }
-    HttpRequest request = HttpRequest.newBuilder()
-        .uri(URI.create(directUrl))
-        .GET()
-        .timeout(Duration.ofSeconds(HTTP_TIMEOUT_SECONDS))
-        .build();
-    HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+    HttpRequest request =
+        HttpRequest.newBuilder()
+            .uri(URI.create(directUrl))
+            .GET()
+            .timeout(Duration.ofSeconds(HTTP_TIMEOUT_SECONDS))
+            .build();
+    HttpResponse<byte[]> response =
+        httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
 
     if (response.statusCode() != 200) {
       throw new IOException("Download failed: HTTP " + response.statusCode() + " / " + directUrl);
@@ -245,11 +246,10 @@ public class ExternalFileLink {
   /**
    * HTTPレスポンスまたはURLからファイル名を決定する.
    *
-   * <p>
-   * 優先順位: 1. Content-Disposition ヘッダ / 2. URL末尾のパス部分 / 3. タイムスタンプをつけたデフォルト名
+   * <p>優先順位: 1. Content-Disposition ヘッダ / 2. URL末尾のパス部分 / 3. タイムスタンプをつけたデフォルト名
    *
    * @param response HTTPレスポンス
-   * @param url      ダウンロードURL
+   * @param url ダウンロードURL
    * @return ファイル名
    */
   String extractFileName(final HttpResponse<byte[]> response, final String url) {
@@ -257,7 +257,8 @@ public class ExternalFileLink {
     String disposition = response.headers().firstValue("Content-Disposition").orElse("");
     if (!disposition.isBlank()) {
       // filename*= (RFC 5987) を優先
-      Pattern rfc5987 = Pattern.compile("filename\\*=(?:UTF-8'')?([^;\\s]+)", Pattern.CASE_INSENSITIVE);
+      Pattern rfc5987 =
+          Pattern.compile("filename\\*=(?:UTF-8'')?([^;\\s]+)", Pattern.CASE_INSENSITIVE);
       Matcher m = rfc5987.matcher(disposition);
       if (m.find()) {
         String name = m.group(1).trim();
@@ -292,7 +293,7 @@ public class ExternalFileLink {
   /**
    * URLから正規表現でIDを抽出する.
    *
-   * @param url   対象URL
+   * @param url 対象URL
    * @param regex 抽出正規表現（グループ1がID部分）
    * @return 抽出したID（見つからない場合は空文字）
    */

@@ -36,7 +36,8 @@ public class OpenAI implements Transformer {
   private static final String COMPLETION_MODEL_DEFAULT = OpenAIModel.GPT_3_5_TURBO.getModelName();
 
   /** OpenAIの質問応答を処理する際のtemperatureパラメータのデフォルト値. */
-  private static final Float COMPLETION_TEMPERATURE = Float.valueOf(Properties.get("OPEN_AI_COMPLETION_TEMPERATURE"));
+  private static final Float COMPLETION_TEMPERATURE =
+      Float.valueOf(Properties.get("OPEN_AI_COMPLETION_TEMPERATURE"));
 
   /** OpenAIのファイルアップロードAPIのエンドポイント. */
   private static final String FILE_UPLOAD_URL = Properties.get("OPEN_AI_FILE_UPLOAD_URL");
@@ -63,7 +64,7 @@ public class OpenAI implements Transformer {
   /**
    * コンストラクタ.
    *
-   * @param apiKey          APIキー
+   * @param apiKey APIキー
    * @param completionModel GPTモデル
    */
   public OpenAI(final String apiKey, final String completionModel) {
@@ -85,11 +86,12 @@ public class OpenAI implements Transformer {
     conn.setDoOutput(true);
 
     log.info("【OpenAI】{}文字のエンベディング処理を実行しました", inputString.length());
-    String jsonBody = "{\"input\": \""
-        + inputString.replaceAll("\\p{Cntrl}", "")
-        + "\", \"model\": \""
-        + EMBEDDING_MODEL
-        + "\"}";
+    String jsonBody =
+        "{\"input\": \""
+            + inputString.replaceAll("\\p{Cntrl}", "")
+            + "\", \"model\": \""
+            + EMBEDDING_MODEL
+            + "\"}";
     try (OutputStream os = conn.getOutputStream()) {
       byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
       os.write(input, 0, input.length);
@@ -131,7 +133,7 @@ public class OpenAI implements Transformer {
   /**
    * OpenAIのLLMに回答の生成を実行させその回答を返却します.
    *
-   * @param prompt      プロンプト
+   * @param prompt プロンプト
    * @param temperature 温度（回答のばらつき度を示す）
    * @return 回答
    * @throws IOException
@@ -148,13 +150,14 @@ public class OpenAI implements Transformer {
     conn.setDoOutput(true);
 
     String content = prompt.replaceAll("[\\p{C}\\p{P}\"]", "");
-    String jsonBody = "{\"model\": \""
-        + this.completionModel
-        + "\", \"messages\": [{\"role\": \"user\", \"content\": \""
-        + content
-        + "\"}], \"temperature\": "
-        + temperature.toString()
-        + "}";
+    String jsonBody =
+        "{\"model\": \""
+            + this.completionModel
+            + "\", \"messages\": [{\"role\": \"user\", \"content\": \""
+            + content
+            + "\"}], \"temperature\": "
+            + temperature.toString()
+            + "}";
     try (OutputStream os = conn.getOutputStream()) {
       byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
       os.write(input, 0, input.length);
@@ -192,10 +195,11 @@ public class OpenAI implements Transformer {
    */
   public void fineTuning(final String trainingData) throws IOException {
     // 1. JSONLフォーマットに変換
-    String jsonlData = "{\"messages\": [{\"role\": \"system\", \"content\": \"ファインチューニングデータ\"}]}\n"
-        + "{\"messages\": [{\"role\": \"user\", \"content\": \""
-        + trainingData
-        + "\"}, {\"role\": \"assistant\", \"content\": \"OK\"}]}";
+    String jsonlData =
+        "{\"messages\": [{\"role\": \"system\", \"content\": \"ファインチューニングデータ\"}]}\n"
+            + "{\"messages\": [{\"role\": \"user\", \"content\": \""
+            + trainingData
+            + "\"}, {\"role\": \"assistant\", \"content\": \"OK\"}]}";
 
     // 2. OpenAI にデータをアップロード
     URL fileUrl = new URL(FILE_UPLOAD_URL);
@@ -227,7 +231,8 @@ public class OpenAI implements Transformer {
     fineTuneConn.setRequestProperty("Content-Type", "application/json");
     fineTuneConn.setDoOutput(true);
 
-    String fineTuneBody = "{\"training_file\": \"" + fileId + "\", \"model\": \"" + this.completionModel + "\"}";
+    String fineTuneBody =
+        "{\"training_file\": \"" + fileId + "\", \"model\": \"" + this.completionModel + "\"}";
     try (OutputStream os = fineTuneConn.getOutputStream()) {
       os.write(fineTuneBody.getBytes(StandardCharsets.UTF_8));
     }
@@ -241,7 +246,7 @@ public class OpenAI implements Transformer {
   /**
    * レスポンスコードをチェックします.
    *
-   * @param conn         コネクション
+   * @param conn コネクション
    * @param responseCode レスポンスコード
    */
   private void checkResponseCode(HttpURLConnection conn, int responseCode) {
@@ -286,7 +291,8 @@ public class OpenAI implements Transformer {
    */
   private String readResponse(HttpURLConnection conn) throws IOException {
     StringBuilder response = new StringBuilder();
-    try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+    try (BufferedReader br =
+        new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
       String line;
       while ((line = br.readLine()) != null) {
         response.append(line);

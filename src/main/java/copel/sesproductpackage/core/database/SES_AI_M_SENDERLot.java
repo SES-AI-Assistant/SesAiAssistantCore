@@ -15,7 +15,8 @@ import java.util.ArrayList;
  */
 public class SES_AI_M_SENDERLot extends EntityLotBase<SES_AI_M_SENDER> {
   /** 全件SELECT文. */
-  private static final String SELECT_ALL_SQL = "SELECT from_id, from_name, company_id, register_date, register_user FROM SES_AI_M_SENDER";
+  private static final String SELECT_ALL_SQL =
+      "SELECT from_id, from_name, company_id, register_date, register_user FROM SES_AI_M_SENDER";
 
   public SES_AI_M_SENDERLot() {
     super();

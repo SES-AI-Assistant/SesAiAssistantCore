@@ -16,7 +16,8 @@ import java.util.ArrayList;
  */
 public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER> {
   /** 全件SELECT文. */
-  private static final String SELECT_ALL_SQL = "SELECT user_id, user_name, company_id, role_cd, register_date, register_user FROM SES_AI_WEBAPP_M_USER";
+  private static final String SELECT_ALL_SQL =
+      "SELECT user_id, user_name, company_id, role_cd, register_date, register_user FROM SES_AI_WEBAPP_M_USER";
 
   public SES_AI_WEBAPP_M_USERLot() {
     super();

@@ -19,8 +19,7 @@ public class SlackNotifier {
   /**
    * Slack Chat Post Message URL.
    *
-   * <p>
-   * https://docs.slack.dev/reference/methods/chat.postMessage/
+   * <p>https://docs.slack.dev/reference/methods/chat.postMessage/
    */
   private static final String CHAT_POST_MESSAGE_URL = "https://slack.com/api/chat.postMessage";
 
@@ -34,12 +33,13 @@ public class SlackNotifier {
   public static String send(
       final String slackBotToken, final SlackWebhookMessageEntity messageEntity) throws Exception {
     log.debug("Slack Request Payload: {}", messageEntity.toJson());
-    HttpRequest request = HttpRequest.newBuilder()
-        .uri(URI.create(CHAT_POST_MESSAGE_URL))
-        .header("Content-Type", "application/json; charset=UTF-8")
-        .header("Authorization", "Bearer " + slackBotToken)
-        .POST(HttpRequest.BodyPublishers.ofString(messageEntity.toJson()))
-        .build();
+    HttpRequest request =
+        HttpRequest.newBuilder()
+            .uri(URI.create(CHAT_POST_MESSAGE_URL))
+            .header("Content-Type", "application/json; charset=UTF-8")
+            .header("Authorization", "Bearer " + slackBotToken)
+            .POST(HttpRequest.BodyPublishers.ofString(messageEntity.toJson()))
+            .build();
 
     HttpClient client = HttpClient.newHttpClient();
     HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -69,11 +69,12 @@ public class SlackNotifier {
   public static void sendByWebhook(
       final String incomingWebhookUrl, final SlackWebhookMessageEntity messageEntity)
       throws Exception {
-    HttpRequest request = HttpRequest.newBuilder()
-        .uri(URI.create(incomingWebhookUrl))
-        .header("Content-Type", "application/json")
-        .POST(HttpRequest.BodyPublishers.ofString(messageEntity.toJson()))
-        .build();
+    HttpRequest request =
+        HttpRequest.newBuilder()
+            .uri(URI.create(incomingWebhookUrl))
+            .header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(messageEntity.toJson()))
+            .build();
 
     HttpClient client = HttpClient.newHttpClient();
     HttpResponse<Void> response = client.send(request, HttpResponse.BodyHandlers.discarding());

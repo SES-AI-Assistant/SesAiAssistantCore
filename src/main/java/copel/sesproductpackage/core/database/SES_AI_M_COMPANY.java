@@ -23,13 +23,16 @@ import lombok.ToString;
 @ToString(callSuper = true)
 public class SES_AI_M_COMPANY extends EntityBase {
   /** INSERTR文. */
-  private static final String INSERT_SQL = "INSERT INTO SES_AI_M_COMPANY (company_id, company_name, memo, register_date, register_user) VALUES (?, ?, ?, ?, ?)";
+  private static final String INSERT_SQL =
+      "INSERT INTO SES_AI_M_COMPANY (company_id, company_name, memo, register_date, register_user) VALUES (?, ?, ?, ?, ?)";
 
   /** SELECT文. */
-  private static final String SELECT_SQL = "SELECT company_id, company_name, memo, register_date, register_user FROM SES_AI_M_COMPANY WHERE company_id = ?";
+  private static final String SELECT_SQL =
+      "SELECT company_id, company_name, memo, register_date, register_user FROM SES_AI_M_COMPANY WHERE company_id = ?";
 
   /** UPDATE文. */
-  private static final String UPDATE_SQL = "UPDATE SES_AI_M_COMPANY SET company_id = ?, company_name = ?, memo = ?, register_date = ?, register_user = ? WHERE company_id = ?";
+  private static final String UPDATE_SQL =
+      "UPDATE SES_AI_M_COMPANY SET company_id = ?, company_name = ?, memo = ?, register_date = ?, register_user = ? WHERE company_id = ?";
 
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_M_COMPANY WHERE company_id = ?";

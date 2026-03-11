@@ -23,13 +23,16 @@ public class LineMessagingAPI {
   // 定数
   // ================================
   /** メッセージ送信APIのエンドポイント */
-  private static final String PUSH_MESSAGE_API_ENDPOINT = Properties.get("LINE_PUSH_MESSAGE_API_ENDPOINT");
+  private static final String PUSH_MESSAGE_API_ENDPOINT =
+      Properties.get("LINE_PUSH_MESSAGE_API_ENDPOINT");
 
   /** ブロードキャストAPIのエンドポイント */
-  private static final String BROADCAST_API_ENDPOINT = Properties.get("LINE_BROADCAST_API_ENDPOINT");
+  private static final String BROADCAST_API_ENDPOINT =
+      Properties.get("LINE_BROADCAST_API_ENDPOINT");
 
   /** ファイルダウンロードAPIのエンドポイント */
-  private static final String DONLOAD_FILE_API_ENDPOINT = Properties.get("LINE_DONLOAD_FILE_API_ENDPOINT");
+  private static final String DONLOAD_FILE_API_ENDPOINT =
+      Properties.get("LINE_DONLOAD_FILE_API_ENDPOINT");
 
   // ================================
   // フィールド定義
@@ -70,22 +73,25 @@ public class LineMessagingAPI {
       HttpClient httpClient = HttpClient.newHttpClient();
       for (final String message : this.messageList) {
         // JSON形式のメッセージボディを作成
-        String json = "{\"to\":\""
-            + toUserId
-            + "\",\"messages\":[{\"type\":\"text\",\"text\":\""
-            + message
-            + "\"}]}";
+        String json =
+            "{\"to\":\""
+                + toUserId
+                + "\",\"messages\":[{\"type\":\"text\",\"text\":\""
+                + message
+                + "\"}]}";
 
         // HTTPリクエストの作成
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(new URI(PUSH_MESSAGE_API_ENDPOINT))
-            .header("Content-Type", "application/json")
-            .header("Authorization", "Bearer " + this.channelAccessToken)
-            .POST(BodyPublishers.ofString(json))
-            .build();
+        HttpRequest request =
+            HttpRequest.newBuilder()
+                .uri(new URI(PUSH_MESSAGE_API_ENDPOINT))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + this.channelAccessToken)
+                .POST(BodyPublishers.ofString(json))
+                .build();
 
         // リクエスト送信
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response =
+            httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
         // レスポンスステータスの確認
         if (response.statusCode() != HttpURLConnection.HTTP_OK) {
@@ -112,15 +118,17 @@ public class LineMessagingAPI {
       jsonMessage += "\"}]}";
 
       // HTTPリクエストの作成
-      HttpRequest request = HttpRequest.newBuilder()
-          .uri(new URI(BROADCAST_API_ENDPOINT))
-          .header("Content-Type", "application/json")
-          .header("Authorization", "Bearer " + this.channelAccessToken)
-          .POST(BodyPublishers.ofString(jsonMessage))
-          .build();
+      HttpRequest request =
+          HttpRequest.newBuilder()
+              .uri(new URI(BROADCAST_API_ENDPOINT))
+              .header("Content-Type", "application/json")
+              .header("Authorization", "Bearer " + this.channelAccessToken)
+              .POST(BodyPublishers.ofString(jsonMessage))
+              .build();
 
       // リクエストを送信
-      HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      HttpResponse<String> response =
+          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
       // レスポンスステータスの確認
       if (response.statusCode() != HttpURLConnection.HTTP_OK) {
@@ -144,11 +152,12 @@ public class LineMessagingAPI {
     HttpClient client = HttpClient.newHttpClient();
     String url = String.format(DONLOAD_FILE_API_ENDPOINT, messageId);
 
-    HttpRequest request = HttpRequest.newBuilder()
-        .uri(URI.create(url))
-        .header("Authorization", "Bearer " + this.channelAccessToken)
-        .GET()
-        .build();
+    HttpRequest request =
+        HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .header("Authorization", "Bearer " + this.channelAccessToken)
+            .GET()
+            .build();
 
     HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
 

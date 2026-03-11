@@ -17,13 +17,14 @@ public enum Role {
 
   /** コード値. */
   private String code;
+
   /** 権限セット. */
   private final Set<Permission> permissions;
 
   /**
    * コンストラクタ.
    *
-   * @param code        コード値.
+   * @param code コード値.
    * @param permissions 権限セット.
    */
   Role(final String code, final Set<Permission> permissions) {

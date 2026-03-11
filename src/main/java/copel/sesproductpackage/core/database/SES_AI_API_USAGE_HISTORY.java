@@ -78,13 +78,15 @@ public class SES_AI_API_USAGE_HISTORY extends DynamoDB<SES_AI_API_USAGE_HISTORY>
 
   @Override
   public void fetch() {
-    SES_AI_API_USAGE_HISTORY latest = this.table.getItem(
-        r -> r.key(
-            Key.builder()
-                .partitionValue(this.getPartitionKey())
-                .sortValue(this.getSortKey())
-                .build())
-            .consistentRead(true));
+    SES_AI_API_USAGE_HISTORY latest =
+        this.table.getItem(
+            r ->
+                r.key(
+                        Key.builder()
+                            .partitionValue(this.getPartitionKey())
+                            .sortValue(this.getSortKey())
+                            .build())
+                    .consistentRead(true));
     if (latest != null) {
       this.provider = latest.getProvider();
       this.model = latest.getModel();
