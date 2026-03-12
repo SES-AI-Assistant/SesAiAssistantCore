@@ -1,11 +1,13 @@
 package copel.sesproductpackage.core.api.gpt;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -53,13 +55,13 @@ public class GptAnswer {
   }
 
   /**
-   * この回答がYESを意味する文字列（YES_ARRAYと一致する文字列）かどうかを判定する.
+   * この回答がYESを意味する文字列（YES_ARRAYと一致する文字列）から始まる文字列かどうかを判定する.
    *
    * @return YESを意味すればtrue、それ以外はfalse
    */
   public boolean isYES() {
     for (final String word : YES_ARRAY) {
-      if (word.equals(this.answer)) {
+      if (word.startsWith(this.answer)) {
         return true;
       }
     }
@@ -67,13 +69,13 @@ public class GptAnswer {
   }
 
   /**
-   * この回答がNOを意味する文字列（YES_ARRAYと一致する文字列）かどうかを判定する.
+   * この回答がNOを意味する文字列（NO_ARRAYと一致する文字列）から始まる文字列かどうかを判定する.
    *
    * @return NOを意味すればtrue、それ以外はfalse
    */
   public boolean isNO() {
     for (final String word : NO_ARRAY) {
-      if (word.equals(this.answer)) {
+      if (word.startsWith(this.answer)) {
         return true;
       }
     }
