@@ -26,14 +26,7 @@
                   バックスラッシュを4つにしているのは、XMLとJavaの二重エスケープのため。
              -->
             <provider class="net.logstash.logback.composite.loggingevent.LoggingEventPatternJsonProvider">
-                <pattern>
-                    {
-                        "message": "%replace(%msg){'[
-]+', '
-'}",
-                        "requestId": "%mdc{requestId}"
-                    }
-                </pattern>
+                <pattern>{ "message": "%msg", "requestId": "%mdc{requestId}" }</pattern>
             </provider>
         </encoder>
     </appender>
