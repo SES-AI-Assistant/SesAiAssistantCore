@@ -9,6 +9,7 @@ import java.time.Duration;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
+import copel.sesproductpackage.core.util.FileNameUtils;
 
 /**
  * 【SES AIアシスタント】 外部ストレージ上の共有URLを1件分表すクラス.
@@ -263,7 +264,7 @@ public class ExternalFileLink {
       if (m.find()) {
         String name = m.group(1).trim();
         if (!name.isBlank()) {
-          return name;
+          return FileNameUtils.decode(name);
         }
       }
       // filename= (通常)
@@ -272,7 +273,7 @@ public class ExternalFileLink {
       if (m2.find()) {
         String name = m2.group(1).trim();
         if (!name.isBlank()) {
-          return name;
+          return FileNameUtils.decode(name);
         }
       }
     }
@@ -281,7 +282,7 @@ public class ExternalFileLink {
       String path = URI.create(url).getPath();
       String name = path.substring(path.lastIndexOf('/') + 1);
       if (!name.isBlank()) {
-        return name;
+        return FileNameUtils.decode(name);
       }
     } catch (Exception e) {
       log.debug("URLからのファイル名抽出に失敗しました: {}", e.getMessage());
