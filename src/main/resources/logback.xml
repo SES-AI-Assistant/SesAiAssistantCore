@@ -2,9 +2,40 @@
 <configuration>
 
     <!-- コンソール出力の設定 -->
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <fieldNames>
+                <!-- デフォルトのフィールド名を変更 (任意) -->
+                <timestamp>timestamp</timestamp>
+                <version>[ignore]</version> <!-- @version フィールドを無視 -->
+                <level>level</level>
+                <thread>thread</thread>
+                <logger>logger</logger>
+                <message>message</message>
+                <levelValue>[ignore]</levelValue> <!-- level_value フィールドを無視 -->
+            </fieldNames>
+            <!-- 
+                messageフィールドの内容をここで上書き定義する。
+                - %msg: 元のログメッセージ
+                - replace(...){'[
+]', '
+'}: 正規表現で改行文字(, 
+)を、
+                  JSON内で有効なエスケープされた改行文字(
+)に置換する。
+                  バックスラッシュを4つにしているのは、XMLとJavaの二重エスケープのため。
+             -->
+            <provider class="net.logstash.logback.composite.loggingevent.LoggingEventPatternJsonProvider">
+                <pattern>
+                    {
+                        "message": "%replace(%msg){'[
+]+', '
+'}"
+                    }
+                </pattern>
+            </provider>
+            <!-- カスタムフィールドとしてMDCの requestId を追加 -->
+            <customFields>{"requestId":"%X{requestId}"}</customFields>
         </encoder>
     </appender>
 
@@ -13,7 +44,7 @@
 
     <!-- Root ログレベル設定 -->
     <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="STDOUT"/>
     </root>
 
 </configuration>
