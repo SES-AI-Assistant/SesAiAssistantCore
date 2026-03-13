@@ -11,15 +11,19 @@ import java.util.Set;
 public enum Plan {
   FREE(
       "00",
+      "フリープラン",
       EnumSet.of(
           Permission.VIEW_MATCHING_LIST,
           Permission.VIEW_JOB_LIST,
           Permission.VIEW_SKILLS_SHEET_LIST,
           Permission.MANAGE_WATCH)),
-  PREMIUM("10", EnumSet.allOf(Permission.class));
+  PREMIUM("10", "プレミアムプラン", EnumSet.allOf(Permission.class));
 
   /** コード値. */
   private final String code;
+
+  /** 名称. */
+  private final String name;
 
   /** 権限セット. */
   private final Set<Permission> permissions;
@@ -28,10 +32,12 @@ public enum Plan {
    * コンストラクタ.
    *
    * @param code コード値
+   * @param name 名称
    * @param permissions 権限セット
    */
-  Plan(final String code, final Set<Permission> permissions) {
+  Plan(final String code, final String name, final Set<Permission> permissions) {
     this.code = code;
+    this.name = name;
     this.permissions = permissions;
   }
 
@@ -57,6 +63,15 @@ public enum Plan {
    */
   public String getCode() {
     return code;
+  }
+
+  /**
+   * 名称を返却します.
+   *
+   * @return 名称
+   */
+  public String getName() {
+    return name;
   }
 
   /**
