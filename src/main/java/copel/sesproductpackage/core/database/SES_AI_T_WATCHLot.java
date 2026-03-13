@@ -64,6 +64,19 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
     return false;
   }
 
+  /**
+   * 期限切れのレコードをDBから削除します.
+   *
+   * @param connection DBコネクション
+   * @return 削除したレコード数
+   * @throws SQLException
+   */
+  public int deleteExpired(Connection connection) throws SQLException {
+    final String deleteExpiredSql = "DELETE FROM SES_AI_T_WATCH WHERE ttl < NOW()";
+    PreparedStatement preparedStatement = connection.prepareStatement(deleteExpiredSql);
+    return preparedStatement.executeUpdate();
+  }
+
   @Override
   public void selectAll(Connection connection) throws SQLException {
     PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);

@@ -18,5 +18,5 @@ public enum Permission {
   VIEW_USAGE_HISTORY,
   // 管理系
   MANAGE_USERS,
-  MANAGE_MASTER_DATA;
+  MANAGE_MASTER_DATA
 }
