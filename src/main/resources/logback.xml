@@ -30,12 +30,11 @@
                     {
                         "message": "%replace(%msg){'[
 ]+', '
-'}"
+'}",
+                        "requestId": "%mdc{requestId}"
                     }
                 </pattern>
             </provider>
-            <!-- カスタムフィールドとしてMDCの requestId を追加 -->
-            <customFields>{"requestId":"%X{requestId}"}</customFields>
         </encoder>
     </appender>
 
