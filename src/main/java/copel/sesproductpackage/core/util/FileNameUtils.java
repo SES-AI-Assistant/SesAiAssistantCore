@@ -3,7 +3,9 @@ package copel.sesproductpackage.core.util;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import jakarta.mail.internet.MimeUtility;
+import java.util.Base64;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -13,6 +15,10 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class FileNameUtils {
+
+  // MIMEエンコードの正規表現 (例: =?UTF-8?B?...?= または =?ISO-8859-1?Q?...?=)
+  private static final Pattern MIME_PATTERN =
+      Pattern.compile("=\\?([^?]+)\\?([BQbq])\\?([^?]+)\\?=");
 
   /**
    * エンコードされたファイル名をデコードし、サニタイズした文字列を返す.
@@ -30,12 +36,7 @@ public class FileNameUtils {
     String decoded = rawFileName.trim();
 
     // 1. MIMEデコード (=?UTF-8?B?...?= 形式など)
-    try {
-      // MimeUtility.decodeTextは内部でMIME形式か判定してくれる
-      decoded = MimeUtility.decodeText(decoded);
-    } catch (UnsupportedEncodingException e) {
-      log.debug("MIMEデコードに失敗しました（スキップ）: {}", rawFileName);
-    }
+    decoded = decodeMimeText(decoded);
 
     // 2. RFC 5987形式のプレフィックス除去 (UTF-8'' 等)
     // filename*=UTF-8''%e3... の %e3 以降が渡されるケースと UTF-8'' 自体が含まれるケースに対応
@@ -75,5 +76,68 @@ public class FileNameUtils {
     }
 
     return decoded;
+  }
+
+  /**
+   * MIMEエンコードされた文字列をデコードします.
+   *
+   * @param text 対象の文字列
+   * @return デコード後の文字列
+   */
+  private static String decodeMimeText(String text) {
+    if (text == null || !text.contains("=?")) {
+      return text;
+    }
+
+    Matcher matcher = MIME_PATTERN.matcher(text);
+    StringBuilder sb = new StringBuilder();
+    while (matcher.find()) {
+      String charset = matcher.group(1);
+      String encoding = matcher.group(2).toUpperCase();
+      String encodedText = matcher.group(3);
+
+      try {
+        if ("B".equals(encoding)) {
+          byte[] bytes = Base64.getDecoder().decode(encodedText);
+          matcher.appendReplacement(sb, Matcher.quoteReplacement(new String(bytes, charset)));
+        } else if ("Q".equals(encoding)) {
+          // Quoted-Printableデコードの簡易実装
+          String qDecoded = encodedText.replace("_", " ");
+          byte[] bytes = decodeQuotedPrintable(qDecoded);
+          matcher.appendReplacement(sb, Matcher.quoteReplacement(new String(bytes, charset)));
+        } else {
+          matcher.appendReplacement(sb, Matcher.quoteReplacement(matcher.group(0)));
+        }
+      } catch (Exception e) {
+        log.debug("MIMEデコードに失敗しました（スキップ）: {}", matcher.group(0));
+        matcher.appendReplacement(sb, Matcher.quoteReplacement(matcher.group(0)));
+      }
+    }
+    matcher.appendTail(sb);
+    return sb.toString();
+  }
+
+  /**
+   * Quoted-Printableエンコードされた文字列をバイト配列にデコードします.
+   */
+  private static byte[] decodeQuotedPrintable(String s) {
+    java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
+    for (int i = 0; i < s.length(); i++) {
+      char c = s.charAt(i);
+      if (c == '=' && i + 2 < s.length()) {
+        try {
+          int u = Character.digit(s.charAt(i + 1), 16);
+          int l = Character.digit(s.charAt(i + 2), 16);
+          if (u != -1 && l != -1) {
+            buffer.write((char) ((u << 4) + l));
+            i += 2;
+            continue;
+          }
+        } catch (Exception ignored) {
+        }
+      }
+      buffer.write(c);
+    }
+    return buffer.toByteArray();
   }
 }
