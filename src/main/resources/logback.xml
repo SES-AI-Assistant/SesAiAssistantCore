@@ -4,30 +4,26 @@
     <!-- コンソール出力の設定 -->
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <fieldNames>
-                <!-- デフォルトのフィールド名を変更 (任意) -->
-                <timestamp>timestamp</timestamp>
-                <version>[ignore]</version> <!-- @version フィールドを無視 -->
-                <level>level</level>
-                <thread>thread</thread>
-                <logger>logger</logger>
-                <message>message</message>
-                <levelValue>[ignore]</levelValue> <!-- level_value フィールドを無視 -->
-            </fieldNames>
-            <!-- 
-                messageフィールドの内容をここで上書き定義する。
-                - %msg: 元のログメッセージ
-                - replace(...){'[
-]', '
-'}: 正規表現で改行文字(, 
-)を、
-                  JSON内で有効なエスケープされた改行文字(
-)に置換する。
-                  バックスラッシュを4つにしているのは、XMLとJavaの二重エスケープのため。
-             -->
-            <provider class="net.logstash.logback.composite.loggingevent.LoggingEventPatternJsonProvider">
-                <pattern>{ "message": "%msg", "requestId": "%mdc{requestId}" }</pattern>
-            </provider>
+            <providers>
+                <timestamp>
+                    <fieldName>timestamp</fieldName>
+                </timestamp>
+                <level>
+                    <fieldName>level</fieldName>
+                </level>
+                <mdc>
+                    <includeMdcKeyName>requestId</includeMdcKeyName>
+                </mdc>
+                <loggerName>
+                    <fieldName>logger</fieldName>
+                </loggerName>
+                <message>
+                    <fieldName>message</fieldName>
+                </message>
+                <stackTrace>
+                    <fieldName>stack_trace</fieldName>
+                </stackTrace>
+            </providers>
         </encoder>
     </appender>
 
