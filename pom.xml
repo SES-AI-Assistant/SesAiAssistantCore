@@ -1,7 +1,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.github.SES-AI-Assistant</groupId>
-  <artifactId>sesaiassistantcore</artifactId>
+  <artifactId>SesAiAssistantCore</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>SesAiAssistantCore</name>
 
@@ -144,6 +144,14 @@
       <groupId>org.mockito</groupId>
       <artifactId>mockito-junit-jupiter</artifactId>
       <version>5.3.1</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- System Lambda (for testing System environment variables) -->
+    <dependency>
+      <groupId>com.github.stefanbirkner</groupId>
+      <artifactId>system-lambda</artifactId>
+      <version>1.2.1</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
