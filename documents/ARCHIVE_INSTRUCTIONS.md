@@ -185,3 +185,25 @@
 - `SES_AI_T_SKILLSHEET_PERSON` と `SES_AI_T_SKILLSHEET_PERSONLot` の各種 SELECT / RETRIEVE 系の SQL で `COALESCE` を用いて不足していた `from_group`, `from_id`, `from_name` を引くように修正し、Entityへのセット処理を追加した。
 - `SES_AI_T_SKILLSHEET_PERSONTest` に Lombok 自動生成メソッドのテストと継承の等価性（`canEqual`）のテストなどのテストケースを追加し、新規メソッドに対するJUnit カバレッジ 100% (Line, Branch) を維持。
 - Checkstyle 等の各種静的コードチェック (SpotBugs の既存課題を除く) に合格したことを確認。
+
+# ARCHIVE: OpenAI / Gemini エラーハンドリングとJSONリクエスト改善 (2026-03-14)
+
+## 1. 概要 (Overview)
+- OpenAI / Gemini 呼び出し時に、支払上限エラーでないケースでも「支払い上限超過エラー」メッセージが表示されてしまう問題を解消。
+- Gemini 側でプロンプト中にダブルクォートなどの特殊文字が含まれると JSON が壊れ、400 Bad Request となってしまう問題を解消。
+
+## 2. 具体的な要求事項 (Requirements)
+- `OpenAI.java` / `Gemini.java` の 400 番台エラーハンドリングから、「支払い上限超過エラー」という文言を削除すること。
+- 400 の場合は「無効なパラメータ／不正なリクエストフォーマット」であることのみをメッセージに含めること。
+- 「支払い上限超過」あるいは「クレジット不足」等の課金・利用上限に関するメッセージは、429 (`Too Many Requests`) など、適切なステータスコードに限定して表示すること。
+- `Gemini.java` の `generate` / `embedding` メソッドにおいて、リクエストボディの JSON を文字列連結ではなく Jackson の `ObjectMapper` を用いて構築すること。
+
+## 3. 実施内容 (Execution)
+- `OpenAI.java`:
+  - `checkResponseCode` メソッド内の 400 番台エラー文言から「支払い上限超過エラー」を削除し、「無効なパラメータ、または不適切なリクエストフォーマットです」という内容に変更。
+  - 429 (`Too Many Requests`) の文言には「クレジット不足、短時間に過剰なリクエスト」など課金・レートリミット関連の説明のみを残して明確化。
+- `Gemini.java`:
+  - `generate` メソッドで、`String.format("{\"contents\":[{\"parts\":[{\"text\":\"%s\"}]}]}", prompt)` による JSON 文字列連結を廃止し、`ObjectMapper` の `ObjectNode` / `ArrayNode` を用いて `contents` / `parts` / `text` 階層を組み立てたうえで `writeValueAsString` する方式に変更。
+  - `embedding` メソッドでも同様に、`model` / `content` / `parts` / `text` からなる JSON を `ObjectMapper` で構築し、`inputString` に含まれるダブルクォート等の特殊文字が原因で JSON が壊れないように修正。
+  - 400 Bad Request 時の例外メッセージを「無効なパラメータ、または不適切なリクエストフォーマットです」とし、「支払い上限超過」の表現を削除。
+- `mvn clean test` を実行し、Gemini / OpenAI を含む全テストがコンパイル・実行されることを確認（S3 の Logstash 依存欠如による既知のログ出力エラーは従来通りであり、本対応による新規のテスト失敗は発生していないことを確認）。

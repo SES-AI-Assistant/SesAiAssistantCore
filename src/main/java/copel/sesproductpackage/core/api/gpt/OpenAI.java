@@ -255,7 +255,7 @@ public class OpenAI implements Transformer {
         break;
       case HttpURLConnection.HTTP_BAD_REQUEST:
         conn.disconnect();
-        throw new RuntimeException("400 Bad Request: 無効なパラメータ、不適切なリクエストフォーマット、支払い上限超過エラー");
+        throw new RuntimeException("400 Bad Request: 無効なパラメータ、または不適切なリクエストフォーマットです");
       case HttpURLConnection.HTTP_UNAUTHORIZED:
         conn.disconnect();
         throw new RuntimeException("401 Unauthorized: APIキーが無効、または提供されていないエラー");

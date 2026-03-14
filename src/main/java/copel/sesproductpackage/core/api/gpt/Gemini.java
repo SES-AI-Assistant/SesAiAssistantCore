@@ -2,6 +2,8 @@ package copel.sesproductpackage.core.api.gpt;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY;
 import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.ApiType;
 import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.Provider;
@@ -86,12 +88,14 @@ public class Gemini implements Transformer {
     }
     ObjectMapper objectMapper = new ObjectMapper();
 
-    // リクエストボディの作成
-    // モデル名を含める必要があります
-    String requestBody =
-        String.format(
-            "{\"model\":\"%s\",\"content\":{\"parts\":[{\"text\":\"%s\"}]}}",
-            EMBEDDING_MODEL_DEFAULT, inputString);
+    // リクエストボディの作成（JSON連結ではなくObjectMapperで構築）
+    ObjectNode rootNode = objectMapper.createObjectNode();
+    rootNode.put("model", EMBEDDING_MODEL_DEFAULT);
+    ObjectNode contentNode = rootNode.putObject("content");
+    ArrayNode partsArray = contentNode.putArray("parts");
+    ObjectNode partNode = partsArray.addObject();
+    partNode.put("text", inputString);
+    String requestBody = objectMapper.writeValueAsString(rootNode);
 
     // HTTPリクエストの準備
     // エンベディングのエンドポイントは :embedContent
@@ -164,8 +168,14 @@ public class Gemini implements Transformer {
     }
     ObjectMapper objectMapper = new ObjectMapper();
 
-    // リクエストボディの作成
-    String requestBody = String.format("{\"contents\":[{\"parts\":[{\"text\":\"%s\"}]}]}", prompt);
+    // リクエストボディの作成（JSON連結ではなくObjectMapperで構築）
+    ObjectNode rootNode = objectMapper.createObjectNode();
+    ArrayNode contentsArray = rootNode.putArray("contents");
+    ObjectNode contentNode = contentsArray.addObject();
+    ArrayNode partsArray = contentNode.putArray("parts");
+    ObjectNode partNode = partsArray.addObject();
+    partNode.put("text", prompt);
+    String requestBody = objectMapper.writeValueAsString(rootNode);
 
     // HTTPリクエストの準備
     URL url =
@@ -192,7 +202,7 @@ public class Gemini implements Transformer {
         break;
       case HttpURLConnection.HTTP_BAD_REQUEST:
         connection.disconnect();
-        throw new RuntimeException("400 Bad Request: 無効なパラメータ、不適切なリクエストフォーマット、支払い上限超過エラー");
+        throw new RuntimeException("400 Bad Request: 無効なパラメータ、または不適切なリクエストフォーマットです");
       case HttpURLConnection.HTTP_UNAUTHORIZED:
         connection.disconnect();
         throw new RuntimeException("401 Unauthorized: APIキーが無効、または提供されていないエラー");
