@@ -268,4 +268,23 @@ public class Gemini implements Transformer {
       return new GptAnswer(null, Gemini.class);
     }
   }
+
+  /**
+   * 長文のドキュメントから案件・要員のリストを抽出・要約してJSON配列で返す.
+   *
+   * @param documentContent ドキュメントのテキスト内容
+   * @param documentType 種別 ("案件一覧", "要員一覧", "スキルシート" など)
+   * @return 抽出結果のJSON文字列を含むGptAnswer
+   * @throws IOException 通信エラーなど
+   * @throws RuntimeException APIエラーなど
+   */
+  public GptAnswer extractListFromJson(final String documentContent, final String documentType) throws IOException, RuntimeException {
+    String prompt = String.format(
+        "以下のドキュメントから「%s」に関する情報を抽出し、JSONの配列形式で出力してください。\n" +
+        "出力は必ずJSON配列のみとし、バッククォートでのマークダウン装飾（```json など）や、それ以外の説明文などは一切含めないでください。\n\n" +
+        "【ドキュメント内容】\n%s",
+        documentType, documentContent
+    );
+    return generate(prompt);
+  }
 }
