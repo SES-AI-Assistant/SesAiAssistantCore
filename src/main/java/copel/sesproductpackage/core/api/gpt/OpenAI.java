@@ -2,6 +2,8 @@ package copel.sesproductpackage.core.api.gpt;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY;
 import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.ApiType;
 import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.Provider;
@@ -86,12 +88,11 @@ public class OpenAI implements Transformer {
     conn.setDoOutput(true);
 
     log.info("【OpenAI】{}文字のエンベディング処理を実行しました", inputString.length());
-    String jsonBody =
-        "{\"input\": \""
-            + inputString.replaceAll("\\p{Cntrl}", "")
-            + "\", \"model\": \""
-            + EMBEDDING_MODEL
-            + "\"}";
+    ObjectMapper objectMapper = new ObjectMapper();
+    ObjectNode rootNode = objectMapper.createObjectNode();
+    rootNode.put("input", inputString);
+    rootNode.put("model", EMBEDDING_MODEL);
+    String jsonBody = objectMapper.writeValueAsString(rootNode);
     try (OutputStream os = conn.getOutputStream()) {
       byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
       os.write(input, 0, input.length);
@@ -101,7 +102,6 @@ public class OpenAI implements Transformer {
     checkResponseCode(conn, responseCode);
 
     String response = readResponse(conn);
-    ObjectMapper objectMapper = new ObjectMapper();
     JsonNode jsonResponse = objectMapper.readTree(response);
     JsonNode embeddingArray = jsonResponse.get("data").get(0).get("embedding");
 
@@ -149,15 +149,15 @@ public class OpenAI implements Transformer {
     conn.setRequestProperty("Authorization", "Bearer " + this.apiKey);
     conn.setDoOutput(true);
 
-    String content = prompt.replaceAll("[\\p{C}\\p{P}\"]", "");
-    String jsonBody =
-        "{\"model\": \""
-            + this.completionModel
-            + "\", \"messages\": [{\"role\": \"user\", \"content\": \""
-            + content
-            + "\"}], \"temperature\": "
-            + temperature.toString()
-            + "}";
+    ObjectMapper objectMapper = new ObjectMapper();
+    ObjectNode rootNode = objectMapper.createObjectNode();
+    rootNode.put("model", this.completionModel);
+    rootNode.put("temperature", temperature);
+    ArrayNode messagesArray = rootNode.putArray("messages");
+    ObjectNode userMessage = messagesArray.addObject();
+    userMessage.put("role", "user");
+    userMessage.put("content", prompt);
+    String jsonBody = objectMapper.writeValueAsString(rootNode);
     try (OutputStream os = conn.getOutputStream()) {
       byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
       os.write(input, 0, input.length);
@@ -167,7 +167,6 @@ public class OpenAI implements Transformer {
     checkResponseCode(conn, responseCode);
 
     String response = readResponse(conn);
-    ObjectMapper objectMapper = new ObjectMapper();
     JsonNode jsonResponse = objectMapper.readTree(response);
     JsonNode contentNode = jsonResponse.get("choices").get(0).get("message").get("content");
     String resultText = contentNode == null || contentNode.isNull() ? null : contentNode.asText();
@@ -194,12 +193,24 @@ public class OpenAI implements Transformer {
    * @throws IOException
    */
   public void fineTuning(final String trainingData) throws IOException {
-    // 1. JSONLフォーマットに変換
-    String jsonlData =
-        "{\"messages\": [{\"role\": \"system\", \"content\": \"ファインチューニングデータ\"}]}\n"
-            + "{\"messages\": [{\"role\": \"user\", \"content\": \""
-            + trainingData
-            + "\"}, {\"role\": \"assistant\", \"content\": \"OK\"}]}";
+    // 1. JSONLフォーマットに変換（各行をObjectMapperで構築）
+    ObjectMapper objectMapper = new ObjectMapper();
+    ObjectNode systemMsg = objectMapper.createObjectNode();
+    ArrayNode systemMessages = systemMsg.putArray("messages");
+    ObjectNode systemPart = systemMessages.addObject();
+    systemPart.put("role", "system");
+    systemPart.put("content", "ファインチューニングデータ");
+
+    ObjectNode userMsg = objectMapper.createObjectNode();
+    ArrayNode userMessages = userMsg.putArray("messages");
+    ObjectNode userPart = userMessages.addObject();
+    userPart.put("role", "user");
+    userPart.put("content", trainingData);
+    ObjectNode assistantPart = userMessages.addObject();
+    assistantPart.put("role", "assistant");
+    assistantPart.put("content", "OK");
+
+    String jsonlData = objectMapper.writeValueAsString(systemMsg) + "\n" + objectMapper.writeValueAsString(userMsg);
 
     // 2. OpenAI にデータをアップロード
     URL fileUrl = new URL(FILE_UPLOAD_URL);
@@ -209,7 +220,10 @@ public class OpenAI implements Transformer {
     fileConn.setRequestProperty("Content-Type", "application/json");
     fileConn.setDoOutput(true);
 
-    String jsonBody = "{\"purpose\": \"fine-tune\", \"file\": \"" + jsonlData + "\"}";
+    ObjectNode fileRootNode = objectMapper.createObjectNode();
+    fileRootNode.put("purpose", "fine-tune");
+    fileRootNode.put("file", jsonlData);
+    String jsonBody = objectMapper.writeValueAsString(fileRootNode);
     try (OutputStream os = fileConn.getOutputStream()) {
       byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
       os.write(input, 0, input.length);
@@ -219,7 +233,6 @@ public class OpenAI implements Transformer {
     checkResponseCode(fileConn, fileResponseCode);
 
     String fileResponse = readResponse(fileConn);
-    ObjectMapper objectMapper = new ObjectMapper();
     JsonNode fileJson = objectMapper.readTree(fileResponse);
     String fileId = fileJson.get("id").asText();
 
@@ -231,8 +244,10 @@ public class OpenAI implements Transformer {
     fineTuneConn.setRequestProperty("Content-Type", "application/json");
     fineTuneConn.setDoOutput(true);
 
-    String fineTuneBody =
-        "{\"training_file\": \"" + fileId + "\", \"model\": \"" + this.completionModel + "\"}";
+    ObjectNode fineTuneRootNode = objectMapper.createObjectNode();
+    fineTuneRootNode.put("training_file", fileId);
+    fineTuneRootNode.put("model", this.completionModel);
+    String fineTuneBody = objectMapper.writeValueAsString(fineTuneRootNode);
     try (OutputStream os = fineTuneConn.getOutputStream()) {
       os.write(fineTuneBody.getBytes(StandardCharsets.UTF_8));
     }

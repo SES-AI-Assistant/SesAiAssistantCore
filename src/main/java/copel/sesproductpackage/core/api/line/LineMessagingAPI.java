@@ -1,5 +1,8 @@
 package copel.sesproductpackage.core.api.line;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import copel.sesproductpackage.core.util.Properties;
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -72,13 +75,15 @@ public class LineMessagingAPI {
     try {
       HttpClient httpClient = HttpClient.newHttpClient();
       for (final String message : this.messageList) {
-        // JSON形式のメッセージボディを作成
-        String json =
-            "{\"to\":\""
-                + toUserId
-                + "\",\"messages\":[{\"type\":\"text\",\"text\":\""
-                + message
-                + "\"}]}";
+        // JSON形式のメッセージボディを作成（ObjectMapperで構築）
+        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectNode rootNode = objectMapper.createObjectNode();
+        rootNode.put("to", toUserId);
+        ArrayNode messagesArray = rootNode.putArray("messages");
+        ObjectNode messageNode = messagesArray.addObject();
+        messageNode.put("type", "text");
+        messageNode.put("text", message);
+        String json = objectMapper.writeValueAsString(rootNode);
 
         // HTTPリクエストの作成
         HttpRequest request =
@@ -111,11 +116,18 @@ public class LineMessagingAPI {
       HttpClient httpClient = HttpClient.newHttpClient();
 
       // メッセージボディを作成
-      String jsonMessage = "{\"messages\":[{\"type\":\"text\",\"text\":\"";
+      ObjectMapper objectMapper = new ObjectMapper();
+      ObjectNode rootNode = objectMapper.createObjectNode();
+      ArrayNode messagesArray = rootNode.putArray("messages");
+      ObjectNode messageNode = messagesArray.addObject();
+      messageNode.put("type", "text");
+
+      StringBuilder fullMessage = new StringBuilder();
       for (final String lineMessage : this.messageList) {
-        jsonMessage += lineMessage;
+        fullMessage.append(lineMessage);
       }
-      jsonMessage += "\"}]}";
+      messageNode.put("text", fullMessage.toString());
+      String jsonMessage = objectMapper.writeValueAsString(rootNode);
 
       // HTTPリクエストの作成
       HttpRequest request =
