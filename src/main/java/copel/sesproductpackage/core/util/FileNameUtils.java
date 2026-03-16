@@ -38,24 +38,33 @@ public class FileNameUtils {
     // 1. MIMEデコード (=?UTF-8?B?...?= 形式など)
     decoded = decodeMimeText(decoded);
 
-    // 2. RFC 5987形式のプレフィックス除去 (UTF-8'' 等)
-    // filename*=UTF-8''%e3... の %e3 以降が渡されるケースと UTF-8'' 自体が含まれるケースに対応
-    if (decoded.toUpperCase().startsWith("UTF-8''")) {
-      decoded = decoded.substring(7);
-    } else if (decoded.toUpperCase().startsWith("SHIFT_JIS''")) {
-      decoded = decoded.substring(11);
-    } else if (decoded.toUpperCase().startsWith("ISO-8859-1''")) {
-      decoded = decoded.substring(12);
+    // 2. RFC 5987形式のデコード (charset'lang'encoded-text)
+    // 例: UTF-8''%e3%81%82.txt or UTF-8'ja'%e3%81%82.txt
+    Pattern rfc5987Pattern = Pattern.compile("^([^']*)'[^']*'(.*)$");
+    Matcher matcher = rfc5987Pattern.matcher(decoded);
+    if (matcher.find()) {
+      String charset = matcher.group(1);
+      String value = matcher.group(2);
+      if (charset.isEmpty()) {
+        charset = StandardCharsets.UTF_8.name();
+      }
+      try {
+        decoded = URLDecoder.decode(value, charset);
+      } catch (Exception e) {
+        log.debug("RFC 5987パース後のデコードに失敗しました: {} (charset: {})", value, charset);
+        decoded = value; // 失敗時は値部分をそのまま採用
+      }
     }
 
     // 3. URLデコード (%E6%88%B8... 形式)
-    // URLデコードは複数回かかっている可能性があるため、変化がなくなるまで繰り返す（最大3回まで）
+    // RFC 5987を通らなかった場合や、二重エンコードされているケースに対応
     try {
       for (int i = 0; i < 3; i++) {
         if (!decoded.contains("%")) {
           break;
         }
         String previous = decoded;
+        // 基本はUTF-8で試行し、失敗や変化なしなら終了
         decoded = URLDecoder.decode(decoded, StandardCharsets.UTF_8.name());
         if (decoded.equals(previous)) {
           break;
