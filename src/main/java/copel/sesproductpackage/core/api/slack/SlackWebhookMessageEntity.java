@@ -61,6 +61,20 @@ public class SlackWebhookMessageEntity {
       }
       this.fields.add(textObject);
     }
+
+    /**
+     * sectionブロックに複数のfieldを追加します.
+     *
+     * @param textObjects TextObjectの可変長引数
+     */
+    public void addFields(TextObject... textObjects) {
+      if (this.fields == null) {
+        this.fields = new ArrayList<TextObject>();
+      }
+      for (TextObject textObject : textObjects) {
+        this.fields.add(textObject);
+      }
+    }
   }
 
   @Data
