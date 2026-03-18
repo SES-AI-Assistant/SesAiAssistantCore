@@ -1,7 +1,6 @@
 package copel.sesproductpackage.core.database;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.unit.LogicalOperators;
@@ -159,13 +158,13 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
     lot.retrieveByPersonRawContent(mockConnection, "keyword"); // loads "p1" into the lot
 
-    org.junit.jupiter.api.Assertions.assertNotNull(lot.getEntityByPk("p1"));
-    org.junit.jupiter.api.Assertions.assertNotNull(lot.getEntityByPk(" p1 "));
-    org.junit.jupiter.api.Assertions.assertNull(lot.getEntityByPk("p2"));
-    org.junit.jupiter.api.Assertions.assertNull(lot.getEntityByPk(null));
+    assertNotNull(lot.getEntityByPk("p1"));
+    assertNotNull(lot.getEntityByPk(" p1 "));
+    assertNull(lot.getEntityByPk("p2"));
+    assertNull(lot.getEntityByPk(null));
 
     SES_AI_T_SKILLSHEET_PERSONLot emptyLot = new SES_AI_T_SKILLSHEET_PERSONLot();
-    org.junit.jupiter.api.Assertions.assertNull(emptyLot.getEntityByPk("p1"));
+    assertNull(emptyLot.getEntityByPk("p1"));
   }
 
   @Test
@@ -183,5 +182,77 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
 
     SES_AI_T_SKILLSHEET_PERSONLot emptyLot = new SES_AI_T_SKILLSHEET_PERSONLot();
     assertEquals("", emptyLot.to要員選出用文章());
+  }
+
+  @Test
+  void testRetrieveOuterJoinByPersonVector() throws SQLException {
+    prepareMockResultSet(true);
+    SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
+    lot.retrieveOuterJoinByPersonVector(mockConnection, mockVector, 0.5, 10);
+    assertEquals(1, lot.size());
+  }
+
+  @Test
+  void testRetrieveOuterJoinBySkillSheetVector() throws SQLException {
+    prepareMockResultSet(true);
+    SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
+    lot.retrieveOuterJoinBySkillSheetVector(mockConnection, mockVector, 0.5, 10);
+    assertEquals(1, lot.size());
+  }
+
+  @Test
+  void testGetEntityByFileId() throws SQLException {
+    prepareMockResultSet(false);
+    SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
+    lot.retrieveByPersonRawContent(mockConnection, "keyword");
+    assertNotNull(lot.getEntityByFileId("f1"));
+    assertNotNull(lot.getEntityByFileId(" f1 "));
+    assertNull(lot.getEntityByFileId("f2"));
+    assertNull(lot.getEntityByFileId(null));
+  }
+
+  @Test
+  void testToスキルシート選出用文章() throws SQLException {
+    prepareMockResultSet(false);
+    SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
+    lot.retrieveByPersonRawContent(mockConnection, "keyword");
+    lot.get(0).setFileId("fid");
+    lot.get(0).setFileName("fname");
+    lot.get(0).setFileContentSummary("fsummary");
+    String result = lot.toスキルシート選出用文章();
+    assertEquals("1件目：ファイルID：fid 内容：fsummary\n", result);
+  }
+
+  @Test
+  void testEntityLotBase_DefaultMethods() {
+    TestEntityLot lot = new TestEntityLot();
+    // These return null by default in EntityLotBase
+    assertNull(lot.exposedGetSelectSql());
+    assertNull(lot.exposedGetSelectLikeSql());
+  }
+
+  @Test
+  void testGet_NegativeIndex() {
+    SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
+    assertNull(lot.get(-1));
+  }
+}
+
+class TestEntityLot extends copel.sesproductpackage.core.database.base.EntityLotBase<SES_AI_T_SKILLSHEET_PERSON> {
+  @Override
+  public void selectAll(java.sql.Connection connection) throws java.sql.SQLException {}
+
+  @Override
+  protected SES_AI_T_SKILLSHEET_PERSON mapResultSet(java.sql.ResultSet resultSet)
+      throws java.sql.SQLException {
+    return null;
+  }
+
+  public String exposedGetSelectSql() {
+    return getSelectSql();
+  }
+
+  public String exposedGetSelectLikeSql() {
+    return getSelectLikeSql();
   }
 }

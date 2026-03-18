@@ -8,6 +8,7 @@ import java.io.ByteArrayOutputStream;
 import java.net.HttpURLConnection;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
 
 class GptCoverageEnhancedTest extends HttpTestBase {
 
@@ -31,59 +32,65 @@ class GptCoverageEnhancedTest extends HttpTestBase {
 
   @Test
   void testOpenAINullAndDefaults() throws Exception {
-    OpenAI api = new OpenAI("key");
-    assertNull(api.embedding(null));
-    assertNull(api.generate(null));
+    try (MockedConstruction<copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY> mockedDb = mockConstruction(copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.class)) {
+      OpenAI api = new OpenAI("key");
+      assertNull(api.embedding(null));
+      assertNull(api.generate(null));
 
-    setupMock(201, "{\"data\":[{\"embedding\":[0.1, 0.2]}]}");
-    assertNotNull(api.embedding("test"));
+      setupMock(201, "{\"data\":[{\"embedding\":[0.1, 0.2]}]}");
+      assertNotNull(api.embedding("test"));
 
-    setupMock(201, "{\"choices\":[{\"message\":{\"content\":\"ans\"}}]}");
-    assertNotNull(api.generate("test").getAnswer());
+      setupMock(201, "{\"choices\":[{\"message\":{\"content\":\"ans\"}}]}");
+      assertNotNull(api.generate("test").getAnswer());
+    }
   }
 
   @Test
   void testOpenAIErrorHandling() throws Exception {
-    OpenAI api = new OpenAI("key");
-    int[] errorCodes = {400, 401, 403, 404, 408, 429, 500, 503};
-    for (int code : errorCodes) {
-      setupMock(code, "error");
-      assertThrows(RuntimeException.class, () -> api.embedding("test"));
-      setupMock(code, "error");
-      assertThrows(RuntimeException.class, () -> api.generate("test"));
-    }
+    try (MockedConstruction<copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY> mockedDb = mockConstruction(copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.class)) {
+      OpenAI api = new OpenAI("key");
+      int[] errorCodes = {400, 401, 403, 404, 408, 429, 500, 503};
+      for (int code : errorCodes) {
+        setupMock(code, "error");
+        assertThrows(RuntimeException.class, () -> api.embedding("test"));
+        setupMock(code, "error");
+        assertThrows(RuntimeException.class, () -> api.generate("test"));
+      }
 
-    // Default code 999
-    setupMock(999, "{\"data\":[{\"embedding\":[0.1, 0.2]}]}");
-    api.embedding("test");
-    setupMock(999, "{\"choices\":[{\"message\":{\"content\":\"ans\"}}]}");
-    api.generate("test");
+      // Default code 999
+      setupMock(999, "{\"data\":[{\"embedding\":[0.1, 0.2]}]}");
+      api.embedding("test");
+      setupMock(999, "{\"choices\":[{\"message\":{\"content\":\"ans\"}}]}");
+      api.generate("test");
+    }
   }
 
   @Test
   void testGeminiEdgeCases() throws Exception {
-    Gemini api = new Gemini("key");
-    assertNull(api.embedding(null));
-    assertNull(api.generate(null));
+    try (MockedConstruction<copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY> mockedDb = mockConstruction(copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.class)) {
+      Gemini api = new Gemini("key");
+      assertNull(api.embedding(null));
+      assertNull(api.generate(null));
 
-    // Error with body
-    setupMock(400, "{\"error\":\"bad\"}");
-    assertThrows(RuntimeException.class, () -> api.generate("test"));
+      // Error with body
+      setupMock(400, "{\"error\":\"bad\"}");
+      assertThrows(RuntimeException.class, () -> api.generate("test"));
 
-    setupMock(500, "{\"error\":\"fail\"}");
-    assertThrows(RuntimeException.class, () -> api.embedding("test"));
+      setupMock(500, "{\"error\":\"fail\"}");
+      assertThrows(RuntimeException.class, () -> api.embedding("test"));
 
-    // JSON paths
-    setupMock(200, "{\"embedding\":{\"values\":[0.1, 0.2]}}");
-    assertNotNull(api.embedding("test"));
+      // JSON paths
+      setupMock(200, "{\"embedding\":{\"values\":[0.1, 0.2]}}");
+      assertNotNull(api.embedding("test"));
 
-    setupMock(200, "{\"embedding\":{\"values\":\"not-array\"}}");
-    assertNull(api.embedding("test"));
+      setupMock(200, "{\"embedding\":{\"values\":\"not-array\"}}");
+      assertNull(api.embedding("test"));
 
-    setupMock(200, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"ans\"}]}}]}");
-    assertNotNull(api.generate("test").getAnswer());
+      setupMock(200, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"ans\"}]}}]}");
+      assertNotNull(api.generate("test").getAnswer());
 
-    setupMock(200, "{\"candidates\":\"not-array\"}");
-    assertNull(api.generate("test").getAnswer());
+      setupMock(200, "{\"candidates\":\"not-array\"}");
+      assertNull(api.generate("test").getAnswer());
+    }
   }
 }

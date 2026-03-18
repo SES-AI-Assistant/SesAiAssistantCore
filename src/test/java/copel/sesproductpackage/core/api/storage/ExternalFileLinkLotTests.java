@@ -2,6 +2,7 @@ package copel.sesproductpackage.core.api.storage;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -71,17 +72,23 @@ class ExternalFileLinkLotTests {
   }
 
   @Test
-  void testHasDownloadableLinks_UnsupportedUrl_ReturnsFalse() throws Exception {
-    HttpResponse<Void> mockResponse = createMockVoidResponse("https://www.example.com/page.html");
-    when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-        .thenReturn(mockResponse);
-
+  void testHasDownloadableLinks_UnsupportedUrl_ReturnsFalse() {
     // ExternalFileLinkLotはHttpClientを注入できないため、
     // URLが非対応ドメインなので結果的にfalseになることを検証
     ExternalFileLinkLot lot =
         new ExternalFileLinkLot("詳細はこちら https://www.example.com/page.html をご覧ください。");
     // 実際のHEADリクエストは飛ばず(非対応ドメイン)、falseが返る想定
     assertFalse(lot.hasDownloadableLinks());
+  }
+
+  @Test
+  void testHasDownloadableLinks_FoundDownloadable_ReturnsTrue() {
+    try (org.mockito.MockedConstruction<ExternalFileLink> mocked = org.mockito.Mockito.mockConstruction(ExternalFileLink.class, (mock, context) -> {
+      when(mock.isDownloadable()).thenReturn(true);
+    })) {
+      ExternalFileLinkLot lot = new ExternalFileLinkLot("https://example.com/ok");
+      assertTrue(lot.hasDownloadableLinks());
+    }
   }
 
   // ============================================================
@@ -144,6 +151,56 @@ class ExternalFileLinkLotTests {
   void testUrlPattern_DoesNotMatchFtp() {
     ExternalFileLinkLot lot = new ExternalFileLinkLot("ftp://example.com/file.pdf");
     assertEquals(0, lot.size());
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void testDownloadAll_Exception_LogsWarning() throws Exception {
+    // Instead of MockedConstruction, we use a real ExternalFileLink with a mock HttpClient that throws
+    HttpClient failingClient = mock(HttpClient.class);
+    when(failingClient.send(any(), any())).thenThrow(new RuntimeException("Link Failure"));
+    
+    ExternalFileLink failingLink = new ExternalFileLink("https://example.com/fail", failingClient);
+    ExternalFileLinkLot lot = new ExternalFileLinkLot("https://example.com/fail");
+    
+    // We need to inject the failingLink into the lot or just mock the list
+    // Since we can't easily inject into the private 'links' list without reflection, 
+    // and we want avoid reflection if possible, let's try one more approach with MockedConstruction 
+    // but ensure the code path is TRULY executed in a way Jacoco likes.
+    // Actually, let's use the list constructor if available? No, only String constructor.
+    
+    try (org.mockito.MockedConstruction<ExternalFileLink> mocked = 
+        org.mockito.Mockito.mockConstruction(ExternalFileLink.class, (mock, context) -> {
+      when(mock.isDownloadable()).thenReturn(true);
+      doThrow(new RuntimeException("Mock Failure")).when(mock).download();
+      when(mock.getRawUrl()).thenReturn("https://err.com");
+    })) {
+      ExternalFileLinkLot lot2 = new ExternalFileLinkLot("https://err.com");
+      lot2.downloadAll();
+      assertEquals(0, lot2.getDownloadedLinks().size());
+    }
+  }
+
+  @Test
+  void testConstructor_BlankVariants() {
+    assertTrue(new ExternalFileLinkLot(null).getDownloadedLinks().isEmpty());
+    assertTrue(new ExternalFileLinkLot("").getDownloadedLinks().isEmpty());
+    assertTrue(new ExternalFileLinkLot("   ").getDownloadedLinks().isEmpty());
+  }
+
+  @Test
+  void testGetDownloadedLinks_WithData() {
+    try (org.mockito.MockedConstruction<ExternalFileLink> mocked = org.mockito.Mockito.mockConstruction(ExternalFileLink.class, (mock, context) -> {
+      if (context.getCount() == 1) {
+        when(mock.getFileData()).thenReturn(new byte[]{1});
+      } else {
+        when(mock.getFileData()).thenReturn(null);
+      }
+    })) {
+      // Create a lot with 2 links
+      ExternalFileLinkLot lot = new ExternalFileLinkLot("http://a.com http://b.com");
+      assertEquals(1, lot.getDownloadedLinks().size());
+    }
   }
 
   // ============================================================

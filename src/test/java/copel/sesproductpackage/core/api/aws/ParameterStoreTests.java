@@ -24,7 +24,7 @@ class ParameterStoreTests {
     mockedClient = mockStatic(SsmClient.class);
     mockSsmClient = mock(SsmClient.class);
     SsmClientBuilder mockBuilder = mock(SsmClientBuilder.class);
-    when(mockBuilder.region(any())).thenReturn(mockBuilder);
+    when(mockBuilder.region(org.mockito.ArgumentMatchers.any(Region.class))).thenReturn(mockBuilder);
     when(mockBuilder.build()).thenReturn(mockSsmClient);
     mockedClient.when(SsmClient::builder).thenReturn(mockBuilder);
   }
@@ -42,11 +42,11 @@ class ParameterStoreTests {
         GetParameterResponse.builder()
             .parameter(Parameter.builder().value("secret-value").build())
             .build();
-    when(mockSsmClient.getParameter(any(GetParameterRequest.class))).thenReturn(mockResponse);
+    when(mockSsmClient.getParameter(org.mockito.ArgumentMatchers.any(GetParameterRequest.class))).thenReturn(mockResponse);
 
     assertEquals("secret-value", ps.getParameter("test-key"));
     assertEquals("secret-value", ps.getParameter("test-key", false));
 
-    verify(mockSsmClient, times(2)).getParameter(any(GetParameterRequest.class));
+    verify(mockSsmClient, times(2)).getParameter(org.mockito.ArgumentMatchers.any(GetParameterRequest.class));
   }
 }

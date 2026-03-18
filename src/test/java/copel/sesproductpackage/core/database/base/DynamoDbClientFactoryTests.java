@@ -1,46 +1,64 @@
 package copel.sesproductpackage.core.database.base;
 
-import static com.github.stefanbirkner.systemlambda.SystemLambda.withEnvironmentVariable;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import java.lang.reflect.InvocationTargetException;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
 
 class DynamoDbClientFactoryTests {
 
   @Test
   void testCreate_Lambda() throws Exception {
-    withEnvironmentVariable("AWS_LAMBDA_FUNCTION_NAME", "test-lambda")
-        .execute(
-            () -> {
-              assertNotNull(DynamoDbClientFactory.create());
-            });
+    DynamoDbClient mockClient = mock(DynamoDbClient.class);
+    DynamoDbClientBuilder mockBuilder = mock(DynamoDbClientBuilder.class);
+    when(mockBuilder.region(org.mockito.ArgumentMatchers.any(software.amazon.awssdk.regions.Region.class))).thenReturn(mockBuilder);
+    when(mockBuilder.credentialsProvider(org.mockito.ArgumentMatchers.any(software.amazon.awssdk.auth.credentials.AwsCredentialsProvider.class))).thenReturn(mockBuilder);
+    when(mockBuilder.build()).thenReturn(mockClient);
+
+    try (MockedStatic<DynamoDbClient> mockedDynamoDbClient = mockStatic(DynamoDbClient.class)) {
+      mockedDynamoDbClient.when(DynamoDbClient::builder).thenReturn(mockBuilder);
+
+      assertNotNull(DynamoDbClientFactory.create());
+    }
   }
 
   @Test
   void testCreate_CI() throws Exception {
-    withEnvironmentVariable("CI", "true")
-        .execute(
-            () -> {
-              assertNotNull(DynamoDbClientFactory.create());
-            });
+    DynamoDbClient mockClient = mock(DynamoDbClient.class);
+    DynamoDbClientBuilder mockBuilder = mock(DynamoDbClientBuilder.class);
+    when(mockBuilder.region(org.mockito.ArgumentMatchers.any(software.amazon.awssdk.regions.Region.class))).thenReturn(mockBuilder);
+    when(mockBuilder.credentialsProvider(org.mockito.ArgumentMatchers.any(software.amazon.awssdk.auth.credentials.AwsCredentialsProvider.class))).thenReturn(mockBuilder);
+    when(mockBuilder.build()).thenReturn(mockClient);
+
+    try (MockedStatic<DynamoDbClient> mockedDynamoDbClient = mockStatic(DynamoDbClient.class)) {
+      mockedDynamoDbClient.when(DynamoDbClient::builder).thenReturn(mockBuilder);
+
+      assertNotNull(DynamoDbClientFactory.create());
+    }
   }
 
   @Test
   void testCreate_Local() throws Exception {
-    // No environment variables set, assuming no AWS credentials profile is configured for local
-    // testing
-    // to avoid exceptions from ProfileCredentialsProvider.
-    // This test ensures the create method can be called without throwing an exception in a
-    // local-like environment.
-    withEnvironmentVariable("AWS_LAMBDA_FUNCTION_NAME", null)
-        .and("CI", null)
-        .execute(
-            () -> {
-              assertNotNull(DynamoDbClientFactory.create());
-            });
+    DynamoDbClient mockClient = mock(DynamoDbClient.class);
+    DynamoDbClientBuilder mockBuilder = mock(DynamoDbClientBuilder.class);
+    when(mockBuilder.region(any(software.amazon.awssdk.regions.Region.class))).thenReturn(mockBuilder);
+    when(mockBuilder.credentialsProvider(any(software.amazon.awssdk.auth.credentials.AwsCredentialsProvider.class))).thenReturn(mockBuilder);
+    when(mockBuilder.build()).thenReturn(mockClient);
+
+    try (MockedStatic<DynamoDbClient> mockedDynamoDbClient = mockStatic(DynamoDbClient.class)) {
+      mockedDynamoDbClient.when(DynamoDbClient::builder).thenReturn(mockBuilder);
+
+      assertNotNull(DynamoDbClientFactory.create());
+    }
   }
 
   @Test

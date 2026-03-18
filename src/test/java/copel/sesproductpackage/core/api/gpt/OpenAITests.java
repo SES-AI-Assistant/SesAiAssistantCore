@@ -21,6 +21,8 @@ import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.PageIterable;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
 
 class OpenAITests extends HttpTestBase {
 
@@ -31,15 +33,26 @@ class OpenAITests extends HttpTestBase {
   @BeforeAll
   @SuppressWarnings("unchecked")
   static void setupProperties() throws Exception {
-    Field propertiesField = Properties.class.getDeclaredField("properties");
-    propertiesField.setAccessible(true);
-    Map<String, String> propertiesMap = (Map<String, String>) propertiesField.get(null);
-    propertiesMap.put("OPEN_AI_EMBEDDING_API_URL", "http://localhost/embedding");
-    propertiesMap.put("OPEN_AI_EMBEDDING_MODEL", "text-embedding-3-small");
-    propertiesMap.put("OPEN_AI_COMPLETION_API_URL", "http://localhost/completion");
-    propertiesMap.put("OPEN_AI_COMPLETION_TEMPERATURE", "0.7");
-    propertiesMap.put("OPEN_AI_FILE_UPLOAD_URL", "http://localhost/upload");
-    propertiesMap.put("OPEN_AI_FINE_TUNE_URL", "http://localhost/finetune");
+    S3Client mockS3Client = mock(S3Client.class);
+    S3ClientBuilder mockS3Builder = mock(S3ClientBuilder.class);
+    when(mockS3Builder.region(any())).thenReturn(mockS3Builder);
+    when(mockS3Builder.credentialsProvider(any())).thenReturn(mockS3Builder);
+    when(mockS3Builder.build()).thenReturn(mockS3Client);
+
+    try (MockedStatic<S3Client> mockedS3 = mockStatic(S3Client.class)) {
+      mockedS3.when(S3Client::builder).thenReturn(mockS3Builder);
+      mockedS3.when(S3Client::create).thenReturn(mockS3Client);
+
+      Field propertiesField = Properties.class.getDeclaredField("properties");
+      propertiesField.setAccessible(true);
+      Map<String, String> propertiesMap = (Map<String, String>) propertiesField.get(null);
+      propertiesMap.put("OPEN_AI_EMBEDDING_API_URL", "http://localhost/embedding");
+      propertiesMap.put("OPEN_AI_EMBEDDING_MODEL", "text-embedding-3-small");
+      propertiesMap.put("OPEN_AI_COMPLETION_API_URL", "http://localhost/completion");
+      propertiesMap.put("OPEN_AI_COMPLETION_TEMPERATURE", "0.7");
+      propertiesMap.put("OPEN_AI_FILE_UPLOAD_URL", "http://localhost/upload");
+      propertiesMap.put("OPEN_AI_FINE_TUNE_URL", "http://localhost/finetune");
+    }
   }
 
   @BeforeEach

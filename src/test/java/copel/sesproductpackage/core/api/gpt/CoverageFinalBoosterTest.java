@@ -79,58 +79,62 @@ class CoverageFinalBoosterTest extends HttpTestBase {
 
   @Test
   void boostOpenAI() throws Exception {
-    OpenAI api = new OpenAI("key");
+    try (MockedConstruction<copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY> mockedDb = mockConstruction(copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.class)) {
+      OpenAI api = new OpenAI("key");
 
-    // Test null/missing contentNode branches in L244
-    setupMock(200, "{\"choices\":[{\"message\":{}}]}");
-    api.generate("test");
+      // Test null/missing contentNode branches in L244
+      setupMock(200, "{\"choices\":[{\"message\":{}}]}");
+      api.generate("test");
 
-    setupMock(200, "{\"choices\":[{\"message\":{\"content\":null}}]}");
-    api.generate("test");
+      setupMock(200, "{\"choices\":[{\"message\":{\"content\":null}}]}");
+      api.generate("test");
 
-    setupMock(200, "{\"choices\":[{\"message\":{\"content\":\"ans\"}}]}");
-    api.generate("test");
+      setupMock(200, "{\"choices\":[{\"message\":{\"content\":\"ans\"}}]}");
+      api.generate("test");
 
-    setupMock(200, "{\"data\":[{\"embedding\":[0.1]}]}");
-    api.embedding("test");
+      setupMock(200, "{\"data\":[{\"embedding\":[0.1]}]}");
+      api.embedding("test");
+    }
   }
 
   @Test
   void boostGemini() throws Exception {
-    Gemini api = new Gemini("key");
+    try (MockedConstruction<copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY> mockedDb = mockConstruction(copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.class)) {
+      Gemini api = new Gemini("key");
 
-    // Test candidates missing/empty (isArray() false)
-    setupMock(200, "{\"candidates\":{}}");
-    api.generate("test");
+      // Test candidates missing/empty (isArray() false)
+      setupMock(200, "{\"candidates\":{}}");
+      api.generate("test");
 
-    // Test candidates missing/empty (size() == 0)
-    setupMock(200, "{\"candidates\":[]}");
-    api.generate("test");
+      // Test candidates missing/empty (size() == 0)
+      setupMock(200, "{\"candidates\":[]}");
+      api.generate("test");
 
-    // Test content missing/empty
-    setupMock(200, "{\"candidates\":[{}]}");
-    api.generate("test");
+      // Test content missing/empty
+      setupMock(200, "{\"candidates\":[{}]}");
+      api.generate("test");
 
-    // Test parts missing/empty (isArray() false)
-    setupMock(200, "{\"candidates\":[{\"content\":{\"parts\":{}}}]}");
-    api.generate("test");
+      // Test parts missing/empty (isArray() false)
+      setupMock(200, "{\"candidates\":[{\"content\":{\"parts\":{}}}]}");
+      api.generate("test");
 
-    // Test parts missing/empty (size() == 0)
-    setupMock(200, "{\"candidates\":[{\"content\":{\"parts\":[]}}]}");
-    api.generate("test");
+      // Test parts missing/empty (size() == 0)
+      setupMock(200, "{\"candidates\":[{\"content\":{\"parts\":[]}}]}");
+      api.generate("test");
 
-    // Test parts exists but text null (via normal JSON parsing, asText() returns
-    // "null" not null)
-    setupMock(200, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":null}]}}]}");
-    api.generate("test");
+      // Test parts exists but text null (via normal JSON parsing, asText() returns
+      // "null" not null)
+      setupMock(200, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":null}]}}]}");
+      api.generate("test");
 
-    // Test success with resultText
-    setupMock(200, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"ans\"}]}}]}");
-    api.generate("test");
+      // Test success with resultText
+      setupMock(200, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"ans\"}]}}]}");
+      api.generate("test");
 
-    // Test embedding success
-    setupMock(200, "{\"embedding\":{\"values\":[0.1]}}");
-    api.embedding("test");
+      // Test embedding success
+      setupMock(200, "{\"embedding\":{\"values\":[0.1]}}");
+      api.embedding("test");
+    }
   }
 
   @Test

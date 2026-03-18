@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.unit.Plan;
 import copel.sesproductpackage.core.unit.Role;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -122,6 +123,140 @@ class SES_AI_WEBAPP_M_USERTests {
 
     assertTrue(user.deleteByPk(connection));
     assertNotNull(user.toString());
+  }
+
+  @Test
+  void testGetPermissions() {
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER();
+    assertTrue(user.getPermissions().isEmpty());
+
+    user.setRole(Role.システム管理者);
+    user.setPlan(Plan.PREMIUM);
+    assertFalse(user.getPermissions().isEmpty());
+    
+    // role only
+    user.setPlan(null);
+    assertFalse(user.getPermissions().isEmpty());
+
+    // plan only
+    user.setRole(null);
+    user.setPlan(Plan.FREE);
+    assertFalse(user.getPermissions().isEmpty());
+  }
+
+  @Test
+  void testHasSystemUseAuth_NullRole() {
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER();
+    user.setRole(null);
+    assertFalse(user.hasSystemUseAuth());
+  }
+
+  @Test
+  void testLombokMethods() {
+    SES_AI_WEBAPP_M_USER user1 = new SES_AI_WEBAPP_M_USER();
+    user1.setUserId("u1");
+    user1.setUserName("n1");
+    user1.setCompanyId("c1");
+    user1.setRole(Role.システム管理者);
+    user1.setPlan(Plan.PREMIUM);
+    user1.setRegisterUser("admin");
+    user1.setRegisterDate(new OriginalDateTime());
+
+    SES_AI_WEBAPP_M_USER user2 = new SES_AI_WEBAPP_M_USER();
+    user2.setUserId("u1");
+    user2.setUserName("n1");
+    user2.setCompanyId("c1");
+    user2.setRole(Role.システム管理者);
+    user2.setPlan(Plan.PREMIUM);
+    user2.setRegisterUser("admin");
+    user2.setRegisterDate(user1.getRegisterDate());
+
+    // Basic Lombok checks
+    assertTrue(user1.equals(user2));
+    assertEquals(user1.hashCode(), user2.hashCode());
+    assertNotNull(user1.toString());
+    assertTrue(user1.canEqual(user2));
+
+    // Field-by-field equals coverage
+    user2.setUserId("u2");
+    assertNotEquals(user1, user2);
+    user2.setUserId("u1");
+
+    user2.setUserName("n2");
+    assertNotEquals(user1, user2);
+    user2.setUserName("n1");
+
+    user2.setCompanyId("c2");
+    assertNotEquals(user1, user2);
+    user2.setCompanyId("c1");
+    
+    user1.setRole(null);
+    assertNotEquals(user1, user2);
+    user1.setRole(Role.システム管理者);
+    
+    // Superclass field equality (EntityBase)
+    user2.setRegisterUser("other");
+    assertNotEquals(user1, user2);
+    user2.setRegisterUser("admin");
+    
+    // canEqual and equals branches
+    assertNotEquals(user1, null);
+    assertNotEquals(user1, new Object());
+    assertFalse(user1.canEqual(new Object()));
+    
+    SES_AI_WEBAPP_M_USER userSub = new SES_AI_WEBAPP_M_USER() {
+      @Override
+      public boolean canEqual(Object other) {
+        return false;
+      }
+    };
+    assertFalse(user1.equals(userSub));
+  }
+
+  @Test
+  void testInsertUpdateWithRoleAndPlan() throws SQLException {
+    Connection connection = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    when(connection.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeUpdate()).thenReturn(1);
+
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER();
+    user.setUserId("U1");
+    user.setRole(Role.システム管理者);
+    user.setPlan(Plan.FREE);
+    user.setRegisterDate(new OriginalDateTime());
+
+    assertEquals(1, user.insert(connection));
+    assertTrue(user.updateByPk(connection));
+  }
+
+  @Test
+  void testSelectByPkAllFields() throws SQLException {
+    Connection connection = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(connection.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true);
+
+    when(rs.getString("user_id")).thenReturn("U1");
+    when(rs.getString("user_name")).thenReturn("N1");
+    when(rs.getString("company_id")).thenReturn("C1");
+    when(rs.getString("role_cd")).thenReturn("99");
+    when(rs.getString("plan_cd")).thenReturn("10");
+    when(rs.getString("register_date")).thenReturn("2026-01-01");
+    when(rs.getString("register_user")).thenReturn("admin");
+
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER();
+    user.setUserId("U1");
+    user.selectByPk(connection);
+
+    assertEquals("U1", user.getUserId());
+    assertEquals("N1", user.getUserName());
+    assertEquals("C1", user.getCompanyId());
+    assertEquals(Role.システム管理者, user.getRole());
+    assertEquals(Plan.PREMIUM, user.getPlan());
+    assertEquals("admin", user.getRegisterUser());
   }
 
   @Test

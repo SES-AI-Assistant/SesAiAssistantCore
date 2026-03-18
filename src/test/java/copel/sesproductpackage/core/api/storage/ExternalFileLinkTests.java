@@ -432,6 +432,42 @@ class ExternalFileLinkTests {
   // ヘルパーメソッド
   // ============================================================
 
+  @Test
+  void testExtractFileName_BlankContentDisposition() throws Exception {
+    ExternalFileLink link = new ExternalFileLink("https://example.com/file", mockHttpClient);
+    HttpResponse<byte[]> response = createMockByteResponse(200, new byte[0], "application/pdf", "  ");
+    String name = link.extractFileName(response, "https://example.com/file");
+    assertEquals("file", name);
+  }
+
+  @Test
+  void testExtractFileName_EmptyMatchedName() throws Exception {
+    ExternalFileLink link = new ExternalFileLink("https://example.com/file", mockHttpClient);
+    HttpResponse<byte[]> response = createMockByteResponse(200, new byte[0], "application/pdf", "attachment; filename=\"\"");
+    String name = link.extractFileName(response, "https://example.com/file");
+    assertEquals("file", name);
+  }
+
+  @Test
+  void testExtractFileName_EmptyRfcMatchedName() throws Exception {
+    ExternalFileLink link = new ExternalFileLink("https://example.com/file", mockHttpClient);
+    // current regex "filename\\*=(?:UTF-8'')?([^;\\s]+)" matches "UTF-8''" if nothing follows it
+    HttpResponse<byte[]> response = createMockByteResponse(200, new byte[0], "application/pdf", "attachment; filename*=UTF-8''");
+    String name = link.extractFileName(response, "https://example.com/file");
+    assertEquals("UTF-8''", name);
+  }
+
+  @Test
+  void testIsDownloadable_BlankResolvedUrl_ReturnsFalse() throws Exception {
+    HttpResponse<Void> mockResponse = mock(HttpResponse.class);
+    when(mockResponse.uri()).thenReturn(URI.create("")); // Blank path
+    when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+        .thenReturn(mockResponse);
+
+    ExternalFileLink link = new ExternalFileLink("https://drive.google.com/file/d/ID/view", mockHttpClient);
+    assertFalse(link.isDownloadable());
+  }
+
   private HttpResponse<Void> createMockVoidResponse(final String resolvedUrl) {
     HttpResponse<Void> response = mock(HttpResponse.class);
     when(response.uri()).thenReturn(URI.create(resolvedUrl));
@@ -445,10 +481,10 @@ class ExternalFileLinkTests {
     when(response.body()).thenReturn(body);
 
     Map<String, List<String>> headersMap = new java.util.HashMap<>();
-    if (!contentType.isBlank()) {
+    if (contentType != null && !contentType.isBlank()) {
       headersMap.put("Content-Type", List.of(contentType));
     }
-    if (!disposition.isBlank()) {
+    if (disposition != null && !disposition.isBlank()) {
       headersMap.put("Content-Disposition", List.of(disposition));
     }
     HttpHeaders headers = HttpHeaders.of(headersMap, (k, v) -> true);

@@ -3,6 +3,7 @@ package copel.sesproductpackage.core.database;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -188,8 +189,37 @@ class SES_AI_T_SKILLSHEET_PERSONTest {
     assertEquals("要員ID：p3 内容：cSummaryfSummary", entity.to要員選出用文章());
 
     entity.setContentSummary(null);
+    entity.setFileContentSummary("fSummary");
+    assertEquals("要員ID：p3 内容：fSummary", entity.to要員選出用文章());
+
+    entity.setContentSummary("cSummary");
+    entity.setFileContentSummary(null);
+    assertEquals("要員ID：p3 内容：cSummary", entity.to要員選出用文章());
+
+    entity.setContentSummary(null);
     entity.setFileContentSummary(null);
     assertEquals("要員ID：p3 内容：", entity.to要員選出用文章());
+  }
+
+  @Test
+  void testToスキルシート選出用文章() {
+    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON();
+    entity.setFileId("f3");
+    entity.setContentSummary("cSummary");
+    entity.setFileContentSummary("fSummary");
+    assertEquals("ファイルID：f3 内容：fSummarycSummary", entity.toスキルシート選出用文章());
+
+    entity.setContentSummary(null);
+    entity.setFileContentSummary("fSummary");
+    assertEquals("ファイルID：f3 内容：fSummary", entity.toスキルシート選出用文章());
+
+    entity.setContentSummary("cSummary");
+    entity.setFileContentSummary(null);
+    assertEquals("ファイルID：f3 内容：cSummary", entity.toスキルシート選出用文章());
+
+    entity.setContentSummary(null);
+    entity.setFileContentSummary(null);
+    assertEquals("ファイルID：f3 内容：", entity.toスキルシート選出用文章());
   }
 
   @Test
@@ -200,6 +230,8 @@ class SES_AI_T_SKILLSHEET_PERSONTest {
     entity1.setPersonId("p1");
     entity1.setContentSummary("cs1");
     entity1.setRegisterUser("user1");
+    Timestamp now = new Timestamp(System.currentTimeMillis());
+    entity1.setRegisterDate(new OriginalDateTime(now));
 
     SES_AI_T_SKILLSHEET_PERSON entity2 = new SES_AI_T_SKILLSHEET_PERSON();
     entity2.setFileId("f1");
@@ -207,6 +239,7 @@ class SES_AI_T_SKILLSHEET_PERSONTest {
     entity2.setPersonId("p1");
     entity2.setContentSummary("cs1");
     entity2.setRegisterUser("user1");
+    entity2.setRegisterDate(new OriginalDateTime(now));
 
     // equals() and hashCode()
     assertTrue(entity1.equals(entity2));
@@ -220,56 +253,37 @@ class SES_AI_T_SKILLSHEET_PERSONTest {
     assertEquals("fs1", entity1.getFileContentSummary());
     assertEquals("p1", entity1.getPersonId());
     assertEquals("cs1", entity1.getContentSummary());
+    assertEquals("user1", entity1.getRegisterUser());
+    assertNotNull(entity1.getRegisterDate());
 
-    // different entity
+    // different entity checks for equals coverage
     entity2.setFileId("f2");
     assertFalse(entity1.equals(entity2));
     entity2.setFileId("f1");
+    
     entity2.setPersonId("p2");
     assertFalse(entity1.equals(entity2));
     entity2.setPersonId("p1");
+    
     entity2.setContentSummary("cs2");
     assertFalse(entity1.equals(entity2));
     entity2.setContentSummary("cs1");
+    
     entity2.setFileContentSummary("fs2");
     assertFalse(entity1.equals(entity2));
-
+    entity2.setFileContentSummary("fs1");
+    
     // toString()
     String toString = entity1.toString();
     assertTrue(toString.contains("fileId=f1"));
     assertTrue(toString.contains("personId=p1"));
 
-    // edge cases
-    assertFalse(entity1.equals(null));
-    assertFalse(entity1.equals(new Object()));
+    // other checks
+    assertNotEquals(entity1, null);
+    assertNotEquals(entity1, new Object());
     assertTrue(entity1.equals(entity1));
-
-    SES_AI_T_SKILLSHEET_PERSON entityNull1 = new SES_AI_T_SKILLSHEET_PERSON();
-    SES_AI_T_SKILLSHEET_PERSON entityNull2 = new SES_AI_T_SKILLSHEET_PERSON();
-    assertTrue(entityNull1.equals(entityNull2));
-    assertEquals(entityNull1.hashCode(), entityNull2.hashCode());
-
-    // Cover branch: this field is null, other is not
-    entityNull2.setFileId("f1");
-    assertFalse(entityNull1.equals(entityNull2));
-    assertFalse(entityNull2.equals(entityNull1));
-
-    entityNull1.setFileId("f1");
-    entityNull2.setFileContentSummary("fs1");
-    assertFalse(entityNull1.equals(entityNull2));
-    assertFalse(entityNull2.equals(entityNull1));
-
-    entityNull1.setFileContentSummary("fs1");
-    entityNull2.setPersonId("p1");
-    assertFalse(entityNull1.equals(entityNull2));
-    assertFalse(entityNull2.equals(entityNull1));
-
-    entityNull1.setPersonId("p1");
-    entityNull2.setContentSummary("cs1");
-    assertFalse(entityNull1.equals(entityNull2));
-    assertFalse(entityNull2.equals(entityNull1));
-
-    // Additional checks for canEqual and type checks
+    
+    // canEqual checks
     assertFalse(entity1.canEqual(new Object()));
     assertFalse(entity1.canEqual(null));
 

@@ -37,7 +37,7 @@ class S3Tests {
   void testSave() {
     s3.setData("test data".getBytes());
     s3.save();
-    verify(mockS3Client).putObject(any(PutObjectRequest.class), any(RequestBody.class));
+    verify(mockS3Client).putObject(org.mockito.ArgumentMatchers.any(PutObjectRequest.class), org.mockito.ArgumentMatchers.any(RequestBody.class));
     assertNotNull(s3.getUpdateDate());
   }
 
@@ -45,13 +45,13 @@ class S3Tests {
   void testSaveNulls() {
     s3.setBucketName(null);
     s3.save(); // Should log warnd and return
-    verify(mockS3Client, never()).putObject(any(PutObjectRequest.class), any(RequestBody.class));
+    verify(mockS3Client, never()).putObject(org.mockito.ArgumentMatchers.any(PutObjectRequest.class), org.mockito.ArgumentMatchers.any(RequestBody.class));
   }
 
   @Test
   void testSaveException() {
     s3.setData(new byte[1]);
-    when(mockS3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
+    when(mockS3Client.putObject(org.mockito.ArgumentMatchers.any(PutObjectRequest.class), org.mockito.ArgumentMatchers.any(RequestBody.class)))
         .thenThrow(new RuntimeException("error"));
     s3.save(); // Should catch exception
   }
@@ -62,11 +62,11 @@ class S3Tests {
     ResponseInputStream<GetObjectResponse> ris =
         new ResponseInputStream<>(
             GetObjectResponse.builder().build(), new ByteArrayInputStream(data));
-    when(mockS3Client.getObject(any(GetObjectRequest.class))).thenReturn(ris);
+    when(mockS3Client.getObject(org.mockito.ArgumentMatchers.any(GetObjectRequest.class))).thenReturn(ris);
 
     HeadObjectResponse hor =
         HeadObjectResponse.builder().lastModified(java.time.Instant.now()).build();
-    when(mockS3Client.headObject(any(HeadObjectRequest.class))).thenReturn(hor);
+    when(mockS3Client.headObject(org.mockito.ArgumentMatchers.any(HeadObjectRequest.class))).thenReturn(hor);
 
     s3.read();
     assertArrayEquals(data, s3.getData());
@@ -75,7 +75,7 @@ class S3Tests {
 
   @Test
   void testReadException() {
-    when(mockS3Client.getObject(any(GetObjectRequest.class)))
+    when(mockS3Client.getObject(org.mockito.ArgumentMatchers.any(GetObjectRequest.class)))
         .thenThrow(new RuntimeException("error"));
     assertThrows(IOException.class, () -> s3.read());
   }
@@ -83,13 +83,13 @@ class S3Tests {
   @Test
   void testDelete() {
     s3.delete();
-    verify(mockS3Client).deleteObject(any(DeleteObjectRequest.class));
+    verify(mockS3Client).deleteObject(org.mockito.ArgumentMatchers.any(DeleteObjectRequest.class));
     assertNull(s3.getUpdateDate());
   }
 
   @Test
   void testDeleteException() {
-    when(mockS3Client.deleteObject(any(DeleteObjectRequest.class)))
+    when(mockS3Client.deleteObject(org.mockito.ArgumentMatchers.any(DeleteObjectRequest.class)))
         .thenThrow(new RuntimeException("error"));
     s3.delete(); // Should catch
   }
@@ -99,14 +99,14 @@ class S3Tests {
     try (MockedStatic<S3Presigner> mockedPresigner = mockStatic(S3Presigner.class)) {
       S3Presigner mockPresigner = mock(S3Presigner.class);
       S3Presigner.Builder mockBuilder = mock(S3Presigner.Builder.class);
-      when(mockBuilder.region(any())).thenReturn(mockBuilder);
-      when(mockBuilder.credentialsProvider(any())).thenReturn(mockBuilder);
+      when(mockBuilder.region(org.mockito.ArgumentMatchers.any(Region.class))).thenReturn(mockBuilder);
+      when(mockBuilder.credentialsProvider(org.mockito.ArgumentMatchers.any(software.amazon.awssdk.auth.credentials.AwsCredentialsProvider.class))).thenReturn(mockBuilder);
       when(mockBuilder.build()).thenReturn(mockPresigner);
       mockedPresigner.when(S3Presigner::builder).thenReturn(mockBuilder);
 
       PresignedGetObjectRequest mockPresigned = mock(PresignedGetObjectRequest.class);
       when(mockPresigned.url()).thenReturn(new URL("http://example.com"));
-      when(mockPresigner.presignGetObject(any(GetObjectPresignRequest.class)))
+      when(mockPresigner.presignGetObject(org.mockito.ArgumentMatchers.any(GetObjectPresignRequest.class)))
           .thenReturn(mockPresigned);
 
       String url = s3.createDownloadUrl();

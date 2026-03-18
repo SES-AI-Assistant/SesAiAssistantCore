@@ -190,4 +190,17 @@ class SkillSheetTests {
     s2.setFileId("id2");
     assertNotEquals(s1, s2);
   }
+
+  @Test
+  void testGetObjectKey_AlreadyContainsFileName() {
+    SkillSheet ss = new SkillSheet("f1_test.pdf", "test.pdf", "content");
+    assertEquals("f1_test.pdf", ss.getObjectKey());
+  }
+
+  @Test
+  void testGet_NegativeIndex() throws Exception {
+    // EntityLotBase を間接的にテスト (SES_AI_T_SKILLSHEET_PERSONLot など)
+    copel.sesproductpackage.core.database.SES_AI_T_SKILLSHEET_PERSONLot lot = new copel.sesproductpackage.core.database.SES_AI_T_SKILLSHEET_PERSONLot();
+    assertNull(lot.get(-1));
+  }
 }

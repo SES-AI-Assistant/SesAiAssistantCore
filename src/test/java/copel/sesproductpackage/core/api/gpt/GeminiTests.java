@@ -72,7 +72,26 @@ class GeminiTests extends HttpTestBase {
     assertNotNull(gemini);
     assertNotNull(new Gemini("key", "model"));
     assertNotNull(new Gemini("key", GeminiModel.GEMINI_1_5_FLASH));
-    assertTrue(gemini.canEqual(new Gemini("key2")));
+  }
+
+  @Test
+  void testLombokMethods() {
+    Gemini g1 = new Gemini("k1", "m1");
+    Gemini g2 = new Gemini("k1", "m1");
+    
+    assertEquals(g1, g2);
+    assertEquals(g1.hashCode(), g2.hashCode());
+    assertNotNull(g1.toString());
+    assertTrue(g1.canEqual(g2));
+    
+    assertEquals("k1", g1.getApiKey());
+    assertEquals("m1", g1.getCompletionModel());
+    
+    Gemini g3 = new Gemini("k2", "m1");
+    assertNotEquals(g1, g3);
+    
+    Gemini g4 = new Gemini("k1", "m2");
+    assertNotEquals(g1, g4);
   }
 
   @Test
