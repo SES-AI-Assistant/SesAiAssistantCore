@@ -10,6 +10,8 @@ public enum RequestType {
   LineFile("12"),
   EmailMessage("21"),
   EmailFile("22"),
+  ScreenMessage("31"),
+  ScreenFile("32"),
   OtherMessage("01"),
   OtherFile("02");
 
@@ -39,6 +41,10 @@ public enum RequestType {
           return EmailMessage;
         case "22":
           return EmailFile;
+        case "31":
+          return ScreenMessage;
+        case "32":
+          return ScreenFile;
         case "01":
           return OtherMessage;
         case "02":
