@@ -24,5 +24,8 @@ class OriginalStringUtilsTest {
     assertFalse(OriginalStringUtils.isEmpty("abc"));
 
     assertFalse(OriginalStringUtils.isEmpty(" abc "));
+
+    assertTrue(OriginalStringUtils.isEmpty("\t"));
+    assertTrue(OriginalStringUtils.isEmpty("\n"));
   }
 }

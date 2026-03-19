@@ -158,4 +158,42 @@ class ContentTest {
       propertiesMap.put("JOB_FEATURES_ARRAY_HIGH", savedHigh);
     }
   }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void testCalcScoreFallbackWhenHighOrLowMissing() throws Exception {
+    Field propertiesField = Properties.class.getDeclaredField("properties");
+    propertiesField.setAccessible(true);
+    Map<String, String> propertiesMap = (Map<String, String>) propertiesField.get(null);
+    String savedHigh = propertiesMap.remove("JOB_FEATURES_ARRAY_HIGH");
+    String savedLow = propertiesMap.remove("JOB_FEATURES_ARRAY_LOW");
+    try {
+      Content c = new Content("案件情報 場所 内容 ".repeat(30));
+      assertNotNull(c);
+    } finally {
+      if (savedHigh != null) {
+        propertiesMap.put("JOB_FEATURES_ARRAY_HIGH", savedHigh);
+      }
+      if (savedLow != null) {
+        propertiesMap.put("JOB_FEATURES_ARRAY_LOW", savedLow);
+      }
+    }
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void testCalcScoreFallbackWhenPersonHighMissing() throws Exception {
+    Field propertiesField = Properties.class.getDeclaredField("properties");
+    propertiesField.setAccessible(true);
+    Map<String, String> propertiesMap = (Map<String, String>) propertiesField.get(null);
+    String saved = propertiesMap.remove("PERSONEL_FEATURES_ARRAY_HIGH");
+    try {
+      Content c = new Content("要員情報 氏名 年齢 ".repeat(40));
+      assertNotNull(c);
+    } finally {
+      if (saved != null) {
+        propertiesMap.put("PERSONEL_FEATURES_ARRAY_HIGH", saved);
+      }
+    }
+  }
 }

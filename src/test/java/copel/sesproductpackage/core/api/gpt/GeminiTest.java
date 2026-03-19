@@ -161,6 +161,12 @@ class GeminiTest extends HttpTestBase {
     when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_UNAVAILABLE);
     e = assertThrows(RuntimeException.class, () -> gemini.generate("hello"));
     assertTrue(e.getMessage().contains("503"));
+
+    when(sharedMockConn.getResponseCode()).thenReturn(418);
+    when(sharedMockConn.getInputStream())
+        .thenReturn(new ByteArrayInputStream("{\"candidates\":[]}".getBytes()));
+    GptAnswer defaultAnswer = gemini.generate("hello");
+    assertNull(defaultAnswer.getAnswer());
   }
 
   @Test

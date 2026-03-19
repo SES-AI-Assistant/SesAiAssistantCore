@@ -113,6 +113,15 @@ class EntityLotBaseTest {
   }
 
   @Test
+  void testSelectByQueryWithEmptyMap() throws SQLException {
+    TestEntityLot lot = new TestEntityLot();
+    Connection conn = mock(Connection.class);
+    lot.selectByAndQuery(conn, Map.of());
+    lot.selectByOrQuery(conn, Map.of());
+    assertTrue(lot.isEmpty());
+  }
+
+  @Test
   void testSelectByQueryWithMap() throws SQLException {
     Connection conn = mock(Connection.class);
     PreparedStatement ps = mock(PreparedStatement.class);

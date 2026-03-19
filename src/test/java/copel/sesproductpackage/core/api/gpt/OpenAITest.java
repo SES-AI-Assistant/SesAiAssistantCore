@@ -113,9 +113,39 @@ class OpenAITest extends HttpTestBase {
     assertTrue(e.getMessage().contains("400"));
     verify(sharedMockConn, atLeastOnce()).disconnect();
 
+    when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_UNAUTHORIZED);
+    e = assertThrows(RuntimeException.class, () -> api.embedding("test"));
+    assertTrue(e.getMessage().contains("401"));
+
+    when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_FORBIDDEN);
+    e = assertThrows(RuntimeException.class, () -> api.embedding("test"));
+    assertTrue(e.getMessage().contains("403"));
+
+    when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_NOT_FOUND);
+    e = assertThrows(RuntimeException.class, () -> api.embedding("test"));
+    assertTrue(e.getMessage().contains("404"));
+
+    when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_CLIENT_TIMEOUT);
+    e = assertThrows(RuntimeException.class, () -> api.embedding("test"));
+    assertTrue(e.getMessage().contains("408"));
+
     when(sharedMockConn.getResponseCode()).thenReturn(429);
     e = assertThrows(RuntimeException.class, () -> api.embedding("test"));
     assertTrue(e.getMessage().contains("429"));
+
+    when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_INTERNAL_ERROR);
+    e = assertThrows(RuntimeException.class, () -> api.embedding("test"));
+    assertTrue(e.getMessage().contains("500"));
+
+    when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_UNAVAILABLE);
+    e = assertThrows(RuntimeException.class, () -> api.embedding("test"));
+    assertTrue(e.getMessage().contains("503"));
+  }
+
+  @Test
+  void testConstructorWithModel() {
+    OpenAI api = new OpenAI("key", "gpt-4");
+    assertNotNull(api);
   }
 
   @Test

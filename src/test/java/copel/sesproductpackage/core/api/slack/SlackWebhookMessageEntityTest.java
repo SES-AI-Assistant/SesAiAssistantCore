@@ -255,6 +255,24 @@ class SlackWebhookMessageEntityTest {
   }
 
   @Test
+  void testAddFields() {
+    SlackMessageBlock block = new SlackMessageBlock();
+    assertNull(block.getFields());
+    TextObject f1 = new TextObject(TextType.PLAIN_TEXT, "F1");
+    TextObject f2 = new TextObject(TextType.MRKDWN, "F2");
+    block.addFields(f1, f2);
+    assertNotNull(block.getFields());
+    assertEquals(2, block.getFields().size());
+    assertEquals("F1", block.getFields().get(0).getText());
+    assertEquals("F2", block.getFields().get(1).getText());
+
+    SlackMessageBlock block2 = new SlackMessageBlock();
+    block2.setFields(new ArrayList<>());
+    block2.addFields(f1);
+    assertEquals(1, block2.getFields().size());
+  }
+
+  @Test
   void testEnumsExtra() {
     // Ensure all enum constants are touched
     for (BlockType b : BlockType.values()) {

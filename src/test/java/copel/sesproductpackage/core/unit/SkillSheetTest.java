@@ -154,6 +154,13 @@ class SkillSheetTest {
     assertNotNull(ss.getFileUrl());
     assertEquals("id1_name1.pdf", ss.getObjectKey());
 
+    // getObjectKey when fileId already ends with _fileName
+    ss.setFileId("id1_name1.pdf");
+    ss.setFileName("name1.pdf");
+    assertEquals("id1_name1.pdf", ss.getObjectKey());
+
+    ss.setFileId("id1");
+    ss.setFileName("name1.pdf");
     Field field = SkillSheet.class.getDeclaredField("SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH");
     field.setAccessible(true);
     int maxLength = (int) field.get(null);
@@ -165,6 +172,18 @@ class SkillSheetTest {
 
     ss.setFileContent(null);
     assertNull(ss.getFileContent());
+  }
+
+  @Test
+  void testGenerateSummaryShortAnswer() throws Exception {
+    Transformer transformer = mock(Transformer.class);
+    GptAnswer answer = mock(GptAnswer.class, RETURNS_DEEP_STUBS);
+    when(answer.getAnswer()).thenReturn("short");
+    when(transformer.generate(anyString())).thenReturn(answer);
+
+    SkillSheet ss = new SkillSheet("1", "t.txt", "Content");
+    ss.generateSummary(transformer);
+    assertEquals("short", ss.getFileContentSummary());
   }
 
   @Test

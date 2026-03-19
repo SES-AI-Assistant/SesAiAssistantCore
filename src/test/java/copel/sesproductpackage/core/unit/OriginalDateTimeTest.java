@@ -2,6 +2,7 @@ package copel.sesproductpackage.core.unit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -20,10 +21,52 @@ class OriginalDateTimeTest {
   @Test
   void testConstructorWithPatterns() {
     assertNotNull(new OriginalDateTime("2024-04-01 12:34:56.123456").toLocalDateTime());
+    assertNotNull(new OriginalDateTime("2024-04-01 12:34:56.12345").toLocalDateTime());
+    assertNotNull(new OriginalDateTime("2024-04-01 12:34:56.1234").toLocalDateTime());
+    assertNotNull(new OriginalDateTime("2024-04-01 12:34:56.123").toLocalDateTime());
+    assertNotNull(new OriginalDateTime("2024-04-01 12:34:56.12").toLocalDateTime());
+    assertNotNull(new OriginalDateTime("2024-04-01 12:34:56.1").toLocalDateTime());
+    assertNotNull(new OriginalDateTime("2024-04-01 12:34").toLocalDateTime());
+    assertNotNull(new OriginalDateTime("2024/04/01 12:34:56.123456").toLocalDateTime());
     assertNotNull(new OriginalDateTime("2024/04/01 12:34:56").toLocalDateTime());
+    assertNotNull(new OriginalDateTime("2024/04/01 12:34:56.1").toLocalDateTime());
+    assertNotNull(new OriginalDateTime("2024/04/01 12:34").toLocalDateTime());
     assertNotNull(new OriginalDateTime("2024-04-01").toLocalDateTime());
     assertNotNull(new OriginalDateTime("2024/04/01").toLocalDateTime());
     assertNull(new OriginalDateTime("invalid").toLocalDateTime());
+  }
+
+  @Test
+  void testConstructorWithSqlDate() {
+    OriginalDateTime fromNull = new OriginalDateTime((Date) null);
+    assertTrue(fromNull.isEmpty());
+    assertNull(fromNull.toLocalDateTime());
+
+    Date sqlDate = Date.valueOf("2024-06-15");
+    OriginalDateTime odt = new OriginalDateTime(sqlDate);
+    assertEquals(LocalDate.of(2024, 6, 15), odt.toLocalDate());
+  }
+
+  @Test
+  void testConstructorWithSqlTimestamp() {
+    OriginalDateTime fromNull = new OriginalDateTime((Timestamp) null);
+    assertTrue(fromNull.isEmpty());
+    assertNull(fromNull.toLocalDateTime());
+
+    Timestamp ts = Timestamp.valueOf("2024-06-15 14:30:00");
+    OriginalDateTime odt = new OriginalDateTime(ts);
+    assertEquals(LocalDateTime.of(2024, 6, 15, 14, 30, 0), odt.toLocalDateTime());
+  }
+
+  @Test
+  void testConstructorWithIntParams() {
+    OriginalDateTime odt = new OriginalDateTime(2024, 3, 19, 10, 30, 45);
+    assertEquals(2024, odt.toLocalDateTime().getYear());
+    assertEquals(3, odt.toLocalDateTime().getMonthValue());
+    assertEquals(19, odt.toLocalDateTime().getDayOfMonth());
+    assertEquals(10, odt.toLocalDateTime().getHour());
+    assertEquals(30, odt.toLocalDateTime().getMinute());
+    assertEquals(45, odt.toLocalDateTime().getSecond());
   }
 
   @Test

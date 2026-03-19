@@ -74,6 +74,7 @@ class SES_AI_T_PERSONLotTest {
     lot.selectAll(mockConn);
 
     assertNotNull(lot.getEntityByPk("pid1"));
+    assertNotNull(lot.getEntityByPk("  pid1  "));
     assertNull(lot.getEntityByPk("nonexistent"));
     assertNull(lot.getEntityByPk(null));
   }

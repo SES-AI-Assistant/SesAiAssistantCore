@@ -83,4 +83,24 @@ class PropertiesTest {
     assertEquals("", Properties.get("invalid-line"));
     assertEquals("key", Properties.get("valid"));
   }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void testGettersWhenKeyMissing() throws Exception {
+    Field field = Properties.class.getDeclaredField("properties");
+    field.setAccessible(true);
+    Map<String, String> propertiesMap = (Map<String, String>) field.get(null);
+    propertiesMap.clear();
+    S3Client mockS3 = mock(S3Client.class);
+    InputStream is = new ByteArrayInputStream("A=1".getBytes(StandardCharsets.UTF_8));
+    ResponseInputStream<GetObjectResponse> s3Stream =
+        new ResponseInputStream<>(GetObjectResponse.builder().build(), is);
+    when(mockS3.getObject(any(GetObjectRequest.class))).thenReturn(s3Stream);
+    Properties.load(mockS3);
+
+    assertEquals("", Properties.get("MISSING_KEY"));
+    assertEquals(0, Properties.getInt("MISSING_KEY"));
+    assertEquals(0.0, Properties.getDouble("MISSING_KEY"));
+    assertArrayEquals(new String[0], Properties.getAsArray("MISSING_KEY"));
+  }
 }
