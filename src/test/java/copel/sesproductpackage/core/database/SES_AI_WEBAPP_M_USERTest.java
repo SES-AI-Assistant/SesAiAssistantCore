@@ -22,6 +22,26 @@ class SES_AI_WEBAPP_M_USERTest {
     assertTrue(user.hasSystemUseAuth());
     user.setRole(Role.システム利用不可);
     assertFalse(user.hasSystemUseAuth());
+    user.setRole(null);
+    assertFalse(user.hasSystemUseAuth());
+  }
+
+  @Test
+  void testGetPermissionsBranches() {
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER();
+    assertTrue(user.getPermissions().isEmpty());
+
+    user.setRole(Role.システム管理者);
+    user.setPlan(null);
+    assertFalse(user.getPermissions().isEmpty());
+
+    user.setRole(null);
+    user.setPlan(copel.sesproductpackage.core.unit.Plan.FREE);
+    assertFalse(user.getPermissions().isEmpty());
+
+    user.setRole(Role.システムユーザー);
+    user.setPlan(copel.sesproductpackage.core.unit.Plan.PREMIUM);
+    assertFalse(user.getPermissions().isEmpty());
   }
 
   @Test

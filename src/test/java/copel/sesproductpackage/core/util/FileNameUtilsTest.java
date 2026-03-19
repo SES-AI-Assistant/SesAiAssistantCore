@@ -146,6 +146,7 @@ public class FileNameUtilsTest {
     assertEquals("a", FileNameUtils.decode("  a  "));
     assertEquals("test", FileNameUtils.decode("test."));
     assertEquals("test", FileNameUtils.decode("test..."));
+    assertEquals(".", FileNameUtils.decode("."));
   }
 
   private static void putStaticFinalObject(Field field, Object newValue) throws Exception {

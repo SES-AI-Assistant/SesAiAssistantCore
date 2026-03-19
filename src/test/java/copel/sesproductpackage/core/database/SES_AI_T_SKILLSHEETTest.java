@@ -42,6 +42,9 @@ class SES_AI_T_SKILLSHEETTest {
     ss.setSkillSheet(new SkillSheet("F1", "N1", "C1"));
     assertNotNull(ss.getFileUrl());
     assertEquals("F1_N1", ss.getObjectKey());
+    ss.setFileId("F2");
+    ss.setFileName("N2.pdf");
+    assertEquals("F2_N2.pdf", ss.getObjectKey());
 
     ss.setSkillSheet(null);
     assertNull(ss.getFileUrl());
@@ -159,6 +162,7 @@ class SES_AI_T_SKILLSHEETTest {
     assertEquals("", ss.getFileContent());
     assertEquals("", ss.getFileContentSummary());
     assertNull(ss.getFileName());
+    assertNull(ss.getFileId());
   }
 
   @Test
@@ -172,5 +176,14 @@ class SES_AI_T_SKILLSHEETTest {
   @Test
   void testUpdateByPk() throws SQLException {
     assertFalse(new SES_AI_T_SKILLSHEET().updateByPk(null));
+  }
+
+  @Test
+  void testGetRawContentAndGetContentSummary() {
+    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
+    ss.setSkillSheet(new SkillSheet("f", "n", "raw"));
+    ss.setFileContentSummary("sum");
+    assertEquals("raw", ss.getRawContent());
+    assertEquals("sum", ss.getContentSummary());
   }
 }

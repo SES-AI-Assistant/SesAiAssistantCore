@@ -42,7 +42,9 @@ class SES_AI_T_WATCHLotTest {
     assertEquals("t1", lot.get(0).getTargetId());
     assertTrue(lot.containsById("t1"));
     assertFalse(lot.containsById("t2"));
-    
+    assertFalse(lot.containsById(null));
+    assertFalse(lot.containsById(""));
+
     lot.selectByUserId(null, "u1");
     lot.selectByUserId(mockConnection, null);
   }

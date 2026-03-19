@@ -40,12 +40,21 @@ class SES_AI_T_SKILLSHEET_PERSONTest {
     when(mockResultSet.getString("content_summary")).thenReturn("cs1");
     when(mockResultSet.getTimestamp("register_date")).thenReturn(new Timestamp(System.currentTimeMillis()));
     when(mockResultSet.getString("register_user")).thenReturn("u1");
+    when(mockResultSet.getString("from_group")).thenReturn("g1");
+    when(mockResultSet.getString("from_id")).thenReturn("i1");
+    when(mockResultSet.getString("from_name")).thenReturn("n1");
 
     SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON();
     entity.selectByPersonId(mockConnection, "p1");
 
     assertEquals("f1", entity.getFileId());
     assertEquals("p1", entity.getPersonId());
+    assertNotNull(entity.getRegisterDate());
+
+    when(mockResultSet.next()).thenReturn(false);
+    SES_AI_T_SKILLSHEET_PERSON entity2 = new SES_AI_T_SKILLSHEET_PERSON();
+    entity2.selectByPersonId(mockConnection, "p2");
+    assertNull(entity2.getFileId());
   }
 
   @Test
@@ -126,5 +135,26 @@ class SES_AI_T_SKILLSHEET_PERSONTest {
     assertEquals(entity1, entity2);
     assertEquals(entity1.hashCode(), entity2.hashCode());
     assertNotNull(entity1.toString());
+
+    entity2.setFileId("f2");
+    assertNotEquals(entity1, entity2);
+    assertFalse(entity1.equals(null));
+    assertFalse(entity1.equals(new Object()));
+  }
+
+  @Test
+  void testSelectByFileIdNoResult() throws SQLException {
+    when(mockResultSet.next()).thenReturn(false);
+    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON();
+    entity.selectByFileId(mockConnection, "f1");
+    assertNull(entity.getFileId());
+  }
+
+  @Test
+  void testSelectOuterJoinByFileIdNoResult() throws SQLException {
+    when(mockResultSet.next()).thenReturn(false);
+    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON();
+    entity.selectOuterJoinByFileId(mockConnection, "f1");
+    assertNull(entity.getFileId());
   }
 }

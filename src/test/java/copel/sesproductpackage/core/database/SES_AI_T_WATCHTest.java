@@ -37,6 +37,14 @@ class SES_AI_T_WATCHTest {
     watch.setTtl(new OriginalDateTime());
     watch.insert(conn);
 
+    SES_AI_T_WATCH watchTtlNull = new SES_AI_T_WATCH();
+    watchTtlNull.setUserId("u2");
+    watchTtlNull.setTargetId("t2");
+    watchTtlNull.setTargetType(null);
+    watchTtlNull.setTtl(null);
+    when(ps.executeUpdate()).thenReturn(1);
+    assertEquals(1, watchTtlNull.insert(conn));
+
     when(ps.executeQuery()).thenReturn(rs);
     when(rs.next()).thenReturn(true);
     when(rs.getBoolean(1)).thenReturn(true);
@@ -63,7 +71,16 @@ class SES_AI_T_WATCHTest {
     when(rs.next()).thenReturn(false);
     watch.selectByPk(conn);
     when(rs.next()).thenReturn(true);
+    when(rs.getString("user_id")).thenReturn("u");
+    when(rs.getString("target_id")).thenReturn("t");
+    when(rs.getString("target_type")).thenReturn("PERSON");
+    when(rs.getString("memo")).thenReturn("m");
+    when(rs.getString("register_date")).thenReturn("2024-01-01 00:00:00");
+    when(rs.getString("register_user")).thenReturn("ru");
+    when(rs.getString("ttl")).thenReturn(null);
     watch.selectByPk(conn);
+    assertNotNull(watch.getTtl());
+    assertTrue(watch.getTtl().isEmpty());
 
     watch.updateByPk(null);
     watch.setUserId(null);
@@ -80,6 +97,13 @@ class SES_AI_T_WATCHTest {
     watch.setTargetType(SES_AI_T_WATCH.TargetType.PERSON);
     watch.setRegisterDate(new OriginalDateTime());
     watch.updateByPk(conn);
+
+    SES_AI_T_WATCH watchNoRegDate = new SES_AI_T_WATCH();
+    watchNoRegDate.setUserId("u3");
+    watchNoRegDate.setTargetId("t3");
+    watchNoRegDate.setRegisterDate(null);
+    when(ps.executeUpdate()).thenReturn(1);
+    assertTrue(watchNoRegDate.updateByPk(conn));
 
     watch.deleteByPk(null);
     watch.setUserId(null);

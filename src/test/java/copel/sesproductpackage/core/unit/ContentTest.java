@@ -89,6 +89,25 @@ class ContentTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
+  void testCalcScoreWithEmptyKeywordInFallback() throws Exception {
+    Field propertiesField = Properties.class.getDeclaredField("properties");
+    propertiesField.setAccessible(true);
+    Map<String, String> propertiesMap = (Map<String, String>) propertiesField.get(null);
+    String savedHigh = propertiesMap.put("JOB_FEATURES_ARRAY_HIGH", null);
+    String savedLow = propertiesMap.put("JOB_FEATURES_ARRAY_LOW", null);
+    String savedFallback = propertiesMap.put("JOB_FEATURES_ARRAY", "場所,,内容,作業");
+    try {
+      Content c = new Content("場所 内容 ".repeat(60));
+      assertNotNull(c);
+    } finally {
+      if (savedHigh != null) propertiesMap.put("JOB_FEATURES_ARRAY_HIGH", savedHigh);
+      if (savedLow != null) propertiesMap.put("JOB_FEATURES_ARRAY_LOW", savedLow);
+      if (savedFallback != null) propertiesMap.put("JOB_FEATURES_ARRAY", savedFallback);
+    }
+  }
+
+  @Test
   void test複数判定処理実行() throws Exception {
     String text = "要員情報 ".repeat(40);
     Content content = new Content(text);
@@ -194,6 +213,25 @@ class ContentTest {
       if (saved != null) {
         propertiesMap.put("PERSONEL_FEATURES_ARRAY_HIGH", saved);
       }
+    }
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void testCalcScoreFallbackWhenFallbackKeyNull() throws Exception {
+    Field propertiesField = Properties.class.getDeclaredField("properties");
+    propertiesField.setAccessible(true);
+    Map<String, String> propertiesMap = (Map<String, String>) propertiesField.get(null);
+    Object savedHigh = propertiesMap.put("JOB_FEATURES_ARRAY_HIGH", null);
+    Object savedLow = propertiesMap.put("JOB_FEATURES_ARRAY_LOW", null);
+    Object savedFallback = propertiesMap.put("JOB_FEATURES_ARRAY", null);
+    try {
+      Content c = new Content("案件情報 場所 ".repeat(50));
+      assertNotNull(c);
+    } finally {
+      if (savedHigh != null) propertiesMap.put("JOB_FEATURES_ARRAY_HIGH", (String) savedHigh);
+      if (savedLow != null) propertiesMap.put("JOB_FEATURES_ARRAY_LOW", (String) savedLow);
+      if (savedFallback != null) propertiesMap.put("JOB_FEATURES_ARRAY", (String) savedFallback);
     }
   }
 }

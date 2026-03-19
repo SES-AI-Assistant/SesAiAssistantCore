@@ -41,6 +41,38 @@ class SES_AI_T_PERSONTest {
 
     assertEquals("group1", person.getFromGroup());
     assertNotNull(person.toString());
+
+    when(rs.next()).thenReturn(true, true);
+    when(rs.getString("register_date")).thenReturn("2026-01-01 00:00:00", null);
+    when(rs.getString("ttl")).thenReturn("2026-12-31 23:59:59", null);
+    SES_AI_T_PERSON person2 = new SES_AI_T_PERSON();
+    person2.setPersonId("P2");
+    person2.selectByPk(connection);
+    assertEquals("group1", person2.getFromGroup());
+  }
+
+  @Test
+  void testSelectByPkWithNullDates() throws SQLException {
+    Connection connection = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(connection.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true);
+    when(rs.getString("from_group")).thenReturn("g1");
+    when(rs.getString("from_id")).thenReturn("i1");
+    when(rs.getString("from_name")).thenReturn("n1");
+    when(rs.getString("raw_content")).thenReturn("r1");
+    when(rs.getString("content_summary")).thenReturn("s1");
+    when(rs.getString("file_id")).thenReturn("f1");
+    when(rs.getString("file_summary")).thenReturn("fs1");
+    when(rs.getString("register_date")).thenReturn(null);
+    when(rs.getString("register_user")).thenReturn("u1");
+    when(rs.getString("ttl")).thenReturn(null);
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+    person.setPersonId("P1");
+    person.selectByPk(connection);
+    assertEquals("g1", person.getFromGroup());
   }
 
   @Test
@@ -57,6 +89,11 @@ class SES_AI_T_PERSONTest {
 
     assertEquals(1, result);
     assertNotNull(person.getPersonId());
+
+    SES_AI_T_PERSON personWithVector = new SES_AI_T_PERSON();
+    personWithVector.setVectorData(new Vector(mock(Transformer.class)));
+    when(ps.executeUpdate()).thenReturn(1);
+    assertEquals(1, personWithVector.insert(connection));
   }
 
   @Test
@@ -73,6 +110,12 @@ class SES_AI_T_PERSONTest {
     boolean result = person.updateByPk(connection);
 
     assertTrue(result);
+
+    SES_AI_T_PERSON personWithVector = new SES_AI_T_PERSON();
+    personWithVector.setPersonId("id2");
+    personWithVector.setVectorData(new Vector(mock(Transformer.class)));
+    personWithVector.setTtl(new OriginalDateTime());
+    assertTrue(personWithVector.updateByPk(connection));
   }
 
   @Test
@@ -121,6 +164,26 @@ class SES_AI_T_PERSONTest {
   }
 
   @Test
+  void testGetCheckSql() throws Exception {
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+    java.lang.reflect.Method m = SES_AI_T_PERSON.class.getDeclaredMethod("getCheckSql");
+    m.setAccessible(true);
+    assertNotNull(m.invoke(person));
+    assertTrue(m.invoke(person).toString().contains("raw_content"));
+  }
+
+  @Test
+  void testDeleteByPkWithNullPersonId() throws SQLException {
+    Connection connection = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    when(connection.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeUpdate()).thenReturn(0);
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+    person.setPersonId(null);
+    assertFalse(person.deleteByPk(connection));
+  }
+
+  @Test
   void testUpdateFileIdByPk() throws SQLException {
     Connection connection = mock(Connection.class);
     PreparedStatement ps = mock(PreparedStatement.class);
@@ -132,8 +195,14 @@ class SES_AI_T_PERSONTest {
     person.setFileId("fid1");
     assertTrue(person.updateFileIdByPk(connection));
 
+    assertFalse(person.updateFileIdByPk(null));
     person.setPersonId(null);
     assertFalse(person.updateFileIdByPk(connection));
+
+    person.setPersonId("id1");
+    person.setFileId(null);
+    when(ps.executeUpdate()).thenReturn(1);
+    assertTrue(person.updateFileIdByPk(connection));
   }
 
   @Test
@@ -153,6 +222,19 @@ class SES_AI_T_PERSONTest {
     person.setRawContent("Content");
     person.setFileSummary("FileSummary");
     assertEquals("要員ID：P1内容：ContentFileSummary", person.to要員選出用文章());
+
+    person.setFileSummary(null);
+    assertTrue(person.to要員選出用文章().contains("要員ID：P1"));
+    assertTrue(person.to要員選出用文章().contains("内容：Content"));
+  }
+
+  @Test
+  void testGetRawContentAndGetContentSummary() {
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+    person.setRawContent("raw");
+    person.setContentSummary("summary");
+    assertEquals("raw", person.getRawContent());
+    assertEquals("summary", person.getContentSummary());
   }
 
   @Test

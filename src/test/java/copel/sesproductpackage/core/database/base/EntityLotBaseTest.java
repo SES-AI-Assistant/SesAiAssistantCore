@@ -140,6 +140,11 @@ class EntityLotBaseTest {
     when(rs.next()).thenReturn(true, false);
     lot2.selectByOrQuery(conn, query);
     assertEquals(1, lot2.size());
+
+    TestEntityLot lotSingle = new TestEntityLot();
+    when(rs.next()).thenReturn(true, false);
+    lotSingle.selectByAndQuery(conn, Map.of("col1", "val1"));
+    assertEquals(1, lotSingle.size());
   }
 
   @Test
@@ -167,6 +172,20 @@ class EntityLotBaseTest {
     queries.add(null);
     lot2.searchByField(conn, "col", "query", queries);
     assertEquals(1, lot2.size());
+
+    TestEntityLot lotTwoOps = new TestEntityLot();
+    when(rs.next()).thenReturn(true, false);
+    java.util.List<copel.sesproductpackage.core.unit.LogicalOperators> twoOps =
+        java.util.Arrays.asList(
+            new copel.sesproductpackage.core.unit.LogicalOperators(
+                copel.sesproductpackage.core.unit.LogicalOperators.論理演算子.AND, "v1"),
+            new copel.sesproductpackage.core.unit.LogicalOperators(
+                copel.sesproductpackage.core.unit.LogicalOperators.論理演算子.OR, "v2"));
+    lotTwoOps.searchByField(conn, "col", "q", twoOps);
+    assertEquals(1, lotTwoOps.size());
+    verify(ps, atLeastOnce()).setString(1, "%q%");
+    verify(ps, atLeastOnce()).setString(2, "%v1%");
+    verify(ps, atLeastOnce()).setString(3, "%v2%");
 
     TestEntityLot lotEmptyList = new TestEntityLot();
     lotEmptyList.searchByField(conn, "col", "query", new java.util.ArrayList<>());

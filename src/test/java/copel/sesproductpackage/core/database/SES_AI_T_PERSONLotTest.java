@@ -3,11 +3,13 @@ package copel.sesproductpackage.core.database;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -68,6 +70,36 @@ class SES_AI_T_PERSONLotTest {
   }
 
   @Test
+  void testGetSelectSqlAndGetSelectLikeSql() throws Exception {
+    SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
+    Method getSelectSql = EntityLotBase.class.getDeclaredMethod("getSelectSql");
+    getSelectSql.setAccessible(true);
+    Method getSelectLikeSql = EntityLotBase.class.getDeclaredMethod("getSelectLikeSql");
+    getSelectLikeSql.setAccessible(true);
+    assertNotNull(getSelectSql.invoke(lot));
+    assertNotNull(getSelectLikeSql.invoke(lot));
+  }
+
+  @Test
+  void testMapResultSetWithNullDates() throws SQLException {
+    when(mockRs.next()).thenReturn(true, false);
+    when(mockRs.getString("person_id")).thenReturn("pid1");
+    when(mockRs.getString("from_group")).thenReturn("fg1");
+    when(mockRs.getString("from_id")).thenReturn("fid1");
+    when(mockRs.getString("from_name")).thenReturn("fname1");
+    when(mockRs.getString("file_id")).thenReturn("file1");
+    when(mockRs.getString("raw_content")).thenReturn("raw1");
+    when(mockRs.getString("content_summary")).thenReturn("s1");
+    when(mockRs.getString("register_date")).thenReturn(null);
+    when(mockRs.getString("register_user")).thenReturn("user1");
+    when(mockRs.getString("ttl")).thenReturn(null);
+    SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
+    lot.selectAll(mockConn);
+    assertEquals(1, lot.size());
+    assertNotNull(lot.get(0).getPersonId());
+  }
+
+  @Test
   void testGetEntityByPk() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
@@ -77,6 +109,45 @@ class SES_AI_T_PERSONLotTest {
     assertNotNull(lot.getEntityByPk("  pid1  "));
     assertNull(lot.getEntityByPk("nonexistent"));
     assertNull(lot.getEntityByPk(null));
+
+    SES_AI_T_PERSONLot emptyLot = new SES_AI_T_PERSONLot();
+    assertNull(emptyLot.getEntityByPk("anyId"));
+
+    when(mockRs.next()).thenReturn(true, false);
+    when(mockRs.getString("person_id")).thenReturn("emptyId");
+    when(mockRs.getString("from_group")).thenReturn("g");
+    when(mockRs.getString("from_id")).thenReturn("i");
+    when(mockRs.getString("from_name")).thenReturn("n");
+    when(mockRs.getString("file_id")).thenReturn("f");
+    when(mockRs.getString("raw_content")).thenReturn("r");
+    when(mockRs.getString("content_summary")).thenReturn("s");
+    when(mockRs.getString("register_date")).thenReturn("2023-01-01 12:00:00");
+    when(mockRs.getString("register_user")).thenReturn("u");
+    when(mockRs.getString("ttl")).thenReturn("2024-01-01 12:00:00");
+    SES_AI_T_PERSONLot lotMatch = new SES_AI_T_PERSONLot();
+    lotMatch.selectAll(mockConn);
+    assertNotNull(lotMatch.getEntityByPk("emptyId"));
+    assertEquals("emptyId", lotMatch.getEntityByPk("  emptyId  ").getPersonId());
+  }
+
+  @Test
+  void testGetEntityByPkSecondElement() throws SQLException {
+    when(mockRs.next()).thenReturn(true, true, false);
+    when(mockRs.getString("person_id")).thenReturn("pid1", "pid2");
+    when(mockRs.getString("from_group")).thenReturn("fg1", "fg2");
+    when(mockRs.getString("from_id")).thenReturn("fid1", "fid2");
+    when(mockRs.getString("from_name")).thenReturn("fname1", "fname2");
+    when(mockRs.getString("file_id")).thenReturn("file1", "file2");
+    when(mockRs.getString("raw_content")).thenReturn("raw1", "raw2");
+    when(mockRs.getString("content_summary")).thenReturn("s1", "s2");
+    when(mockRs.getString("register_date")).thenReturn("2023-01-01 12:00:00");
+    when(mockRs.getString("register_user")).thenReturn("user1", "user2");
+    when(mockRs.getString("ttl")).thenReturn("2024-01-01 12:00:00");
+    SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
+    lot.selectAll(mockConn);
+    assertEquals(2, lot.size());
+    assertNotNull(lot.getEntityByPk("pid2"));
+    assertEquals("pid2", lot.getEntityByPk("pid2").getPersonId());
   }
 
   @Test
@@ -88,6 +159,9 @@ class SES_AI_T_PERSONLotTest {
     assertTrue(lot.isExistByFileId("file1"));
     assertFalse(lot.isExistByFileId("nonexistent"));
     assertFalse(lot.isExistByFileId(null));
+
+    SES_AI_T_PERSONLot emptyLot = new SES_AI_T_PERSONLot();
+    assertFalse(emptyLot.isExistByFileId("any"));
   }
 
   @Test
@@ -102,6 +176,12 @@ class SES_AI_T_PERSONLotTest {
     lotForNull.retrieve(null, null, 0);
     assertTrue(lotForNull.isEmpty());
 
+    when(mockRs.next()).thenReturn(false);
+    SES_AI_T_PERSONLot lotEmpty = new SES_AI_T_PERSONLot();
+    lotEmpty.retrieve(mockConn, createTestVector(), 10);
+    assertTrue(lotEmpty.isEmpty());
+
+    setupDefaultResultSet();
     lot.retrieve(mockConn, null, 1);
     verify(mockStmt).setString(1, null);
   }
@@ -171,6 +251,24 @@ class SES_AI_T_PERSONLotTest {
     SES_AI_T_PERSONLot emptyLot = new SES_AI_T_PERSONLot();
     assertTrue(emptyLot.to要員選出用文章().isEmpty());
     assertEquals("", emptyLot.toString());
+
+    when(mockRs.next()).thenReturn(true, true, false);
+    when(mockRs.getString("person_id")).thenReturn("p1", "p2");
+    when(mockRs.getString("from_group")).thenReturn("g1", "g2");
+    when(mockRs.getString("from_id")).thenReturn("i1", "i2");
+    when(mockRs.getString("from_name")).thenReturn("n1", "n2");
+    when(mockRs.getString("file_id")).thenReturn("f1", "f2");
+    when(mockRs.getString("raw_content")).thenReturn("r1", "r2");
+    when(mockRs.getString("content_summary")).thenReturn("s1", "s2");
+    when(mockRs.getString("register_date")).thenReturn("2023-01-01 12:00:00");
+    when(mockRs.getString("register_user")).thenReturn("u1", "u2");
+    when(mockRs.getString("ttl")).thenReturn("2024-01-01 12:00:00");
+    SES_AI_T_PERSONLot lotTwo = new SES_AI_T_PERSONLot();
+    lotTwo.selectAll(mockConn);
+    String text = lotTwo.to要員選出用文章();
+    assertTrue(text.contains("1人目："));
+    assertTrue(text.contains("2人目："));
+    assertFalse(lotTwo.toString().isEmpty());
   }
 
   @Test
