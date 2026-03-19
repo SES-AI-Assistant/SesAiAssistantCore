@@ -92,6 +92,30 @@ class OpenAITest extends HttpTestBase {
     OpenAI api = new OpenAI("key");
     float[] result = api.embedding("test");
     assertArrayEquals(new float[] {0.1f, 0.2f}, result);
+    verify(sharedMockConn, atLeastOnce()).disconnect();
+  }
+
+  @Test
+  void testEmbedding_Null() throws Exception {
+    OpenAI api = new OpenAI("key");
+    assertNull(api.embedding(null));
+  }
+
+  @Test
+  void testEmbedding_ErrorCodes() throws Exception {
+    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+
+    OpenAI api = new OpenAI("key");
+
+    when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_BAD_REQUEST);
+    RuntimeException e =
+        assertThrows(RuntimeException.class, () -> api.embedding("test"));
+    assertTrue(e.getMessage().contains("400"));
+    verify(sharedMockConn, atLeastOnce()).disconnect();
+
+    when(sharedMockConn.getResponseCode()).thenReturn(429);
+    e = assertThrows(RuntimeException.class, () -> api.embedding("test"));
+    assertTrue(e.getMessage().contains("429"));
   }
 
   @Test
@@ -111,6 +135,38 @@ class OpenAITest extends HttpTestBase {
   }
 
   @Test
+  void testGenerate_ContentNullAndDefaultResponseCode() throws Exception {
+    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+
+    // checkResponseCode の default 分岐（例: 418）でも readResponse が走り、content が null の場合は null を返す
+    when(sharedMockConn.getResponseCode()).thenReturn(418);
+    when(sharedMockConn.getInputStream())
+        .thenReturn(new ByteArrayInputStream("{\"choices\":[{\"message\":{}}]}".getBytes()));
+
+    OpenAI api = new OpenAI("key");
+    GptAnswer answer = api.generate("hi");
+    assertNull(answer.getAnswer());
+    verify(sharedMockConn, atLeastOnce()).disconnect();
+  }
+
+  @Test
+  void testGenerate_ErrorCodes() throws Exception {
+    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+
+    OpenAI api = new OpenAI("key");
+
+    when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_UNAUTHORIZED);
+    RuntimeException e =
+        assertThrows(RuntimeException.class, () -> api.generate("hi"));
+    assertTrue(e.getMessage().contains("401"));
+    verify(sharedMockConn, atLeastOnce()).disconnect();
+
+    when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_INTERNAL_ERROR);
+    e = assertThrows(RuntimeException.class, () -> api.generate("hi"));
+    assertTrue(e.getMessage().contains("500"));
+  }
+
+  @Test
   void testFineTuningSuccess() throws Exception {
     String uploadResponse = "{\"id\":\"file-123\"}";
     when(sharedMockConn.getResponseCode()).thenReturn(200, 200);
@@ -123,5 +179,20 @@ class OpenAITest extends HttpTestBase {
     OpenAI api = new OpenAI("key");
     api.fineTuning("data");
     verify(sharedMockConn, atLeastOnce()).getOutputStream();
+  }
+
+  @Test
+  void testFineTuning_ErrorOnJobStart() throws Exception {
+    String uploadResponse = "{\"id\":\"file-123\"}";
+    // 1回目: upload OK, 2回目: fine-tune job start NG
+    when(sharedMockConn.getResponseCode()).thenReturn(200, 500);
+    when(sharedMockConn.getInputStream())
+        .thenReturn(new ByteArrayInputStream(uploadResponse.getBytes()));
+    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+
+    OpenAI api = new OpenAI("key");
+    RuntimeException e =
+        assertThrows(RuntimeException.class, () -> api.fineTuning("data"));
+    assertTrue(e.getMessage().contains("Fine-tuning Error"));
   }
 }

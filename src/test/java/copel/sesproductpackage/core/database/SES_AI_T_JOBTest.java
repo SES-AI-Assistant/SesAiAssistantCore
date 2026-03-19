@@ -122,7 +122,15 @@ class SES_AI_T_JOBTest {
     SES_AI_T_JOB diff = new SES_AI_T_JOB();
     diff.setJobId("test_id");
     diff.setRawContent("test");
-    copel.sesproductpackage.core.util.EntityCoverageHelper.checkLombokCoverage(
-        SES_AI_T_JOB.class, obj1, obj2, diff);
+
+    assertTrue(obj1.equals(obj1));
+    assertFalse(obj1.equals(null));
+    assertFalse(obj1.equals(new Object()));
+    assertTrue(obj1.equals(obj2));
+    assertFalse(obj1.equals(diff));
+    assertTrue(obj1.canEqual(obj2));
+    assertFalse(obj1.canEqual(new Object()));
+    assertEquals(obj1.hashCode(), obj2.hashCode());
+    assertNotNull(obj1.toString());
   }
 }
