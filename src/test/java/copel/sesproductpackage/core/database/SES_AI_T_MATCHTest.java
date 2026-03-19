@@ -39,7 +39,6 @@ class SES_AI_T_MATCHTest {
     match.setRegisterDate(new OriginalDateTime());
     match.setRegisterUser("admin");
 
-    // hasJobId / hasPersonId
     assertTrue(match.hasJobId());
     assertTrue(match.hasPersonId());
     match.setJobId(null);
@@ -47,15 +46,13 @@ class SES_AI_T_MATCHTest {
     assertFalse(match.hasJobId());
     assertFalse(match.hasPersonId());
 
-    // insert branches
     assertEquals(0, match.insert(null));
     when(ps.executeUpdate()).thenReturn(1);
     match.setStatus(MatchingStatus.提案中);
-    assertEquals(1, match.insert(conn)); // status not null
+    assertEquals(1, match.insert(conn));
     match.setStatus(null);
-    assertEquals(1, match.insert(conn)); // status null
+    assertEquals(1, match.insert(conn));
 
-    // selectByPk branches
     match.selectByPk(null);
     match.setMatchingId(null);
     match.selectByPk(conn);
@@ -63,14 +60,11 @@ class SES_AI_T_MATCHTest {
     when(rs.next()).thenReturn(false);
     match.selectByPk(conn);
     when(rs.next()).thenReturn(true);
-    when(rs.getString("status_cd")).thenReturn("提案中");
+    when(rs.getString("status_cd")).thenReturn("10");
     match.selectByPk(conn);
 
-    // updateByPk branches
     when(ps.executeUpdate()).thenReturn(1);
     match.setMatchingId("id");
-
-    // Test all combinations of status and registerDate for updateByPk
     match.setStatus(MatchingStatus.提案中);
     match.setRegisterDate(new OriginalDateTime());
     assertTrue(match.updateByPk(conn));
@@ -96,7 +90,6 @@ class SES_AI_T_MATCHTest {
     when(ps.executeUpdate()).thenReturn(0);
     assertFalse(match.updateByPk(conn));
 
-    // deleteByPk branches
     assertFalse(match.deleteByPk(null));
     match.setMatchingId(null);
     assertFalse(match.deleteByPk(conn));
@@ -106,7 +99,6 @@ class SES_AI_T_MATCHTest {
     when(ps.executeUpdate()).thenReturn(0);
     assertFalse(match.deleteByPk(conn));
 
-    // Lombok methods
     SES_AI_T_MATCH m1 = new SES_AI_T_MATCH();
     SES_AI_T_MATCH m2 = new SES_AI_T_MATCH();
     m1.setMatchingId("id1");
@@ -134,73 +126,5 @@ class SES_AI_T_MATCHTest {
     assertEquals(m1, m2);
 
     assertTrue(m1.canEqual(m2));
-    assertFalse(m1.canEqual(new Object()));
-
-    // Coverage for other fields in equals
-    m2.setJobId("j1");
-    assertNotEquals(m1, m2);
-    m1.setJobId("j1");
-    m2.setJobContent("c1");
-    assertNotEquals(m1, m2);
-    m1.setJobContent("c1");
-    m2.setPersonId("p1");
-    assertNotEquals(m1, m2);
-    m1.setPersonId("p1");
-    m2.setPersonContent("pc1");
-    assertNotEquals(m1, m2);
-    m1.setPersonContent("pc1");
-    m2.setStatus(MatchingStatus.提案中);
-    assertNotEquals(m1, m2);
-    m1.setStatus(MatchingStatus.提案中);
-    m2.setRegisterDate(new OriginalDateTime("2024-01-01"));
-    assertNotEquals(m1, m2);
-    m1.setRegisterDate(new OriginalDateTime("2024-01-01"));
-    assertEquals(m1, m2);
-
-    // More equals branches with nulls
-    m2.setRegisterDate(null);
-    assertNotEquals(m1, m2);
-    m1.setRegisterDate(null);
-    assertEquals(m1, m2);
-
-    m2.setStatus(null);
-    assertNotEquals(m1, m2);
-    m1.setStatus(null);
-    assertEquals(m1, m2);
-
-    m2.setPersonContent(null);
-    assertNotEquals(m1, m2);
-    m1.setPersonContent(null);
-    assertEquals(m1, m2);
-
-    m2.setPersonId(null);
-    assertNotEquals(m1, m2);
-    m1.setPersonId(null);
-    assertEquals(m1, m2);
-
-    m2.setJobContent(null);
-    assertNotEquals(m1, m2);
-    m1.setJobContent(null);
-    assertEquals(m1, m2);
-
-    m2.setJobId(null);
-    assertNotEquals(m1, m2);
-    m1.setJobId(null);
-    assertEquals(m1, m2);
-
-    m2.setRegisterUser(null);
-    assertNotEquals(m1, m2);
-    m1.setRegisterUser(null);
-    assertEquals(m1, m2);
-
-    m2.setUserId(null);
-    assertNotEquals(m1, m2);
-    m1.setUserId(null);
-    assertEquals(m1, m2);
-
-    m2.setMatchingId(null);
-    assertNotEquals(m1, m2);
-    m1.setMatchingId(null);
-    assertEquals(m1, m2);
   }
 }

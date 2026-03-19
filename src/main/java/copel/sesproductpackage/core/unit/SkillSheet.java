@@ -201,6 +201,9 @@ public class SkillSheet {
     if (this.fileContent == null) {
       return null;
     }
+    if (SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH <= 0) {
+      return this.fileContent;
+    }
     return this.fileContent.length() > SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH
         ? this.fileContent.substring(0, SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH - 1)
         : this.fileContent;

@@ -68,6 +68,9 @@ public class Vector {
 
   @Override
   public String toString() {
+    if (this.value == null) {
+      return "[]";
+    }
     StringBuilder builder = new StringBuilder();
     builder.append("[");
     int i = 0;

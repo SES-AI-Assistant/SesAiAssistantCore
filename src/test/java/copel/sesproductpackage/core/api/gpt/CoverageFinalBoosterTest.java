@@ -31,15 +31,57 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
 
 class CoverageFinalBoosterTest extends HttpTestBase {
 
+  private MockedStatic<DynamoDbClient> mockedClient;
+  private MockedStatic<DynamoDbEnhancedClient> mockedEnhancedClient;
+
+  @BeforeAll
+  static void setupOnce() throws Exception {
+    // URLs are provided by the test-only Properties replacement.
+  }
+
   @BeforeEach
+  @SuppressWarnings("unchecked")
   void setup() {
+    mockedClient = mockStatic(DynamoDbClient.class);
+    mockedEnhancedClient = mockStatic(DynamoDbEnhancedClient.class);
+
+    DynamoDbClient mockDbClient = mock(DynamoDbClient.class);
+    DynamoDbClientBuilder mockBuilder = mock(DynamoDbClientBuilder.class);
+    when(mockBuilder.region(any())).thenReturn(mockBuilder);
+    when(mockBuilder.credentialsProvider(any())).thenReturn(mockBuilder);
+    when(mockBuilder.build()).thenReturn(mockDbClient);
+    mockedClient.when(DynamoDbClient::builder).thenReturn(mockBuilder);
+
+    DynamoDbEnhancedClient mockEnhanced = mock(DynamoDbEnhancedClient.class);
+    DynamoDbEnhancedClient.Builder mockEnhancedBuilder = mock(DynamoDbEnhancedClient.Builder.class);
+    when(mockEnhancedBuilder.dynamoDbClient(any())).thenReturn(mockEnhancedBuilder);
+    when(mockEnhancedBuilder.build()).thenReturn(mockEnhanced);
+    mockedEnhancedClient.when(DynamoDbEnhancedClient::builder).thenReturn(mockEnhancedBuilder);
+
+    DynamoDbTable<Object> mockTable = mock(DynamoDbTable.class, RETURNS_DEEP_STUBS);
+    when(mockEnhanced.table(anyString(), any(TableSchema.class))).thenReturn(mockTable);
+
     sharedMockConn = mock(HttpURLConnection.class);
+  }
+
+  @AfterEach
+  void tearDown() {
+    mockedClient.close();
+    mockedEnhancedClient.close();
   }
 
   private void setupMock(int code, String response) throws Exception {
@@ -81,7 +123,6 @@ class CoverageFinalBoosterTest extends HttpTestBase {
   void boostOpenAI() throws Exception {
     OpenAI api = new OpenAI("key");
 
-    // Test null/missing contentNode branches in L244
     setupMock(200, "{\"choices\":[{\"message\":{}}]}");
     api.generate("test");
 
@@ -99,36 +140,27 @@ class CoverageFinalBoosterTest extends HttpTestBase {
   void boostGemini() throws Exception {
     Gemini api = new Gemini("key");
 
-    // Test candidates missing/empty (isArray() false)
     setupMock(200, "{\"candidates\":{}}");
     api.generate("test");
 
-    // Test candidates missing/empty (size() == 0)
     setupMock(200, "{\"candidates\":[]}");
     api.generate("test");
 
-    // Test content missing/empty
     setupMock(200, "{\"candidates\":[{}]}");
     api.generate("test");
 
-    // Test parts missing/empty (isArray() false)
     setupMock(200, "{\"candidates\":[{\"content\":{\"parts\":{}}}]}");
     api.generate("test");
 
-    // Test parts missing/empty (size() == 0)
     setupMock(200, "{\"candidates\":[{\"content\":{\"parts\":[]}}]}");
     api.generate("test");
 
-    // Test parts exists but text null (via normal JSON parsing, asText() returns
-    // "null" not null)
     setupMock(200, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":null}]}}]}");
     api.generate("test");
 
-    // Test success with resultText
     setupMock(200, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"ans\"}]}}]}");
     api.generate("test");
 
-    // Test embedding success
     setupMock(200, "{\"embedding\":{\"values\":[0.1]}}");
     api.embedding("test");
   }
@@ -144,7 +176,6 @@ class CoverageFinalBoosterTest extends HttpTestBase {
     when(ps.executeUpdate()).thenReturn(1);
     assertTrue(person.updateFileIdByPk(conn));
 
-    // Coverage for executeUpdate() <= 0
     when(ps.executeUpdate()).thenReturn(0);
     assertFalse(person.updateFileIdByPk(conn));
 
@@ -160,7 +191,6 @@ class CoverageFinalBoosterTest extends HttpTestBase {
   void boostSkillSheet() throws Exception {
     SkillSheet ss = new SkillSheet();
 
-    // docx
     ss.setFileName("t.docx");
     try (XWPFDocument doc = new XWPFDocument()) {
       doc.createParagraph().createRun().setText("p1");
@@ -171,7 +201,6 @@ class CoverageFinalBoosterTest extends HttpTestBase {
       ss.setFileContentFromByte(out.toByteArray());
     }
 
-    // doc (Mock)
     ss.setFileName("t.doc");
     try (MockedConstruction<HWPFDocument> mockedDoc = mockConstruction(HWPFDocument.class);
         MockedConstruction<WordExtractor> mockedExtractor =
@@ -184,7 +213,6 @@ class CoverageFinalBoosterTest extends HttpTestBase {
       ss.setFileContentFromByte(new byte[] {1});
     }
 
-    // pdf
     ss.setFileName("t.pdf");
     try (PDDocument doc = new PDDocument()) {
       PDPage page = new PDPage();
@@ -201,7 +229,6 @@ class CoverageFinalBoosterTest extends HttpTestBase {
       ss.setFileContentFromByte(out.toByteArray());
     }
 
-    // xlsx
     ss.setFileName("t.xlsx");
     try (Workbook wb = new XSSFWorkbook()) {
       Sheet s = wb.createSheet();
@@ -215,28 +242,24 @@ class CoverageFinalBoosterTest extends HttpTestBase {
       ss.setFileContentFromByte(out.toByteArray());
     }
 
-    // xls
     ss.setFileName("t.xls");
     try (Workbook wb = new HSSFWorkbook()) {
       Sheet s = wb.createSheet();
       Row r = s.createRow(0);
-      r.createCell(0).setCellValue(45000); // Excel Date numeric
+      r.createCell(0).setCellValue(45000);
       ByteArrayOutputStream out = new ByteArrayOutputStream();
       wb.write(out);
       ss.setFileContentFromByte(out.toByteArray());
     }
 
-    // Other
     ss.setFileName("t.txt");
     ss.setFileContentFromByte(new byte[] {1});
 
-    // misc
     ss.getFileUrl();
     ss.getObjectKey();
     SkillSheet ssNone = new SkillSheet(null, null, null);
     assertNull(ssNone.getFileContent());
 
-    // Lombok coverage for SkillSheet
     SkillSheet ss1 = new SkillSheet("f1", "n1", "c1");
     SkillSheet ss2 = new SkillSheet("f1", "n1", "c1");
     assertEquals(ss1, ss2);
@@ -252,7 +275,6 @@ class CoverageFinalBoosterTest extends HttpTestBase {
     new OriginalDateTime(new java.sql.Timestamp(System.currentTimeMillis()));
     new OriginalDateTime(2024, 4, 1, 12, 0, 0);
 
-    // Coverage for if (date == null) and if (timestamp == null)
     new OriginalDateTime((java.sql.Date) null);
     new OriginalDateTime((java.sql.Timestamp) null);
 
@@ -266,11 +288,9 @@ class CoverageFinalBoosterTest extends HttpTestBase {
     valid.betweenMonth(empty);
     valid.betweenYear(empty);
 
-    // Test isEmpty branch return this.dateTime == null
     assertTrue(empty.isEmpty());
     assertFalse(valid.isEmpty());
 
-    // Coverage for plusDays / minusMinutes null check
     empty.plusDays(1);
     empty.minusMinutes(1);
   }
@@ -286,19 +306,16 @@ class CoverageFinalBoosterTest extends HttpTestBase {
     when(ps.executeUpdate()).thenReturn(1);
     when(rs.next()).thenReturn(true);
 
-    // uniqueCheck coverage
-    when(rs.getInt(1)).thenReturn(0); // < 1 returns true
+    when(rs.getInt(1)).thenReturn(0);
     assertTrue(entity.uniqueCheck(conn, 0.5));
-    when(rs.getInt(1)).thenReturn(1); // not < 1 returns false
+    when(rs.getInt(1)).thenReturn(1);
     assertFalse(entity.uniqueCheck(conn, 0.5));
 
-    // deleteByPk coverage
     entity.setFileId("fid");
     assertTrue(entity.deleteByPk(conn));
     when(ps.executeUpdate()).thenReturn(0);
     assertFalse(entity.deleteByPk(conn));
 
-    // Lombok coverage for SES_AI_T_SKILLSHEET
     SES_AI_T_SKILLSHEET e2 = new SES_AI_T_SKILLSHEET();
     e2.setFileId("fid");
     assertTrue(entity.equals(e2));

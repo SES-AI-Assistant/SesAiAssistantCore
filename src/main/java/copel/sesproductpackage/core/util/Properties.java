@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
+
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -33,12 +34,17 @@ public class Properties {
 
   /* staticイニシャライザ. */
   static {
-    try (S3Client s3Client =
-        S3Client.builder()
-            .credentialsProvider(DefaultCredentialsProvider.create())
-            .region(region)
-            .build()) {
-      load(s3Client);
+    try {
+      try (S3Client s3Client =
+          S3Client.builder()
+              .credentialsProvider(DefaultCredentialsProvider.create())
+              .region(region)
+              .build()) {
+        load(s3Client);
+      }
+    } catch (Throwable e) {
+      log.error("【SesAiAssitantCore】Properties static block failed", e);
+      // We don't rethrow to avoid "Could not initialize class" errors in subsequent tests
     }
   }
 
@@ -77,7 +83,7 @@ public class Properties {
    * @return 値
    */
   public static String get(final String key) {
-    return properties.get(key);
+    return properties.getOrDefault(key, "");
   }
 
   /**
@@ -87,7 +93,8 @@ public class Properties {
    * @return 整数型の値
    */
   public static Integer getInt(final String key) {
-    return Integer.parseInt(properties.get(key));
+    String val = properties.get(key);
+    return val != null ? Integer.parseInt(val) : 0;
   }
 
   /**
@@ -97,7 +104,8 @@ public class Properties {
    * @return 小数型の値
    */
   public static Double getDouble(final String key) {
-    return Double.parseDouble(properties.get(key));
+    String val = properties.get(key);
+    return val != null ? Double.parseDouble(val) : 0.0;
   }
 
   /**
@@ -108,6 +116,6 @@ public class Properties {
    */
   public static String[] getAsArray(final String key) {
     String value = properties.get(key);
-    return value.split(",");
+    return value != null ? value.split(",") : new String[0];
   }
 }

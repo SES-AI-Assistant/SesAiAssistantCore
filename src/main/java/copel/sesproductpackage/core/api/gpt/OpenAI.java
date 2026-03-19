@@ -38,8 +38,12 @@ public class OpenAI implements Transformer {
   private static final String COMPLETION_MODEL_DEFAULT = OpenAIModel.GPT_3_5_TURBO.getModelName();
 
   /** OpenAIの質問応答を処理する際のtemperatureパラメータのデフォルト値. */
-  private static final Float COMPLETION_TEMPERATURE =
-      Float.valueOf(Properties.get("OPEN_AI_COMPLETION_TEMPERATURE"));
+  private static final Float COMPLETION_TEMPERATURE;
+
+  static {
+    String temp = Properties.get("OPEN_AI_COMPLETION_TEMPERATURE");
+    COMPLETION_TEMPERATURE = (temp != null && !temp.isEmpty()) ? Float.valueOf(temp) : 0.7f;
+  }
 
   /** OpenAIのファイルアップロードAPIのエンドポイント. */
   private static final String FILE_UPLOAD_URL = Properties.get("OPEN_AI_FILE_UPLOAD_URL");
