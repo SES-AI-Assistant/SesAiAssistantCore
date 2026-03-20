@@ -1,6 +1,7 @@
 package copel.sesproductpackage.core.unit;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.api.gpt.GptAnswer;
@@ -17,15 +18,9 @@ import org.junit.jupiter.api.Test;
 
 class ContentTest {
 
-  private static final int CRITERIA = 150;
-
-  private static final String JOB_HIGH = "案件情報,精算あり,要員紹介不可,高額,単価,月額,給与,報酬,還元,場所,内容,作業";
-  private static final String JOB_LOW = "場所,精算あり,作業,月額,単価";
-  private static final String PERSON_HIGH = "要員情報,氏名,年齢,性別,住所,電話番号,メールアドレス,学歴,職歴";
-  private static final String PERSON_LOW = "氏名,年齢,性別,住所,職歴";
-
-  private static final String JOB_FEATURES = "案件情報,精算あり,要員紹介不可,場所,内容,作業,月額,単価";
-  private static final String PERSON_FEATURES = "要員情報,氏名,年齢,性別,住所,職歴,学歴";
+  private static final int MIN_LENGTH = 200;
+  private static final String LONG_TEXT_JOB = "案件情報 ".repeat(40);
+  private static final String LONG_TEXT_PERSON = "要員情報 ".repeat(40);
 
   @BeforeAll
   @SuppressWarnings("unchecked")
@@ -33,13 +28,8 @@ class ContentTest {
     Field propertiesField = Properties.class.getDeclaredField("properties");
     propertiesField.setAccessible(true);
     Map<String, String> propertiesMap = (Map<String, String>) propertiesField.get(null);
-    propertiesMap.put("JOB_FEATURES_ARRAY_HIGH", JOB_HIGH);
-    propertiesMap.put("JOB_FEATURES_ARRAY_LOW", JOB_LOW);
-    propertiesMap.put("JOB_FEATURES_ARRAY", JOB_FEATURES);
-    propertiesMap.put("PERSONEL_FEATURES_ARRAY_HIGH", PERSON_HIGH);
-    propertiesMap.put("PERSONEL_FEATURES_ARRAY_LOW", PERSON_LOW);
-    propertiesMap.put("PERSONEL_FEATURES_ARRAY", PERSON_FEATURES);
-    propertiesMap.put("TARGET_NUMBER_OF_CRITERIA", String.valueOf(CRITERIA));
+    propertiesMap.put("CONTENT_CLASSIFICATION_PROMPT", "以下の文章が案件・要員・その他のどれか答えよ。回答は「案件」「要員」「その他」のいずれか1語のみ: ");
+    propertiesMap.put("CONTENT_MIN_LENGTH_FOR_CLASSIFICATION", String.valueOf(MIN_LENGTH));
     propertiesMap.put("MULTIPLE_PERSONNEL_JUDGMENT_PROMPT", "Multiple Personnel?");
     propertiesMap.put("MULTIPLE_JOB_JUDGMENT_PROMPT", "Multiple Job?");
   }
@@ -61,17 +51,33 @@ class ContentTest {
   }
 
   @Test
-  void testIs案件紹介文() {
-    String text = "案件情報 ".repeat(40);
-    Content content = new Content(text);
+  void testIs案件紹介文() throws Exception {
+    Content content = new Content(LONG_TEXT_JOB);
+    assertFalse(content.is案件紹介文());
+    assertFalse(content.is要員紹介文());
+
+    Transformer transformer = mock(Transformer.class);
+    GptAnswer answer = mock(GptAnswer.class);
+    when(answer.getAnswer()).thenReturn("案件");
+    when(transformer.generate(anyString())).thenReturn(answer);
+
+    content.classify(transformer);
     assertTrue(content.is案件紹介文());
     assertFalse(content.is要員紹介文());
   }
 
   @Test
-  void testIs要員紹介文() {
-    String text = "要員情報 ".repeat(40);
-    Content content = new Content(text);
+  void testIs要員紹介文() throws Exception {
+    Content content = new Content(LONG_TEXT_PERSON);
+    assertFalse(content.is要員紹介文());
+    assertFalse(content.is案件紹介文());
+
+    Transformer transformer = mock(Transformer.class);
+    GptAnswer answer = mock(GptAnswer.class);
+    when(answer.getAnswer()).thenReturn("要員");
+    when(transformer.generate(anyString())).thenReturn(answer);
+
+    content.classify(transformer);
     assertTrue(content.is要員紹介文());
     assertFalse(content.is案件紹介文());
   }
@@ -89,37 +95,43 @@ class ContentTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
-  void testCalcScoreWithEmptyKeywordInFallback() throws Exception {
-    Field propertiesField = Properties.class.getDeclaredField("properties");
-    propertiesField.setAccessible(true);
-    Map<String, String> propertiesMap = (Map<String, String>) propertiesField.get(null);
-    String savedHigh = propertiesMap.put("JOB_FEATURES_ARRAY_HIGH", null);
-    String savedLow = propertiesMap.put("JOB_FEATURES_ARRAY_LOW", null);
-    String savedFallback = propertiesMap.put("JOB_FEATURES_ARRAY", "場所,,内容,作業");
-    try {
-      Content c = new Content("場所 内容 ".repeat(60));
-      assertNotNull(c);
-    } finally {
-      if (savedHigh != null) propertiesMap.put("JOB_FEATURES_ARRAY_HIGH", savedHigh);
-      if (savedLow != null) propertiesMap.put("JOB_FEATURES_ARRAY_LOW", savedLow);
-      if (savedFallback != null) propertiesMap.put("JOB_FEATURES_ARRAY", savedFallback);
-    }
+  void testClassifyShortContentTreatedAsOther() throws Exception {
+    Content content = new Content("承知致しました。");
+    Transformer transformer = mock(Transformer.class);
+
+    content.classify(transformer);
+    verify(transformer, never()).generate(anyString());
+    assertFalse(content.is案件紹介文());
+    assertFalse(content.is要員紹介文());
+  }
+
+  @Test
+  void testClassifyEmptyContentTreatedAsOther() throws Exception {
+    Content content = new Content("");
+    Transformer transformer = mock(Transformer.class);
+    content.classify(transformer);
+    verify(transformer, never()).generate(anyString());
+    assertFalse(content.is案件紹介文());
+    assertFalse(content.is要員紹介文());
   }
 
   @Test
   void test複数判定処理実行() throws Exception {
-    String text = "要員情報 ".repeat(40);
-    Content content = new Content(text);
-    assertFalse(content.is複数紹介文());
-
+    Content content = new Content(LONG_TEXT_PERSON);
     Transformer transformer = mock(Transformer.class);
-    GptAnswer answer = mock(GptAnswer.class);
+    GptAnswer classifyAnswer = mock(GptAnswer.class);
+    when(classifyAnswer.getAnswer()).thenReturn("要員");
 
-    when(answer.length()).thenReturn(20);
-    when(answer.isJsonArrayFormat()).thenReturn(true);
-    when(answer.getAsList()).thenReturn(List.of("要員1", "要員2"));
-    when(transformer.generate(anyString())).thenReturn(answer);
+    GptAnswer multiAnswer = mock(GptAnswer.class);
+    when(multiAnswer.length()).thenReturn(20);
+    when(multiAnswer.isJsonArrayFormat()).thenReturn(true);
+    when(multiAnswer.getAsList()).thenReturn(List.of("要員1", "要員2"));
+
+    // 1回目: classify用、2回目: 複数判定用
+    when(transformer.generate(anyString())).thenReturn(classifyAnswer).thenReturn(multiAnswer);
+
+    content.classify(transformer);
+    assertTrue(content.is要員紹介文());
 
     boolean result = content.複数判定処理実行(transformer);
     assertTrue(result);
@@ -132,21 +144,23 @@ class ContentTest {
   void test複数判定処理実行_FalseCase() throws Exception {
     Content content = new Content("Short");
     Transformer transformer = mock(Transformer.class);
+    content.classify(transformer);
     assertFalse(content.複数判定処理実行(transformer));
     assertEquals("Short", content.toString());
   }
 
   @Test
   void test複数判定処理実行_NotJson() throws Exception {
-    String text = "案件情報 ".repeat(40);
-    Content content = new Content(text);
+    Content content = new Content(LONG_TEXT_JOB);
     Transformer transformer = mock(Transformer.class);
-    GptAnswer answer = mock(GptAnswer.class);
+    GptAnswer classifyAnswer = mock(GptAnswer.class);
+    when(classifyAnswer.getAnswer()).thenReturn("案件");
+    GptAnswer multiAnswer = mock(GptAnswer.class);
+    when(multiAnswer.length()).thenReturn(5);
+    when(multiAnswer.isJsonArrayFormat()).thenReturn(false);
+    when(transformer.generate(anyString())).thenReturn(classifyAnswer).thenReturn(multiAnswer);
 
-    when(answer.length()).thenReturn(5);
-    when(answer.isJsonArrayFormat()).thenReturn(false);
-    when(transformer.generate(anyString())).thenReturn(answer);
-
+    content.classify(transformer);
     boolean result = content.複数判定処理実行(transformer);
     assertFalse(result);
   }
@@ -159,79 +173,34 @@ class ContentTest {
     };
     for (String file : jobFiles) {
       String text = loadResource(file);
-      new Content(text);
-    }
-  }
-
-  @Test
-  @SuppressWarnings("unchecked")
-  void testCalcScoreBranches() throws Exception {
-    Field propertiesField = Properties.class.getDeclaredField("properties");
-    propertiesField.setAccessible(true);
-    Map<String, String> propertiesMap = (Map<String, String>) propertiesField.get(null);
-
-    String savedHigh = propertiesMap.remove("JOB_FEATURES_ARRAY_HIGH");
-    try {
-      assertNotNull(new Content("案件情報 ".repeat(40)));
-    } finally {
-      propertiesMap.put("JOB_FEATURES_ARRAY_HIGH", savedHigh);
-    }
-  }
-
-  @Test
-  @SuppressWarnings("unchecked")
-  void testCalcScoreFallbackWhenHighOrLowMissing() throws Exception {
-    Field propertiesField = Properties.class.getDeclaredField("properties");
-    propertiesField.setAccessible(true);
-    Map<String, String> propertiesMap = (Map<String, String>) propertiesField.get(null);
-    String savedHigh = propertiesMap.remove("JOB_FEATURES_ARRAY_HIGH");
-    String savedLow = propertiesMap.remove("JOB_FEATURES_ARRAY_LOW");
-    try {
-      Content c = new Content("案件情報 場所 内容 ".repeat(30));
+      Content c = new Content(text);
       assertNotNull(c);
-    } finally {
-      if (savedHigh != null) {
-        propertiesMap.put("JOB_FEATURES_ARRAY_HIGH", savedHigh);
-      }
-      if (savedLow != null) {
-        propertiesMap.put("JOB_FEATURES_ARRAY_LOW", savedLow);
-      }
     }
   }
 
   @Test
-  @SuppressWarnings("unchecked")
-  void testCalcScoreFallbackWhenPersonHighMissing() throws Exception {
-    Field propertiesField = Properties.class.getDeclaredField("properties");
-    propertiesField.setAccessible(true);
-    Map<String, String> propertiesMap = (Map<String, String>) propertiesField.get(null);
-    String saved = propertiesMap.remove("PERSONEL_FEATURES_ARRAY_HIGH");
-    try {
-      Content c = new Content("要員情報 氏名 年齢 ".repeat(40));
-      assertNotNull(c);
-    } finally {
-      if (saved != null) {
-        propertiesMap.put("PERSONEL_FEATURES_ARRAY_HIGH", saved);
-      }
-    }
+  void testParseClassificationAnswer_OtherWhenInvalid() throws Exception {
+    Content content = new Content(LONG_TEXT_JOB);
+    Transformer transformer = mock(Transformer.class);
+    GptAnswer answer = mock(GptAnswer.class);
+    when(answer.getAnswer()).thenReturn("不明な回答");
+    when(transformer.generate(anyString())).thenReturn(answer);
+
+    content.classify(transformer);
+    assertFalse(content.is案件紹介文());
+    assertFalse(content.is要員紹介文());
   }
 
   @Test
-  @SuppressWarnings("unchecked")
-  void testCalcScoreFallbackWhenFallbackKeyNull() throws Exception {
-    Field propertiesField = Properties.class.getDeclaredField("properties");
-    propertiesField.setAccessible(true);
-    Map<String, String> propertiesMap = (Map<String, String>) propertiesField.get(null);
-    Object savedHigh = propertiesMap.put("JOB_FEATURES_ARRAY_HIGH", null);
-    Object savedLow = propertiesMap.put("JOB_FEATURES_ARRAY_LOW", null);
-    Object savedFallback = propertiesMap.put("JOB_FEATURES_ARRAY", null);
-    try {
-      Content c = new Content("案件情報 場所 ".repeat(50));
-      assertNotNull(c);
-    } finally {
-      if (savedHigh != null) propertiesMap.put("JOB_FEATURES_ARRAY_HIGH", (String) savedHigh);
-      if (savedLow != null) propertiesMap.put("JOB_FEATURES_ARRAY_LOW", (String) savedLow);
-      if (savedFallback != null) propertiesMap.put("JOB_FEATURES_ARRAY", (String) savedFallback);
-    }
+  void testParseClassificationAnswer_OtherWhenNullAnswer() throws Exception {
+    Content content = new Content(LONG_TEXT_JOB);
+    Transformer transformer = mock(Transformer.class);
+    GptAnswer answer = mock(GptAnswer.class);
+    when(answer.getAnswer()).thenReturn(null);
+    when(transformer.generate(anyString())).thenReturn(answer);
+
+    content.classify(transformer);
+    assertFalse(content.is案件紹介文());
+    assertFalse(content.is要員紹介文());
   }
 }
