@@ -24,6 +24,16 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
   }
 
   @Override
+  protected String getSelectAllSql() {
+    return SELECT_ALL_SQL;
+  }
+
+  @Override
+  protected String getSelectSql() {
+    return "SELECT user_id, user_name, company_id, role_cd, register_date, register_user FROM SES_AI_WEBAPP_M_USER WHERE ";
+  }
+
+  @Override
   public void selectAll(Connection connection) throws SQLException {
     PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);
     ResultSet resultSet = preparedStatement.executeQuery();

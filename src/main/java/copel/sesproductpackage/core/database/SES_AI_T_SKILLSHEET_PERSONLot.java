@@ -9,14 +9,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 【Entityクラス】 スキルシート情報と要員情報を結合したEntity(SES_AI_T_SKILLSHEET_PERSON)のLotクラス.
  *
  * @author
  */
-@Slf4j
 public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLSHEET_PERSON> {
 
   private static final String RETRIEVE_BY_PERSON_VECTOR_SQL =
@@ -52,6 +50,21 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
   /** コンストラクタ. */
   public SES_AI_T_SKILLSHEET_PERSONLot() {
     super();
+  }
+
+  @Override
+  protected String getSelectAllSql() {
+    return "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id";
+  }
+
+  @Override
+  protected String getSelectSql() {
+    return "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id WHERE ";
+  }
+
+  @Override
+  protected String getSelectLikeSql() {
+    return null;
   }
 
   /**
@@ -133,6 +146,33 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
         limit);
   }
 
+  /**
+   * 要員のベクトルデータに対してセマンティック検索を実行し、結果をこのLotに保持します(ページング対応).
+   *
+   * @param connection DBコネクション
+   * @param query 検索ベクトル
+   * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void retrieveByPersonVectorPaged(
+      final Connection connection,
+      final Vector query,
+      final double similarityThreshold,
+      final int page,
+      final int size)
+      throws SQLException {
+    executeRetrievePaged(
+        connection,
+        RETRIEVE_BY_PERSON_VECTOR_SQL,
+        query,
+        similarityThreshold,
+        page,
+        size,
+        "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id WHERE 1 - (p.vector_data <=> ?::vector) >= ?");
+  }
+
   private void executeRetrieve(
       final Connection connection,
       final String sql,
@@ -140,20 +180,59 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       final double similarityThreshold,
       final int limit)
       throws SQLException {
+    executeRetrievePaged(connection, sql, query, similarityThreshold, 1, limit, null);
+  }
+
+  private void executeRetrievePaged(
+      final Connection connection,
+      final String sql,
+      final Vector query,
+      final double similarityThreshold,
+      final int page,
+      final int size,
+      final String countQueryPart)
+      throws SQLException {
     if (connection == null || query == null) {
       return;
     }
 
-    try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+    // (1) 全件数を取得 (countQueryPart があれば)
+    if (countQueryPart != null) {
+      String countSql = "SELECT COUNT(*) " + countQueryPart;
+      try (PreparedStatement preparedStatement = connection.prepareStatement(countSql)) {
+        String vectorStr = query.toString();
+        preparedStatement.setString(1, vectorStr);
+        preparedStatement.setDouble(2, similarityThreshold);
+        try (ResultSet resultSet = preparedStatement.executeQuery()) {
+          if (resultSet.next()) {
+            this.totalCount = resultSet.getLong(1);
+          }
+        }
+      }
+    } else {
+      // 簡易的に limit を totalCount とする (countQueryPartがない場合)
+      this.totalCount = size;
+    }
+
+    this.pageSize = size;
+    this.currentPageIndex = page;
+
+    if (this.totalCount == 0 && countQueryPart != null) {
+      return;
+    }
+
+    // (2) ページング実行
+    String pagedSql = sql + " OFFSET ?";
+    try (PreparedStatement preparedStatement = connection.prepareStatement(pagedSql)) {
       String vectorStr = query.toString();
       preparedStatement.setString(1, vectorStr);
       preparedStatement.setString(2, vectorStr);
       preparedStatement.setDouble(3, similarityThreshold);
-      preparedStatement.setInt(4, limit);
+      preparedStatement.setInt(4, size);
+      preparedStatement.setInt(5, (page - 1) * size);
 
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         this.entityLot = new ArrayList<>();
-
         while (resultSet.next()) {
           this.entityLot.add(mapResultSet(resultSet));
         }
@@ -172,6 +251,22 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       throws SQLException {
     this.selectByLikeQuery(
         connection, SELECT_BY_PERSON_RAW_CONTENT_SQL, "p.raw_content", query, null);
+  }
+
+  /**
+   * 要員の全文情報(raw_content)に対してページング検索を実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param query 検索キーワード
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void retrieveByPersonRawContentPaged(
+      final Connection connection, final String query, final int page, final int size)
+      throws SQLException {
+    this.selectByLikeQueryPaged(
+        connection, SELECT_BY_PERSON_RAW_CONTENT_SQL, "p.raw_content", query, null, page, size);
   }
 
   /**
@@ -200,6 +295,22 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       throws SQLException {
     this.selectByLikeQuery(
         connection, SELECT_BY_SKILLSHEET_RAW_CONTENT_SQL, "s.file_content", query, null);
+  }
+
+  /**
+   * スキルシートの全文情報(file_content)に対してページング検索を実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param query 検索キーワード
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void retrieveBySkillSheetRawContentPaged(
+      final Connection connection, final String query, final int page, final int size)
+      throws SQLException {
+    this.selectByLikeQueryPaged(
+        connection, SELECT_BY_SKILLSHEET_RAW_CONTENT_SQL, "s.file_content", query, null, page, size);
   }
 
   /**

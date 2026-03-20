@@ -27,6 +27,16 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
     super();
   }
 
+  @Override
+  protected String getSelectAllSql() {
+    return SELECT_ALL_SQL;
+  }
+
+  @Override
+  protected String getSelectSql() {
+    return "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl FROM SES_AI_T_WATCH WHERE ";
+  }
+
   /**
    * ユーザーIDが一致するレコードを全て取得し、このLotに格納します.
    *
@@ -45,6 +55,25 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
     while (resultSet.next()) {
       this.entityLot.add(mapResultSet(resultSet));
     }
+  }
+
+  /**
+   * ユーザーIDが一致するレコードを指定件数取得し、このLotに格納します.
+   *
+   * @param connection DBコネクション
+   * @param userId ユーザーID
+   * @param page ページ番号
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void selectByUserIdPaged(Connection connection, String userId, int page, int size)
+      throws SQLException {
+    if (connection == null || userId == null) {
+      return;
+    }
+    java.util.Map<String, String> query = new java.util.HashMap<>();
+    query.put("user_id", userId);
+    this.selectByQueryPaged(connection, "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl FROM SES_AI_T_WATCH", query, true, page, size);
   }
 
   /**

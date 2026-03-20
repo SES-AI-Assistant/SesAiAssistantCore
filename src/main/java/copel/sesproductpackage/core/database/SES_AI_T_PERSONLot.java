@@ -54,6 +54,11 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
     return SELECT_LIKE_SQL;
   }
 
+  @Override
+  protected String getSelectAllSql() {
+    return SELECT_ALL_SQL;
+  }
+
   /**
    * 引数に指定した要員IDを持つEntityを返却する.
    *
@@ -110,12 +115,45 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
    * @throws SQLException
    */
   public void retrieve(Connection connection, Vector query, int limit) throws SQLException {
+    this.retrievePaged(connection, query, 1, limit);
+  }
+
+  /**
+   * ベクトル検索をページングで実行し結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param query 検索ベクトル
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void retrievePaged(Connection connection, Vector query, int page, int size)
+      throws SQLException {
     if (connection == null) {
       return;
     }
-    try (PreparedStatement preparedStatement = connection.prepareStatement(RETRIEVE_SQL)) {
+
+    // (1) 全件数を取得
+    String countSql = "SELECT COUNT(*) FROM SES_AI_T_PERSON";
+    try (PreparedStatement preparedStatement = connection.prepareStatement(countSql);
+        ResultSet resultSet = preparedStatement.executeQuery()) {
+      if (resultSet.next()) {
+        this.totalCount = resultSet.getLong(1);
+      }
+    }
+    this.pageSize = size;
+    this.currentPageIndex = page;
+
+    if (this.totalCount == 0) {
+      return;
+    }
+
+    // (2) ページング用ベクトル検索
+    String sql = RETRIEVE_SQL + " OFFSET ?";
+    try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
       preparedStatement.setString(1, query == null ? null : query.toString());
-      preparedStatement.setInt(2, limit);
+      preparedStatement.setInt(2, size);
+      preparedStatement.setInt(3, (page - 1) * size);
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         this.entityLot = new ArrayList<>();
         while (resultSet.next()) {
@@ -140,6 +178,21 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
   }
 
   /**
+   * raw_contentカラムで全文検索をページングで実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param query 検索文字列
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void searchByRawContentPaged(
+      final Connection connection, final String query, final int page, final int size)
+      throws SQLException {
+    this.searchByFieldPaged(connection, "raw_content", query, page, size);
+  }
+
+  /**
    * raw_contentカラムに対して複数条件で全文検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
@@ -151,6 +204,26 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
       final Connection connection, final String firstLikeQuery, final List<LogicalOperators> query)
       throws SQLException {
     this.searchByField(connection, "raw_content", firstLikeQuery, query);
+  }
+
+  /**
+   * raw_contentカラムに対して複数条件で全文検索をページングで実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param firstLikeQuery 1つ目のLIKE句の検索条件
+   * @param query 検索条件リスト
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void searchByRawContentPaged(
+      final Connection connection,
+      final String firstLikeQuery,
+      final List<LogicalOperators> query,
+      final int page,
+      final int size)
+      throws SQLException {
+    this.searchByFieldPaged(connection, "raw_content", firstLikeQuery, query, page, size);
   }
 
   /**

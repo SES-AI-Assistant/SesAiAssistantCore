@@ -24,6 +24,16 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
   }
 
   @Override
+  protected String getSelectAllSql() {
+    return SELECT_ALL_SQL;
+  }
+
+  @Override
+  protected String getSelectSql() {
+    return "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, register_date, register_user FROM SES_AI_T_MATCH WHERE ";
+  }
+
+  @Override
   public void selectAll(Connection connection) throws SQLException {
     PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);
     ResultSet resultSet = preparedStatement.executeQuery();

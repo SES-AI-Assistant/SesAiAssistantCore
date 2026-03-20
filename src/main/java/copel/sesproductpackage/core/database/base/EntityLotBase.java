@@ -24,6 +24,15 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   /** エンティティLot. */
   protected Collection<E> entityLot;
 
+  /** 全レコード数. */
+  protected long totalCount;
+
+  /** 1ページあたりの表示件数. */
+  protected int pageSize;
+
+  /** 現在のページ番号. */
+  protected int currentPageIndex;
+
   // ================================
   // コンストラクタ
   // ================================
@@ -41,6 +50,26 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @throws SQLException
    */
   public abstract void selectAll(final Connection connection) throws SQLException;
+
+  /**
+   * テーブルからレコードを全件ページングSELECTし、このLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void selectAllPaged(final Connection connection, final int page, final int size)
+      throws SQLException {
+    this.selectByQueryPaged(connection, getSelectAllSql(), null, true, page, size);
+  }
+
+  /**
+   * 全件検索用の基底SQLを取得します.
+   *
+   * @return SQL
+   */
+  protected abstract String getSelectAllSql();
 
   /**
    * このLotにEntityを追加します.
@@ -104,6 +133,72 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   }
 
   /**
+   * 全レコード数を取得します.
+   *
+   * @return 全レコード数
+   */
+  public long getTotalCount() {
+    return totalCount;
+  }
+
+  /**
+   * 全レコード数を設定します.
+   *
+   * @param totalCount 全レコード数
+   */
+  public void setTotalCount(long totalCount) {
+    this.totalCount = totalCount;
+  }
+
+  /**
+   * 1ページあたりの表示件数を取得します.
+   *
+   * @return 1ページあたりの表示件数
+   */
+  public int getPageSize() {
+    return pageSize;
+  }
+
+  /**
+   * 1ページあたりの表示件数を設定します.
+   *
+   * @param pageSize 1ページあたりの表示件数
+   */
+  public void setPageSize(int pageSize) {
+    this.pageSize = pageSize;
+  }
+
+  /**
+   * 現在のページ番号を取得します.
+   *
+   * @return 現在のページ番号
+   */
+  public int getCurrentPageIndex() {
+    return currentPageIndex;
+  }
+
+  /**
+   * 現在のページ番号を設定します.
+   *
+   * @param currentPageIndex 現在のページ番号
+   */
+  public void setCurrentPageIndex(int currentPageIndex) {
+    this.currentPageIndex = currentPageIndex;
+  }
+
+  /**
+   * 全ページ数を計算して返却します.
+   *
+   * @return 全ページ数
+   */
+  public int getTotalPages() {
+    if (pageSize <= 0) {
+      return 1;
+    }
+    return (int) Math.ceil((double) totalCount / pageSize);
+  }
+
+  /**
    * SELECTをAND条件で実行する.
    *
    * @param connection DBコネクション
@@ -141,6 +236,26 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   }
 
   /**
+   * 指定したカラムで全文検索をページングで実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param column 検索対象カラム
+   * @param query 検索文字列
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void searchByFieldPaged(
+      final Connection connection,
+      final String column,
+      final String query,
+      final int page,
+      final int size)
+      throws SQLException {
+    this.selectByLikeQueryPaged(connection, getSelectLikeSql(), column, query, null, page, size);
+  }
+
+  /**
    * 指定したカラムに対して複数条件で全文検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
@@ -156,6 +271,29 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       final List<LogicalOperators> query)
       throws SQLException {
     this.selectByLikeQuery(connection, getSelectLikeSql(), column, firstLikeQuery, query);
+  }
+
+  /**
+   * 指定したカラムに対して複数条件で全文検索をページングで実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param column 検索対象カラム
+   * @param firstLikeQuery 1つ目のLIKE句の検索条件
+   * @param query 検索条件リスト
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void searchByFieldPaged(
+      final Connection connection,
+      final String column,
+      final String firstLikeQuery,
+      final List<LogicalOperators> query,
+      final int page,
+      final int size)
+      throws SQLException {
+    this.selectByLikeQueryPaged(
+        connection, getSelectLikeSql(), column, firstLikeQuery, query, page, size);
   }
 
   /**
@@ -264,6 +402,236 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
           }
         }
       }
+
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        while (resultSet.next()) {
+          this.entityLot.add(mapResultSet(resultSet));
+        }
+      }
+    }
+  }
+
+  /**
+   * あいまい検索をページングで実行します.
+   *
+   * @param connection DBコネクション
+   * @param baseSql 基底SQL(LIKE句の前まで)
+   * @param columnName 検索対象カラム名
+   * @param firstLikeQuery 最初の検索ワード
+   * @param query 追加の検索条件リスト
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  protected void selectByLikeQueryPaged(
+      final Connection connection,
+      final String baseSql,
+      final String columnName,
+      final String firstLikeQuery,
+      final List<LogicalOperators> query,
+      final int page,
+      final int size)
+      throws SQLException {
+    this.entityLot = new ArrayList<>();
+    if (connection == null || firstLikeQuery == null || baseSql == null) {
+      return;
+    }
+
+    // (1) 件数用のSQLを構築して実行
+    StringBuilder countSql =
+        new StringBuilder(baseSql.replaceFirst("(?i)SELECT.*?FROM", "SELECT COUNT(*) FROM"));
+    if (query != null) {
+      for (final LogicalOperators logicalOperator : query) {
+        if (logicalOperator != null) {
+          logicalOperator.setColumnName(columnName);
+          countSql.append(logicalOperator.getLikeQuery());
+        }
+      }
+    }
+
+    try (PreparedStatement preparedStatement = connection.prepareStatement(countSql.toString())) {
+      preparedStatement.setString(1, "%" + firstLikeQuery + "%");
+      if (query != null && !query.isEmpty()) {
+        for (int i = 0; i < query.size(); i++) {
+          LogicalOperators operator = query.get(i);
+          if (operator != null) {
+            preparedStatement.setString(i + 2, "%" + operator.getValue() + "%");
+          }
+        }
+      }
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        if (resultSet.next()) {
+          this.totalCount = resultSet.getLong(1);
+        }
+      }
+    }
+
+    this.pageSize = size;
+    this.currentPageIndex = page;
+
+    if (this.totalCount == 0) {
+      return;
+    }
+
+    // (2) ページング用SQLを構築して実行
+    StringBuilder sql = new StringBuilder(baseSql);
+    if (query != null) {
+      for (final LogicalOperators logicalOperator : query) {
+        if (logicalOperator != null) {
+          logicalOperator.setColumnName(columnName);
+          sql.append(logicalOperator.getLikeQuery());
+        }
+      }
+    }
+    sql.append(" LIMIT ? OFFSET ?");
+
+    try (PreparedStatement preparedStatement = connection.prepareStatement(sql.toString())) {
+      preparedStatement.setString(1, "%" + firstLikeQuery + "%");
+      int paramIndex = 2;
+      if (query != null && !query.isEmpty()) {
+        for (LogicalOperators operator : query) {
+          if (operator != null) {
+            preparedStatement.setString(paramIndex++, "%" + operator.getValue() + "%");
+          }
+        }
+      }
+      preparedStatement.setInt(paramIndex++, size);
+      preparedStatement.setInt(paramIndex, (page - 1) * size);
+
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        while (resultSet.next()) {
+          this.entityLot.add(mapResultSet(resultSet));
+        }
+      }
+    }
+  }
+
+  /**
+   * 条件を指定して件数を取得します.
+
+   *
+   * @param connection DBコネクション
+   * @param baseSql 基底SQL(SELECT * FROM ...)
+   * @param query 検索条件Map
+   * @param isAnd AND検索ならtrue, OR検索ならfalse
+   * @return 件数
+   * @throws SQLException
+   */
+  protected long countByQuery(
+      final Connection connection,
+      final String baseSql,
+      final Map<String, String> query,
+      final boolean isAnd)
+      throws SQLException {
+    if (connection == null || baseSql == null) {
+      return 0;
+    }
+
+    String countSql = baseSql.replaceFirst("(?i)SELECT.*?FROM", "SELECT COUNT(*) FROM");
+    StringBuilder sql = new StringBuilder(countSql);
+
+    if (query != null && !query.isEmpty()) {
+      boolean isFirst = true;
+      if (!countSql.toUpperCase().contains("WHERE")) {
+        sql.append(" WHERE ");
+      } else {
+        isFirst = false;
+      }
+
+      for (final String columnName : query.keySet()) {
+        if (isFirst) {
+          sql.append(columnName).append(" = ?");
+          isFirst = false;
+        } else {
+          sql.append(isAnd ? " AND " : " OR ").append(columnName).append(" = ?");
+        }
+      }
+    }
+
+    try (PreparedStatement preparedStatement = connection.prepareStatement(sql.toString())) {
+      if (query != null && !query.isEmpty()) {
+        int i = 1;
+        for (final String columnName : query.keySet()) {
+          preparedStatement.setString(i, query.get(columnName));
+          i++;
+        }
+      }
+
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        if (resultSet.next()) {
+          return resultSet.getLong(1);
+        }
+      }
+    }
+    return 0;
+  }
+
+  /**
+   * 条件を指定してページング検索を実行します.
+   *
+   * @param connection DBコネクション
+   * @param baseSql 基底SQL
+   * @param query 検索条件Map
+   * @param isAnd AND検索ならtrue, OR検索ならfalse
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  protected void selectByQueryPaged(
+      final Connection connection,
+      final String baseSql,
+      final Map<String, String> query,
+      final boolean isAnd,
+      final int page,
+      final int size)
+      throws SQLException {
+    this.entityLot = new ArrayList<>();
+    if (connection == null || baseSql == null) {
+      return;
+    }
+
+    // (1) 全件数を取得
+    this.totalCount = countByQuery(connection, baseSql, query, isAnd);
+    this.pageSize = size;
+    this.currentPageIndex = page;
+
+    if (totalCount == 0) {
+      return;
+    }
+
+    // (2) ページングSQLを構築
+    StringBuilder sql = new StringBuilder(baseSql);
+    if (query != null && !query.isEmpty()) {
+      boolean isFirst = true;
+      if (!baseSql.toUpperCase().contains("WHERE")) {
+        sql.append(" WHERE ");
+      } else {
+        isFirst = false;
+      }
+
+      for (final String columnName : query.keySet()) {
+        if (isFirst) {
+          sql.append(columnName).append(" = ?");
+          isFirst = false;
+        } else {
+          sql.append(isAnd ? " AND " : " OR ").append(columnName).append(" = ?");
+        }
+      }
+    }
+
+    sql.append(" LIMIT ? OFFSET ?");
+
+    try (PreparedStatement preparedStatement = connection.prepareStatement(sql.toString())) {
+      int i = 1;
+      if (query != null && !query.isEmpty()) {
+        for (final String columnName : query.keySet()) {
+          preparedStatement.setString(i, query.get(columnName));
+          i++;
+        }
+      }
+
+      preparedStatement.setInt(i++, size);
+      preparedStatement.setInt(i, (page - 1) * size);
 
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         while (resultSet.next()) {

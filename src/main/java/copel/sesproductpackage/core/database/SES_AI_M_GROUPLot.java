@@ -23,6 +23,16 @@ public class SES_AI_M_GROUPLot extends EntityLotBase<SES_AI_M_GROUP> {
   }
 
   @Override
+  protected String getSelectAllSql() {
+    return SELECT_ALL_SQL;
+  }
+
+  @Override
+  protected String getSelectSql() {
+    return "SELECT from_group, group_name, register_date, register_user FROM SES_AI_M_GROUP WHERE ";
+  }
+
+  @Override
   public void selectAll(Connection connection) throws SQLException {
     PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);
     ResultSet resultSet = preparedStatement.executeQuery();

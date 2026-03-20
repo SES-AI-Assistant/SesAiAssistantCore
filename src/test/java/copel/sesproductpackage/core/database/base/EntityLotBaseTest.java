@@ -59,6 +59,11 @@ class EntityLotBaseTest {
     protected String getSelectLikeSql() {
       return SELECT_LIKE_SQL;
     }
+
+    @Override
+    protected String getSelectAllSql() {
+      return "SELECT * FROM TEST_TABLE";
+    }
   }
 
   @Test
@@ -196,5 +201,58 @@ class EntityLotBaseTest {
     TestEntityLot lot3 = new TestEntityLot();
     lot3.searchByField(conn, "col", null);
     assertTrue(lot3.isEmpty());
+  }
+
+  @Test
+  void testPaginationMetadata() {
+    TestEntityLot lot = new TestEntityLot();
+    lot.setTotalCount(25);
+    lot.setPageSize(10);
+    lot.setCurrentPageIndex(1);
+
+    assertEquals(25, lot.getTotalCount());
+    assertEquals(10, lot.getPageSize());
+    assertEquals(1, lot.getCurrentPageIndex());
+    assertEquals(3, lot.getTotalPages());
+
+    lot.setPageSize(0);
+    assertEquals(1, lot.getTotalPages());
+  }
+
+  @Test
+  void testSelectByQueryPaged_Empty() throws SQLException {
+    Connection conn = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(conn.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true); // first next() for COUNT(*)
+    when(rs.getLong(1)).thenReturn(0L);
+
+    TestEntityLot lot = new TestEntityLot();
+    lot.selectByQueryPaged(conn, "SELECT * FROM TEST_TABLE", Map.of(), true, 1, 10);
+    assertTrue(lot.isEmpty());
+    assertEquals(0, lot.getTotalCount());
+  }
+
+  @Test
+  void testSelectByQueryPaged_WithData() throws SQLException {
+    Connection conn = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(conn.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+
+    // First query is for count
+    // Second query is for actual data
+    when(rs.next()).thenReturn(true, true, false); // true for count, then true, false for data
+    when(rs.getLong(1)).thenReturn(100L);
+
+    TestEntityLot lot = new TestEntityLot();
+    lot.selectByQueryPaged(conn, "SELECT * FROM TEST_TABLE", Map.of("id", "1"), true, 1, 10);
+    assertEquals(1, lot.size());
+    assertEquals(100, lot.getTotalCount());
+    assertEquals(10, lot.getPageSize());
+    assertEquals(1, lot.getCurrentPageIndex());
   }
 }

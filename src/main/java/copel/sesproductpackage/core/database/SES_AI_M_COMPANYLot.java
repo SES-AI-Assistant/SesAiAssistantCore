@@ -23,6 +23,16 @@ public class SES_AI_M_COMPANYLot extends EntityLotBase<SES_AI_M_COMPANY> {
   }
 
   @Override
+  protected String getSelectAllSql() {
+    return SELECT_ALL_SQL;
+  }
+
+  @Override
+  protected String getSelectSql() {
+    return "SELECT company_id, company_name, memo, register_date, register_user FROM SES_AI_M_COMPANY WHERE ";
+  }
+
+  @Override
   public void selectAll(Connection connection) throws SQLException {
     PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);
     ResultSet resultSet = preparedStatement.executeQuery();

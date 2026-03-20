@@ -44,6 +44,11 @@ class EntityBaseTest {
     protected TestEntity mapResultSet(ResultSet resultSet) throws SQLException {
       return new TestEntity();
     }
+
+    @Override
+    protected String getSelectAllSql() {
+      return "SELECT * FROM TEST_TABLE";
+    }
   }
 
   @Test
