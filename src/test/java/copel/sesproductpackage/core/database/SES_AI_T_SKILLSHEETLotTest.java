@@ -86,6 +86,8 @@ class SES_AI_T_SKILLSHEETLotTest {
   @Test
   void testRetrieve() throws Exception {
     setupDefaultResultSet();
+    when(mockRs.getLong(1)).thenReturn(1L);
+    when(mockRs.next()).thenReturn(true, true, false);
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
     lot.retrieve(mockConn, createTestVector(), 10);
     assertEquals(1, lot.size());
@@ -95,6 +97,9 @@ class SES_AI_T_SKILLSHEETLotTest {
     lotForNull.retrieve(null, null, 0);
     assertTrue(lotForNull.isEmpty());
 
+    setupDefaultResultSet();
+    when(mockRs.getLong(1)).thenReturn(1L);
+    when(mockRs.next()).thenReturn(true, true, false);
     lot.retrieve(mockConn, null, 1);
     verify(mockStmt).setString(1, null);
   }

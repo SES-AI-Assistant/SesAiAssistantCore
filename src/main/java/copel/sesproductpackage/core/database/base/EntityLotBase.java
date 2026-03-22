@@ -18,6 +18,21 @@ import java.util.stream.Collectors;
  * @author Copel Co., Ltd.
  */
 public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E> {
+
+  /**
+   * SELECT 列リストを COUNT(*) に置換する（ページング件数取得用）.
+   *
+   * <p>{@code (?i)SELECT.*?FROM} のような単純パターンは、列名 {@code from_group} / {@code from_id}
+   * などに含まれる {@code from} を {@code FROM} キーワードと誤認するため使用しない。
+   */
+  static String toCountSql(final String baseSql) {
+    if (baseSql == null) {
+      return null;
+    }
+    return baseSql.replaceFirst(
+        "(?i)\\bSELECT\\s+.*?\\s+\\bFROM\\s+", "SELECT COUNT(*) FROM ");
+  }
+
   // ================================
   // メンバ
   // ================================
@@ -438,8 +453,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     }
 
     // (1) 件数用のSQLを構築して実行
-    StringBuilder countSql =
-        new StringBuilder(baseSql.replaceFirst("(?i)SELECT.*?FROM", "SELECT COUNT(*) FROM"));
+    StringBuilder countSql = new StringBuilder(toCountSql(baseSql));
     if (query != null) {
       for (final LogicalOperators logicalOperator : query) {
         if (logicalOperator != null) {
@@ -527,7 +541,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       return 0;
     }
 
-    String countSql = baseSql.replaceFirst("(?i)SELECT.*?FROM", "SELECT COUNT(*) FROM");
+    String countSql = toCountSql(baseSql);
     StringBuilder sql = new StringBuilder(countSql);
 
     if (query != null && !query.isEmpty()) {

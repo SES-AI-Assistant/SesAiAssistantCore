@@ -74,6 +74,23 @@ class EntityLotBaseTest {
   }
 
   @Test
+  void testToCountSql_doesNotMatchFromInsideColumnNames() {
+    String person =
+        "SELECT person_id, from_group, from_id, from_name FROM SES_AI_T_PERSON";
+    assertEquals(
+        "SELECT COUNT(*) FROM SES_AI_T_PERSON", EntityLotBase.toCountSql(person));
+
+    String join =
+        "SELECT COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id "
+            + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id";
+    assertEquals(
+        "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id",
+        EntityLotBase.toCountSql(join));
+
+    assertNull(EntityLotBase.toCountSql(null));
+  }
+
+  @Test
   void testLotOperations() {
     TestEntityLot lot = new TestEntityLot();
     assertTrue(lot.isEmpty());

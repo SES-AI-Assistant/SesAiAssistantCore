@@ -167,6 +167,9 @@ class SES_AI_T_PERSONLotTest {
   @Test
   void testRetrieve() throws Exception {
     setupDefaultResultSet();
+    // retrievePaged は先に COUNT(*) し、続けて本検索するため 2 回 executeQuery する
+    when(mockRs.getLong(1)).thenReturn(1L);
+    when(mockRs.next()).thenReturn(true, true, false);
     SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
     lot.retrieve(mockConn, createTestVector(), 10);
     assertEquals(1, lot.size());
@@ -182,6 +185,8 @@ class SES_AI_T_PERSONLotTest {
     assertTrue(lotEmpty.isEmpty());
 
     setupDefaultResultSet();
+    when(mockRs.getLong(1)).thenReturn(1L);
+    when(mockRs.next()).thenReturn(true, true, false);
     lot.retrieve(mockConn, null, 1);
     verify(mockStmt).setString(1, null);
   }

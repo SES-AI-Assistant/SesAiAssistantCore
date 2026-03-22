@@ -207,3 +207,22 @@
   - `embedding` メソッドでも同様に、`model` / `content` / `parts` / `text` からなる JSON を `ObjectMapper` で構築し、`inputString` に含まれるダブルクォート等の特殊文字が原因で JSON が壊れないように修正。
   - 400 Bad Request 時の例外メッセージを「無効なパラメータ、または不適切なリクエストフォーマットです」とし、「支払い上限超過」の表現を削除。
 - `mvn clean test` を実行し、Gemini / OpenAI を含む全テストがコンパイル・実行されることを確認（S3 の Logstash 依存欠如による既知のログ出力エラーは従来通りであり、本対応による新規のテスト失敗は発生していないことを確認）。
+
+# ARCHIVE: EntityLotBase COUNT SQL（from_group 誤マッチ）と WebApp 全文検索周辺 (2026-03-22)
+
+## 1. 概要 (Overview)
+- マスタ一覧・全文検索で PostgreSQL が `GROUP BY` や括弧付近の構文エラーとなる問題のうち、コア側の `SELECT.*?FROM` 置換が列名 `from_group` の先頭 `from` を `FROM` キーワードと誤認していた件を修正。
+- `SesAiAssitantWebAppBackend` の全文検索 API（011/021/031）に `input_text` 空・空白のみ時の 400 バリデーションと、マスタ一覧 API と整合する `@RequiredPermission` を付与。
+
+## 2. 具体的な要求事項 (Requirements)
+- `EntityLotBase.toCountSql` で `\bFROM\b` により SQL キーワードの `FROM` のみにマッチさせる。
+- `SES_AI_T_*LotTest.testRetrieve` で COUNT→本検索の 2 段 `ResultSet` をモック化。
+- `SES_WEBAPP_API_011` / `021` / `031`：`VIEW_MATCHING_LIST` / `VIEW_JOB_LIST` / `VIEW_SKILLS_SHEET_LIST`、入力空時 400。
+
+## 3. 実施内容 (Execution)
+- `EntityLotBase.toCountSql` を導入し `countByQuery` と `selectByLikeQueryPaged` の件数 SQL 生成の両方で利用。
+- `EntityLotBaseTest` に `from_group` / JOIN SQL 向けの回帰テストを追加。
+- `SES_AI_T_PERSONLotTest` / `JOBLotTest` / `SKILLSHEETLotTest` の `testRetrieve` を修正。
+- `pom.xml` に GitHub Packages 用 `distributionManagement` を追記（`mvn deploy` 用）。
+- `SES_WEBAPP_API_011` / `021` / `031` に上記権限・バリデーションを追加し、対応テストを追加。
+- `SesAiAssistantCore` / `SesAiAssitantWebAppBackend` で `mvn clean install` 成功を確認。
