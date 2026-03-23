@@ -28,7 +28,8 @@ class ContentTest {
     Field propertiesField = Properties.class.getDeclaredField("properties");
     propertiesField.setAccessible(true);
     Map<String, String> propertiesMap = (Map<String, String>) propertiesField.get(null);
-    propertiesMap.put("CONTENT_CLASSIFICATION_PROMPT", "以下の文章が案件・要員・その他のどれか答えよ。回答は「案件」「要員」「その他」のいずれか1語のみ: ");
+    propertiesMap.put(
+        "CONTENT_CLASSIFICATION_PROMPT", "以下の文章が案件・要員・その他のどれか答えよ。回答は「案件」「要員」「その他」のいずれか1語のみ: ");
     propertiesMap.put("CONTENT_MIN_LENGTH_FOR_CLASSIFICATION", String.valueOf(MIN_LENGTH));
     propertiesMap.put("MULTIPLE_PERSONNEL_JUDGMENT_PROMPT", "Multiple Personnel?");
     propertiesMap.put("MULTIPLE_JOB_JUDGMENT_PROMPT", "Multiple Job?");
@@ -37,7 +38,10 @@ class ContentTest {
   private static String loadResource(final String resourcePath) throws IOException {
     try (InputStream is = ContentTest.class.getClassLoader().getResourceAsStream(resourcePath)) {
       if (is == null) {
-        return "Dummy content for " + resourcePath + " so tests don't fail if resource missing. " + "X".repeat(200);
+        return "Dummy content for "
+            + resourcePath
+            + " so tests don't fail if resource missing. "
+            + "X".repeat(200);
       }
       return new String(is.readAllBytes(), StandardCharsets.UTF_8);
     }
@@ -167,10 +171,7 @@ class ContentTest {
 
   @Test
   void testSampleFiles() throws Exception {
-    String[] jobFiles = {
-      "content/job/job_sample_01.txt",
-      "content/job/job_sample_02.txt"
-    };
+    String[] jobFiles = {"content/job/job_sample_01.txt", "content/job/job_sample_02.txt"};
     for (String file : jobFiles) {
       String text = loadResource(file);
       Content c = new Content(text);

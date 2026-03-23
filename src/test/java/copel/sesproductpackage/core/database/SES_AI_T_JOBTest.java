@@ -19,8 +19,7 @@ class SES_AI_T_JOBTest {
     PreparedStatement ps = mock(PreparedStatement.class);
     ResultSet rs = mock(ResultSet.class);
     when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeUpdate())
-        .thenReturn(1, 0, 1, 0, 1);
+    when(ps.executeUpdate()).thenReturn(1, 0, 1, 0, 1);
     when(ps.executeQuery()).thenReturn(rs);
     when(rs.next()).thenReturn(true);
     when(rs.getInt(1)).thenReturn(0);

@@ -1,6 +1,5 @@
 package copel.sesproductpackage.core.util;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -126,9 +125,7 @@ public class FileNameUtils {
     return sb.toString();
   }
 
-  /**
-   * Quoted-Printableエンコードされた文字列をバイト配列にデコードします.
-   */
+  /** Quoted-Printableエンコードされた文字列をバイト配列にデコードします. */
   private static byte[] decodeQuotedPrintable(String s) {
     java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
     for (int i = 0; i < s.length(); i++) {

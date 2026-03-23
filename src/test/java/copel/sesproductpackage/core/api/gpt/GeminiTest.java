@@ -116,8 +116,7 @@ class GeminiTest extends HttpTestBase {
     // parts が空
     when(sharedMockConn.getInputStream())
         .thenReturn(
-            new ByteArrayInputStream(
-                "{\"candidates\":[{\"content\":{\"parts\":[]}}]}".getBytes()));
+            new ByteArrayInputStream("{\"candidates\":[{\"content\":{\"parts\":[]}}]}".getBytes()));
     answer = gemini.generate("hello");
     assertNull(answer.getAnswer());
   }
@@ -129,8 +128,7 @@ class GeminiTest extends HttpTestBase {
     Gemini gemini = new Gemini("key");
 
     when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_BAD_REQUEST);
-    RuntimeException e =
-        assertThrows(RuntimeException.class, () -> gemini.generate("hello"));
+    RuntimeException e = assertThrows(RuntimeException.class, () -> gemini.generate("hello"));
     assertTrue(e.getMessage().contains("400"));
     verify(sharedMockConn, atLeastOnce()).disconnect();
 
@@ -197,8 +195,7 @@ class GeminiTest extends HttpTestBase {
     Gemini gemini = new Gemini("key");
 
     when(sharedMockConn.getResponseCode()).thenReturn(500);
-    RuntimeException e =
-        assertThrows(RuntimeException.class, () -> gemini.embedding("hello"));
+    RuntimeException e = assertThrows(RuntimeException.class, () -> gemini.embedding("hello"));
     assertTrue(e.getMessage().contains("Embedding API Error"));
 
     when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);

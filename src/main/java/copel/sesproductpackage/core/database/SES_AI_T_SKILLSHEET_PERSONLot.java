@@ -310,7 +310,13 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       final Connection connection, final String query, final int page, final int size)
       throws SQLException {
     this.selectByLikeQueryPaged(
-        connection, SELECT_BY_SKILLSHEET_RAW_CONTENT_SQL, "s.file_content", query, null, page, size);
+        connection,
+        SELECT_BY_SKILLSHEET_RAW_CONTENT_SQL,
+        "s.file_content",
+        query,
+        null,
+        page,
+        size);
   }
 
   /**

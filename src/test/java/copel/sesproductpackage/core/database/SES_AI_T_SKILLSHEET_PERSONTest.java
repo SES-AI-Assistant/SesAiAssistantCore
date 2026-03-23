@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -38,7 +37,8 @@ class SES_AI_T_SKILLSHEET_PERSONTest {
     when(mockResultSet.getString("person_id")).thenReturn("p1");
     when(mockResultSet.getString("raw_content")).thenReturn("r1");
     when(mockResultSet.getString("content_summary")).thenReturn("cs1");
-    when(mockResultSet.getTimestamp("register_date")).thenReturn(new Timestamp(System.currentTimeMillis()));
+    when(mockResultSet.getTimestamp("register_date"))
+        .thenReturn(new Timestamp(System.currentTimeMillis()));
     when(mockResultSet.getString("register_user")).thenReturn("u1");
     when(mockResultSet.getString("from_group")).thenReturn("g1");
     when(mockResultSet.getString("from_id")).thenReturn("i1");

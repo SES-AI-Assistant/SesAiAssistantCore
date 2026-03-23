@@ -22,15 +22,14 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   /**
    * SELECT 列リストを COUNT(*) に置換する（ページング件数取得用）.
    *
-   * <p>{@code (?i)SELECT.*?FROM} のような単純パターンは、列名 {@code from_group} / {@code from_id}
-   * などに含まれる {@code from} を {@code FROM} キーワードと誤認するため使用しない。
+   * <p>{@code (?i)SELECT.*?FROM} のような単純パターンは、列名 {@code from_group} / {@code from_id} などに含まれる {@code
+   * from} を {@code FROM} キーワードと誤認するため使用しない。
    */
   static String toCountSql(final String baseSql) {
     if (baseSql == null) {
       return null;
     }
-    return baseSql.replaceFirst(
-        "(?i)\\bSELECT\\s+.*?\\s+\\bFROM\\s+", "SELECT COUNT(*) FROM ");
+    return baseSql.replaceFirst("(?i)\\bSELECT\\s+.*?\\s+\\bFROM\\s+", "SELECT COUNT(*) FROM ");
   }
 
   // ================================
@@ -522,7 +521,6 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
 
   /**
    * 条件を指定して件数を取得します.
-
    *
    * @param connection DBコネクション
    * @param baseSql 基底SQL(SELECT * FROM ...)

@@ -13,15 +13,14 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
-/**
- * Unit tests for FileNameUtils.
- */
+/** Unit tests for FileNameUtils. */
 public class FileNameUtilsTest {
 
   @BeforeAll
   static void coverPrivateHelpersViaReflection() throws Exception {
     // decodeMimeText(text == null) 分岐を直接踏む（decode(null) だと手前で return してしまうため）
-    java.lang.reflect.Method m = FileNameUtils.class.getDeclaredMethod("decodeMimeText", String.class);
+    java.lang.reflect.Method m =
+        FileNameUtils.class.getDeclaredMethod("decodeMimeText", String.class);
     m.setAccessible(true);
     assertNull((String) m.invoke(null, new Object[] {null}));
   }
@@ -63,7 +62,9 @@ public class FileNameUtilsTest {
 
   @Test
   public void testDecode_Rfc5987() {
-    assertEquals("スキルシート.pdf", FileNameUtils.decode("UTF-8''%e3%82%b9%e3%82%ad%e3%83%ab%e3%82%b7%e3%83%bc%e3%83%88.pdf"));
+    assertEquals(
+        "スキルシート.pdf",
+        FileNameUtils.decode("UTF-8''%e3%82%b9%e3%82%ad%e3%83%ab%e3%82%b7%e3%83%bc%e3%83%88.pdf"));
   }
 
   @Test
@@ -96,7 +97,9 @@ public class FileNameUtilsTest {
     // decoded.equals(previous) の break 分岐を踏むため、URLDecoder.decode を「変化なし」で返すようモックする
     try (MockedStatic<URLDecoder> mocked = Mockito.mockStatic(URLDecoder.class)) {
       mocked
-          .when(() -> URLDecoder.decode(Mockito.anyString(), Mockito.eq(StandardCharsets.UTF_8.name())))
+          .when(
+              () ->
+                  URLDecoder.decode(Mockito.anyString(), Mockito.eq(StandardCharsets.UTF_8.name())))
           .thenAnswer(inv -> inv.getArgument(0));
       assertEquals("%41", FileNameUtils.decode("%41"));
     }

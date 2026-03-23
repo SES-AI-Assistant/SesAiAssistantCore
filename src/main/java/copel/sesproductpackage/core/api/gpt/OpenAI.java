@@ -214,7 +214,10 @@ public class OpenAI implements Transformer {
     assistantPart.put("role", "assistant");
     assistantPart.put("content", "OK");
 
-    String jsonlData = objectMapper.writeValueAsString(systemMsg) + "\n" + objectMapper.writeValueAsString(userMsg);
+    String jsonlData =
+        objectMapper.writeValueAsString(systemMsg)
+            + "\n"
+            + objectMapper.writeValueAsString(userMsg);
 
     // 2. OpenAI にデータをアップロード
     URL fileUrl = new URL(FILE_UPLOAD_URL);

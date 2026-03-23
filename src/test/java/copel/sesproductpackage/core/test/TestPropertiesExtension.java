@@ -9,9 +9,9 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 /**
  * Global UT bootstrap for {@link Properties}.
  *
- * <p>The production {@link Properties} loads config from AWS S3 in a static initializer.
- * In unit tests we allow that attempt to fail, then we inject required keys into the internal map
- * so that {@code Properties.get*()} calls behave deterministically offline.
+ * <p>The production {@link Properties} loads config from AWS S3 in a static initializer. In unit
+ * tests we allow that attempt to fail, then we inject required keys into the internal map so that
+ * {@code Properties.get*()} calls behave deterministically offline.
  */
 public class TestPropertiesExtension implements BeforeAllCallback {
 
@@ -32,4 +32,3 @@ public class TestPropertiesExtension implements BeforeAllCallback {
     map.putIfAbsent("OPEN_AI_COMPLETION_TEMPERATURE", "0.7");
   }
 }
-

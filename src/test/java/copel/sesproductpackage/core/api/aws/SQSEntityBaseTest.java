@@ -1,7 +1,11 @@
 package copel.sesproductpackage.core.api.aws;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.sqs.AmazonSQS;
@@ -34,7 +38,9 @@ class SQSEntityBaseTest {
     mockedBuilder = mockStatic(AmazonSQSClientBuilder.class);
     mockSqs = mock(AmazonSQS.class);
     AmazonSQSClientBuilder mockB = mock(AmazonSQSClientBuilder.class);
-    when(mockB.withRegion(any(Regions.class))).thenReturn(mockB);
+    lenient().when(mockB.withRegion(any(Regions.class))).thenReturn(mockB);
+    lenient().when(mockB.withEndpointConfiguration(any())).thenReturn(mockB);
+    lenient().when(mockB.withCredentials(any())).thenReturn(mockB);
     when(mockB.build()).thenReturn(mockSqs);
     mockedBuilder.when(AmazonSQSClientBuilder::standard).thenReturn(mockB);
   }

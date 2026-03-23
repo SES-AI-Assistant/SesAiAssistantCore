@@ -1,5 +1,6 @@
 package copel.sesproductpackage.core.api.storage;
 
+import copel.sesproductpackage.core.util.FileNameUtils;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -9,7 +10,6 @@ import java.time.Duration;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
-import copel.sesproductpackage.core.util.FileNameUtils;
 
 /**
  * 【SES AIアシスタント】 外部ストレージ上の共有URLを1件分表すクラス.

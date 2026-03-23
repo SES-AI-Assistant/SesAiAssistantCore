@@ -23,7 +23,7 @@ class SES_AI_T_MATCHLotTest {
     assertFalse(lot.isExistByJobId("J999"));
     assertTrue(lot.isExistByPersonId("P123"));
     assertFalse(lot.isExistByPersonId("P999"));
-    
+
     assertFalse(lot.isExistByJobId(null));
     assertFalse(lot.isExistByPersonId(null));
   }
@@ -36,7 +36,7 @@ class SES_AI_T_MATCHLotTest {
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeQuery()).thenReturn(rs);
     when(rs.next()).thenReturn(true, false);
-    
+
     when(rs.getString("matching_id")).thenReturn("M1");
     when(rs.getString("status_cd")).thenReturn("00");
     when(rs.getString("register_date")).thenReturn("2026-01-01 10:00:00");

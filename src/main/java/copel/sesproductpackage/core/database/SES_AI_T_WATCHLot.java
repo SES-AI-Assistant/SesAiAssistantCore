@@ -73,7 +73,13 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
     }
     java.util.Map<String, String> query = new java.util.HashMap<>();
     query.put("user_id", userId);
-    this.selectByQueryPaged(connection, "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl FROM SES_AI_T_WATCH", query, true, page, size);
+    this.selectByQueryPaged(
+        connection,
+        "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl FROM SES_AI_T_WATCH",
+        query,
+        true,
+        page,
+        size);
   }
 
   /**

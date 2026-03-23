@@ -29,7 +29,8 @@ class S3Test {
   void setUp() {
     mockS3Client = mock(S3Client.class, RETURNS_DEEP_STUBS);
     try (MockedStatic<S3Client> mockedS3 = mockStatic(S3Client.class)) {
-      software.amazon.awssdk.services.s3.S3ClientBuilder builder = mock(software.amazon.awssdk.services.s3.S3ClientBuilder.class);
+      software.amazon.awssdk.services.s3.S3ClientBuilder builder =
+          mock(software.amazon.awssdk.services.s3.S3ClientBuilder.class);
       when(S3Client.builder()).thenReturn(builder);
       when(builder.credentialsProvider(any())).thenReturn(builder);
       when(builder.region(any())).thenReturn(builder);
@@ -76,8 +77,7 @@ class S3Test {
             GetObjectResponse.builder().build(), new ByteArrayInputStream(data));
     when(mockS3Client.getObject(any(GetObjectRequest.class))).thenReturn(ris);
 
-    HeadObjectResponse hor =
-        HeadObjectResponse.builder().lastModified(Instant.now()).build();
+    HeadObjectResponse hor = HeadObjectResponse.builder().lastModified(Instant.now()).build();
     when(mockS3Client.headObject(any(HeadObjectRequest.class))).thenReturn(hor);
 
     s3.read();

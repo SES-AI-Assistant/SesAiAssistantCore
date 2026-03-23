@@ -7,10 +7,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * メッセージ本文を保持し、案件紹介文・要員紹介文・その他の分類を行うクラス.
- * 分類は生成AI（Transformer）を用いて行う。一定文字数未満の本文はAIを呼ばず「その他」とする。
- */
+/** メッセージ本文を保持し、案件紹介文・要員紹介文・その他の分類を行うクラス. 分類は生成AI（Transformer）を用いて行う。一定文字数未満の本文はAIを呼ばず「その他」とする。 */
 public class Content {
 
   /** 分類結果が未実施の場合のデフォルト最低文字数. */
@@ -84,8 +81,7 @@ public class Content {
   }
 
   /**
-   * 生成AIを用いて本文を分類する. 一定文字数未満の場合はAIを呼ばず「その他」とする.
-   * 分類後は is案件紹介文() / is要員紹介文() が分類結果に基づいて動作する.
+   * 生成AIを用いて本文を分類する. 一定文字数未満の場合はAIを呼ばず「その他」とする. 分類後は is案件紹介文() / is要員紹介文() が分類結果に基づいて動作する.
    *
    * @param transformer GPTクライアント（Gemini等）
    * @throws IOException 通信エラー時
@@ -116,7 +112,8 @@ public class Content {
     }
     String prompt = promptTemplate + this.rawContent;
     GptAnswer answer = transformer.generate(prompt);
-    String answerText = answer != null && answer.getAnswer() != null ? answer.getAnswer().trim() : "";
+    String answerText =
+        answer != null && answer.getAnswer() != null ? answer.getAnswer().trim() : "";
     if (answerText.isEmpty()) {
       this.classificationResult = ContentType.OTHER;
     } else if (answerText.contains("案件")) {
@@ -131,8 +128,7 @@ public class Content {
   }
 
   /**
-   * このメッセージが案件の紹介文であるかどうかを判定します.
-   * classify() が呼ばれていて、その結果が「案件」の場合に true.
+   * このメッセージが案件の紹介文であるかどうかを判定します. classify() が呼ばれていて、その結果が「案件」の場合に true.
    *
    * @return 案件紹介文と判定すればtrue、それ以外はfalse
    */
@@ -141,8 +137,7 @@ public class Content {
   }
 
   /**
-   * このメッセージが要員の紹介文であるかどうかを判定します.
-   * classify() が呼ばれていて、その結果が「要員」の場合に true.
+   * このメッセージが要員の紹介文であるかどうかを判定します. classify() が呼ばれていて、その結果が「要員」の場合に true.
    *
    * @return 要員紹介文と判定すればtrue、それ以外はfalse
    */
@@ -160,9 +155,8 @@ public class Content {
   }
 
   /**
-   * このメッセージが複数要員または複数案件の情報を持つかどうか判定し、
-   * 複数であればこのクラスのリストに結果を持ちます.
-   * 事前に classify() で案件 or 要員と判定されている必要がある.
+   * このメッセージが複数要員または複数案件の情報を持つかどうか判定し、 複数であればこのクラスのリストに結果を持ちます. 事前に classify() で案件 or
+   * 要員と判定されている必要がある.
    *
    * @param transformer GPTクライアント
    * @return 複数であればtrue、単一であればfalse

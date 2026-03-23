@@ -92,7 +92,8 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
     assertEquals(1, lot.size());
 
     when(mockResultSet.next()).thenReturn(true, false);
-    lot.retrieveByPersonRawContent(mockConnection, "k1", List.of(new LogicalOperators(論理演算子.AND, "k2")));
+    lot.retrieveByPersonRawContent(
+        mockConnection, "k1", List.of(new LogicalOperators(論理演算子.AND, "k2")));
     assertEquals(1, lot.size());
   }
 
@@ -104,7 +105,8 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
     assertEquals(1, lot.size());
 
     when(mockResultSet.next()).thenReturn(true, false);
-    lot.retrieveBySkillSheetRawContent(mockConnection, "s1", List.of(new LogicalOperators(論理演算子.OR, "s2")));
+    lot.retrieveBySkillSheetRawContent(
+        mockConnection, "s1", List.of(new LogicalOperators(論理演算子.OR, "s2")));
     assertEquals(1, lot.size());
   }
 

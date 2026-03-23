@@ -1,11 +1,14 @@
 package copel.sesproductpackage.core.api.aws;
 
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import copel.sesproductpackage.core.util.AwsEndpointUtil;
 
 /**
  * SQSメッセージのリクエストエンティティの基底クラス.
@@ -25,7 +28,16 @@ public abstract class SQSEntityBase {
    * @param queueUrl SQSのURL
    */
   public SQSEntityBase(final Regions region, final String queueUrl) {
-    this.sqsClient = AmazonSQSClientBuilder.standard().withRegion(region).build();
+    String endpointUrl = AwsEndpointUtil.resolveEndpointUrl();
+    if (endpointUrl != null) {
+      this.sqsClient =
+          AmazonSQSClientBuilder.standard()
+              .withEndpointConfiguration(new EndpointConfiguration(endpointUrl, region.getName()))
+              .withCredentials(DefaultAWSCredentialsProviderChain.getInstance())
+              .build();
+    } else {
+      this.sqsClient = AmazonSQSClientBuilder.standard().withRegion(region).build();
+    }
     this.queueUrl = queueUrl;
   }
 

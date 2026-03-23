@@ -108,8 +108,7 @@ class OpenAITest extends HttpTestBase {
     OpenAI api = new OpenAI("key");
 
     when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_BAD_REQUEST);
-    RuntimeException e =
-        assertThrows(RuntimeException.class, () -> api.embedding("test"));
+    RuntimeException e = assertThrows(RuntimeException.class, () -> api.embedding("test"));
     assertTrue(e.getMessage().contains("400"));
     verify(sharedMockConn, atLeastOnce()).disconnect();
 
@@ -186,8 +185,7 @@ class OpenAITest extends HttpTestBase {
     OpenAI api = new OpenAI("key");
 
     when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_UNAUTHORIZED);
-    RuntimeException e =
-        assertThrows(RuntimeException.class, () -> api.generate("hi"));
+    RuntimeException e = assertThrows(RuntimeException.class, () -> api.generate("hi"));
     assertTrue(e.getMessage().contains("401"));
     verify(sharedMockConn, atLeastOnce()).disconnect();
 
@@ -221,8 +219,7 @@ class OpenAITest extends HttpTestBase {
     when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
 
     OpenAI api = new OpenAI("key");
-    RuntimeException e =
-        assertThrows(RuntimeException.class, () -> api.fineTuning("data"));
+    RuntimeException e = assertThrows(RuntimeException.class, () -> api.fineTuning("data"));
     assertTrue(e.getMessage().contains("Fine-tuning Error"));
   }
 }
