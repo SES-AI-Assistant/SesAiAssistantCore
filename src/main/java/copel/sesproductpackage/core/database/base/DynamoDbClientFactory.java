@@ -4,6 +4,8 @@ import software.amazon.awssdk.auth.credentials.EnvironmentVariableCredentialsPro
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import java.net.URI;
+import copel.sesproductpackage.core.util.AwsEndpointUtil;
 
 /** DynamoDbClientを生成するファクトリクラス. */
 public final class DynamoDbClientFactory {
@@ -17,6 +19,14 @@ public final class DynamoDbClientFactory {
    * @return DynamoDbClient
    */
   public static DynamoDbClient create() {
+    String endpointUrl = AwsEndpointUtil.resolveEndpointUrl();
+    if (endpointUrl != null && !endpointUrl.isBlank()) {
+      return DynamoDbClient.builder()
+          .region(Region.AP_NORTHEAST_1)
+          .endpointOverride(URI.create(endpointUrl))
+          .credentialsProvider(EnvironmentVariableCredentialsProvider.create())
+          .build();
+    }
     // Lambda上で実行された場合、クレデンシャル指定をしない
     if (copel.sesproductpackage.core.util.EnvUtils.get("AWS_LAMBDA_FUNCTION_NAME") != null) {
       return DynamoDbClient.builder().region(Region.AP_NORTHEAST_1).build();
