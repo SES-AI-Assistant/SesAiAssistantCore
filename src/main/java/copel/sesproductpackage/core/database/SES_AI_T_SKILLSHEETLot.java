@@ -21,6 +21,10 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
   private static final String RETRIEVE_SQL =
       "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, register_date, register_user, ttl, vector_data <=> ?::vector AS distance FROM SES_AI_T_SKILLSHEET ORDER BY distance LIMIT ?";
 
+  /** 類似度閾値を用いたベクトル検索SQL. */
+  private static final String RETRIEVE_WITH_THRESHOLD_SQL =
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, register_date, register_user, ttl, vector_data <=> ?::vector AS distance FROM SES_AI_T_SKILLSHEET WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
+
   /** 全文検索SQL(file_contentカラム). */
   private static final String SELECT_FILE_CONTENT_LIKE_SQL =
       "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_content LIKE ?";
@@ -144,6 +148,84 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
           SES_AI_T_SKILLSHEET sesAiTSkillsheet = mapResultSet(resultSet);
           sesAiTSkillsheet.setDistance(resultSet.getDouble("distance"));
           this.entityLot.add(sesAiTSkillsheet);
+        }
+      }
+    }
+  }
+
+  /**
+   * 類似度閾値を用いてベクトル検索を実行し結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param query 検索ベクトル
+   * @throws SQLException
+   */
+  public void retrieve(Connection connection, Vector query) throws SQLException {
+    this.retrieveWithThreshold(connection, query, 0.0, 5);
+  }
+
+  /**
+   * 類似度閾値を用いてベクトル検索を実行し結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param query 検索ベクトル
+   * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
+   * @param limit 取得上限件数
+   * @throws SQLException
+   */
+  public void retrieveWithThreshold(Connection connection, Vector query, double similarityThreshold, int limit) throws SQLException {
+    this.retrievePagedWithThreshold(connection, query, similarityThreshold, 1, limit);
+  }
+
+  /**
+   * 類似度閾値を用いてベクトル検索をページングで実行し結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param query 検索ベクトル
+   * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void retrievePagedWithThreshold(Connection connection, Vector query, double similarityThreshold, int page, int size)
+      throws SQLException {
+    if (connection == null || query == null) {
+      return;
+    }
+
+    // (1) 全件数を取得
+    String countSql = "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET WHERE 1 - (vector_data <=> ?::vector) >= ?";
+    try (PreparedStatement preparedStatement = connection.prepareStatement(countSql)) {
+      preparedStatement.setString(1, query.toString());
+      preparedStatement.setDouble(2, similarityThreshold);
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        if (resultSet.next()) {
+          this.totalCount = resultSet.getLong(1);
+        }
+      }
+    }
+    this.pageSize = size;
+    this.currentPageIndex = page;
+
+    if (this.totalCount == 0) {
+      return;
+    }
+
+    // (2) ページング用ベクトル検索
+    String sql = RETRIEVE_WITH_THRESHOLD_SQL + " OFFSET ?";
+    try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+      String vectorStr = query.toString();
+      preparedStatement.setString(1, vectorStr);
+      preparedStatement.setString(2, vectorStr);
+      preparedStatement.setDouble(3, similarityThreshold);
+      preparedStatement.setInt(4, size);
+      preparedStatement.setInt(5, (page - 1) * size);
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        this.entityLot = new ArrayList<>();
+        while (resultSet.next()) {
+          SES_AI_T_SKILLSHEET entity = mapResultSet(resultSet);
+          entity.setDistance(resultSet.getDouble("distance"));
+          this.entityLot.add(entity);
         }
       }
     }
