@@ -173,4 +173,33 @@ class SES_AI_T_SKILLSHEETLotTest {
     SES_AI_T_SKILLSHEETLot emptyLot = new SES_AI_T_SKILLSHEETLot();
     assertTrue(emptyLot.toスキルシート選出用文章().isEmpty());
   }
+
+  @Test
+  void testRetrieveWithThresholdOverloads() throws Exception {
+    setupDefaultResultSet();
+    when(mockRs.getLong(1)).thenReturn(1L);
+    when(mockRs.next()).thenReturn(true, true, false);
+    SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
+    lot.retrieve(mockConn, createTestVector());
+    assertEquals(1, lot.size());
+    assertEquals(0.5, lot.get(0).getDistance());
+
+    setupDefaultResultSet();
+    when(mockRs.getLong(1)).thenReturn(1L);
+    when(mockRs.next()).thenReturn(true, true, false);
+    lot.retrieveWithThreshold(mockConn, createTestVector(), 0.8, 10);
+    assertEquals(1, lot.size());
+
+    SES_AI_T_SKILLSHEETLot emptyLot2 = new SES_AI_T_SKILLSHEETLot();
+    emptyLot2.retrievePagedWithThreshold(null, createTestVector(), 0.8, 1, 10);
+    assertTrue(emptyLot2.isEmpty());
+    emptyLot2.retrievePagedWithThreshold(mockConn, null, 0.8, 1, 10);
+    assertTrue(emptyLot2.isEmpty());
+    
+    when(mockRs.next()).thenReturn(false);
+    when(mockRs.getLong(1)).thenReturn(0L);
+    emptyLot2.retrievePagedWithThreshold(mockConn, createTestVector(), 0.8, 1, 10);
+    assertTrue(emptyLot2.isEmpty());
+  }
 }
+
