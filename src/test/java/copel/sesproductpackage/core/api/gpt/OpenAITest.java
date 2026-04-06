@@ -8,6 +8,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -132,6 +133,13 @@ class OpenAITest extends HttpTestBase {
     e = assertThrows(RuntimeException.class, () -> api.embedding("test"));
     assertTrue(e.getMessage().contains("429"));
 
+    String openAiJson = "{\"error\":{\"message\":\"insufficient_quota\",\"type\":\"insufficient_quota\"}}";
+    when(sharedMockConn.getResponseCode()).thenReturn(429);
+    when(sharedMockConn.getErrorStream())
+        .thenReturn(new ByteArrayInputStream(openAiJson.getBytes(StandardCharsets.UTF_8)));
+    e = assertThrows(RuntimeException.class, () -> api.embedding("test"));
+    assertTrue(e.getMessage().contains("insufficient_quota"));
+
     when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_INTERNAL_ERROR);
     e = assertThrows(RuntimeException.class, () -> api.embedding("test"));
     assertTrue(e.getMessage().contains("500"));
@@ -220,6 +228,6 @@ class OpenAITest extends HttpTestBase {
 
     OpenAI api = new OpenAI("key");
     RuntimeException e = assertThrows(RuntimeException.class, () -> api.fineTuning("data"));
-    assertTrue(e.getMessage().contains("Fine-tuning Error"));
+    assertTrue(e.getMessage().contains("Fine-tuning job start HTTP 500"));
   }
 }
