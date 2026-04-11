@@ -84,7 +84,31 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
     if (this.plan != null) {
       permissions.addAll(this.plan.getPermissions());
     }
+    if (!isEligibleForRegisterInfoListImport()) {
+      permissions.remove(Permission.REGISTER_INFO_LIST_IMPORT);
+    }
     return permissions;
+  }
+
+  /**
+   * {@link Permission#REGISTER_INFO_LIST_IMPORT} を付与する条件（プレミアムプラン以上かつ一般ロール以上）を満たすか.
+   *
+   * @return 付与してよい場合 true
+   */
+  private boolean isEligibleForRegisterInfoListImport() {
+    if (this.plan == null || this.plan == Plan.FREE) {
+      return false;
+    }
+    if (this.role == null) {
+      return false;
+    }
+    try {
+      int roleNum = Integer.parseInt(this.role.getCode(), 10);
+      int generalMin = Integer.parseInt(Role.システムユーザー.getCode(), 10);
+      return roleNum >= generalMin;
+    } catch (NumberFormatException e) {
+      return false;
+    }
   }
 
   @Override

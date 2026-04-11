@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.unit.Permission;
+import copel.sesproductpackage.core.unit.Plan;
 import copel.sesproductpackage.core.unit.Role;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -36,12 +38,27 @@ class SES_AI_WEBAPP_M_USERTest {
     assertFalse(user.getPermissions().isEmpty());
 
     user.setRole(null);
-    user.setPlan(copel.sesproductpackage.core.unit.Plan.FREE);
+    user.setPlan(Plan.FREE);
     assertFalse(user.getPermissions().isEmpty());
 
     user.setRole(Role.システムユーザー);
-    user.setPlan(copel.sesproductpackage.core.unit.Plan.PREMIUM);
+    user.setPlan(Plan.PREMIUM);
     assertFalse(user.getPermissions().isEmpty());
+  }
+
+  @Test
+  void registerInfoListImportPermissionRequiresPremiumPlanAndGeneralRoleOrHigher() {
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER();
+    user.setPlan(Plan.PREMIUM);
+    user.setRole(Role.システム利用不可);
+    assertFalse(user.getPermissions().contains(Permission.REGISTER_INFO_LIST_IMPORT));
+
+    user.setRole(Role.システムユーザー);
+    assertTrue(user.getPermissions().contains(Permission.REGISTER_INFO_LIST_IMPORT));
+
+    user.setPlan(Plan.FREE);
+    user.setRole(Role.システム管理者);
+    assertFalse(user.getPermissions().contains(Permission.REGISTER_INFO_LIST_IMPORT));
   }
 
   @Test

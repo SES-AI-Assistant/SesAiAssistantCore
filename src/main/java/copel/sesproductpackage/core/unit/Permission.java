@@ -13,6 +13,8 @@ public enum Permission {
   // アクション系
   DOWNLOAD_SKILLSHEET("スキルシートダウンロード"),
   EXEC_AI_MATCHING("AIマッチング実行"),
+  /** 案件・要員登録画面の「一覧からインポート」結果をシステムに登録する（プレミアム以上かつ一般ロール以上で付与）. */
+  REGISTER_INFO_LIST_IMPORT("一覧から案件・要員登録"),
   MANAGE_WATCH("ウォッチ管理"),
   // 実績・ログ系
   VIEW_USAGE_HISTORY("利用履歴閲覧"),
