@@ -50,6 +50,10 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_T_PERSON WHERE person_id = ?";
 
+  /** file_id 一致で file_id のみ NULL に戻す（スキルシート削除前の参照解除用）. */
+  private static final String CLEAR_FILE_ID_BY_FILE_ID_SQL =
+      "UPDATE SES_AI_T_PERSON SET file_id = NULL WHERE file_id = ?";
+
   // ================================
   // メンバ
   // ================================
@@ -109,6 +113,28 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
     preparedStatement.setString(1, this.fileId);
     preparedStatement.setString(2, this.personId);
     return preparedStatement.executeUpdate() > 0;
+  }
+
+  /**
+   * 指定の file_id を参照している要員行の file_id を NULL に戻す.
+   *
+   * <p>スキルシート行を削除する前に呼び、参照整合性と TTL バッチのブロック条件を外す。
+   *
+   * @param connection DBコネクション
+   * @param fileId ファイルID
+   * @return 更新件数
+   * @throws SQLException SQL例外
+   */
+  public static int clearFileIdWhereFileId(final Connection connection, final String fileId)
+      throws SQLException {
+    if (connection == null || fileId == null) {
+      return 0;
+    }
+    try (PreparedStatement preparedStatement =
+        connection.prepareStatement(CLEAR_FILE_ID_BY_FILE_ID_SQL)) {
+      preparedStatement.setString(1, fileId);
+      return preparedStatement.executeUpdate();
+    }
   }
 
   // ================================
