@@ -3,6 +3,7 @@ package copel.sesproductpackage.core.database;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import copel.sesproductpackage.core.search.FulltextCondition;
 import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
 import copel.sesproductpackage.core.unit.Vector;
@@ -195,6 +196,23 @@ class SES_AI_T_JOBLotTest {
     when(mockRs.getLong(1)).thenReturn(0L);
     emptyLot2.retrievePagedWithThreshold(mockConn, createTestVector(), 0.8, 1, 10);
     assertTrue(emptyLot2.isEmpty());
+  }
+
+  @Test
+  void testSearchByRawContentPagedFulltextConditions() throws SQLException {
+    setupDefaultResultSet();
+    when(mockRs.getLong(1)).thenReturn(1L);
+    when(mockRs.next()).thenReturn(true, true, false);
+    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+    List<FulltextCondition> conds = new ArrayList<>();
+    conds.add(new FulltextCondition("AND", "java", false));
+    conds.add(new FulltextCondition("OR", "aws", false));
+    lot.searchByRawContentPaged(mockConn, conds, 1, 5);
+    assertEquals(1, lot.size());
+
+    SES_AI_T_JOBLot empty = new SES_AI_T_JOBLot();
+    empty.searchByRawContentPaged(null, conds, 1, 5);
+    assertTrue(empty.isEmpty());
   }
 }
 

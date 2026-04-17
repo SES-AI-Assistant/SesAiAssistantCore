@@ -520,6 +520,71 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   }
 
   /**
+   * 動的 WHERE 句（LIKE / NOT LIKE 等）でページング全文検索を実行します.
+   *
+   * @param connection DBコネクション
+   * @param selectSqlPrefix {@code SELECT ... FROM ... WHERE } まで（末尾に WHERE を含む）
+   * @param whereClauseWithoutWhere WHERE に続く条件式のみ（例: {@code (a LIKE ?) OR (b LIKE ?)}）
+   * @param likeParams プレースホルダに順にバインドする値
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  protected void selectByDynamicWherePaged(
+      final Connection connection,
+      final String selectSqlPrefix,
+      final String whereClauseWithoutWhere,
+      final List<String> likeParams,
+      final int page,
+      final int size)
+      throws SQLException {
+    this.entityLot = new ArrayList<>();
+    if (connection == null || selectSqlPrefix == null || whereClauseWithoutWhere == null) {
+      return;
+    }
+    if (likeParams == null || likeParams.isEmpty()) {
+      return;
+    }
+
+    final String fullSelect = selectSqlPrefix + whereClauseWithoutWhere;
+    final String countSql = toCountSql(fullSelect);
+
+    try (PreparedStatement preparedStatement = connection.prepareStatement(countSql)) {
+      int i = 1;
+      for (String p : likeParams) {
+        preparedStatement.setString(i++, p);
+      }
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        if (resultSet.next()) {
+          this.totalCount = resultSet.getLong(1);
+        }
+      }
+    }
+
+    this.pageSize = size;
+    this.currentPageIndex = page;
+
+    if (this.totalCount == 0) {
+      return;
+    }
+
+    final String pagedSql = fullSelect + " LIMIT ? OFFSET ?";
+    try (PreparedStatement preparedStatement = connection.prepareStatement(pagedSql)) {
+      int pi = 1;
+      for (String p : likeParams) {
+        preparedStatement.setString(pi++, p);
+      }
+      preparedStatement.setInt(pi++, size);
+      preparedStatement.setInt(pi, (page - 1) * size);
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        while (resultSet.next()) {
+          this.entityLot.add(mapResultSet(resultSet));
+        }
+      }
+    }
+  }
+
+  /**
    * 条件を指定して件数を取得します.
    *
    * @param connection DBコネクション

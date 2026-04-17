@@ -1,6 +1,8 @@
 package copel.sesproductpackage.core.database;
 
 import copel.sesproductpackage.core.database.base.EntityLotBase;
+import copel.sesproductpackage.core.search.FulltextCondition;
+import copel.sesproductpackage.core.search.FulltextConditionsWhereClause;
 import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
@@ -30,6 +32,10 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
   /** 全文検索SQL. */
   private static final String SELECT_LIKE_SQL =
       "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE raw_content LIKE ?";
+
+  /** 複合条件全文検索用 SELECT 接頭辞（末尾に WHERE を含む）. */
+  private static final String SELECT_RAW_CONTENT_FOR_FULLTEXT =
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE ";
 
   /** 検索SQL. */
   private static final String SELECT_SQL =
@@ -306,6 +312,32 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
       final int size)
       throws SQLException {
     this.searchByFieldPaged(connection, "raw_content", firstLikeQuery, query, page, size);
+  }
+
+  /**
+   * raw_content に対して複合条件（AND/OR/NOT）で全文検索をページング実行します.
+   *
+   * @param connection DBコネクション
+   * @param conditions API の conditions 配列と同一の論理
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void searchByRawContentPaged(
+      final Connection connection,
+      final List<FulltextCondition> conditions,
+      final int page,
+      final int size)
+      throws SQLException {
+    FulltextConditionsWhereClause.Built built =
+        FulltextConditionsWhereClause.build("raw_content", conditions);
+    this.selectByDynamicWherePaged(
+        connection,
+        SELECT_RAW_CONTENT_FOR_FULLTEXT,
+        built.getWhereClauseWithoutWhereKeyword(),
+        built.getLikeParams(),
+        page,
+        size);
   }
 
   /**
