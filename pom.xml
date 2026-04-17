@@ -10,7 +10,7 @@
     <maven.compiler.target>17</maven.compiler.target>
   </properties>
 
-  <!-- GitHUB Packagesの設定 -->
+  <!-- GitHub Packages へ mvn deploy する際のリポジトリ（SesAiAssitantWebAppBackend の repository と同一） -->
   <distributionManagement>
     <repository>
       <id>github</id>
@@ -22,19 +22,42 @@
     </snapshotRepository>
   </distributionManagement>
 
+  <!-- GitHUB Packagesの設定 -->
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>2.25.24</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
     <!-- AWS SDK for S3 -->
     <dependency>
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>s3</artifactId>
-        <version>2.25.24</version>
+    </dependency>
+
+    <!-- AWS SDK for Lambda -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>lambda</artifactId>
     </dependency>
 
     <!-- AWS SDK for ParameterStore -->
     <dependency>
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>ssm</artifactId>
-        <version>2.25.24</version>
+    </dependency>
+
+    <!-- AWS SDK Auth -->
+    <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>auth</artifactId>
     </dependency>
 
     <!-- AWS SDK for SQS -->
@@ -48,12 +71,10 @@
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>dynamodb</artifactId>
-      <version>2.25.19</version>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>dynamodb-enhanced</artifactId>
-      <version>2.25.19</version>
     </dependency>
 
     <!-- Apache POI -->
@@ -146,6 +167,12 @@
       <version>5.3.1</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-inline</artifactId>
+      <version>5.2.0</version>
+      <scope>test</scope>
+    </dependency>
 
     <!-- System Lambda (for testing System environment variables) -->
     <dependency>
@@ -164,6 +191,7 @@
       </resources>
 
       <plugins>
+          <!-- Maven Compiler Plugin to exclude shadowing files in Eclipse? No. -->
           <!-- シェードプラグインで JAR を作成 -->
           <plugin>
               <groupId>org.apache.maven.plugins</groupId>
@@ -199,6 +227,106 @@
               </execution>
             </executions>
           </plugin>
+
+          <!-- JaCoCo -->
+          <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <version>0.8.11</version>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>prepare-agent</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>report</id>
+                <phase>test</phase>
+                <goals>
+                  <goal>report</goal>
+                </goals>
+                <configuration>
+                  <formats>
+                    <format>HTML</format>
+                    <format>CSV</format>
+                  </formats>
+                </configuration>
+              </execution>
+
+            </executions>
+          </plugin>
+
+          <!-- Checkstyle -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-checkstyle-plugin</artifactId>
+            <version>3.3.1</version>
+            <configuration>
+              <configLocation>google_checks.xml</configLocation>
+              <consoleOutput>true</consoleOutput>
+              <failsOnError>false</failsOnError>
+              <linkXRef>false</linkXRef>
+            </configuration>
+          </plugin>
+
+          <!-- PMD -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-pmd-plugin</artifactId>
+            <version>3.21.2</version>
+            <configuration>
+              <printFailingErrors>true</printFailingErrors>
+              <linkXRef>false</linkXRef>
+            </configuration>
+          </plugin>
+
+          <!-- SpotBugs -->
+          <plugin>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-maven-plugin</artifactId>
+            <version>4.8.3.1</version>
+            <configuration>
+              <effort>Max</effort>
+              <threshold>Low</threshold>
+              <xmlOutput>true</xmlOutput>
+            </configuration>
+          </plugin>
+
+          <!-- OpenRewrite -->
+          <plugin>
+            <groupId>org.openrewrite.maven</groupId>
+            <artifactId>rewrite-maven-plugin</artifactId>
+            <version>5.20.0</version>
+            <configuration>
+              <activeRecipes>
+                <recipe>org.openrewrite.java.cleanup.CleanupRecipe</recipe>
+                <recipe>org.openrewrite.java.RemoveUnusedImports</recipe>
+              </activeRecipes>
+            </configuration>
+            <dependencies>
+              <dependency>
+                <groupId>org.openrewrite.recipe</groupId>
+                <artifactId>rewrite-static-analysis</artifactId>
+                <version>1.2.1</version>
+              </dependency>
+            </dependencies>
+          </plugin>
+
+          <!-- Spotless -->
+          <plugin>
+            <groupId>com.diffplug.spotless</groupId>
+            <artifactId>spotless-maven-plugin</artifactId>
+            <version>2.43.0</version>
+            <configuration>
+              <java>
+                <googleJavaFormat>
+                  <version>1.17.0</version>
+                  <style>GOOGLE</style>
+                </googleJavaFormat>
+              </java>
+            </configuration>
+          </plugin>
+
       </plugins>
   </build>
 </project>
