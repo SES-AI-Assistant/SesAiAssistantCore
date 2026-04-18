@@ -27,15 +27,15 @@ import lombok.ToString;
 public class SES_AI_T_MATCH extends EntityBase {
   /** INSERTR文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_MATCH (matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_T_MATCH (matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文. */
   private static final String SELECT_SQL =
-      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, register_date, register_user FROM SES_AI_T_MATCH WHERE matching_id = ?";
+      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user FROM SES_AI_T_MATCH WHERE matching_id = ?";
 
   /** UPDATE文. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_T_MATCH SET user_id = ?, job_id = ?, person_id = ?, job_content = ?, person_content = ?, status_cd = ?, register_date = ?, register_user = ? WHERE matching_id = ?";
+      "UPDATE SES_AI_T_MATCH SET user_id = ?, job_id = ?, person_id = ?, job_content = ?, person_content = ?, status_cd = ?, evaluation_text = ?, register_date = ?, register_user = ? WHERE matching_id = ?";
 
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_T_MATCH WHERE matching_id = ?";
@@ -67,6 +67,10 @@ public class SES_AI_T_MATCH extends EntityBase {
   /** MatchingStatus / status_cd */
   @Column(physicalName = "status_cd", logicalName = "MatchingStatus")
   private MatchingStatus status;
+
+  /** 評価文 / evaluation_text */
+  @Column(physicalName = "evaluation_text", logicalName = "評価文")
+  private String evaluationText;
 
   /**
    * このレコードがjob_idを持つかどうかを判定します.
@@ -103,8 +107,9 @@ public class SES_AI_T_MATCH extends EntityBase {
     preparedStatement.setString(5, this.jobContent);
     preparedStatement.setString(6, this.personContent);
     preparedStatement.setString(7, this.status == null ? null : this.status.getCode());
-    preparedStatement.setTimestamp(8, new OriginalDateTime().toTimestamp());
-    preparedStatement.setString(9, this.registerUser);
+    preparedStatement.setString(8, this.evaluationText);
+    preparedStatement.setTimestamp(9, new OriginalDateTime().toTimestamp());
+    preparedStatement.setString(10, this.registerUser);
     return preparedStatement.executeUpdate();
   }
 
@@ -123,6 +128,7 @@ public class SES_AI_T_MATCH extends EntityBase {
       this.jobContent = resultSet.getString("job_content");
       this.personContent = resultSet.getString("person_content");
       this.status = MatchingStatus.getEnum(resultSet.getString("status_cd"));
+      this.evaluationText = resultSet.getString("evaluation_text");
       this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
       this.registerUser = resultSet.getString("register_user");
     }
@@ -140,10 +146,11 @@ public class SES_AI_T_MATCH extends EntityBase {
     preparedStatement.setString(4, this.jobContent);
     preparedStatement.setString(5, this.personContent);
     preparedStatement.setString(6, this.status == null ? null : this.status.getCode());
+    preparedStatement.setString(7, this.evaluationText);
     preparedStatement.setTimestamp(
-        7, this.registerDate == null ? null : this.registerDate.toTimestamp());
-    preparedStatement.setString(8, this.registerUser);
-    preparedStatement.setString(9, this.matchingId);
+        8, this.registerDate == null ? null : this.registerDate.toTimestamp());
+    preparedStatement.setString(9, this.registerUser);
+    preparedStatement.setString(10, this.matchingId);
     return preparedStatement.executeUpdate() > 0;
   }
 

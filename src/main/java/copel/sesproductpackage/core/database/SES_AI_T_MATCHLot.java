@@ -17,7 +17,7 @@ import java.util.ArrayList;
 public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
   /** 全件SELECT文. */
   private static final String SELECT_ALL_SQL =
-      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, register_date, register_user FROM SES_AI_T_MATCH";
+      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user FROM SES_AI_T_MATCH";
 
   public SES_AI_T_MATCHLot() {
     super();
@@ -30,7 +30,7 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
 
   @Override
   protected String getSelectSql() {
-    return "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, register_date, register_user FROM SES_AI_T_MATCH WHERE ";
+    return "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user FROM SES_AI_T_MATCH WHERE ";
   }
 
   @Override
@@ -74,6 +74,7 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
     sesAiTMatch.setJobContent(resultSet.getString("job_content"));
     sesAiTMatch.setPersonContent(resultSet.getString("person_content"));
     sesAiTMatch.setStatus(MatchingStatus.getEnum(resultSet.getString("status_cd")));
+    sesAiTMatch.setEvaluationText(resultSet.getString("evaluation_text"));
     sesAiTMatch.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
     sesAiTMatch.setRegisterUser(resultSet.getString("register_user"));
     return sesAiTMatch;
