@@ -3,6 +3,7 @@ package copel.sesproductpackage.core.database;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import copel.sesproductpackage.core.search.FulltextCondition;
 import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
 import copel.sesproductpackage.core.unit.Vector;
@@ -132,6 +133,43 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
 
     assertEquals("1人目：要員ID：p1 内容：csfs\n", lot.to要員選出用文章());
     assertEquals("1件目：ファイルID：f1 内容：fscs\n", lot.toスキルシート選出用文章());
+  }
+
+  @Test
+  void testRetrieveByPersonOrSkillSheetSummaryPaged() throws SQLException {
+    // COUNT クエリと取得クエリの両方を処理するため prepareStatement を2回呼ぶ
+    PreparedStatement mockCountStmt = mock(PreparedStatement.class);
+    PreparedStatement mockDataStmt = mock(PreparedStatement.class);
+    ResultSet mockCountRs = mock(ResultSet.class);
+
+    when(mockConnection.prepareStatement(anyString()))
+        .thenReturn(mockCountStmt)
+        .thenReturn(mockDataStmt);
+    when(mockCountStmt.executeQuery()).thenReturn(mockCountRs);
+    when(mockCountRs.next()).thenReturn(true);
+    when(mockCountRs.getLong(1)).thenReturn(1L);
+    when(mockDataStmt.executeQuery()).thenReturn(mockResultSet);
+    when(mockResultSet.next()).thenReturn(true, false);
+    when(mockResultSet.getString("file_id")).thenReturn("f1");
+    when(mockResultSet.getString("person_id")).thenReturn("p1");
+    when(mockResultSetMetaData.getColumnCount()).thenReturn(1);
+    when(mockResultSetMetaData.getColumnLabel(1)).thenReturn("file_id");
+
+    SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
+    List<FulltextCondition> conditions =
+        List.of(new FulltextCondition("AND", "Java", false));
+    lot.retrieveByPersonOrSkillSheetSummaryPaged(mockConnection, conditions, 1, 20);
+    assertEquals(1, lot.size());
+    assertEquals("p1", lot.get(0).getPersonId());
+  }
+
+  @Test
+  void testRetrieveByPersonOrSkillSheetSummaryPaged_nullConnection() throws SQLException {
+    SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
+    List<FulltextCondition> conditions =
+        List.of(new FulltextCondition("AND", "Java", false));
+    assertDoesNotThrow(() -> lot.retrieveByPersonOrSkillSheetSummaryPaged(null, conditions, 1, 20));
+    assertEquals(0, lot.size());
   }
 
   @Test

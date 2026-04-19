@@ -83,6 +83,77 @@ public final class FulltextConditionsWhereClause {
     return new Built(ors.toString(), params);
   }
 
+  /**
+   * 複数カラムに OR で照合する WHERE 句を組み立てる.
+   *
+   * <p>正のキーワード: {@code (primaryColumn LIKE ? OR nullableColumn LIKE ?)}<br>
+   * 否定キーワード: {@code (primaryColumn NOT LIKE ? AND (nullableColumn IS NULL OR nullableColumn NOT LIKE ?))}<br>
+   * NULL チェックを加えることで LEFT JOIN 先が NULL の行を NOT 条件で誤除外しない。
+   *
+   * @param primaryColumn 非 NULL 前提の主カラム（例: {@code p.raw_content}）
+   * @param nullableColumns NULL になり得る副カラム（例: {@code s.file_content_summary}）
+   * @param conditions 検索条件リスト
+   * @throws IllegalArgumentException 条件が空、または検索可能キーワードがない場合
+   */
+  public static Built buildForMultipleColumns(
+      final String primaryColumn,
+      final List<String> nullableColumns,
+      final List<FulltextCondition> conditions) {
+    if (primaryColumn == null || primaryColumn.trim().isEmpty()) {
+      throw new IllegalArgumentException("primaryColumn is required");
+    }
+    if (!hasSearchableKeyword(conditions)) {
+      throw new IllegalArgumentException("conditions must contain at least one non-blank keyword");
+    }
+    List<List<FulltextCondition>> segments = splitSegments(conditions);
+    List<String> params = new ArrayList<>();
+    StringBuilder ors = new StringBuilder();
+    boolean firstSeg = true;
+    for (List<FulltextCondition> seg : segments) {
+      StringBuilder segAnd = new StringBuilder();
+      boolean firstTerm = true;
+      for (FulltextCondition c : seg) {
+        if (!c.hasSearchableKeyword()) {
+          continue;
+        }
+        if (!firstTerm) {
+          segAnd.append(" AND ");
+        }
+        firstTerm = false;
+        String lit = "%" + escapeLikeKeyword(c.getKeyword().trim()) + "%";
+        if (c.isNegated()) {
+          segAnd.append('(');
+          segAnd.append(primaryColumn).append(" NOT LIKE ? ESCAPE '\\'");
+          params.add(lit);
+          for (String nullable : nullableColumns) {
+            segAnd.append(" AND (").append(nullable).append(" IS NULL OR ");
+            segAnd.append(nullable).append(" NOT LIKE ? ESCAPE '\\')");
+            params.add(lit);
+          }
+          segAnd.append(')');
+        } else {
+          segAnd.append('(');
+          segAnd.append(primaryColumn).append(" LIKE ? ESCAPE '\\'");
+          params.add(lit);
+          for (String nullable : nullableColumns) {
+            segAnd.append(" OR ").append(nullable).append(" LIKE ? ESCAPE '\\'");
+            params.add(lit);
+          }
+          segAnd.append(')');
+        }
+      }
+      if (segAnd.isEmpty()) {
+        continue;
+      }
+      if (!firstSeg) {
+        ors.append(" OR ");
+      }
+      firstSeg = false;
+      ors.append('(').append(segAnd).append(')');
+    }
+    return new Built(ors.toString(), params);
+  }
+
   static List<List<FulltextCondition>> splitSegments(final List<FulltextCondition> conditions) {
     List<List<FulltextCondition>> segments = new ArrayList<>();
     List<FulltextCondition> current = new ArrayList<>();

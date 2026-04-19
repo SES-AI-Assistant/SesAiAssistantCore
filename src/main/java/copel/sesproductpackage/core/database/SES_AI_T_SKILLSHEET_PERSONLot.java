@@ -44,6 +44,14 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
           + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
           + "WHERE p.raw_content LIKE ?";
 
+  /**
+   * 要員 raw_content と スキルシート file_content_summary の両方を OR 照合する LEFT JOIN 用 SELECT 接頭辞.
+   * スキルシート未紐づきの要員も除外しない。
+   */
+  private static final String SELECT_BY_PERSON_OR_SKILLSHEET_SUMMARY_PREFIX =
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name "
+          + "FROM SES_AI_T_PERSON p LEFT JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id WHERE ";
+
   /** 要員 raw_content 複合条件全文検索用 SELECT 接頭辞（末尾に WHERE を含む）. */
   private static final String SELECT_BY_PERSON_RAW_CONTENT_PREFIX =
       "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name "
@@ -274,6 +282,36 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       throws SQLException {
     this.selectByLikeQueryPaged(
         connection, SELECT_BY_PERSON_RAW_CONTENT_SQL, "p.raw_content", query, null, page, size);
+  }
+
+  /**
+   * 要員の raw_content とスキルシートの file_content_summary の両方に対して複合条件でページング検索します（LEFT JOIN）.
+   *
+   * <p>スキルシート未紐づきの要員は raw_content のみが照合対象となり、結果から除外されない。
+   * スキルシート原文（file_content）は検索対象外。
+   *
+   * @param connection DBコネクション
+   * @param conditions 検索条件リスト
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void retrieveByPersonOrSkillSheetSummaryPaged(
+      final Connection connection,
+      final List<FulltextCondition> conditions,
+      final int page,
+      final int size)
+      throws SQLException {
+    FulltextConditionsWhereClause.Built built =
+        FulltextConditionsWhereClause.buildForMultipleColumns(
+            "p.raw_content", java.util.List.of("s.file_content_summary"), conditions);
+    this.selectByDynamicWherePaged(
+        connection,
+        SELECT_BY_PERSON_OR_SKILLSHEET_SUMMARY_PREFIX,
+        built.getWhereClauseWithoutWhereKeyword(),
+        built.getLikeParams(),
+        page,
+        size);
   }
 
   /**
