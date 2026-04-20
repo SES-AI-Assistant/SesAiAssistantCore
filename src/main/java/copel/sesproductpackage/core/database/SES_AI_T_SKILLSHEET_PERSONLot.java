@@ -296,7 +296,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
-  public void retrieveByPersonOrSkillSheetSummaryPaged(
+  public void searchByPersonOrSkillSheetSummaryPaged(
       final Connection connection,
       final List<FulltextCondition> conditions,
       final int page,
@@ -308,6 +308,36 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
     this.selectByDynamicWherePaged(
         connection,
         SELECT_BY_PERSON_OR_SKILLSHEET_SUMMARY_PREFIX,
+        built.getWhereClauseWithoutWhereKeyword(),
+        built.getLikeParams(),
+        page,
+        size);
+  }
+
+  /**
+   * 要員の raw_content とスキルシートの file_content_summary の両方に対して複合条件でページング検索します（INNER JOIN）.
+   *
+   * <p>スキルシートが紐づいている要員のみが対象（has_skillsheet_only: true）。
+   * file_content_summary が NULL の行も NOT 条件で誤除外されないよう IS NULL チェックを行う。
+   *
+   * @param connection DBコネクション
+   * @param conditions 検索条件リスト
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void searchByPersonOrSkillSheetSummaryInnerJoinPaged(
+      final Connection connection,
+      final List<FulltextCondition> conditions,
+      final int page,
+      final int size)
+      throws SQLException {
+    FulltextConditionsWhereClause.Built built =
+        FulltextConditionsWhereClause.buildForMultipleColumns(
+            "p.raw_content", java.util.List.of("s.file_content_summary"), conditions);
+    this.selectByDynamicWherePaged(
+        connection,
+        SELECT_BY_PERSON_RAW_CONTENT_PREFIX,
         built.getWhereClauseWithoutWhereKeyword(),
         built.getLikeParams(),
         page,
