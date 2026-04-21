@@ -64,6 +64,44 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
         && this.entityLot.stream().anyMatch(e -> personId.equals(e.getPersonId()));
   }
 
+  /**
+   * 案件IDが一致するレコードを指定件数取得し、このLotに格納します.
+   *
+   * @param connection DBコネクション
+   * @param jobId 案件ID
+   * @param page ページ番号
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void selectByJobIdPaged(Connection connection, String jobId, int page, int size)
+      throws SQLException {
+    if (connection == null || jobId == null) {
+      return;
+    }
+    java.util.Map<String, String> query = new java.util.HashMap<>();
+    query.put("job_id", jobId);
+    this.selectByQueryPaged(connection, SELECT_ALL_SQL, query, true, page, size);
+  }
+
+  /**
+   * 要員IDが一致するレコードを指定件数取得し、このLotに格納します.
+   *
+   * @param connection DBコネクション
+   * @param personId 要員ID
+   * @param page ページ番号
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void selectByPersonIdPaged(Connection connection, String personId, int page, int size)
+      throws SQLException {
+    if (connection == null || personId == null) {
+      return;
+    }
+    java.util.Map<String, String> query = new java.util.HashMap<>();
+    query.put("person_id", personId);
+    this.selectByQueryPaged(connection, SELECT_ALL_SQL, query, true, page, size);
+  }
+
   @Override
   protected SES_AI_T_MATCH mapResultSet(ResultSet resultSet) throws SQLException {
     SES_AI_T_MATCH sesAiTMatch = new SES_AI_T_MATCH();
