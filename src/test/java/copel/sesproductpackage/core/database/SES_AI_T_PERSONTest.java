@@ -30,7 +30,6 @@ class SES_AI_T_PERSONTest {
     when(rs.getString("raw_content")).thenReturn("raw1");
     when(rs.getString("content_summary")).thenReturn("sum1");
     when(rs.getString("file_id")).thenReturn("fid1");
-    when(rs.getString("file_summary")).thenReturn("fsum1");
     when(rs.getString("register_date")).thenReturn("2026-01-01 00:00:00");
     when(rs.getString("register_user")).thenReturn("admin");
     when(rs.getString("ttl")).thenReturn("2026-12-31 23:59:59");
@@ -65,7 +64,6 @@ class SES_AI_T_PERSONTest {
     when(rs.getString("raw_content")).thenReturn("r1");
     when(rs.getString("content_summary")).thenReturn("s1");
     when(rs.getString("file_id")).thenReturn("f1");
-    when(rs.getString("file_summary")).thenReturn("fs1");
     when(rs.getString("register_date")).thenReturn(null);
     when(rs.getString("register_user")).thenReturn("u1");
     when(rs.getString("ttl")).thenReturn(null);
@@ -220,10 +218,8 @@ class SES_AI_T_PERSONTest {
     SES_AI_T_PERSON person = new SES_AI_T_PERSON();
     person.setPersonId("P1");
     person.setRawContent("Content");
-    person.setFileSummary("FileSummary");
-    assertEquals("要員ID：P1内容：ContentFileSummary", person.to要員選出用文章());
+    assertEquals("要員ID：P1内容：Content", person.to要員選出用文章());
 
-    person.setFileSummary(null);
     assertTrue(person.to要員選出用文章().contains("要員ID：P1"));
     assertTrue(person.to要員選出用文章().contains("内容：Content"));
   }
