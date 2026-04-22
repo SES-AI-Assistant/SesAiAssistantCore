@@ -64,4 +64,23 @@ class SES_AI_T_WATCHLotTest {
     lot.selectAll(mockConnection);
     assertEquals(1, lot.size());
   }
+
+  @Test
+  void testSelectByTargetId() throws SQLException {
+    when(mockResultSet.next()).thenReturn(true, false);
+    when(mockResultSet.getString("user_id")).thenReturn("u1");
+    when(mockResultSet.getString("target_id")).thenReturn("job001");
+    when(mockResultSet.getString("target_type")).thenReturn("JOB");
+
+    SES_AI_T_WATCHLot lot = new SES_AI_T_WATCHLot();
+    lot.selectByTargetId(mockConnection, "job001", SES_AI_T_WATCH.TargetType.JOB);
+
+    assertEquals(1, lot.size());
+    assertEquals("u1", lot.get(0).getUserId());
+    assertEquals("job001", lot.get(0).getTargetId());
+
+    lot.selectByTargetId(null, "job001", SES_AI_T_WATCH.TargetType.JOB);
+    lot.selectByTargetId(mockConnection, null, SES_AI_T_WATCH.TargetType.JOB);
+    lot.selectByTargetId(mockConnection, "job001", null);
+  }
 }

@@ -23,6 +23,10 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
   private static final String SELECT_BY_USER_ID_SQL =
       "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl FROM SES_AI_T_WATCH WHERE user_id = ?";
 
+  /** SELECT文(対象IDキー). */
+  private static final String SELECT_BY_TARGET_ID_SQL =
+      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl FROM SES_AI_T_WATCH WHERE target_id = ? AND target_type = ?";
+
   public SES_AI_T_WATCHLot() {
     super();
   }
@@ -97,6 +101,29 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
       }
     }
     return false;
+  }
+
+  /**
+   * 対象IDと対象種別が一致するレコードを全て取得し、このLotに格納します.
+   *
+   * @param connection DBコネクション
+   * @param targetId 対象ID
+   * @param targetType 対象種別
+   * @throws SQLException
+   */
+  public void selectByTargetId(Connection connection, String targetId, TargetType targetType)
+      throws SQLException {
+    if (connection == null || targetId == null || targetType == null) {
+      return;
+    }
+    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BY_TARGET_ID_SQL);
+    preparedStatement.setString(1, targetId);
+    preparedStatement.setString(2, targetType.name());
+    ResultSet resultSet = preparedStatement.executeQuery();
+    this.entityLot = new ArrayList<>();
+    while (resultSet.next()) {
+      this.entityLot.add(mapResultSet(resultSet));
+    }
   }
 
   /**
