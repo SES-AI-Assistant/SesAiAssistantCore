@@ -369,6 +369,79 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
         size);
   }
 
+  /**
+   * TTL 期限切れのスキルシートを段階的に取得（チャンク処理用）.
+   *
+   * @param connection DBコネクション
+   * @param ttlDays TTL 日数
+   * @param offset オフセット
+   * @param limit 取得上限件数
+   * @throws SQLException
+   */
+  public void selectExpiredSkillsheets(
+      final Connection connection,
+      final int ttlDays,
+      final int offset,
+      final int limit)
+      throws SQLException {
+    if (connection == null) {
+      return;
+    }
+    String sql =
+        "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl "
+            + "FROM SES_AI_T_SKILLSHEET "
+            + "WHERE ((ttl IS NOT NULL AND ttl < NOW()) "
+            + "   OR (ttl IS NULL AND register_date IS NOT NULL AND (register_date + INTERVAL '"
+            + ttlDays
+            + " days') < NOW())) "
+            + "ORDER BY register_date ASC "
+            + "LIMIT ? OFFSET ?";
+    try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+      preparedStatement.setInt(1, limit);
+      preparedStatement.setInt(2, offset);
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        this.entityLot = new ArrayList<>();
+        while (resultSet.next()) {
+          this.entityLot.add(mapResultSet(resultSet));
+        }
+      }
+    }
+  }
+
+  /**
+   * 指定された要員に紐づくスキルシート（同一送信元・同一登録日）を取得.
+   *
+   * @param connection DBコネクション
+   * @param person 要員
+   * @throws SQLException
+   */
+  public void selectBundledWithPerson(
+      final Connection connection, final SES_AI_T_PERSON person)
+      throws SQLException {
+    if (connection == null || person == null) {
+      return;
+    }
+    String sql =
+        "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl "
+            + "FROM SES_AI_T_SKILLSHEET "
+            + "WHERE from_group = ? AND from_id = ? AND DATE(register_date) = DATE(?)";
+    try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+      preparedStatement.setString(1, person.getFromGroup());
+      preparedStatement.setString(2, person.getFromId());
+      preparedStatement.setTimestamp(
+          3,
+          person.getRegisterDate() != null
+              ? person.getRegisterDate().toTimestamp()
+              : new OriginalDateTime().toTimestamp());
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        this.entityLot = new ArrayList<>();
+        while (resultSet.next()) {
+          this.entityLot.add(mapResultSet(resultSet));
+        }
+      }
+    }
+  }
+
   @Override
   public void selectAll(Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
