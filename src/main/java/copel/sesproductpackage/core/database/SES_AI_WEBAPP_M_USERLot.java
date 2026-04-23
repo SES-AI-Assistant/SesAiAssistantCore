@@ -17,7 +17,7 @@ import java.util.ArrayList;
 public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER> {
   /** 全件SELECT文. */
   private static final String SELECT_ALL_SQL =
-      "SELECT user_id, user_name, company_id, role_cd, register_date, register_user FROM SES_AI_WEBAPP_M_USER";
+      "SELECT user_id, user_name, role_cd, register_date, register_user FROM SES_AI_WEBAPP_M_USER";
 
   public SES_AI_WEBAPP_M_USERLot() {
     super();
@@ -30,7 +30,7 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
 
   @Override
   protected String getSelectSql() {
-    return "SELECT user_id, user_name, company_id, role_cd, register_date, register_user FROM SES_AI_WEBAPP_M_USER WHERE ";
+    return "SELECT user_id, user_name, role_cd, register_date, register_user FROM SES_AI_WEBAPP_M_USER WHERE ";
   }
 
   @Override
@@ -48,7 +48,6 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
     SES_AI_WEBAPP_M_USER sesAiWebappMUser = new SES_AI_WEBAPP_M_USER();
     sesAiWebappMUser.setUserId(resultSet.getString("user_id"));
     sesAiWebappMUser.setUserName(resultSet.getString("user_name"));
-    sesAiWebappMUser.setCompanyId(resultSet.getString("company_id"));
     sesAiWebappMUser.setRole(Role.getEnum(resultSet.getString("role_cd")));
     sesAiWebappMUser.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
     sesAiWebappMUser.setRegisterUser(resultSet.getString("register_user"));

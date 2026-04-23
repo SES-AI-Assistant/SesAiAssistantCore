@@ -29,15 +29,15 @@ import lombok.ToString;
 public class SES_AI_WEBAPP_M_USER extends EntityBase {
   /** INSERTR文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_WEBAPP_M_USER (user_id, user_name, company_id, role_cd, plan_cd, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_WEBAPP_M_USER (user_id, user_name, role_cd, plan_cd, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?)";
 
   /** SELECT文. */
   private static final String SELECT_SQL =
-      "SELECT user_id, user_name, company_id, role_cd, plan_cd, register_date, register_user FROM SES_AI_WEBAPP_M_USER WHERE user_id = ?";
+      "SELECT user_id, user_name, role_cd, plan_cd, register_date, register_user FROM SES_AI_WEBAPP_M_USER WHERE user_id = ?";
 
   /** UPDATE文. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_WEBAPP_M_USER SET user_id = ?, user_name = ?, company_id = ?, role_cd = ?, plan_cd = ?, register_date = ?, register_user = ? WHERE user_id = ?";
+      "UPDATE SES_AI_WEBAPP_M_USER SET user_id = ?, user_name = ?, role_cd = ?, plan_cd = ?, register_date = ?, register_user = ? WHERE user_id = ?";
 
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_WEBAPP_M_USER WHERE user_id = ?";
@@ -49,10 +49,6 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
   /** ユーザー名 / user_name */
   @Column(physicalName = "user_name", logicalName = "ユーザー名")
   private String userName;
-
-  /** 会社ID / company_id */
-  @Column(physicalName = "company_id", logicalName = "会社ID")
-  private String companyId;
 
   /** ロール / role_cd */
   @Column(physicalName = "role_cd", logicalName = "ロール")
@@ -119,12 +115,11 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
     PreparedStatement preparedStatement = connection.prepareStatement(INSERT_SQL);
     preparedStatement.setString(1, this.userId);
     preparedStatement.setString(2, this.userName);
-    preparedStatement.setString(3, this.companyId);
-    preparedStatement.setString(4, this.role == null ? null : this.role.getCode());
-    preparedStatement.setString(5, this.plan == null ? null : this.plan.getCode());
+    preparedStatement.setString(3, this.role == null ? null : this.role.getCode());
+    preparedStatement.setString(4, this.plan == null ? null : this.plan.getCode());
     preparedStatement.setTimestamp(
-        6, this.registerDate == null ? null : this.registerDate.toTimestamp());
-    preparedStatement.setString(7, this.registerUser);
+        5, this.registerDate == null ? null : this.registerDate.toTimestamp());
+    preparedStatement.setString(6, this.registerUser);
     return preparedStatement.executeUpdate();
   }
 
@@ -139,7 +134,6 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
     if (resultSet.next()) {
       this.userId = resultSet.getString("user_id");
       this.userName = resultSet.getString("user_name");
-      this.companyId = resultSet.getString("company_id");
       this.role = Role.getEnum(resultSet.getString("role_cd"));
       this.plan = Plan.getEnum(resultSet.getString("plan_cd"));
       this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
@@ -155,13 +149,12 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
     PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_SQL);
     preparedStatement.setString(1, this.userId);
     preparedStatement.setString(2, this.userName);
-    preparedStatement.setString(3, this.companyId);
-    preparedStatement.setString(4, this.role == null ? null : this.role.getCode());
-    preparedStatement.setString(5, this.plan == null ? null : this.plan.getCode());
+    preparedStatement.setString(3, this.role == null ? null : this.role.getCode());
+    preparedStatement.setString(4, this.plan == null ? null : this.plan.getCode());
     preparedStatement.setTimestamp(
-        6, this.registerDate == null ? null : this.registerDate.toTimestamp());
-    preparedStatement.setString(7, this.registerUser);
-    preparedStatement.setString(8, this.userId);
+        5, this.registerDate == null ? null : this.registerDate.toTimestamp());
+    preparedStatement.setString(6, this.registerUser);
+    preparedStatement.setString(7, this.userId);
     return preparedStatement.executeUpdate() > 0;
   }
 

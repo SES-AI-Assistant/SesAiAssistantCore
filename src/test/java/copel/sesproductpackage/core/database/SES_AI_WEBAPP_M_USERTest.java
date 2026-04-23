@@ -129,7 +129,6 @@ class SES_AI_WEBAPP_M_USERTest {
 
     when(rs.getString("user_id")).thenReturn("U1");
     when(rs.getString("user_name")).thenReturn("Name1");
-    when(rs.getString("company_id")).thenReturn("C1");
     when(rs.getString("role_cd")).thenReturn("10");
     when(rs.getString("plan_cd")).thenReturn("P1");
     when(rs.getString("register_date")).thenReturn("2026-01-01 00:00:00");
@@ -138,7 +137,6 @@ class SES_AI_WEBAPP_M_USERTest {
     SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER();
     user.setUserId("U1");
     user.setUserName("Name1");
-    user.setCompanyId("C1");
     user.setRole(Role.システムユーザー);
     user.setRegisterDate(new OriginalDateTime());
 
@@ -151,7 +149,6 @@ class SES_AI_WEBAPP_M_USERTest {
 
     assertEquals("U1", target.getUserId());
     assertEquals("Name1", target.getUserName());
-    assertEquals("C1", target.getCompanyId());
     assertEquals(Role.システムユーザー, target.getRole());
 
     assertTrue(user.deleteByPk(connection));

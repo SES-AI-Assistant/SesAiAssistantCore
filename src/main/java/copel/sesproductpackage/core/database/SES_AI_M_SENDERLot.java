@@ -16,7 +16,7 @@ import java.util.ArrayList;
 public class SES_AI_M_SENDERLot extends EntityLotBase<SES_AI_M_SENDER> {
   /** 全件SELECT文. */
   private static final String SELECT_ALL_SQL =
-      "SELECT from_id, from_name, company_id, register_date, register_user FROM SES_AI_M_SENDER";
+      "SELECT from_id, from_name, register_date, register_user FROM SES_AI_M_SENDER";
 
   public SES_AI_M_SENDERLot() {
     super();
@@ -29,7 +29,7 @@ public class SES_AI_M_SENDERLot extends EntityLotBase<SES_AI_M_SENDER> {
 
   @Override
   protected String getSelectSql() {
-    return "SELECT from_id, from_name, company_id, register_date, register_user FROM SES_AI_M_SENDER WHERE ";
+    return "SELECT from_id, from_name, register_date, register_user FROM SES_AI_M_SENDER WHERE ";
   }
 
   @Override
@@ -47,7 +47,6 @@ public class SES_AI_M_SENDERLot extends EntityLotBase<SES_AI_M_SENDER> {
     SES_AI_M_SENDER sesAiMSender = new SES_AI_M_SENDER();
     sesAiMSender.setFromId(resultSet.getString("from_id"));
     sesAiMSender.setFromName(resultSet.getString("from_name"));
-    sesAiMSender.setCompanyId(resultSet.getString("company_id"));
     sesAiMSender.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
     sesAiMSender.setRegisterUser(resultSet.getString("register_user"));
     return sesAiMSender;
