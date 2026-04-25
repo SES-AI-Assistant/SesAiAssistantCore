@@ -3,6 +3,7 @@ package copel.sesproductpackage.core.database;
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -28,15 +29,15 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
   // ================================
   /** INSERTR文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_JOB (job_id, from_group, from_id, from_name, raw_content, content_summary, vector_data, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
+      "INSERT INTO SES_AI_T_JOB (job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, vector_data, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
 
   /** SELECT文. */
   private static final String SELECT_SQL =
-      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_JOB WHERE job_id = ?";
+      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, vector_data, register_date, register_user, ttl FROM SES_AI_T_JOB WHERE job_id = ?";
 
   /** UPDATE文. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_T_JOB SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, content_summary = ?, vector_data = ?::vector, ttl = ? WHERE job_id = ?";
+      "UPDATE SES_AI_T_JOB SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, content_summary = ?, unit_price = ?, vector_data = ?::vector, ttl = ? WHERE job_id = ?";
 
   /** 重複チェック用SQL. */
   private static final String CHECK_SQL =
@@ -59,6 +60,10 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
   /** 要約 / content_summary */
   @Column(physicalName = "content_summary", logicalName = "要約")
   private String contentSummary;
+
+  /** 単価 / unit_price */
+  @Column(physicalName = "unit_price", logicalName = "単価")
+  private BigDecimal unitPrice;
 
   // ================================
   // メソッド
@@ -106,11 +111,12 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
     preparedStatement.setString(4, this.fromName);
     preparedStatement.setString(5, this.rawContent);
     preparedStatement.setString(6, this.contentSummary);
-    preparedStatement.setString(7, this.vectorData == null ? null : this.vectorData.toString());
+    preparedStatement.setObject(7, this.unitPrice);
+    preparedStatement.setString(8, this.vectorData == null ? null : this.vectorData.toString());
     preparedStatement.setTimestamp(
-        8, this.registerDate == null ? null : this.registerDate.toTimestamp());
-    preparedStatement.setString(9, this.registerUser);
-    preparedStatement.setTimestamp(10, this.ttl == null ? null : this.ttl.toTimestamp());
+        9, this.registerDate == null ? null : this.registerDate.toTimestamp());
+    preparedStatement.setString(10, this.registerUser);
+    preparedStatement.setTimestamp(11, this.ttl == null ? null : this.ttl.toTimestamp());
     return preparedStatement.executeUpdate();
   }
 
@@ -128,6 +134,7 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
       this.fromName = resultSet.getString("from_name");
       this.rawContent = resultSet.getString("raw_content");
       this.contentSummary = resultSet.getString("content_summary");
+      this.unitPrice = resultSet.getBigDecimal("unit_price");
       this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
       this.registerUser = resultSet.getString("register_user");
       this.ttl = new OriginalDateTime(resultSet.getString("ttl"));
@@ -145,9 +152,10 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
     preparedStatement.setString(3, this.fromName);
     preparedStatement.setString(4, this.rawContent);
     preparedStatement.setString(5, this.contentSummary);
-    preparedStatement.setString(6, this.vectorData == null ? null : this.vectorData.toString());
-    preparedStatement.setTimestamp(7, this.ttl == null ? null : this.ttl.toTimestamp());
-    preparedStatement.setString(8, this.jobId);
+    preparedStatement.setObject(6, this.unitPrice);
+    preparedStatement.setString(7, this.vectorData == null ? null : this.vectorData.toString());
+    preparedStatement.setTimestamp(8, this.ttl == null ? null : this.ttl.toTimestamp());
+    preparedStatement.setString(9, this.jobId);
     return preparedStatement.executeUpdate() > 0;
   }
 
