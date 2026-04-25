@@ -23,31 +23,31 @@ import lombok.extern.slf4j.Slf4j;
 public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
   /** ベクトル検索SQL. */
   private static final String RETRIEVE_SQL =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, register_date, register_user, ttl, vector_data <=> ?::vector AS distance FROM SES_AI_T_PERSON ORDER BY distance LIMIT ?";
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, register_date, register_user, ttl, vector_data <=> ?::vector AS distance FROM SES_AI_T_PERSON ORDER BY distance LIMIT ?";
 
   /** 類似度閾値を用いたベクトル検索SQL. */
   private static final String RETRIEVE_WITH_THRESHOLD_SQL =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, register_date, register_user, ttl, vector_data <=> ?::vector AS distance FROM SES_AI_T_PERSON WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, register_date, register_user, ttl, vector_data <=> ?::vector AS distance FROM SES_AI_T_PERSON WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
 
   /** 全文検索SQL. */
   private static final String SELECT_LIKE_SQL =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE raw_content LIKE ?";
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE raw_content LIKE ?";
 
   /** 複合条件全文検索用 SELECT 接頭辞（末尾に WHERE を含む）. */
   private static final String SELECT_RAW_CONTENT_FOR_FULLTEXT =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE ";
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE ";
 
   /** 検索SQL. */
   private static final String SELECT_SQL =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE ";
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE ";
 
   /** 検索SQL(指定時間以降検索). */
   private static final String SELECT_SQL_BY_REGISTER_DATE =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE register_date >= ?";
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE register_date >= ?";
 
   /** 全件検索SQL. */
   private static final String SELECT_ALL_SQL =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON";
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON";
 
   /** コンストラクタ. */
   public SES_AI_T_PERSONLot() {
@@ -387,7 +387,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
       return;
     }
     String sql =
-        "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, vector_data, register_date, register_user, ttl "
+        "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl "
             + "FROM SES_AI_T_PERSON "
             + "WHERE ((ttl IS NOT NULL AND ttl < NOW()) "
             + "   OR (ttl IS NULL AND register_date IS NOT NULL AND (register_date + INTERVAL '"
@@ -442,6 +442,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
     sesAiTPerson.setFileId(resultSet.getString("file_id"));
     sesAiTPerson.setRawContent(resultSet.getString("raw_content"));
     sesAiTPerson.setContentSummary(resultSet.getString("content_summary"));
+    sesAiTPerson.setUnitPrice(resultSet.getBigDecimal("unit_price"));
     sesAiTPerson.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
     sesAiTPerson.setRegisterUser(resultSet.getString("register_user"));
     sesAiTPerson.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
