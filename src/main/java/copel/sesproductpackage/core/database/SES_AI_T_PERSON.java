@@ -2,6 +2,7 @@ package copel.sesproductpackage.core.database;
 
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
+import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
 import java.math.BigDecimal;
@@ -76,7 +77,7 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
 
   /** 単価 / unit_price */
   @Column(physicalName = "unit_price", logicalName = "単価")
-  private BigDecimal unitPrice;
+  private Money unitPrice;
 
   // ================================
   // メソッド
@@ -173,7 +174,7 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
     preparedStatement.setString(5, this.rawContent);
     preparedStatement.setString(6, this.contentSummary);
     preparedStatement.setString(7, this.fileId);
-    preparedStatement.setObject(8, this.unitPrice);
+    preparedStatement.setObject(8, this.unitPrice == null ? null : this.unitPrice.getValue());
     preparedStatement.setString(9, this.vectorData == null ? null : this.vectorData.toString());
     preparedStatement.setTimestamp(
         10, this.registerDate == null ? null : this.registerDate.toTimestamp());
@@ -194,7 +195,7 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
     preparedStatement.setString(4, this.rawContent);
     preparedStatement.setString(5, this.contentSummary);
     preparedStatement.setString(6, this.fileId);
-    preparedStatement.setObject(7, this.unitPrice);
+    preparedStatement.setObject(7, this.unitPrice == null ? null : this.unitPrice.getValue());
     preparedStatement.setString(8, this.vectorData == null ? null : this.vectorData.toString());
     preparedStatement.setTimestamp(9, this.ttl == null ? null : this.ttl.toTimestamp());
     preparedStatement.setString(10, this.personId);
@@ -216,7 +217,8 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
       this.rawContent = resultSet.getString("raw_content");
       this.contentSummary = resultSet.getString("content_summary");
       this.fileId = resultSet.getString("file_id");
-      this.unitPrice = resultSet.getBigDecimal("unit_price");
+      BigDecimal unitPriceValue = resultSet.getBigDecimal("unit_price");
+      this.unitPrice = unitPriceValue == null ? Money.empty() : new Money(unitPriceValue);
       this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
       this.registerUser = resultSet.getString("register_user");
       this.ttl = new OriginalDateTime(resultSet.getString("ttl"));

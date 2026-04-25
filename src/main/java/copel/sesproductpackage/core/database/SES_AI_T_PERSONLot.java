@@ -4,6 +4,7 @@ import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.search.FulltextCondition;
 import copel.sesproductpackage.core.search.FulltextConditionsWhereClause;
 import copel.sesproductpackage.core.unit.LogicalOperators;
+import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
 import java.sql.Connection;
@@ -442,7 +443,8 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
     sesAiTPerson.setFileId(resultSet.getString("file_id"));
     sesAiTPerson.setRawContent(resultSet.getString("raw_content"));
     sesAiTPerson.setContentSummary(resultSet.getString("content_summary"));
-    sesAiTPerson.setUnitPrice(resultSet.getBigDecimal("unit_price"));
+    java.math.BigDecimal unitPriceValue = resultSet.getBigDecimal("unit_price");
+    sesAiTPerson.setUnitPrice(unitPriceValue == null ? Money.empty() : new Money(unitPriceValue));
     sesAiTPerson.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
     sesAiTPerson.setRegisterUser(resultSet.getString("register_user"));
     sesAiTPerson.setTtl(new OriginalDateTime(resultSet.getString("ttl")));

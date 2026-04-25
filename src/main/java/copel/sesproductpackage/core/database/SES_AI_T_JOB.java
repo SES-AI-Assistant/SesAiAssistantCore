@@ -2,6 +2,7 @@ package copel.sesproductpackage.core.database;
 
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
+import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -63,7 +64,7 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
 
   /** 単価 / unit_price */
   @Column(physicalName = "unit_price", logicalName = "単価")
-  private BigDecimal unitPrice;
+  private Money unitPrice;
 
   // ================================
   // メソッド
@@ -111,7 +112,7 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
     preparedStatement.setString(4, this.fromName);
     preparedStatement.setString(5, this.rawContent);
     preparedStatement.setString(6, this.contentSummary);
-    preparedStatement.setObject(7, this.unitPrice);
+    preparedStatement.setObject(7, this.unitPrice == null ? null : this.unitPrice.getValue());
     preparedStatement.setString(8, this.vectorData == null ? null : this.vectorData.toString());
     preparedStatement.setTimestamp(
         9, this.registerDate == null ? null : this.registerDate.toTimestamp());
@@ -134,7 +135,8 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
       this.fromName = resultSet.getString("from_name");
       this.rawContent = resultSet.getString("raw_content");
       this.contentSummary = resultSet.getString("content_summary");
-      this.unitPrice = resultSet.getBigDecimal("unit_price");
+      BigDecimal unitPriceValue = resultSet.getBigDecimal("unit_price");
+      this.unitPrice = unitPriceValue == null ? Money.empty() : new Money(unitPriceValue);
       this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
       this.registerUser = resultSet.getString("register_user");
       this.ttl = new OriginalDateTime(resultSet.getString("ttl"));
@@ -152,7 +154,7 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
     preparedStatement.setString(3, this.fromName);
     preparedStatement.setString(4, this.rawContent);
     preparedStatement.setString(5, this.contentSummary);
-    preparedStatement.setObject(6, this.unitPrice);
+    preparedStatement.setObject(6, this.unitPrice == null ? null : this.unitPrice.getValue());
     preparedStatement.setString(7, this.vectorData == null ? null : this.vectorData.toString());
     preparedStatement.setTimestamp(8, this.ttl == null ? null : this.ttl.toTimestamp());
     preparedStatement.setString(9, this.jobId);
