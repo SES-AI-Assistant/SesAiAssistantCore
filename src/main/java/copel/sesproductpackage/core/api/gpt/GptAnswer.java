@@ -133,7 +133,10 @@ public class GptAnswer {
    * @return JSON配列形式であればtrue、それ以外はfalse
    */
   public boolean isJsonArrayFormat() {
-    Pattern pattern = Pattern.compile("\\[([^]]*)\\]");
+    // AIの出力するJSON配列内に `]` が含まれている場合（オブジェクトの配列など）や、
+    // 改行が含まれている場合でも、途中で抽出が打ち切られないように Pattern.DOTALL を指定し、
+    // 「最初の `[` から最後の `]` まで」を確実に取得できるように修正。
+    Pattern pattern = Pattern.compile("\\[.*\\]", Pattern.DOTALL);
     Matcher matcher = pattern.matcher(this.answer);
     return matcher.find();
   }
@@ -147,19 +150,34 @@ public class GptAnswer {
    */
   @SuppressWarnings("unchecked")
   public List<String> getAsList() throws JsonMappingException, JsonProcessingException {
-    Pattern pattern = Pattern.compile("\\[([^]]*)\\]");
+    // 改行やネストされた括弧が存在しても配列全体を抽出できるよう正規表現を強化。
+    Pattern pattern = Pattern.compile("\\[.*\\]", Pattern.DOTALL);
     Matcher matcher = pattern.matcher(this.answer);
     if (matcher.find()) {
       String arrayStr = matcher.group(0).trim();
       ObjectMapper objectMapper = new ObjectMapper();
+      List<?> parsedList;
       try {
         // JSON→Listにパース
-        return objectMapper.readValue(arrayStr, List.class);
+        parsedList = objectMapper.readValue(arrayStr, List.class);
       } catch (JsonProcessingException e) {
         // そのままJSON→Listにパースできない場合は制御文字をエスケープ
         arrayStr = arrayStr.replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r");
-        return objectMapper.readValue(arrayStr, List.class);
+        parsedList = objectMapper.readValue(arrayStr, List.class);
       }
+      
+      // パースされた要素が必ずしもStringとは限らない（AIがJSONオブジェクトで返す場合がある）ため、
+      // 盲目的に List<String> へキャストした際の ClassCastException 発生を防止。
+      // 要素がStringでない場合は、再度JSON文字列に変換してリストに格納。
+      java.util.List<String> result = new java.util.ArrayList<>();
+      for (Object obj : parsedList) {
+        if (obj instanceof String) {
+          result.add((String) obj);
+        } else {
+          result.add(objectMapper.writeValueAsString(obj));
+        }
+      }
+      return result;
     } else {
       return null;
     }
