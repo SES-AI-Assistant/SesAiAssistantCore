@@ -34,7 +34,9 @@ public class Content {
     JOB,
     /** SES要員（エンジニア等）の紹介・プロフィール内容. */
     PERSONNEL,
-    /** 上記のどちらにも当てはまらない（広告・挨拶・無関係なやりとり等）. */
+    /** 案件と要員の両方が含まれる内容. */
+    BOTH,
+    /** 上記のどれにも当てはまらない（広告・挨拶・無関係なやりとり等）. */
     OTHER
   }
 
@@ -119,6 +121,8 @@ public class Content {
         answer != null && answer.getAnswer() != null ? answer.getAnswer().trim() : "";
     if (answerText.isEmpty()) {
       this.classificationResult = ContentType.OTHER;
+    } else if (answerText.contains("両方")) {
+      this.classificationResult = ContentType.BOTH;
     } else if (answerText.contains("案件")) {
       this.classificationResult = ContentType.JOB;
     } else if (answerText.contains("要員")) {
@@ -146,6 +150,15 @@ public class Content {
    */
   public boolean is要員紹介文() {
     return !this.isEmpty() && this.classificationResult == ContentType.PERSONNEL;
+  }
+
+  /**
+   * このメッセージが案件と要員の両方の情報を持つかどうかを判定します. classify() が呼ばれていて、その結果が「両方」の場合に true.
+   *
+   * @return 両方と判定すればtrue、それ以外はfalse
+   */
+  public boolean is両方() {
+    return !this.isEmpty() && this.classificationResult == ContentType.BOTH;
   }
 
   /**
@@ -186,6 +199,34 @@ public class Content {
     }
 
     return this.is複数紹介文;
+  }
+
+  /**
+   * このメッセージが案件と要員の両方である場合に、テキストを個別の情報に分割しリストに保持します.
+   * 事前に classify() で両方と判定されている必要がある.
+   *
+   * @param transformer GPTクライアント
+   * @return 分割成功であればtrue、失敗すればfalse
+   * @throws IOException 通信エラー時
+   * @throws RuntimeException APIエラー時
+   */
+  public boolean 両方判定分割処理実行(final Transformer transformer) throws IOException, RuntimeException {
+    GptAnswer answer = null;
+    final String 両方分割プロンプト = Properties.get(PROP_MULTIPLE_CONTENT_SPLIT_PROMPT);
+
+    if (this.is両方()) {
+      answer = transformer.generate(両方分割プロンプト + this.rawContent);
+    } else {
+      return false;
+    }
+
+    if (answer != null && answer.length() > 10 && answer.isJsonArrayFormat()) {
+      this.is複数紹介文 = true;
+      this.contentList = answer.getAsList();
+      return true;
+    }
+
+    return false;
   }
 
   /**
