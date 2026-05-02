@@ -25,6 +25,9 @@ public class Content {
   /** 文章が複数案件であるかどうかを判定し分割するプロンプト. */
   private static final String PROP_MULTI_JOB_PROMPT = "MULTIPLE_JOB_JUDGMENT_PROMPT";
 
+  /** 文章が案件と要員の両方である場合に分割するプロンプト. */
+  private static final String PROP_MULTIPLE_CONTENT_SPLIT_PROMPT = "MULTIPLE_CONTENT_SPLIT_PROMPT";
+
   /** 分類結果の種別. */
   public enum ContentType {
     /** SES案件の紹介・募集内容. */
