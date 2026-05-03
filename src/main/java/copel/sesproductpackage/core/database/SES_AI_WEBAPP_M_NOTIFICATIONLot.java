@@ -42,6 +42,23 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
     }
   }
 
+  /**
+   * notify_all_match = true のデバイス登録情報をすべて取得する.
+   *
+   * @param connection データベース接続
+   * @throws SQLException SQL実行時の例外
+   */
+  public void selectByNotifyAllMatch(Connection connection) throws SQLException {
+    String sql =
+        "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE notify_all_match = true";
+    PreparedStatement preparedStatement = connection.prepareStatement(sql);
+    ResultSet resultSet = preparedStatement.executeQuery();
+    this.entityLot = new ArrayList<>();
+    while (resultSet.next()) {
+      this.entityLot.add(mapResultSet(resultSet));
+    }
+  }
+
   @Override
   protected SES_AI_WEBAPP_M_NOTIFICATION mapResultSet(ResultSet resultSet) throws SQLException {
     SES_AI_WEBAPP_M_NOTIFICATION notification = new SES_AI_WEBAPP_M_NOTIFICATION();
