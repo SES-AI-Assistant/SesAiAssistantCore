@@ -16,7 +16,7 @@ import java.util.ArrayList;
 public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP_M_NOTIFICATION> {
   /** 全件SELECT文. */
   private static final String SELECT_ALL_SQL =
-      "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION";
+      "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION";
 
   public SES_AI_WEBAPP_M_NOTIFICATIONLot() {
     super();
@@ -29,7 +29,7 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
 
   @Override
   protected String getSelectSql() {
-    return "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE ";
+    return "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE ";
   }
 
   @Override
@@ -53,6 +53,7 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
     notification.setP256dh(resultSet.getString("p256dh"));
     notification.setAuth(resultSet.getString("auth"));
     notification.setEnabled(resultSet.getBoolean("enabled"));
+    notification.setNotifyAllMatch(resultSet.getBoolean("notify_all_match"));
     notification.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
     notification.setRegisterUser(resultSet.getString("register_user"));
     return notification;

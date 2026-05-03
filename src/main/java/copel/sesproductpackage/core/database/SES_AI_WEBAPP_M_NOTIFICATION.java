@@ -24,15 +24,15 @@ import lombok.ToString;
 public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
   /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_WEBAPP_M_NOTIFICATION (notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_WEBAPP_M_NOTIFICATION (notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文. */
   private static final String SELECT_SQL =
-      "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE notification_id = ?";
+      "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE notification_id = ?";
 
   /** UPDATE文. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_WEBAPP_M_NOTIFICATION SET notification_id = ?, user_id = ?, device_type = ?, device_name = ?, push_notification_endpoint = ?, p256dh = ?, auth = ?, enabled = ?, register_date = ?, register_user = ? WHERE notification_id = ?";
+      "UPDATE SES_AI_WEBAPP_M_NOTIFICATION SET notification_id = ?, user_id = ?, device_type = ?, device_name = ?, push_notification_endpoint = ?, p256dh = ?, auth = ?, enabled = ?, notify_all_match = ?, register_date = ?, register_user = ? WHERE notification_id = ?";
 
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE notification_id = ?";
@@ -69,6 +69,10 @@ public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
   @Column(physicalName = "enabled", logicalName = "有効フラグ")
   private Boolean enabled;
 
+  /** 全件通知フラグ / notify_all_match */
+  @Column(physicalName = "notify_all_match", logicalName = "全件通知フラグ")
+  private Boolean notifyAllMatch;
+
   @Override
   public int insert(Connection connection) throws SQLException {
     if (connection == null) {
@@ -83,9 +87,10 @@ public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
     preparedStatement.setString(6, this.p256dh);
     preparedStatement.setString(7, this.auth);
     preparedStatement.setBoolean(8, this.enabled != null && this.enabled);
+    preparedStatement.setBoolean(9, this.notifyAllMatch != null && this.notifyAllMatch);
     preparedStatement.setTimestamp(
-        9, this.registerDate == null ? null : this.registerDate.toTimestamp());
-    preparedStatement.setString(10, this.registerUser);
+        10, this.registerDate == null ? null : this.registerDate.toTimestamp());
+    preparedStatement.setString(11, this.registerUser);
     return preparedStatement.executeUpdate();
   }
 
@@ -106,6 +111,7 @@ public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
       this.p256dh = resultSet.getString("p256dh");
       this.auth = resultSet.getString("auth");
       this.enabled = resultSet.getBoolean("enabled");
+      this.notifyAllMatch = resultSet.getBoolean("notify_all_match");
       this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
       this.registerUser = resultSet.getString("register_user");
     }
@@ -125,10 +131,11 @@ public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
     preparedStatement.setString(6, this.p256dh);
     preparedStatement.setString(7, this.auth);
     preparedStatement.setBoolean(8, this.enabled != null && this.enabled);
+    preparedStatement.setBoolean(9, this.notifyAllMatch != null && this.notifyAllMatch);
     preparedStatement.setTimestamp(
-        9, this.registerDate == null ? null : this.registerDate.toTimestamp());
-    preparedStatement.setString(10, this.registerUser);
-    preparedStatement.setString(11, this.notificationId);
+        10, this.registerDate == null ? null : this.registerDate.toTimestamp());
+    preparedStatement.setString(11, this.registerUser);
+    preparedStatement.setString(12, this.notificationId);
     return preparedStatement.executeUpdate() > 0;
   }
 
