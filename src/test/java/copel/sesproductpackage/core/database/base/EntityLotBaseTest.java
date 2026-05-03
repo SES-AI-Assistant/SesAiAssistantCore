@@ -89,6 +89,24 @@ class EntityLotBaseTest {
   }
 
   @Test
+  void testToCountSql_removesOrderByClause() {
+    String personWithOrderBy = "SELECT person_id, register_date FROM SES_AI_T_PERSON ORDER BY register_date DESC";
+    assertEquals("SELECT COUNT(*) FROM SES_AI_T_PERSON", EntityLotBase.toCountSql(personWithOrderBy));
+
+    String jobWithOrderBy = "SELECT job_id, register_date FROM SES_AI_T_JOB ORDER BY register_date DESC";
+    assertEquals("SELECT COUNT(*) FROM SES_AI_T_JOB", EntityLotBase.toCountSql(jobWithOrderBy));
+
+    String skillsheetWithOrderBy = "SELECT file_id, register_date FROM SES_AI_T_SKILLSHEET ORDER BY register_date DESC";
+    assertEquals("SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET", EntityLotBase.toCountSql(skillsheetWithOrderBy));
+  }
+
+  @Test
+  void testToCountSql_removesGroupByClause() {
+    String withGroupBy = "SELECT category, COUNT(*) FROM SES_AI_T_PERSON GROUP BY category";
+    assertEquals("SELECT COUNT(*) FROM SES_AI_T_PERSON", EntityLotBase.toCountSql(withGroupBy));
+  }
+
+  @Test
   void testLotOperations() {
     TestEntityLot lot = new TestEntityLot();
     assertTrue(lot.isEmpty());

@@ -29,7 +29,10 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     if (baseSql == null) {
       return null;
     }
-    return baseSql.replaceFirst("(?i)\\bSELECT\\s+.*?\\s+\\bFROM\\s+", "SELECT COUNT(*) FROM ");
+    String countSql = baseSql.replaceFirst("(?i)\\bSELECT\\s+.*?\\s+\\bFROM\\s+", "SELECT COUNT(*) FROM ");
+    // ORDER BY / GROUP BY を削除（COUNT では不要で、PostgreSQL の GROUP BY 検証エラー回避）
+    countSql = countSql.replaceAll("(?i)\\s+(ORDER\\s+BY|GROUP\\s+BY)\\s+.*$", "");
+    return countSql;
   }
 
   // ================================
