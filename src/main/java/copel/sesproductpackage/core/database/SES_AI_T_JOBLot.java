@@ -42,7 +42,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
 
   /** 全件検索SQL. */
   private static final String SELECT_ALL_SQL =
-      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, register_date, register_user, ttl FROM SES_AI_T_JOB";
+      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, register_date, register_user, ttl FROM SES_AI_T_JOB ORDER BY register_date DESC";
 
   /** コンストラクタ. */
   public SES_AI_T_JOBLot() {
