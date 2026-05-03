@@ -43,6 +43,29 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
   }
 
   /**
+   * user_id で デバイス登録情報をすべて取得する.
+   *
+   * @param connection データベース接続
+   * @param userId ユーザーID
+   * @throws SQLException SQL実行時の例外
+   */
+  public void selectByUserId(Connection connection, String userId) throws SQLException {
+    if (connection == null || userId == null) {
+      this.entityLot = new ArrayList<>();
+      return;
+    }
+    String sql =
+        "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE user_id = ?";
+    PreparedStatement preparedStatement = connection.prepareStatement(sql);
+    preparedStatement.setString(1, userId);
+    ResultSet resultSet = preparedStatement.executeQuery();
+    this.entityLot = new ArrayList<>();
+    while (resultSet.next()) {
+      this.entityLot.add(mapResultSet(resultSet));
+    }
+  }
+
+  /**
    * notify_all_match = true のデバイス登録情報をすべて取得する.
    *
    * @param connection データベース接続
