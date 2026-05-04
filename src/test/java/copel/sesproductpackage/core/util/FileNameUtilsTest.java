@@ -152,6 +152,22 @@ public class FileNameUtilsTest {
     assertEquals(".", FileNameUtils.decode("."));
   }
 
+  @Test
+  public void testDecode_Utf8MisinterpretedAsLatin1() {
+    // UTF-8バイト列がISO-8859-1として誤解釈されたケースをシミュレート
+    // 元のファイル名をUTF-8でエンコード、その結果をISO-8859-1の文字列として解釈
+    String original = "スキルシート.pdf";
+    byte[] utf8Bytes = original.getBytes(StandardCharsets.UTF_8);
+    String corrupted = new String(utf8Bytes, StandardCharsets.ISO_8859_1);
+
+    String decoded = FileNameUtils.decode(corrupted);
+    assertEquals(original, decoded);
+
+    // ASCII文字列は修正不要（修正されないべき）
+    assertEquals("test.txt", FileNameUtils.decode("test.txt"));
+    assertEquals("file.pdf", FileNameUtils.decode("file.pdf"));
+  }
+
   private static void putStaticFinalObject(Field field, Object newValue) throws Exception {
     Field unsafeField = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe");
     unsafeField.setAccessible(true);

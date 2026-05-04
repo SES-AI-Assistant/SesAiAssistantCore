@@ -73,7 +73,10 @@ public class FileNameUtils {
       log.debug("URLデコードに失敗しました（スキップ）: {}", decoded);
     }
 
-    // 4. サニタイズ (OSで禁止されている文字を除去/置換)
+    // 4. UTF-8がISO-8859-1として誤解釈されたものを修正
+    decoded = recoverUtf8MisinterpretedAsLatin1(decoded);
+
+    // 5. サニタイズ (OSで禁止されている文字を除去/置換)
     // \ / : * ? " < > | および制御文字をアンダースコアに置換
     decoded = decoded.replaceAll("[\\\\/:*?\"<>|\\x00-\\x1F\\x7F]", "_");
 
@@ -145,5 +148,56 @@ public class FileNameUtils {
       buffer.write(c);
     }
     return buffer.toByteArray();
+  }
+
+  /**
+   * Content-Dispositionヘッダなどで、UTF-8バイト列がISO-8859-1として誤解釈された文字列を修正する.
+   *
+   * <p>例: "スキルシート"のUTF-8バイト列(E3 82 B9...)がISO-8859-1文字として解釈されると
+   * "ã¹ã­ã«ã·ã¼ã" となる。このような場合、正しいUTF-8文字列に復元する。
+   *
+   * @param text 対象の文字列
+   * @return 修正後の文字列（修正不要な場合は元の文字列）
+   */
+  private static String recoverUtf8MisinterpretedAsLatin1(String text) {
+    if (text == null || text.isEmpty()) {
+      return text;
+    }
+    try {
+      byte[] latin1Bytes = text.getBytes(StandardCharsets.ISO_8859_1);
+      String recovered = new String(latin1Bytes, StandardCharsets.UTF_8);
+      // 復帰後の文字列に日本語（またはその他のマルチバイト文字）が含まれていたら採用
+      // ひらがな、カタカナ、漢字、その他のCJK文字、絵文字などをチェック
+      if (containsJapaneseOrMultibyte(recovered)) {
+        return recovered;
+      }
+    } catch (Exception e) {
+      log.debug("UTF-8復帰に失敗しました（スキップ）: {}", text);
+    }
+    return text;
+  }
+
+  /**
+   * 文字列が日本語またはマルチバイト文字を含むか判定する.
+   *
+   * @param text 判定対象の文字列
+   * @return 日本語またはマルチバイト文字を含めば true
+   */
+  private static boolean containsJapaneseOrMultibyte(String text) {
+    if (text == null) {
+      return false;
+    }
+    for (char c : text.toCharArray()) {
+      // ひらがな、カタカナ、漢字、その他のCJK文字（U+2E80-U+9FFF）
+      if ((c >= '぀' && c <= 'ゟ')  // ひらがな
+          || (c >= '゠' && c <= 'ヿ')  // カタカナ
+          || (c >= '一' && c <= '鿿')  // 漢字
+          || (c >= '⺀' && c <= '⻿')  // CJK Radicals Supplement
+          || (c >= '㐀' && c <= '䶿')  // CJK Unified Ideographs Extension A
+          || (c >= '豈' && c <= '﫿')) {  // CJK Compatibility Ideographs
+        return true;
+      }
+    }
+    return false;
   }
 }
