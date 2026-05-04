@@ -19,7 +19,7 @@ import software.amazon.awssdk.services.lambda.LambdaClientBuilder;
 import software.amazon.awssdk.services.lambda.model.InvokeRequest;
 import software.amazon.awssdk.services.lambda.model.InvokeResponse;
 import software.amazon.awssdk.services.lambda.model.LambdaException;
-import copel.sesproductpackage.core.util.EnvUtils;
+import copel.sesproductpackage.core.util.Properties;
 
 class MarkItDownTest {
 
@@ -39,8 +39,8 @@ class MarkItDownTest {
 
   @Test
   void invokeThrowsWhenFunctionNameMissing() {
-    try (MockedStatic<EnvUtils> env = mockStatic(EnvUtils.class)) {
-      env.when(() -> EnvUtils.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn(null);
+    try (MockedStatic<Properties> props = mockStatic(Properties.class)) {
+      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn(null);
       IllegalStateException ex =
           assertThrows(
               IllegalStateException.class,
@@ -53,8 +53,8 @@ class MarkItDownTest {
 
   @Test
   void invokeThrowsWhenFunctionNameBlank() {
-    try (MockedStatic<EnvUtils> env = mockStatic(EnvUtils.class)) {
-      env.when(() -> EnvUtils.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("  ");
+    try (MockedStatic<Properties> props = mockStatic(Properties.class)) {
+      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("  ");
       assertThrows(
           IllegalStateException.class,
           () ->
@@ -67,10 +67,9 @@ class MarkItDownTest {
   void invokeUsesDefaultRegionWhenAwsRegionBlank() {
     String okJson =
         "{\"success\":true,\"markdown\":\"# Hi\",\"title\":null,\"error\":null}";
-    try (MockedStatic<EnvUtils> env = mockStatic(EnvUtils.class);
+    try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      env.when(() -> EnvUtils.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
-      env.when(() -> EnvUtils.get("AWS_REGION")).thenReturn(" ");
+      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
 
       LambdaClient client = mockLambdaChain(lambda, okJson);
 
@@ -87,10 +86,9 @@ class MarkItDownTest {
   void invokeUsesExplicitAwsRegion() {
     String okJson =
         "{\"success\":true,\"markdown\":\"m\",\"title\":\"t\",\"error\":null}";
-    try (MockedStatic<EnvUtils> env = mockStatic(EnvUtils.class);
+    try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      env.when(() -> EnvUtils.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
-      env.when(() -> EnvUtils.get("AWS_REGION")).thenReturn("eu-west-1");
+      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
 
       LambdaClient client = mockLambdaChain(lambda, okJson);
 
@@ -107,10 +105,9 @@ class MarkItDownTest {
   void invokeSuccessParsesResponse() {
     String okJson =
         "{\"success\":true,\"markdown\":\"# body\",\"title\":\"T\",\"error\":null}";
-    try (MockedStatic<EnvUtils> env = mockStatic(EnvUtils.class);
+    try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      env.when(() -> EnvUtils.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
-      env.when(() -> EnvUtils.get("AWS_REGION")).thenReturn(null);
+      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
 
       mockLambdaChain(lambda, okJson);
 
@@ -132,10 +129,9 @@ class MarkItDownTest {
 
   @Test
   void invokeThrowsWhenRequestJsonFails() {
-    try (MockedStatic<EnvUtils> env = mockStatic(EnvUtils.class);
+    try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      env.when(() -> EnvUtils.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
-      env.when(() -> EnvUtils.get("AWS_REGION")).thenReturn(null);
+      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
       mockLambdaChain(lambda, "{}");
 
       MarkItDown.injectJsonProcessingExceptionOnSerializeForTest = true;
@@ -152,10 +148,9 @@ class MarkItDownTest {
 
   @Test
   void invokeThrowsWhenFunctionErrorWithPayload() {
-    try (MockedStatic<EnvUtils> env = mockStatic(EnvUtils.class);
+    try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      env.when(() -> EnvUtils.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
-      env.when(() -> EnvUtils.get("AWS_REGION")).thenReturn(null);
+      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
 
       InvokeResponse response =
           InvokeResponse.builder()
@@ -177,10 +172,9 @@ class MarkItDownTest {
 
   @Test
   void invokeThrowsWhenFunctionErrorWithNullPayload() {
-    try (MockedStatic<EnvUtils> env = mockStatic(EnvUtils.class);
+    try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      env.when(() -> EnvUtils.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
-      env.when(() -> EnvUtils.get("AWS_REGION")).thenReturn(null);
+      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
 
       InvokeResponse response =
           InvokeResponse.builder().functionError("Unhandled").payload(null).build();
@@ -198,10 +192,9 @@ class MarkItDownTest {
 
   @Test
   void invokeThrowsWhenPayloadNullAfterOkFunctionError() {
-    try (MockedStatic<EnvUtils> env = mockStatic(EnvUtils.class);
+    try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      env.when(() -> EnvUtils.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
-      env.when(() -> EnvUtils.get("AWS_REGION")).thenReturn(null);
+      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
 
       InvokeResponse response =
           InvokeResponse.builder().functionError(null).payload(null).build();
@@ -219,10 +212,9 @@ class MarkItDownTest {
 
   @Test
   void invokeThrowsWhenResponseJsonInvalid() {
-    try (MockedStatic<EnvUtils> env = mockStatic(EnvUtils.class);
+    try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      env.when(() -> EnvUtils.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
-      env.when(() -> EnvUtils.get("AWS_REGION")).thenReturn(null);
+      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
 
       mockLambdaChain(lambda, "{not-json");
 
@@ -238,10 +230,9 @@ class MarkItDownTest {
 
   @Test
   void invokeThrowsWhenLambdaClientThrowsLambdaException() {
-    try (MockedStatic<EnvUtils> env = mockStatic(EnvUtils.class);
+    try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      env.when(() -> EnvUtils.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
-      env.when(() -> EnvUtils.get("AWS_REGION")).thenReturn(null);
+      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
 
       LambdaClient client = mock(LambdaClient.class);
       LambdaClientBuilder builder = mock(LambdaClientBuilder.class);
