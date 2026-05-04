@@ -222,7 +222,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param andQuery カラム名と検索値をkey-valueで持つMap
    * @throws SQLException
    */
-  public void selectByAndQuery(final Connection connection, final Map<String, String> andQuery)
+  public void selectByAndQuery(final Connection connection, final Map<String, Object> andQuery)
       throws SQLException {
     this.selectByQuery(connection, getSelectSql(), andQuery, true);
   }
@@ -234,7 +234,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param orQuery カラム名と検索値をkey-valueで持つMap
    * @throws SQLException
    */
-  public void selectByOrQuery(final Connection connection, final Map<String, String> orQuery)
+  public void selectByOrQuery(final Connection connection, final Map<String, Object> orQuery)
       throws SQLException {
     this.selectByQuery(connection, getSelectSql(), orQuery, false);
   }
@@ -343,7 +343,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   protected void selectByQuery(
       final Connection connection,
       final String baseSql,
-      final Map<String, String> query,
+      final Map<String, Object> query,
       final boolean isAnd)
       throws SQLException {
     this.entityLot = new ArrayList<>();
@@ -365,7 +365,16 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     try (PreparedStatement preparedStatement = connection.prepareStatement(sql.toString())) {
       int i = 1;
       for (final String columnName : query.keySet()) {
-        preparedStatement.setString(i, query.get(columnName));
+        Object value = query.get(columnName);
+        if (value instanceof Boolean) {
+          preparedStatement.setBoolean(i, (Boolean) value);
+        } else if (value instanceof Integer) {
+          preparedStatement.setInt(i, (Integer) value);
+        } else if (value instanceof Long) {
+          preparedStatement.setLong(i, (Long) value);
+        } else {
+          preparedStatement.setString(i, value != null ? value.toString() : null);
+        }
         i++;
       }
 

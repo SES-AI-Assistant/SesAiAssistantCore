@@ -169,7 +169,7 @@ class EntityLotBaseTest {
     when(rs.next()).thenReturn(true, false);
 
     TestEntityLot lot = new TestEntityLot();
-    Map<String, String> query = Map.of("col1", "val1", "col2", "val2");
+    Map<String, Object> query = Map.of("col1", "val1", "col2", "val2");
 
     lot.selectByAndQuery(conn, query);
     assertEquals(1, lot.size());

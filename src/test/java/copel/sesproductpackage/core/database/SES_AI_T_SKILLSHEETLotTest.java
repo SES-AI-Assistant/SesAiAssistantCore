@@ -144,7 +144,7 @@ class SES_AI_T_SKILLSHEETLotTest {
   void testSelectByAndQuery() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
-    Map<String, String> query = new HashMap<>();
+    Map<String, Object> query = new HashMap<>();
     query.put("col1", "val1");
     query.put("col2", "val2");
     lot.selectByAndQuery(mockConn, query);
@@ -155,7 +155,7 @@ class SES_AI_T_SKILLSHEETLotTest {
   void testSelectByOrQuery() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
-    Map<String, String> query = new HashMap<>();
+    Map<String, Object> query = new HashMap<>();
     query.put("col1", "val1");
     query.put("col2", "val2");
     lot.selectByOrQuery(mockConn, query);
