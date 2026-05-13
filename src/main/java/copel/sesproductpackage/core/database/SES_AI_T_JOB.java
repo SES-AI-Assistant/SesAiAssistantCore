@@ -44,6 +44,10 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
   private static final String CHECK_SQL =
       "SELECT COUNT(*) FROM SES_AI_T_JOB WHERE raw_content % ? AND similarity(raw_content, ?) > ?";
 
+  /** 単価等取得用・重複チェックSQL. */
+  private static final String FIND_SIMILAR_SQL =
+      "SELECT job_id, unit_price FROM SES_AI_T_JOB WHERE regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g') % ? AND similarity(regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g'), ?) > ? LIMIT 1";
+
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_T_JOB WHERE job_id = ?";
 
@@ -76,6 +80,41 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
    */
   public String to案件選出用文章() {
     return "案件ID：" + this.jobId + "内容：" + this.rawContent;
+  }
+
+  /**
+   * URLを除外したテキストで類似レコードを検索し、存在する場合はそのレコードのIDと単価を返す.
+   *
+   * @param connection DBコネクション
+   * @param textToCheck チェック対象のテキスト
+   * @param similarityThreshold 類似度のしきい値
+   * @return 類似レコードが見つかった場合はそのSES_AI_T_JOB、見つからなかった場合はnull
+   * @throws SQLException
+   */
+  public static SES_AI_T_JOB findSimilarRecord(
+      final Connection connection, final String textToCheck, final double similarityThreshold)
+      throws SQLException {
+    if (connection == null || textToCheck == null) {
+      return null;
+    }
+    // 比較用にURLをマスキング
+    String maskedText = textToCheck.replaceAll("https?://[^\\s]+", "");
+
+    try (PreparedStatement preparedStatement = connection.prepareStatement(FIND_SIMILAR_SQL)) {
+      preparedStatement.setString(1, maskedText);
+      preparedStatement.setString(2, maskedText);
+      preparedStatement.setDouble(3, similarityThreshold);
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        if (resultSet.next()) {
+          SES_AI_T_JOB result = new SES_AI_T_JOB();
+          result.setJobId(resultSet.getString("job_id"));
+          BigDecimal unitPriceValue = resultSet.getBigDecimal("unit_price");
+          result.setUnitPrice(unitPriceValue == null ? Money.empty() : new Money(unitPriceValue));
+          return result;
+        }
+      }
+    }
+    return null;
   }
 
   // ================================
