@@ -37,4 +37,8 @@ public class SesAiAssistantWebAppNotifierRequestEntity {
   /** タグ. */
   @JsonProperty("tag")
   private String tag;
+
+  /** タップ時の遷移先 URL. */
+  @JsonProperty("url")
+  private String url;
 }

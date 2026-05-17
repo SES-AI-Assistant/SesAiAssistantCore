@@ -44,7 +44,7 @@ class SesAiAssistantWebAppNotifierSqsEntityTest {
   void testGetMessageBody() throws Exception {
     SesAiAssistantWebAppNotifierRequestEntity request =
         new SesAiAssistantWebAppNotifierRequestEntity(
-            "user1", "test title", "test body", "/icon.png", "/badge.png", "test-tag");
+            "user1", "test title", "test body", "/icon.png", "/badge.png", "test-tag", "/");
     SesAiAssistantWebAppNotifierSqsEntity entity =
         new SesAiAssistantWebAppNotifierSqsEntity("http://sqs/test", request);
 
@@ -55,13 +55,14 @@ class SesAiAssistantWebAppNotifierSqsEntityTest {
     assertTrue(json.contains("\"icon\":\"/icon.png\""));
     assertTrue(json.contains("\"badge\":\"/badge.png\""));
     assertTrue(json.contains("\"tag\":\"test-tag\""));
+    assertTrue(json.contains("\"url\":\"/\""));
   }
 
   @Test
   void testSendMessage() throws Exception {
     SesAiAssistantWebAppNotifierRequestEntity request =
         new SesAiAssistantWebAppNotifierRequestEntity(
-            "user1", "title", "body", "/icon.png", "/badge.png", "tag");
+            "user1", "title", "body", "/icon.png", "/badge.png", "tag", "/");
     SesAiAssistantWebAppNotifierSqsEntity entity =
         new SesAiAssistantWebAppNotifierSqsEntity("http://sqs/test", request);
 
