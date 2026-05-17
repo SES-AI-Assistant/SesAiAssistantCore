@@ -49,6 +49,10 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
   private static final String CHECK_SQL =
       "SELECT COUNT(*) FROM SES_AI_T_PERSON WHERE raw_content % ? AND similarity(raw_content, ?) > ?";
 
+  /** 単価等取得用・重複チェックSQL. */
+  private static final String FIND_SIMILAR_SQL =
+      "SELECT person_id, unit_price FROM SES_AI_T_PERSON WHERE regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g') % ? AND similarity(regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g'), ?) > ? LIMIT 1";
+
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_T_PERSON WHERE person_id = ?";
 
@@ -137,6 +141,41 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
       preparedStatement.setString(1, fileId);
       return preparedStatement.executeUpdate();
     }
+  }
+
+  /**
+   * URLを除外したテキストで類似レコードを検索し、存在する場合はそのレコードのIDと単価を返す.
+   *
+   * @param connection DBコネクション
+   * @param textToCheck チェック対象のテキスト
+   * @param similarityThreshold 類似度のしきい値
+   * @return 類似レコードが見つかった場合はそのSES_AI_T_PERSON、見つからなかった場合はnull
+   * @throws SQLException
+   */
+  public static SES_AI_T_PERSON findSimilarRecord(
+      final Connection connection, final String textToCheck, final double similarityThreshold)
+      throws SQLException {
+    if (connection == null || textToCheck == null) {
+      return null;
+    }
+    // 比較用にURLをマスキング
+    String maskedText = textToCheck.replaceAll("https?://[^\\s]+", "");
+
+    try (PreparedStatement preparedStatement = connection.prepareStatement(FIND_SIMILAR_SQL)) {
+      preparedStatement.setString(1, maskedText);
+      preparedStatement.setString(2, maskedText);
+      preparedStatement.setDouble(3, similarityThreshold);
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        if (resultSet.next()) {
+          SES_AI_T_PERSON result = new SES_AI_T_PERSON();
+          result.setPersonId(resultSet.getString("person_id"));
+          BigDecimal unitPriceValue = resultSet.getBigDecimal("unit_price");
+          result.setUnitPrice(unitPriceValue == null ? Money.empty() : new Money(unitPriceValue));
+          return result;
+        }
+      }
+    }
+    return null;
   }
 
   // ================================
