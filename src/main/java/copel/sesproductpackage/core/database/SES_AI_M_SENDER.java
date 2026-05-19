@@ -37,6 +37,10 @@ public class SES_AI_M_SENDER extends EntityBase {
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_M_SENDER WHERE from_id = ?";
 
+  /** EXISTS文. */
+  private static final String EXISTS_SQL =
+      "SELECT EXISTS (SELECT 1 FROM SES_AI_M_SENDER WHERE from_id = ?)";
+
   /** 【PK】 送信者ID* / from_id */
   @Column(required = true, primary = true, physicalName = "from_id", logicalName = "送信者ID")
   private String fromId;
@@ -98,5 +102,25 @@ public class SES_AI_M_SENDER extends EntityBase {
     PreparedStatement preparedStatement = connection.prepareStatement(DELETE_SQL);
     preparedStatement.setString(1, this.fromId);
     return preparedStatement.executeUpdate() > 0;
+  }
+
+  /**
+   * 送信者マスタに該当IDの送信者が存在するかを判定する.
+   *
+   * @param connection DB接続
+   * @return 存在する場合はtrue、存在しない場合またはconnectionがnullの場合はfalse
+   * @throws SQLException SQL実行エラー時
+   */
+  public boolean isExist(Connection connection) throws SQLException {
+    if (connection == null || this.fromId == null) {
+      return false;
+    }
+    PreparedStatement preparedStatement = connection.prepareStatement(EXISTS_SQL);
+    preparedStatement.setString(1, this.fromId);
+    ResultSet resultSet = preparedStatement.executeQuery();
+    if (resultSet.next()) {
+      return resultSet.getBoolean(1);
+    }
+    return false;
   }
 }

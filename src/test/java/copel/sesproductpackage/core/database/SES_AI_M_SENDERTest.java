@@ -79,4 +79,33 @@ class SES_AI_M_SENDERTest {
     when(rs.next()).thenReturn(false);
     sender.selectByPk(connection);
   }
+
+  @Test
+  void testIsExist() throws SQLException {
+    Connection connection = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(connection.prepareStatement(anyString())).thenReturn(ps);
+
+    SES_AI_M_SENDER sender = new SES_AI_M_SENDER();
+    sender.setFromId("S1");
+
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true);
+    when(rs.getBoolean(1)).thenReturn(true);
+    assertTrue(sender.isExist(connection));
+
+    when(rs.next()).thenReturn(true);
+    when(rs.getBoolean(1)).thenReturn(false);
+    assertFalse(sender.isExist(connection));
+
+    when(rs.next()).thenReturn(false);
+    assertFalse(sender.isExist(connection));
+
+    sender.setFromId(null);
+    assertFalse(sender.isExist(connection));
+
+    sender.setFromId("S1");
+    assertFalse(sender.isExist(null));
+  }
 }
