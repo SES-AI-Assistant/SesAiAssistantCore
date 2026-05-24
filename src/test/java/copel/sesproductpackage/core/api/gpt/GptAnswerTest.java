@@ -101,4 +101,35 @@ class GptAnswerTest {
     assertEquals("test", answer.getAnswer());
     assertEquals("test", answer.toString());
   }
+
+  @Test
+  void testContains() {
+    assertTrue(new GptAnswer("山田太郎", fakeTransformer).contains("山田"));
+    assertTrue(new GptAnswer("不明です", fakeTransformer).contains("不明"));
+    assertFalse(new GptAnswer("山田太郎", fakeTransformer).contains("不明"));
+    assertFalse(new GptAnswer(null, fakeTransformer).contains("test"));
+    assertFalse(new GptAnswer("test", fakeTransformer).contains(null));
+  }
+
+  @Test
+  void testExceedsLength() {
+    assertTrue(new GptAnswer("12345", fakeTransformer).exceedsLength(4));
+    assertFalse(new GptAnswer("1234", fakeTransformer).exceedsLength(4));
+    assertFalse(new GptAnswer("123", fakeTransformer).exceedsLength(4));
+    assertFalse(new GptAnswer(null, fakeTransformer).exceedsLength(10));
+  }
+
+  @Test
+  void testRemoveSymbolsAndWhitespace() {
+    assertEquals("山田太郎", new GptAnswer("山田 太郎", fakeTransformer).removeSymbolsAndWhitespace());
+    assertEquals("山田太郎", new GptAnswer("山田　太郎", fakeTransformer).removeSymbolsAndWhitespace());
+    assertEquals("山田太郎", new GptAnswer("山田・太郎", fakeTransformer).removeSymbolsAndWhitespace());
+    assertEquals("山田太郎", new GptAnswer("山田-太郎", fakeTransformer).removeSymbolsAndWhitespace());
+    assertEquals("abc123", new GptAnswer("a b c 1 2 3", fakeTransformer).removeSymbolsAndWhitespace());
+    assertEquals("abc123", new GptAnswer("a,b.c;1,2.3", fakeTransformer).removeSymbolsAndWhitespace());
+    assertNull(new GptAnswer(null, fakeTransformer).removeSymbolsAndWhitespace());
+    assertNull(new GptAnswer("", fakeTransformer).removeSymbolsAndWhitespace());
+    assertNull(new GptAnswer("  ", fakeTransformer).removeSymbolsAndWhitespace());
+    assertNull(new GptAnswer("  -・、。  ", fakeTransformer).removeSymbolsAndWhitespace());
+  }
 }

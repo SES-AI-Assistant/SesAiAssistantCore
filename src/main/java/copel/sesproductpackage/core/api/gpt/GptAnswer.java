@@ -119,6 +119,39 @@ public class GptAnswer {
   }
 
   /**
+   * この回答が指定された文字列を含むかどうかを判定する.
+   *
+   * @param str 検索対象の文字列
+   * @return 含む場合true、含まない場合またはNULLはfalse
+   */
+  public boolean contains(final String str) {
+    return this.answer != null && str != null && this.answer.contains(str);
+  }
+
+  /**
+   * この回答が指定された上限文字数を超えているかどうかを判定する.
+   *
+   * @param maxLength 上限文字数
+   * @return 上限を超えていればtrue、以下ならfalse
+   */
+  public boolean exceedsLength(final int maxLength) {
+    return this.length() > maxLength;
+  }
+
+  /**
+   * この回答から空白と記号を全て削除した文字列を返す.
+   *
+   * @return 空白・記号を削除した文字列、またはnull/空文字の場合はnull
+   */
+  public String removeSymbolsAndWhitespace() {
+    if (this.isEmpty()) {
+      return null;
+    }
+    String cleaned = this.answer.replaceAll("[\\s\\p{Z}\\p{P}]", "");
+    return cleaned.isEmpty() ? null : cleaned;
+  }
+
+  /**
    * この回答を整数型で取得する.
    *
    * @return 整数型の値
