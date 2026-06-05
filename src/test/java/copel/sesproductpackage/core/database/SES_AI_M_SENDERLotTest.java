@@ -20,9 +20,10 @@ class SES_AI_M_SENDERLotTest {
     when(ps.executeQuery()).thenReturn(rs);
     when(rs.next()).thenReturn(true, false);
     when(rs.getString("from_id")).thenReturn("S1");
+    when(rs.getString("tenant_id")).thenReturn("test-tenant");
 
     SES_AI_M_SENDERLot lot = new SES_AI_M_SENDERLot();
-    lot.selectAll(connection);
+    lot.selectAll(connection, "test-tenant");
     assertEquals(1, lot.size());
   }
 }

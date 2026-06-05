@@ -34,9 +34,10 @@ class SES_AI_T_WATCHLotTest {
     when(mockResultSet.getString("user_id")).thenReturn("u1");
     when(mockResultSet.getString("target_id")).thenReturn("t1");
     when(mockResultSet.getString("target_type")).thenReturn("JOB");
+    when(mockResultSet.getString("tenant_id")).thenReturn("test-tenant");
 
     SES_AI_T_WATCHLot lot = new SES_AI_T_WATCHLot();
-    lot.selectByUserId(mockConnection, "u1");
+    lot.selectByUserId(mockConnection, "test-tenant", "u1");
 
     assertEquals(1, lot.size());
     assertEquals("t1", lot.get(0).getTargetId());
@@ -45,14 +46,14 @@ class SES_AI_T_WATCHLotTest {
     assertFalse(lot.containsById(null));
     assertFalse(lot.containsById(""));
 
-    lot.selectByUserId(null, "u1");
-    lot.selectByUserId(mockConnection, null);
+    lot.selectByUserId(null, "test-tenant", "u1");
+    lot.selectByUserId(mockConnection, "test-tenant", null);
   }
 
   @Test
   void testDeleteExpired() throws SQLException {
     SES_AI_T_WATCHLot lot = new SES_AI_T_WATCHLot();
-    int count = lot.deleteExpired(mockConnection);
+    int count = lot.deleteExpired(mockConnection, "test-tenant");
     assertEquals(1, count);
     verify(mockPreparedStatement).executeUpdate();
   }
@@ -60,8 +61,9 @@ class SES_AI_T_WATCHLotTest {
   @Test
   void testSelectAll() throws SQLException {
     when(mockResultSet.next()).thenReturn(true, false);
+    when(mockResultSet.getString("tenant_id")).thenReturn("test-tenant");
     SES_AI_T_WATCHLot lot = new SES_AI_T_WATCHLot();
-    lot.selectAll(mockConnection);
+    lot.selectAll(mockConnection, "test-tenant");
     assertEquals(1, lot.size());
   }
 
@@ -71,16 +73,17 @@ class SES_AI_T_WATCHLotTest {
     when(mockResultSet.getString("user_id")).thenReturn("u1");
     when(mockResultSet.getString("target_id")).thenReturn("job001");
     when(mockResultSet.getString("target_type")).thenReturn("JOB");
+    when(mockResultSet.getString("tenant_id")).thenReturn("test-tenant");
 
     SES_AI_T_WATCHLot lot = new SES_AI_T_WATCHLot();
-    lot.selectByTargetId(mockConnection, "job001", SES_AI_T_WATCH.TargetType.JOB);
+    lot.selectByTargetId(mockConnection, "test-tenant", "job001", SES_AI_T_WATCH.TargetType.JOB);
 
     assertEquals(1, lot.size());
     assertEquals("u1", lot.get(0).getUserId());
     assertEquals("job001", lot.get(0).getTargetId());
 
-    lot.selectByTargetId(null, "job001", SES_AI_T_WATCH.TargetType.JOB);
-    lot.selectByTargetId(mockConnection, null, SES_AI_T_WATCH.TargetType.JOB);
-    lot.selectByTargetId(mockConnection, "job001", null);
+    lot.selectByTargetId(null, "test-tenant", "job001", SES_AI_T_WATCH.TargetType.JOB);
+    lot.selectByTargetId(mockConnection, "test-tenant", null, SES_AI_T_WATCH.TargetType.JOB);
+    lot.selectByTargetId(mockConnection, "test-tenant", "job001", null);
   }
 }

@@ -64,7 +64,7 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
 
   @Override
   protected String getSelectAllSql() {
-    return "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET ORDER BY register_date DESC";
+    return "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl, tenant_id FROM SES_AI_T_SKILLSHEET ORDER BY register_date DESC";
   }
 
   /**
@@ -104,24 +104,26 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * ベクトル検索を実行し結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param query 検索ベクトル
    * @param limit 取得上限件数
    * @throws SQLException
    */
-  public void retrieve(Connection connection, Vector query, int limit) throws SQLException {
-    this.retrievePaged(connection, query, 1, limit);
+  public void retrieve(final Connection connection, final String tenantId, final Vector query, final int limit) throws SQLException {
+    this.retrievePaged(connection, tenantId, query, 1, limit);
   }
 
   /**
    * ベクトル検索をページングで実行し結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param query 検索ベクトル
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
-  public void retrievePaged(Connection connection, Vector query, int page, int size)
+  public void retrievePaged(final Connection connection, final String tenantId, final Vector query, final int page, final int size)
       throws SQLException {
     if (connection == null) {
       return;
@@ -163,37 +165,40 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * 類似度閾値を用いてベクトル検索を実行し結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param query 検索ベクトル
    * @throws SQLException
    */
-  public void retrieve(Connection connection, Vector query) throws SQLException {
-    this.retrieveWithThreshold(connection, query, 0.0, 5);
+  public void retrieve(final Connection connection, final String tenantId, final Vector query) throws SQLException {
+    this.retrieveWithThreshold(connection, tenantId, query, 0.0, 5);
   }
 
   /**
    * 類似度閾値を用いてベクトル検索を実行し結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param query 検索ベクトル
    * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
    * @param limit 取得上限件数
    * @throws SQLException
    */
-  public void retrieveWithThreshold(Connection connection, Vector query, double similarityThreshold, int limit) throws SQLException {
-    this.retrievePagedWithThreshold(connection, query, similarityThreshold, 1, limit);
+  public void retrieveWithThreshold(final Connection connection, final String tenantId, final Vector query, final double similarityThreshold, final int limit) throws SQLException {
+    this.retrievePagedWithThreshold(connection, tenantId, query, similarityThreshold, 1, limit);
   }
 
   /**
    * 類似度閾値を用いてベクトル検索をページングで実行し結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param query 検索ベクトル
    * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
-  public void retrievePagedWithThreshold(Connection connection, Vector query, double similarityThreshold, int page, int size)
+  public void retrievePagedWithThreshold(final Connection connection, final String tenantId, final Vector query, final double similarityThreshold, final int page, final int size)
       throws SQLException {
     if (connection == null || query == null) {
       return;
@@ -241,51 +246,55 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * 指定したカラムで全文検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param column 検索対象カラム
    * @param query 検索文字列
    * @throws SQLException
    */
-  public void selectLike(final Connection connection, final String column, final String query)
+  public void selectLike(final Connection connection, final String tenantId, final String column, final String query)
       throws SQLException {
-    this.searchByField(connection, column, query);
+    this.searchByField(connection, tenantId, column, query);
   }
 
   /**
    * file_contentカラムで全文検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param query 検索条件Map
    * @throws SQLException
    */
-  public void searchByFileContent(final Connection connection, final String query)
+  public void searchByFileContent(final Connection connection, final String tenantId, final String query)
       throws SQLException {
-    this.selectByLikeQuery(connection, SELECT_FILE_CONTENT_LIKE_SQL, "file_content", query, null);
+    this.selectByLikeQuery(connection, tenantId, SELECT_FILE_CONTENT_LIKE_SQL, "file_content", query, null);
   }
 
   /**
    * file_contentカラムで全文検索をページングで実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param query 検索文字列
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
   public void searchByFileContentPaged(
-      final Connection connection, final String query, final int page, final int size)
+      final Connection connection, final String tenantId, final String query, final int page, final int size)
       throws SQLException {
     this.selectByLikeQueryPaged(
-        connection, SELECT_FILE_CONTENT_LIKE_SQL, "file_content", query, null, page, size);
+        connection, tenantId, SELECT_FILE_CONTENT_LIKE_SQL, "file_content", query, null, page, size);
   }
 
   /**
    * file_nameカラムで全文検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param fileName ファイル名
    * @throws SQLException
    */
-  public void selectByFileName(final Connection connection, final String fileName)
+  public void selectByFileName(final Connection connection, final String tenantId, final String fileName)
       throws SQLException {
     try (PreparedStatement preparedStatement =
         connection.prepareStatement(SELECT_BY_FILE_NAME_SQL)) {
@@ -293,8 +302,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         this.entityLot = new ArrayList<>();
         while (resultSet.next()) {
-          String tenantId = resultSet.getString("tenant_id");
-          SES_AI_T_SKILLSHEET sesAiTSkillsheet = new SES_AI_T_SKILLSHEET(tenantId);
+          String resultTenantId = resultSet.getString("tenant_id");
+          SES_AI_T_SKILLSHEET sesAiTSkillsheet = new SES_AI_T_SKILLSHEET(resultTenantId);
           sesAiTSkillsheet.setFromGroup(resultSet.getString("from_group"));
           sesAiTSkillsheet.setFromId(resultSet.getString("from_id"));
           sesAiTSkillsheet.setFromName(resultSet.getString("from_name"));
@@ -314,20 +323,22 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * file_contentカラムに対して複数条件で全文検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param firstLikeQuery 1つ目のLIKE句の検索条件
    * @param query 検索条件リスト
    * @throws SQLException
    */
   public void searchByFileContent(
-      final Connection connection, final String firstLikeQuery, final List<LogicalOperators> query)
+      final Connection connection, final String tenantId, final String firstLikeQuery, final List<LogicalOperators> query)
       throws SQLException {
-    this.searchByField(connection, "file_content", firstLikeQuery, query);
+    this.searchByField(connection, tenantId, "file_content", firstLikeQuery, query);
   }
 
   /**
    * file_contentカラムに対して複数条件で全文検索をページングで実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param firstLikeQuery 1つ目のLIKE句の検索条件
    * @param query 検索条件リスト
    * @param page ページ番号(1-based)
@@ -336,18 +347,20 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    */
   public void searchByFileContentPaged(
       final Connection connection,
+      final String tenantId,
       final String firstLikeQuery,
       final List<LogicalOperators> query,
       final int page,
       final int size)
       throws SQLException {
-    this.searchByFieldPaged(connection, "file_content", firstLikeQuery, query, page, size);
+    this.searchByFieldPaged(connection, tenantId, "file_content", firstLikeQuery, query, page, size);
   }
 
   /**
    * file_content に対して複合条件（AND/OR/NOT）で全文検索をページング実行します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param conditions API の conditions 配列と同一の論理
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
@@ -355,6 +368,7 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    */
   public void searchByFileContentPaged(
       final Connection connection,
+      final String tenantId,
       final List<FulltextCondition> conditions,
       final int page,
       final int size)
@@ -363,6 +377,7 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
         FulltextConditionsWhereClause.build("file_content", conditions);
     this.selectByDynamicWherePaged(
         connection,
+        tenantId,
         SELECT_FILE_CONTENT_FOR_FULLTEXT,
         built.getWhereClauseWithoutWhereKeyword(),
         built.getLikeParams(),
@@ -374,6 +389,7 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * TTL 期限切れのスキルシートを段階的に取得（チャンク処理用）.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param ttlDays TTL 日数
    * @param offset オフセット
    * @param limit 取得上限件数
@@ -381,6 +397,7 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    */
   public void selectExpiredSkillsheets(
       final Connection connection,
+      final String tenantId,
       final int ttlDays,
       final int offset,
       final int limit)
@@ -413,11 +430,12 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * 指定された要員に紐づくスキルシート（同一送信元・同一登録日）を取得.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param person 要員
    * @throws SQLException
    */
   public void selectBundledWithPerson(
-      final Connection connection, final SES_AI_T_PERSON person)
+      final Connection connection, final String tenantId, final SES_AI_T_PERSON person)
       throws SQLException {
     if (connection == null || person == null) {
       return;
@@ -444,17 +462,20 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
   }
 
   @Override
-  public void selectAll(Connection connection) throws SQLException {
+  public void selectAll(final Connection connection, final String tenantId) throws SQLException {
     this.entityLot = new ArrayList<>();
     if (connection == null) {
       return;
     }
     try (PreparedStatement preparedStatement =
             connection.prepareStatement(
-                "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET");
-        ResultSet resultSet = preparedStatement.executeQuery()) {
-      while (resultSet.next()) {
-        this.entityLot.add(mapResultSet(resultSet));
+                "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE tenant_id = ?");
+        ) {
+      preparedStatement.setString(1, tenantId);
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        while (resultSet.next()) {
+          this.entityLot.add(mapResultSet(resultSet));
+        }
       }
     }
   }

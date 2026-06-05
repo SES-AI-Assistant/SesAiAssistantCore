@@ -15,6 +15,7 @@ class EntityLotBaseTest {
 
   static class TestEntity extends EntityBase {
     public TestEntity(OriginalDateTime date) {
+      super("test-tenant");
       this.registerDate = date;
     }
 
@@ -43,7 +44,7 @@ class EntityLotBaseTest {
         "SELECT * FROM TEST_TABLE WHERE test_column LIKE ?";
 
     @Override
-    public void selectAll(Connection connection) throws SQLException {}
+    public void selectAll(Connection connection, String tenantId) throws SQLException {}
 
     @Override
     protected TestEntity mapResultSet(ResultSet resultSet) throws SQLException {
@@ -145,8 +146,8 @@ class EntityLotBaseTest {
   @Test
   void testSelectByQueryWithNulls() throws java.sql.SQLException {
     TestEntityLot lot = new TestEntityLot();
-    lot.selectByAndQuery(null, null);
-    lot.selectByOrQuery(null, null);
+    lot.selectByAndQuery(null, "test-tenant", null);
+    lot.selectByOrQuery(null, "test-tenant", null);
     assertTrue(lot.isEmpty());
   }
 
@@ -154,8 +155,8 @@ class EntityLotBaseTest {
   void testSelectByQueryWithEmptyMap() throws SQLException {
     TestEntityLot lot = new TestEntityLot();
     Connection conn = mock(Connection.class);
-    lot.selectByAndQuery(conn, Map.of());
-    lot.selectByOrQuery(conn, Map.of());
+    lot.selectByAndQuery(conn, "test-tenant", Map.of());
+    lot.selectByOrQuery(conn, "test-tenant", Map.of());
     assertTrue(lot.isEmpty());
   }
 
@@ -171,17 +172,17 @@ class EntityLotBaseTest {
     TestEntityLot lot = new TestEntityLot();
     Map<String, Object> query = Map.of("col1", "val1", "col2", "val2");
 
-    lot.selectByAndQuery(conn, query);
+    lot.selectByAndQuery(conn, "test-tenant", query);
     assertEquals(1, lot.size());
 
     TestEntityLot lot2 = new TestEntityLot();
     when(rs.next()).thenReturn(true, false);
-    lot2.selectByOrQuery(conn, query);
+    lot2.selectByOrQuery(conn, "test-tenant", query);
     assertEquals(1, lot2.size());
 
     TestEntityLot lotSingle = new TestEntityLot();
     when(rs.next()).thenReturn(true, false);
-    lotSingle.selectByAndQuery(conn, Map.of("col1", "val1"));
+    lotSingle.selectByAndQuery(conn, "test-tenant", Map.of("col1", "val1"));
     assertEquals(1, lotSingle.size());
   }
 
@@ -196,7 +197,7 @@ class EntityLotBaseTest {
 
     TestEntityLot lot = new TestEntityLot();
 
-    lot.searchByField(conn, "col", "query");
+    lot.searchByField(conn, "test-tenant", "col", "query");
     assertEquals(1, lot.size());
 
     TestEntityLot lot2 = new TestEntityLot();
@@ -208,7 +209,7 @@ class EntityLotBaseTest {
         new copel.sesproductpackage.core.unit.LogicalOperators(
             copel.sesproductpackage.core.unit.LogicalOperators.論理演算子.AND, "val1"));
     queries.add(null);
-    lot2.searchByField(conn, "col", "query", queries);
+    lot2.searchByField(conn, "test-tenant", "col", "query", queries);
     assertEquals(1, lot2.size());
 
     TestEntityLot lotTwoOps = new TestEntityLot();
@@ -219,20 +220,20 @@ class EntityLotBaseTest {
                 copel.sesproductpackage.core.unit.LogicalOperators.論理演算子.AND, "v1"),
             new copel.sesproductpackage.core.unit.LogicalOperators(
                 copel.sesproductpackage.core.unit.LogicalOperators.論理演算子.OR, "v2"));
-    lotTwoOps.searchByField(conn, "col", "q", twoOps);
+    lotTwoOps.searchByField(conn, "test-tenant", "col", "q", twoOps);
     assertEquals(1, lotTwoOps.size());
     verify(ps, atLeastOnce()).setString(1, "%q%");
     verify(ps, atLeastOnce()).setString(2, "%v1%");
     verify(ps, atLeastOnce()).setString(3, "%v2%");
 
     TestEntityLot lotEmptyList = new TestEntityLot();
-    lotEmptyList.searchByField(conn, "col", "query", new java.util.ArrayList<>());
+    lotEmptyList.searchByField(conn, "test-tenant", "col", "query", new java.util.ArrayList<>());
 
     TestEntityLot lotNullList = new TestEntityLot();
-    lotNullList.searchByField(conn, "col", "query", null);
+    lotNullList.searchByField(conn, "test-tenant", "col", "query", null);
 
     TestEntityLot lot3 = new TestEntityLot();
-    lot3.searchByField(conn, "col", null);
+    lot3.searchByField(conn, "test-tenant", "col", null);
     assertTrue(lot3.isEmpty());
   }
 
@@ -263,7 +264,7 @@ class EntityLotBaseTest {
     when(rs.getLong(1)).thenReturn(0L);
 
     TestEntityLot lot = new TestEntityLot();
-    lot.selectByQueryPaged(conn, "SELECT * FROM TEST_TABLE", Map.of(), true, 1, 10);
+    lot.selectByQueryPaged(conn, "test-tenant", "SELECT * FROM TEST_TABLE", Map.of(), true, 1, 10);
     assertTrue(lot.isEmpty());
     assertEquals(0, lot.getTotalCount());
   }
@@ -282,7 +283,7 @@ class EntityLotBaseTest {
     when(rs.getLong(1)).thenReturn(100L);
 
     TestEntityLot lot = new TestEntityLot();
-    lot.selectByQueryPaged(conn, "SELECT * FROM TEST_TABLE", Map.of("id", "1"), true, 1, 10);
+    lot.selectByQueryPaged(conn, "test-tenant", "SELECT * FROM TEST_TABLE", Map.of("id", "1"), true, 1, 10);
     assertEquals(1, lot.size());
     assertEquals(100, lot.getTotalCount());
     assertEquals(10, lot.getPageSize());

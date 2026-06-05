@@ -20,11 +20,14 @@ class SES_AI_WEBAPP_M_USERLotTest {
     when(ps.executeQuery()).thenReturn(rs);
     when(rs.next()).thenReturn(true, false);
     when(rs.getString("role_cd")).thenReturn("10");
+    when(rs.getString("tenant_id")).thenReturn("test-tenant");
     when(rs.getString("plan_cd")).thenReturn("P1");
+    when(rs.getString("tenant_id")).thenReturn("test-tenant");
     when(rs.getString("user_id")).thenReturn("U1");
+    when(rs.getString("tenant_id")).thenReturn("test-tenant");
 
     SES_AI_WEBAPP_M_USERLot lot = new SES_AI_WEBAPP_M_USERLot();
-    lot.selectAll(connection);
+    lot.selectAll(connection, "test-tenant");
     assertEquals(1, lot.size());
   }
 }

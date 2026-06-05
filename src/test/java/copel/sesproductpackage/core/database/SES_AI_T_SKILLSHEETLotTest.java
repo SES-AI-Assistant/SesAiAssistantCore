@@ -46,6 +46,7 @@ class SES_AI_T_SKILLSHEETLotTest {
     when(mockRs.getString("register_date")).thenReturn("2023-01-01 12:00:00");
     when(mockRs.getString("register_user")).thenReturn("u");
     when(mockRs.getString("ttl")).thenReturn("2024-01-01 12:00:00");
+    when(mockRs.getString("tenant_id")).thenReturn("test-tenant");
     when(mockRs.getDouble("distance")).thenReturn(0.5);
   }
 
@@ -61,14 +62,14 @@ class SES_AI_T_SKILLSHEETLotTest {
   void testSelectAll() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
-    lot.selectAll(mockConn);
+    lot.selectAll(mockConn, "test-tenant");
     assertEquals(1, lot.size());
   }
 
   @Test
   void testSelectAllWithNullConnection() throws SQLException {
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
-    lot.selectAll(null);
+    lot.selectAll(null, "test-tenant");
     assertTrue(lot.isEmpty());
   }
 
@@ -76,7 +77,7 @@ class SES_AI_T_SKILLSHEETLotTest {
   void testGetEntityByPk() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
-    lot.selectAll(mockConn);
+    lot.selectAll(mockConn, "test-tenant");
 
     assertNotNull(lot.getEntityByPk("id1"));
     assertNull(lot.getEntityByPk("nonexistent"));
@@ -89,18 +90,18 @@ class SES_AI_T_SKILLSHEETLotTest {
     when(mockRs.getLong(1)).thenReturn(1L);
     when(mockRs.next()).thenReturn(true, true, false);
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
-    lot.retrieve(mockConn, createTestVector(), 10);
+    lot.retrieve(mockConn, "test-tenant", createTestVector(), 10);
     assertEquals(1, lot.size());
     assertEquals(0.5, lot.get(0).getDistance());
 
     SES_AI_T_SKILLSHEETLot lotForNull = new SES_AI_T_SKILLSHEETLot();
-    lotForNull.retrieve(null, null, 0);
+    lotForNull.retrieve(null, "test-tenant", null, 0);
     assertTrue(lotForNull.isEmpty());
 
     setupDefaultResultSet();
     when(mockRs.getLong(1)).thenReturn(1L);
     when(mockRs.next()).thenReturn(true, true, false);
-    lot.retrieve(mockConn, null, 1);
+    lot.retrieve(mockConn, null, createTestVector(), 1);
     verify(mockStmt).setString(1, null);
   }
 
@@ -108,7 +109,7 @@ class SES_AI_T_SKILLSHEETLotTest {
   void testSelectLike() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
-    lot.selectLike(mockConn, "file_name", "query");
+    lot.selectLike(mockConn, "test-tenant", "file_name", "query");
     assertEquals(1, lot.size());
   }
 
@@ -116,7 +117,7 @@ class SES_AI_T_SKILLSHEETLotTest {
   void testSearchByFileContent() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
-    lot.searchByFileContent(mockConn, "query");
+    lot.searchByFileContent(mockConn, "test-tenant", "query");
     assertEquals(1, lot.size());
   }
 
@@ -124,7 +125,7 @@ class SES_AI_T_SKILLSHEETLotTest {
   void testSelectByFileName() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
-    lot.selectByFileName(mockConn, "file1.pdf");
+    lot.selectByFileName(mockConn, "test-tenant", "file1.pdf");
     assertEquals(1, lot.size());
   }
 
@@ -136,7 +137,7 @@ class SES_AI_T_SKILLSHEETLotTest {
     queries.add(new LogicalOperators(論理演算子.AND, "val1"));
     queries.add(null);
     queries.add(new LogicalOperators(論理演算子.OR, "val2"));
-    lot.searchByFileContent(mockConn, "first", queries);
+    lot.searchByFileContent(mockConn, "test-tenant", "first", queries);
     assertEquals(1, lot.size());
   }
 
@@ -147,7 +148,7 @@ class SES_AI_T_SKILLSHEETLotTest {
     Map<String, Object> query = new HashMap<>();
     query.put("col1", "val1");
     query.put("col2", "val2");
-    lot.selectByAndQuery(mockConn, query);
+    lot.selectByAndQuery(mockConn, "test-tenant", query);
     assertEquals(1, lot.size());
   }
 
@@ -158,7 +159,7 @@ class SES_AI_T_SKILLSHEETLotTest {
     Map<String, Object> query = new HashMap<>();
     query.put("col1", "val1");
     query.put("col2", "val2");
-    lot.selectByOrQuery(mockConn, query);
+    lot.selectByOrQuery(mockConn, "test-tenant", query);
     assertEquals(1, lot.size());
   }
 
@@ -166,7 +167,7 @@ class SES_AI_T_SKILLSHEETLotTest {
   void testToSkillSheetSelectionText() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
-    lot.selectAll(mockConn);
+    lot.selectAll(mockConn, "test-tenant");
 
     assertFalse(lot.toスキルシート選出用文章().isEmpty());
 
@@ -180,25 +181,25 @@ class SES_AI_T_SKILLSHEETLotTest {
     when(mockRs.getLong(1)).thenReturn(1L);
     when(mockRs.next()).thenReturn(true, true, false);
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
-    lot.retrieve(mockConn, createTestVector());
+    lot.retrieve(mockConn, "test-tenant", createTestVector());
     assertEquals(1, lot.size());
     assertEquals(0.5, lot.get(0).getDistance());
 
     setupDefaultResultSet();
     when(mockRs.getLong(1)).thenReturn(1L);
     when(mockRs.next()).thenReturn(true, true, false);
-    lot.retrieveWithThreshold(mockConn, createTestVector(), 0.8, 10);
+    lot.retrieveWithThreshold(mockConn, "test-tenant", createTestVector(), 0.8, 10);
     assertEquals(1, lot.size());
 
     SES_AI_T_SKILLSHEETLot emptyLot2 = new SES_AI_T_SKILLSHEETLot();
-    emptyLot2.retrievePagedWithThreshold(null, createTestVector(), 0.8, 1, 10);
+    emptyLot2.retrievePagedWithThreshold(null, "test-tenant", createTestVector(), 0.8, 1, 10);
     assertTrue(emptyLot2.isEmpty());
-    emptyLot2.retrievePagedWithThreshold(mockConn, null, 0.8, 1, 10);
+    emptyLot2.retrievePagedWithThreshold(mockConn, "test-tenant", null, 0.8, 1, 10);
     assertTrue(emptyLot2.isEmpty());
-    
+
     when(mockRs.next()).thenReturn(false);
     when(mockRs.getLong(1)).thenReturn(0L);
-    emptyLot2.retrievePagedWithThreshold(mockConn, createTestVector(), 0.8, 1, 10);
+    emptyLot2.retrievePagedWithThreshold(mockConn, "test-tenant", createTestVector(), 0.8, 1, 10);
     assertTrue(emptyLot2.isEmpty());
   }
 }

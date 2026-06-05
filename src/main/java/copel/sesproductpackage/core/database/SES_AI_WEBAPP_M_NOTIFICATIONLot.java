@@ -16,7 +16,7 @@ import java.util.ArrayList;
 public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP_M_NOTIFICATION> {
   /** 全件SELECT文. */
   private static final String SELECT_ALL_SQL =
-      "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION";
+      "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user, tenant_id FROM SES_AI_WEBAPP_M_NOTIFICATION";
 
   public SES_AI_WEBAPP_M_NOTIFICATIONLot() {
     super();
@@ -33,8 +33,9 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
   }
 
   @Override
-  public void selectAll(Connection connection) throws SQLException {
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);
+  public void selectAll(final Connection connection, final String tenantId) throws SQLException {
+    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL + " WHERE tenant_id = ?");
+    preparedStatement.setString(1, tenantId);
     ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();
     while (resultSet.next()) {
@@ -46,18 +47,20 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
    * user_id で デバイス登録情報をすべて取得する.
    *
    * @param connection データベース接続
+   * @param tenantId テナントID
    * @param userId ユーザーID
    * @throws SQLException SQL実行時の例外
    */
-  public void selectByUserId(Connection connection, String userId) throws SQLException {
+  public void selectByUserId(final Connection connection, final String tenantId, final String userId) throws SQLException {
     if (connection == null || userId == null) {
       this.entityLot = new ArrayList<>();
       return;
     }
     String sql =
-        "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE user_id = ?";
+        "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE user_id = ? AND tenant_id = ?";
     PreparedStatement preparedStatement = connection.prepareStatement(sql);
     preparedStatement.setString(1, userId);
+    preparedStatement.setString(2, tenantId);
     ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();
     while (resultSet.next()) {
@@ -69,12 +72,14 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
    * notify_all_match = true のデバイス登録情報をすべて取得する.
    *
    * @param connection データベース接続
+   * @param tenantId テナントID
    * @throws SQLException SQL実行時の例外
    */
-  public void selectByNotifyAllMatch(Connection connection) throws SQLException {
+  public void selectByNotifyAllMatch(final Connection connection, final String tenantId) throws SQLException {
     String sql =
-        "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE notify_all_match = true";
+        "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE notify_all_match = true AND tenant_id = ?";
     PreparedStatement preparedStatement = connection.prepareStatement(sql);
+    preparedStatement.setString(1, tenantId);
     ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();
     while (resultSet.next()) {

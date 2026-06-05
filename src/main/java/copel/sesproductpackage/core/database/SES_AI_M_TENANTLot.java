@@ -33,8 +33,9 @@ public class SES_AI_M_TENANTLot extends EntityLotBase<SES_AI_M_TENANT> {
   }
 
   @Override
-  public void selectAll(Connection connection) throws SQLException {
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);
+  public void selectAll(final Connection connection, final String tenantId) throws SQLException {
+    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL + " WHERE tenant_id = ?");
+    preparedStatement.setString(1, tenantId);
     ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();
     while (resultSet.next()) {

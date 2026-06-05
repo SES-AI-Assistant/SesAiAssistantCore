@@ -16,7 +16,7 @@ import java.util.ArrayList;
 public class SES_AI_M_SENDERLot extends EntityLotBase<SES_AI_M_SENDER> {
   /** 全件SELECT文. */
   private static final String SELECT_ALL_SQL =
-      "SELECT from_id, from_name, register_date, register_user FROM SES_AI_M_SENDER";
+      "SELECT from_id, from_name, register_date, register_user, tenant_id FROM SES_AI_M_SENDER";
 
   public SES_AI_M_SENDERLot() {
     super();
@@ -33,8 +33,9 @@ public class SES_AI_M_SENDERLot extends EntityLotBase<SES_AI_M_SENDER> {
   }
 
   @Override
-  public void selectAll(Connection connection) throws SQLException {
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);
+  public void selectAll(final Connection connection, final String tenantId) throws SQLException {
+    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL + " WHERE tenant_id = ?");
+    preparedStatement.setString(1, tenantId);
     ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();
     while (resultSet.next()) {

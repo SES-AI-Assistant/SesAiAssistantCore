@@ -17,7 +17,7 @@ import java.util.ArrayList;
 public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER> {
   /** 全件SELECT文. */
   private static final String SELECT_ALL_SQL =
-      "SELECT user_id, user_name, role_cd, register_date, register_user FROM SES_AI_WEBAPP_M_USER";
+      "SELECT user_id, user_name, role_cd, register_date, register_user, tenant_id FROM SES_AI_WEBAPP_M_USER";
 
   public SES_AI_WEBAPP_M_USERLot() {
     super();
@@ -34,8 +34,9 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
   }
 
   @Override
-  public void selectAll(Connection connection) throws SQLException {
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);
+  public void selectAll(final Connection connection, final String tenantId) throws SQLException {
+    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL + " WHERE tenant_id = ?");
+    preparedStatement.setString(1, tenantId);
     ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();
     while (resultSet.next()) {

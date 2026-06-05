@@ -17,7 +17,7 @@ import java.util.ArrayList;
 public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
   /** 全件SELECT文. */
   private static final String SELECT_ALL_SQL =
-      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user FROM SES_AI_T_MATCH";
+      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user, tenant_id FROM SES_AI_T_MATCH";
 
   public SES_AI_T_MATCHLot(String tenantId) {
     super();
@@ -34,7 +34,7 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
   }
 
   @Override
-  public void selectAll(Connection connection) throws SQLException {
+  public void selectAll(Connection connection, String tenantId) throws SQLException {
     PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);
     ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();
@@ -68,38 +68,40 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
    * 案件IDが一致するレコードを指定件数取得し、このLotに格納します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param jobId 案件ID
    * @param page ページ番号
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
-  public void selectByJobIdPaged(Connection connection, String jobId, int page, int size)
+  public void selectByJobIdPaged(Connection connection, String tenantId, String jobId, int page, int size)
       throws SQLException {
     if (connection == null || jobId == null) {
       return;
     }
     java.util.Map<String, String> query = new java.util.HashMap<>();
     query.put("job_id", jobId);
-    this.selectByQueryPaged(connection, SELECT_ALL_SQL, query, true, page, size);
+    this.selectByQueryPaged(connection, tenantId, SELECT_ALL_SQL, query, true, page, size);
   }
 
   /**
    * 要員IDが一致するレコードを指定件数取得し、このLotに格納します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param personId 要員ID
    * @param page ページ番号
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
-  public void selectByPersonIdPaged(Connection connection, String personId, int page, int size)
+  public void selectByPersonIdPaged(Connection connection, String tenantId, String personId, int page, int size)
       throws SQLException {
     if (connection == null || personId == null) {
       return;
     }
     java.util.Map<String, String> query = new java.util.HashMap<>();
     query.put("person_id", personId);
-    this.selectByQueryPaged(connection, SELECT_ALL_SQL, query, true, page, size);
+    this.selectByQueryPaged(connection, tenantId, SELECT_ALL_SQL, query, true, page, size);
   }
 
   @Override

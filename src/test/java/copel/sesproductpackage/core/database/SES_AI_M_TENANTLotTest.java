@@ -26,7 +26,7 @@ class SES_AI_M_TENANTLotTest {
     when(rs.getString("register_user")).thenReturn("admin");
 
     SES_AI_M_TENANTLot lot = new SES_AI_M_TENANTLot();
-    lot.selectAll(connection);
+    lot.selectAll(connection, "test-tenant");
 
     assertEquals(2, lot.size());
   }
@@ -41,7 +41,7 @@ class SES_AI_M_TENANTLotTest {
     when(rs.next()).thenReturn(false);
 
     SES_AI_M_TENANTLot lot = new SES_AI_M_TENANTLot();
-    lot.selectAll(connection);
+    lot.selectAll(connection, "test-tenant");
 
     assertEquals(0, lot.size());
   }
@@ -81,7 +81,7 @@ class SES_AI_M_TENANTLotTest {
     when(rs.getString(anyString())).thenReturn("T1");
 
     SES_AI_M_TENANTLot lot = new SES_AI_M_TENANTLot();
-    lot.selectAll(connection);
+    lot.selectAll(connection, "test-tenant");
 
     assertNotNull(lot.toString());
   }
@@ -96,10 +96,10 @@ class SES_AI_M_TENANTLotTest {
     when(rs.next()).thenReturn(false);
 
     SES_AI_M_TENANTLot lot = new SES_AI_M_TENANTLot();
-    lot.selectAll(connection);
+    lot.selectAll(connection, "test-tenant");
     assertEquals(0, lot.size());
 
-    SES_AI_M_TENANT tenant = new SES_AI_M_TENANT();
+    SES_AI_M_TENANT tenant = new SES_AI_M_TENANT("test-tenant");
     tenant.setTenantId("T1");
     tenant.setTenantName("Test Tenant");
     lot.add(tenant);

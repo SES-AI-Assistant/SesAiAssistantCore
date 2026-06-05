@@ -48,7 +48,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
 
   /** 全件検索SQL. */
   private static final String SELECT_ALL_SQL =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON ORDER BY register_date DESC";
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl, tenant_id FROM SES_AI_T_PERSON ORDER BY register_date DESC";
 
   /** コンストラクタ. */
   public SES_AI_T_PERSONLot() {
@@ -121,24 +121,26 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
    * ベクトル検索を実行し結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param query 検索ベクトル
    * @param limit 取得上限件数
    * @throws SQLException
    */
-  public void retrieve(Connection connection, Vector query, int limit) throws SQLException {
-    this.retrievePaged(connection, query, 1, limit);
+  public void retrieve(Connection connection, String tenantId, Vector query, int limit) throws SQLException {
+    this.retrievePaged(connection, tenantId, query, 1, limit);
   }
 
   /**
    * ベクトル検索をページングで実行し結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param query 検索ベクトル
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
-  public void retrievePaged(Connection connection, Vector query, int page, int size)
+  public void retrievePaged(Connection connection, String tenantId, Vector query, int page, int size)
       throws SQLException {
     if (connection == null) {
       return;
@@ -180,37 +182,40 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
    * 類似度閾値を用いてベクトル検索を実行し結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param query 検索ベクトル
    * @throws SQLException
    */
-  public void retrieve(Connection connection, Vector query) throws SQLException {
-    this.retrieveWithThreshold(connection, query, 0.0, 5);
+  public void retrieve(Connection connection, String tenantId, Vector query) throws SQLException {
+    this.retrieveWithThreshold(connection, tenantId, query, 0.0, 5);
   }
 
   /**
    * 類似度閾値を用いてベクトル検索を実行し結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param query 検索ベクトル
    * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
    * @param limit 取得上限件数
    * @throws SQLException
    */
-  public void retrieveWithThreshold(Connection connection, Vector query, double similarityThreshold, int limit) throws SQLException {
-    this.retrievePagedWithThreshold(connection, query, similarityThreshold, 1, limit);
+  public void retrieveWithThreshold(Connection connection, String tenantId, Vector query, double similarityThreshold, int limit) throws SQLException {
+    this.retrievePagedWithThreshold(connection, tenantId, query, similarityThreshold, 1, limit);
   }
 
   /**
    * 類似度閾値を用いてベクトル検索をページングで実行し結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param query 検索ベクトル
    * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
-  public void retrievePagedWithThreshold(Connection connection, Vector query, double similarityThreshold, int page, int size)
+  public void retrievePagedWithThreshold(Connection connection, String tenantId, Vector query, double similarityThreshold, int page, int size)
       throws SQLException {
     if (connection == null || query == null) {
       return;
@@ -258,47 +263,51 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
    * raw_contentカラムで全文検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param query 検索条件Map
    * @throws SQLException
    */
-  public void searchByRawContent(final Connection connection, final String query)
+  public void searchByRawContent(final Connection connection, final String tenantId, final String query)
       throws SQLException {
-    this.searchByField(connection, "raw_content", query);
+    this.searchByField(connection, tenantId, "raw_content", query);
   }
 
   /**
    * raw_contentカラムで全文検索をページングで実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param query 検索文字列
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
   public void searchByRawContentPaged(
-      final Connection connection, final String query, final int page, final int size)
+      final Connection connection, final String tenantId, final String query, final int page, final int size)
       throws SQLException {
-    this.searchByFieldPaged(connection, "raw_content", query, page, size);
+    this.searchByFieldPaged(connection, tenantId, "raw_content", query, page, size);
   }
 
   /**
    * raw_contentカラムに対して複数条件で全文検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param firstLikeQuery 1つ目のLIKE句の検索条件
    * @param query 検索条件リスト
    * @throws SQLException
    */
   public void searchByRawContent(
-      final Connection connection, final String firstLikeQuery, final List<LogicalOperators> query)
+      final Connection connection, final String tenantId, final String firstLikeQuery, final List<LogicalOperators> query)
       throws SQLException {
-    this.searchByField(connection, "raw_content", firstLikeQuery, query);
+    this.searchByField(connection, tenantId, "raw_content", firstLikeQuery, query);
   }
 
   /**
    * raw_contentカラムに対して複数条件で全文検索をページングで実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param firstLikeQuery 1つ目のLIKE句の検索条件
    * @param query 検索条件リスト
    * @param page ページ番号(1-based)
@@ -307,18 +316,20 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
    */
   public void searchByRawContentPaged(
       final Connection connection,
+      final String tenantId,
       final String firstLikeQuery,
       final List<LogicalOperators> query,
       final int page,
       final int size)
       throws SQLException {
-    this.searchByFieldPaged(connection, "raw_content", firstLikeQuery, query, page, size);
+    this.searchByFieldPaged(connection, tenantId, "raw_content", firstLikeQuery, query, page, size);
   }
 
   /**
    * raw_content に対して複合条件（AND/OR/NOT）で全文検索をページング実行します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param conditions API の conditions 配列と同一の論理
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
@@ -326,6 +337,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
    */
   public void searchByRawContentPaged(
       final Connection connection,
+      final String tenantId,
       final List<FulltextCondition> conditions,
       final int page,
       final int size)
@@ -334,6 +346,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
         FulltextConditionsWhereClause.build("raw_content", conditions);
     this.selectByDynamicWherePaged(
         connection,
+        tenantId,
         SELECT_RAW_CONTENT_FOR_FULLTEXT,
         built.getWhereClauseWithoutWhereKeyword(),
         built.getLikeParams(),
@@ -345,11 +358,12 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
    * 指定した時刻以降に登録されたレコードを全て取得する.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param fromDate 時刻
    * @throws SQLException
    */
   public void selectByRegisterDateAfter(
-      final Connection connection, final OriginalDateTime fromDate) throws SQLException {
+      final Connection connection, final String tenantId, final OriginalDateTime fromDate) throws SQLException {
     if (connection == null) {
       return;
     }
@@ -373,6 +387,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
    * TTL 期限切れで MATCH に関連していない要員を段階的に取得（チャンク処理用）.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param ttlDays TTL 日数
    * @param offset オフセット
    * @param limit 取得上限件数
@@ -380,6 +395,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
    */
   public void selectExpiredPersonsNotInMatch(
       final Connection connection,
+      final String tenantId,
       final int ttlDays,
       final int offset,
       final int limit)
@@ -420,7 +436,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
   }
 
   @Override
-  public void selectAll(Connection connection) throws SQLException {
+  public void selectAll(Connection connection, String tenantId) throws SQLException {
     this.entityLot = new ArrayList<>();
     if (connection == null) {
       return;

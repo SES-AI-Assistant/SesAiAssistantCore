@@ -21,11 +21,14 @@ class SES_AI_WEBAPP_M_NOTIFICATIONLotTest {
     when(rs.next()).thenReturn(true, false);
 
     when(rs.getString("notification_id")).thenReturn("N1");
+    when(rs.getString("tenant_id")).thenReturn("test-tenant");
     when(rs.getString("user_id")).thenReturn("U1");
+    when(rs.getString("tenant_id")).thenReturn("test-tenant");
     when(rs.getString("device_type")).thenReturn("WEB_PUSH");
+    when(rs.getString("tenant_id")).thenReturn("test-tenant");
 
     SES_AI_WEBAPP_M_NOTIFICATIONLot lot = new SES_AI_WEBAPP_M_NOTIFICATIONLot();
-    lot.selectAll(connection);
+    lot.selectAll(connection, "test-tenant");
 
     assertEquals(1, lot.size());
     SES_AI_WEBAPP_M_NOTIFICATION first = lot.get(0);
@@ -45,12 +48,15 @@ class SES_AI_WEBAPP_M_NOTIFICATIONLotTest {
     when(rs.next()).thenReturn(true, false);
 
     when(rs.getString("notification_id")).thenReturn("N1");
+    when(rs.getString("tenant_id")).thenReturn("test-tenant");
     when(rs.getString("user_id")).thenReturn("U1");
+    when(rs.getString("tenant_id")).thenReturn("test-tenant");
     when(rs.getString("device_type")).thenReturn("WEB_PUSH");
+    when(rs.getString("tenant_id")).thenReturn("test-tenant");
     when(rs.getBoolean("notify_all_match")).thenReturn(true);
 
     SES_AI_WEBAPP_M_NOTIFICATIONLot lot = new SES_AI_WEBAPP_M_NOTIFICATIONLot();
-    lot.selectByUserId(connection, "U1");
+    lot.selectByUserId(connection, "test-tenant", "U1");
 
     assertEquals(1, lot.size());
     assertEquals("N1", lot.get(0).getNotificationId());
@@ -60,7 +66,7 @@ class SES_AI_WEBAPP_M_NOTIFICATIONLotTest {
   @Test
   void testSelectByUserIdWithNullConnection() throws SQLException {
     SES_AI_WEBAPP_M_NOTIFICATIONLot lot = new SES_AI_WEBAPP_M_NOTIFICATIONLot();
-    lot.selectByUserId(null, "U1");
+    lot.selectByUserId(null, "test-tenant", "U1");
     assertEquals(0, lot.size());
   }
 
@@ -68,7 +74,7 @@ class SES_AI_WEBAPP_M_NOTIFICATIONLotTest {
   void testSelectByUserIdWithNullUserId() throws SQLException {
     Connection connection = mock(Connection.class);
     SES_AI_WEBAPP_M_NOTIFICATIONLot lot = new SES_AI_WEBAPP_M_NOTIFICATIONLot();
-    lot.selectByUserId(connection, null);
+    lot.selectByUserId(connection, "test-tenant", null);
     assertEquals(0, lot.size());
   }
 }

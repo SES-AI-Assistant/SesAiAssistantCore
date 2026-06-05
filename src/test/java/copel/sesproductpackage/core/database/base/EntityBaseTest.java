@@ -12,6 +12,10 @@ import org.junit.jupiter.api.Test;
 class EntityBaseTest {
 
   static class TestEntity extends EntityBase {
+    public TestEntity() {
+      super("test-tenant");
+    }
+
     @Override
     public int insert(Connection connection) throws SQLException {
       return 0;
@@ -38,7 +42,7 @@ class EntityBaseTest {
 
   static class TestEntityLot extends EntityLotBase<TestEntity> {
     @Override
-    public void selectAll(Connection connection) throws SQLException {}
+    public void selectAll(Connection connection, String tenantId) throws SQLException {}
 
     @Override
     protected TestEntity mapResultSet(ResultSet resultSet) throws SQLException {

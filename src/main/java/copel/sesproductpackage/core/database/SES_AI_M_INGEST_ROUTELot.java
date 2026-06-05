@@ -38,8 +38,9 @@ public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUT
   }
 
   @Override
-  public void selectAll(Connection connection) throws SQLException {
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);
+  public void selectAll(final Connection connection, final String tenantId) throws SQLException {
+    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL + " WHERE tenant_id = ?");
+    preparedStatement.setString(1, tenantId);
     ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();
     while (resultSet.next()) {
@@ -62,11 +63,12 @@ public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUT
    * チャネルタイプとルートキーで検索し、該当する全テナントID を取得する（テナント対応）.
    *
    * @param connection DB接続
+   * @param tenantId テナントID
    * @param channelType チャネルタイプ (LINE / EMAIL)
    * @param routeKey ルートキー (メールアドレス、LINE ID など)
    * @throws SQLException DB例外
    */
-  public void selectByChannelTypeAndRouteKey(Connection connection, ChannelType channelType, String routeKey) throws SQLException {
+  public void selectByChannelTypeAndRouteKey(final Connection connection, final String tenantId, final ChannelType channelType, final String routeKey) throws SQLException {
     if (connection == null || channelType == null || routeKey == null) {
       this.entityLot = new ArrayList<>();
       return;

@@ -27,7 +27,7 @@ class SES_AI_M_INGEST_ROUTELotTest {
     when(rs.getString("register_user")).thenReturn("admin");
 
     SES_AI_M_INGEST_ROUTELot lot = new SES_AI_M_INGEST_ROUTELot();
-    lot.selectAll(connection);
+    lot.selectAll(connection, "test-tenant");
 
     assertEquals(2, lot.size());
   }
@@ -42,7 +42,7 @@ class SES_AI_M_INGEST_ROUTELotTest {
     when(rs.next()).thenReturn(false);
 
     SES_AI_M_INGEST_ROUTELot lot = new SES_AI_M_INGEST_ROUTELot();
-    lot.selectAll(connection);
+    lot.selectAll(connection, "test-tenant");
 
     assertEquals(0, lot.size());
   }
@@ -81,10 +81,14 @@ class SES_AI_M_INGEST_ROUTELotTest {
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeQuery()).thenReturn(rs);
     when(rs.next()).thenReturn(true, false);
-    when(rs.getString(anyString())).thenReturn("LINE", "route1", "T1");
+    when(rs.getString("channel_type")).thenReturn("LINE");
+    when(rs.getString("route_key")).thenReturn("route1");
+    when(rs.getString("tenant_id")).thenReturn("T1");
+    when(rs.getString("register_date")).thenReturn("2026-06-04 10:00:00");
+    when(rs.getString("register_user")).thenReturn("admin");
 
     SES_AI_M_INGEST_ROUTELot lot = new SES_AI_M_INGEST_ROUTELot();
-    lot.selectAll(connection);
+    lot.selectAll(connection, "test-tenant");
 
     assertNotNull(lot.toString());
   }
@@ -99,10 +103,10 @@ class SES_AI_M_INGEST_ROUTELotTest {
     when(rs.next()).thenReturn(false);
 
     SES_AI_M_INGEST_ROUTELot lot = new SES_AI_M_INGEST_ROUTELot();
-    lot.selectAll(connection);
+    lot.selectAll(connection, "test-tenant");
     assertEquals(0, lot.size());
 
-    SES_AI_M_INGEST_ROUTE route = new SES_AI_M_INGEST_ROUTE();
+    SES_AI_M_INGEST_ROUTE route = new SES_AI_M_INGEST_ROUTE("test-tenant");
     route.setChannelType(ChannelType.LINE);
     route.setRouteKey("route1");
     route.setTenantId("T1");
@@ -121,15 +125,15 @@ class SES_AI_M_INGEST_ROUTELotTest {
     when(rs.next()).thenReturn(false);
 
     SES_AI_M_INGEST_ROUTELot lot = new SES_AI_M_INGEST_ROUTELot();
-    lot.selectAll(connection);
+    lot.selectAll(connection, "test-tenant");
 
-    SES_AI_M_INGEST_ROUTE route1 = new SES_AI_M_INGEST_ROUTE();
+    SES_AI_M_INGEST_ROUTE route1 = new SES_AI_M_INGEST_ROUTE("test-tenant");
     route1.setChannelType(ChannelType.LINE);
     route1.setRouteKey("route1");
     route1.setTenantId("T1");
     lot.add(route1);
 
-    SES_AI_M_INGEST_ROUTE route2 = new SES_AI_M_INGEST_ROUTE();
+    SES_AI_M_INGEST_ROUTE route2 = new SES_AI_M_INGEST_ROUTE("test-tenant");
     route2.setChannelType(ChannelType.EMAIL);
     route2.setRouteKey("route2");
     route2.setTenantId("T2");
@@ -146,14 +150,15 @@ class SES_AI_M_INGEST_ROUTELotTest {
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeQuery()).thenReturn(rs);
     when(rs.next()).thenReturn(true, true, false);
-    when(rs.getString("channel_type")).thenReturn("LINE", "LINE");
-    when(rs.getString("route_key")).thenReturn("ch123", "ch123");
-    when(rs.getString("tenant_id")).thenReturn("T1", "T2");
-    when(rs.getString("register_date")).thenReturn("2026-06-04 10:00:00", "2026-06-04 10:00:00");
-    when(rs.getString("register_user")).thenReturn("admin", "admin");
+    // Mock getString with ArgumentMatchers to match specific column names
+    doReturn("LINE", "LINE").when(rs).getString("channel_type");
+    doReturn("ch123", "ch123").when(rs).getString("route_key");
+    doReturn("T1", "T2").when(rs).getString("tenant_id");
+    doReturn("2026-06-04 10:00:00", "2026-06-04 10:00:00").when(rs).getString("register_date");
+    doReturn("admin", "admin").when(rs).getString("register_user");
 
     SES_AI_M_INGEST_ROUTELot lot = new SES_AI_M_INGEST_ROUTELot();
-    lot.selectByChannelTypeAndRouteKey(connection, ChannelType.LINE, "ch123");
+    lot.selectByChannelTypeAndRouteKey(connection, "test-tenant", ChannelType.LINE, "ch123");
 
     assertEquals(2, lot.size());
     assertEquals("T1", lot.get(0).getTenantId());
@@ -170,7 +175,7 @@ class SES_AI_M_INGEST_ROUTELotTest {
     when(rs.next()).thenReturn(false);
 
     SES_AI_M_INGEST_ROUTELot lot = new SES_AI_M_INGEST_ROUTELot();
-    lot.selectByChannelTypeAndRouteKey(connection, ChannelType.LINE, "ch999");
+    lot.selectByChannelTypeAndRouteKey(connection, "test-tenant", ChannelType.LINE, "ch999");
 
     assertEquals(0, lot.size());
   }
@@ -178,7 +183,7 @@ class SES_AI_M_INGEST_ROUTELotTest {
   @Test
   void testSelectByChannelTypeAndRouteKeyWithNullConnection() throws SQLException {
     SES_AI_M_INGEST_ROUTELot lot = new SES_AI_M_INGEST_ROUTELot();
-    lot.selectByChannelTypeAndRouteKey(null, ChannelType.LINE, "ch123");
+    lot.selectByChannelTypeAndRouteKey(null, "test-tenant", ChannelType.LINE, "ch123");
 
     assertEquals(0, lot.size());
   }

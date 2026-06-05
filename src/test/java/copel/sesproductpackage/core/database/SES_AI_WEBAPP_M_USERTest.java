@@ -170,9 +170,10 @@ class SES_AI_WEBAPP_M_USERTest {
     when(rs.next()).thenReturn(true, false);
     when(rs.getString("role_cd")).thenReturn("99");
     when(rs.getString("plan_cd")).thenReturn("P1");
+    when(rs.getString("tenant_id")).thenReturn("test-tenant");
 
     SES_AI_WEBAPP_M_USERLot lot = new SES_AI_WEBAPP_M_USERLot();
-    lot.selectAll(connection);
+    lot.selectAll(connection, "test-tenant");
 
     SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
     user.setUserId("U1");

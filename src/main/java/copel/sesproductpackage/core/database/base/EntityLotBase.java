@@ -64,21 +64,23 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * テーブルからレコードを全件SELECTし、このLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @throws SQLException
    */
-  public abstract void selectAll(final Connection connection) throws SQLException;
+  public abstract void selectAll(final Connection connection, final String tenantId) throws SQLException;
 
   /**
    * テーブルからレコードを全件ページングSELECTし、このLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
-  public void selectAllPaged(final Connection connection, final int page, final int size)
+  public void selectAllPaged(final Connection connection, final String tenantId, final int page, final int size)
       throws SQLException {
-    this.selectByQueryPaged(connection, getSelectAllSql(), null, true, page, size);
+    this.selectByQueryPaged(connection, tenantId, getSelectAllSql(), null, true, page, size);
   }
 
   /**
@@ -219,43 +221,47 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * SELECTをAND条件で実行する.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param andQuery カラム名と検索値をkey-valueで持つMap
    * @throws SQLException
    */
-  public void selectByAndQuery(final Connection connection, final Map<String, Object> andQuery)
+  public void selectByAndQuery(final Connection connection, final String tenantId, final Map<String, Object> andQuery)
       throws SQLException {
-    this.selectByQuery(connection, getSelectSql(), andQuery, true);
+    this.selectByQuery(connection, tenantId, getSelectSql(), andQuery, true);
   }
 
   /**
    * SELECTをOR条件で実行する.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param orQuery カラム名と検索値をkey-valueで持つMap
    * @throws SQLException
    */
-  public void selectByOrQuery(final Connection connection, final Map<String, Object> orQuery)
+  public void selectByOrQuery(final Connection connection, final String tenantId, final Map<String, Object> orQuery)
       throws SQLException {
-    this.selectByQuery(connection, getSelectSql(), orQuery, false);
+    this.selectByQuery(connection, tenantId, getSelectSql(), orQuery, false);
   }
 
   /**
    * 指定したカラムで全文検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param column 検索対象カラム
    * @param query 検索文字列
    * @throws SQLException
    */
-  public void searchByField(final Connection connection, final String column, final String query)
+  public void searchByField(final Connection connection, final String tenantId, final String column, final String query)
       throws SQLException {
-    this.selectByLikeQuery(connection, getSelectLikeSql(), column, query, null);
+    this.selectByLikeQuery(connection, tenantId, getSelectLikeSql(), column, query, null);
   }
 
   /**
    * 指定したカラムで全文検索をページングで実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param column 検索対象カラム
    * @param query 検索文字列
    * @param page ページ番号(1-based)
@@ -264,18 +270,20 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    */
   public void searchByFieldPaged(
       final Connection connection,
+      final String tenantId,
       final String column,
       final String query,
       final int page,
       final int size)
       throws SQLException {
-    this.selectByLikeQueryPaged(connection, getSelectLikeSql(), column, query, null, page, size);
+    this.selectByLikeQueryPaged(connection, tenantId, getSelectLikeSql(), column, query, null, page, size);
   }
 
   /**
    * 指定したカラムに対して複数条件で全文検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param column 検索対象カラム
    * @param firstLikeQuery 1つ目のLIKE句の検索条件
    * @param query 検索条件リスト
@@ -283,17 +291,19 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    */
   public void searchByField(
       final Connection connection,
+      final String tenantId,
       final String column,
       final String firstLikeQuery,
       final List<LogicalOperators> query)
       throws SQLException {
-    this.selectByLikeQuery(connection, getSelectLikeSql(), column, firstLikeQuery, query);
+    this.selectByLikeQuery(connection, tenantId, getSelectLikeSql(), column, firstLikeQuery, query);
   }
 
   /**
    * 指定したカラムに対して複数条件で全文検索をページングで実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param column 検索対象カラム
    * @param firstLikeQuery 1つ目のLIKE句の検索条件
    * @param query 検索条件リスト
@@ -303,6 +313,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    */
   public void searchByFieldPaged(
       final Connection connection,
+      final String tenantId,
       final String column,
       final String firstLikeQuery,
       final List<LogicalOperators> query,
@@ -310,7 +321,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       final int size)
       throws SQLException {
     this.selectByLikeQueryPaged(
-        connection, getSelectLikeSql(), column, firstLikeQuery, query, page, size);
+        connection, tenantId, getSelectLikeSql(), column, firstLikeQuery, query, page, size);
   }
 
   /**
@@ -335,6 +346,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * 条件を指定して検索を実行します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param baseSql 基底SQL
    * @param query 検索条件Map
    * @param isAnd AND検索ならtrue, OR検索ならfalse
@@ -342,6 +354,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    */
   protected void selectByQuery(
       final Connection connection,
+      final String tenantId,
       final String baseSql,
       final Map<String, Object> query,
       final boolean isAnd)
@@ -390,6 +403,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * あいまい検索を実行します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param baseSql 基底SQL(LIKE句の前まで)
    * @param columnName 検索対象カラム名
    * @param firstLikeQuery 最初の検索ワード
@@ -398,6 +412,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    */
   protected void selectByLikeQuery(
       final Connection connection,
+      final String tenantId,
       final String baseSql,
       final String columnName,
       final String firstLikeQuery,
@@ -441,6 +456,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * あいまい検索をページングで実行します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param baseSql 基底SQL(LIKE句の前まで)
    * @param columnName 検索対象カラム名
    * @param firstLikeQuery 最初の検索ワード
@@ -451,6 +467,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    */
   protected void selectByLikeQueryPaged(
       final Connection connection,
+      final String tenantId,
       final String baseSql,
       final String columnName,
       final String firstLikeQuery,
@@ -535,6 +552,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * 動的 WHERE 句（LIKE / NOT LIKE 等）でページング全文検索を実行します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param selectSqlPrefix {@code SELECT ... FROM ... WHERE } まで（末尾に WHERE を含む）
    * @param whereClauseWithoutWhere WHERE に続く条件式のみ（例: {@code (a LIKE ?) OR (b LIKE ?)}）
    * @param likeParams プレースホルダに順にバインドする値
@@ -544,6 +562,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    */
   protected void selectByDynamicWherePaged(
       final Connection connection,
+      final String tenantId,
       final String selectSqlPrefix,
       final String whereClauseWithoutWhere,
       final List<String> likeParams,
@@ -600,6 +619,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * 条件を指定して件数を取得します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param baseSql 基底SQL(SELECT * FROM ...)
    * @param query 検索条件Map
    * @param isAnd AND検索ならtrue, OR検索ならfalse
@@ -608,6 +628,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    */
   protected long countByQuery(
       final Connection connection,
+      final String tenantId,
       final String baseSql,
       final Map<String, String> query,
       final boolean isAnd)
@@ -659,6 +680,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * 条件を指定してページング検索を実行します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param baseSql 基底SQL
    * @param query 検索条件Map
    * @param isAnd AND検索ならtrue, OR検索ならfalse
@@ -668,6 +690,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    */
   protected void selectByQueryPaged(
       final Connection connection,
+      final String tenantId,
       final String baseSql,
       final Map<String, String> query,
       final boolean isAnd,
@@ -680,7 +703,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     }
 
     // (1) 全件数を取得
-    this.totalCount = countByQuery(connection, baseSql, query, isAnd);
+    this.totalCount = countByQuery(connection, tenantId, baseSql, query, isAnd);
     this.pageSize = size;
     this.currentPageIndex = page;
 

@@ -14,7 +14,7 @@ class SES_AI_M_TENANTTest {
 
   @Test
   void testNullScenarios() throws SQLException {
-    SES_AI_M_TENANT entity = new SES_AI_M_TENANT();
+    SES_AI_M_TENANT entity = new SES_AI_M_TENANT("test-tenant");
     Connection connection = mock(Connection.class);
 
     assertEquals(0, entity.insert(null));
@@ -40,7 +40,7 @@ class SES_AI_M_TENANTTest {
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeUpdate()).thenReturn(1);
 
-    SES_AI_M_TENANT tenant = new SES_AI_M_TENANT();
+    SES_AI_M_TENANT tenant = new SES_AI_M_TENANT("test-tenant");
     tenant.setTenantId("T1");
     tenant.setTenantName("Test Tenant");
     tenant.setTenantStatusCd("ACTIVE");
@@ -68,7 +68,7 @@ class SES_AI_M_TENANTTest {
     when(rs.getString("register_date")).thenReturn("2026-06-04 10:00:00");
     when(rs.getString("register_user")).thenReturn("admin");
 
-    SES_AI_M_TENANT tenant = new SES_AI_M_TENANT();
+    SES_AI_M_TENANT tenant = new SES_AI_M_TENANT("test-tenant");
     tenant.setTenantId("T1");
     tenant.selectByPk(connection);
 
@@ -85,7 +85,7 @@ class SES_AI_M_TENANTTest {
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeUpdate()).thenReturn(1);
 
-    SES_AI_M_TENANT tenant = new SES_AI_M_TENANT();
+    SES_AI_M_TENANT tenant = new SES_AI_M_TENANT("test-tenant");
     tenant.setTenantId("T1");
     tenant.setTenantName("Updated Tenant");
     tenant.setTenantStatusCd("INACTIVE");
@@ -103,7 +103,7 @@ class SES_AI_M_TENANTTest {
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeUpdate()).thenReturn(0);
 
-    SES_AI_M_TENANT tenant = new SES_AI_M_TENANT();
+    SES_AI_M_TENANT tenant = new SES_AI_M_TENANT("test-tenant");
     tenant.setTenantId("T1");
 
     assertFalse(tenant.updateByPk(connection));
@@ -116,7 +116,7 @@ class SES_AI_M_TENANTTest {
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeUpdate()).thenReturn(1);
 
-    SES_AI_M_TENANT tenant = new SES_AI_M_TENANT();
+    SES_AI_M_TENANT tenant = new SES_AI_M_TENANT("test-tenant");
     tenant.setTenantId("T1");
 
     assertTrue(tenant.deleteByPk(connection));
@@ -130,7 +130,7 @@ class SES_AI_M_TENANTTest {
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeUpdate()).thenReturn(0);
 
-    SES_AI_M_TENANT tenant = new SES_AI_M_TENANT();
+    SES_AI_M_TENANT tenant = new SES_AI_M_TENANT("test-tenant");
     tenant.setTenantId("T1");
 
     assertFalse(tenant.deleteByPk(connection));
@@ -138,7 +138,7 @@ class SES_AI_M_TENANTTest {
 
   @Test
   void testTenantToString() {
-    SES_AI_M_TENANT tenant = new SES_AI_M_TENANT();
+    SES_AI_M_TENANT tenant = new SES_AI_M_TENANT("test-tenant");
     tenant.setTenantId("T1");
     tenant.setTenantName("Test Tenant");
     tenant.setTenantStatusCd("ACTIVE");
@@ -149,11 +149,11 @@ class SES_AI_M_TENANTTest {
 
   @Test
   void testTenantEqualsAndHashCode() {
-    SES_AI_M_TENANT tenant1 = new SES_AI_M_TENANT();
+    SES_AI_M_TENANT tenant1 = new SES_AI_M_TENANT("test-tenant");
     tenant1.setTenantId("T1");
     tenant1.setTenantName("Test Tenant");
 
-    SES_AI_M_TENANT tenant2 = new SES_AI_M_TENANT();
+    SES_AI_M_TENANT tenant2 = new SES_AI_M_TENANT("test-tenant");
     tenant2.setTenantId("T1");
     tenant2.setTenantName("Test Tenant");
 
@@ -164,7 +164,7 @@ class SES_AI_M_TENANTTest {
   @Test
   void testTenantSelectByPkWithNullId() throws SQLException {
     Connection connection = mock(Connection.class);
-    SES_AI_M_TENANT tenant = new SES_AI_M_TENANT();
+    SES_AI_M_TENANT tenant = new SES_AI_M_TENANT("test-tenant");
 
     tenant.selectByPk(connection);
 

@@ -126,9 +126,10 @@ class SES_AI_WEBAPP_M_NOTIFICATIONTest {
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeQuery()).thenReturn(rs);
     when(rs.next()).thenReturn(true, false);
+    when(rs.getString("tenant_id")).thenReturn("test-tenant");
 
     SES_AI_WEBAPP_M_NOTIFICATIONLot lot = new SES_AI_WEBAPP_M_NOTIFICATIONLot();
-    lot.selectAll(connection);
+    lot.selectAll(connection, "test-tenant");
 
     SES_AI_WEBAPP_M_NOTIFICATION notification = new SES_AI_WEBAPP_M_NOTIFICATION("test-tenant");
     notification.setNotificationId("N1");

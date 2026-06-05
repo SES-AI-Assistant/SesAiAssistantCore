@@ -14,7 +14,7 @@ class SES_AI_M_SENDERTest {
 
   @Test
   void testNullScenarios() throws SQLException {
-    SES_AI_M_SENDER entity = new SES_AI_M_SENDER();
+    SES_AI_M_SENDER entity = new SES_AI_M_SENDER("test-tenant");
     Connection connection = mock(Connection.class);
 
     assertEquals(0, entity.insert(null));
@@ -45,7 +45,7 @@ class SES_AI_M_SENDERTest {
     when(rs.next()).thenReturn(true, false);
     when(rs.getString(anyString())).thenReturn("S1");
 
-    SES_AI_M_SENDER sender = new SES_AI_M_SENDER();
+    SES_AI_M_SENDER sender = new SES_AI_M_SENDER("test-tenant");
     sender.setFromId("S1");
     sender.setRegisterDate(new OriginalDateTime());
 
@@ -64,11 +64,12 @@ class SES_AI_M_SENDERTest {
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeQuery()).thenReturn(rs);
     when(rs.next()).thenReturn(true, false);
+    when(rs.getString("tenant_id")).thenReturn("test-tenant");
 
     SES_AI_M_SENDERLot lot = new SES_AI_M_SENDERLot();
-    lot.selectAll(connection);
+    lot.selectAll(connection, "test-tenant");
 
-    SES_AI_M_SENDER sender = new SES_AI_M_SENDER();
+    SES_AI_M_SENDER sender = new SES_AI_M_SENDER("test-tenant");
     sender.setFromId("S1");
     lot.add(sender);
     assertNotNull(lot.toString());
@@ -87,7 +88,7 @@ class SES_AI_M_SENDERTest {
     ResultSet rs = mock(ResultSet.class);
     when(connection.prepareStatement(anyString())).thenReturn(ps);
 
-    SES_AI_M_SENDER sender = new SES_AI_M_SENDER();
+    SES_AI_M_SENDER sender = new SES_AI_M_SENDER("test-tenant");
     sender.setFromId("S1");
 
     when(ps.executeQuery()).thenReturn(rs);

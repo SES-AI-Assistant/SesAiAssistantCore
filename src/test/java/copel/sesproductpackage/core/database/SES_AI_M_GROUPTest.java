@@ -14,7 +14,7 @@ class SES_AI_M_GROUPTest {
 
   @Test
   void testNullScenarios() throws SQLException {
-    SES_AI_M_GROUP entity = new SES_AI_M_GROUP();
+    SES_AI_M_GROUP entity = new SES_AI_M_GROUP("test-tenant");
     Connection connection = mock(Connection.class);
 
     assertEquals(0, entity.insert(null));
@@ -45,7 +45,7 @@ class SES_AI_M_GROUPTest {
     when(rs.next()).thenReturn(true, false);
     when(rs.getString(anyString())).thenReturn("G1");
 
-    SES_AI_M_GROUP group = new SES_AI_M_GROUP();
+    SES_AI_M_GROUP group = new SES_AI_M_GROUP("test-tenant");
     group.setFromGroup("G1");
     group.setRegisterDate(new OriginalDateTime());
 
@@ -64,11 +64,12 @@ class SES_AI_M_GROUPTest {
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeQuery()).thenReturn(rs);
     when(rs.next()).thenReturn(true, false);
+    when(rs.getString("tenant_id")).thenReturn("test-tenant");
 
     SES_AI_M_GROUPLot lot = new SES_AI_M_GROUPLot();
-    lot.selectAll(connection);
+    lot.selectAll(connection, "test-tenant");
 
-    SES_AI_M_GROUP group = new SES_AI_M_GROUP();
+    SES_AI_M_GROUP group = new SES_AI_M_GROUP("test-tenant");
     group.setFromGroup("G1");
     lot.add(group);
     assertNotNull(lot.toString());

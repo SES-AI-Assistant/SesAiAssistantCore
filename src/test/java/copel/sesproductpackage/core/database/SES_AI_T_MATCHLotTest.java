@@ -38,11 +38,14 @@ class SES_AI_T_MATCHLotTest {
     when(rs.next()).thenReturn(true, false);
 
     when(rs.getString("matching_id")).thenReturn("M1");
+    when(rs.getString("tenant_id")).thenReturn("test-tenant");
     when(rs.getString("status_cd")).thenReturn("00");
+    when(rs.getString("tenant_id")).thenReturn("test-tenant");
     when(rs.getString("register_date")).thenReturn("2026-01-01 10:00:00");
+    when(rs.getString("tenant_id")).thenReturn("test-tenant");
 
     SES_AI_T_MATCHLot lot = new SES_AI_T_MATCHLot("test-tenant");
-    lot.selectAll(connection);
+    lot.selectAll(connection, "test-tenant");
     assertEquals(1, lot.size());
     assertEquals("M1", lot.get(0).getMatchingId());
   }

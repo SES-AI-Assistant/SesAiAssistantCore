@@ -18,7 +18,7 @@ import copel.sesproductpackage.core.unit.OriginalDateTime;
 public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
   /** 全件SELECT文. */
   private static final String SELECT_ALL_SQL =
-      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl FROM SES_AI_T_WATCH";
+      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id FROM SES_AI_T_WATCH";
 
   /** SELECT文(ユーザーIDキー). */
   private static final String SELECT_BY_USER_ID_SQL =
@@ -46,10 +46,11 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
    * ユーザーIDが一致するレコードを全て取得し、このLotに格納します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param userId ユーザーID
    * @throws SQLException
    */
-  public void selectByUserId(Connection connection, String userId) throws SQLException {
+  public void selectByUserId(final Connection connection, final String tenantId, final String userId) throws SQLException {
     if (connection == null || userId == null) {
       return;
     }
@@ -66,12 +67,13 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
    * ユーザーIDが一致するレコードを指定件数取得し、このLotに格納します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param userId ユーザーID
    * @param page ページ番号
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
-  public void selectByUserIdPaged(Connection connection, String userId, int page, int size)
+  public void selectByUserIdPaged(final Connection connection, final String tenantId, final String userId, final int page, final int size)
       throws SQLException {
     if (connection == null || userId == null) {
       return;
@@ -80,6 +82,7 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
     query.put("user_id", userId);
     this.selectByQueryPaged(
         connection,
+        tenantId,
         "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl FROM SES_AI_T_WATCH",
         query,
         true,
@@ -108,11 +111,12 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
    * 対象IDと対象種別が一致するレコードを全て取得し、このLotに格納します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param targetId 対象ID
    * @param targetType 対象種別
    * @throws SQLException
    */
-  public void selectByTargetId(Connection connection, String targetId, TargetType targetType)
+  public void selectByTargetId(final Connection connection, final String tenantId, final String targetId, final TargetType targetType)
       throws SQLException {
     if (connection == null || targetId == null || targetType == null) {
       return;
@@ -131,18 +135,21 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
    * 期限切れのレコードをDBから削除します.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @return 削除したレコード数
    * @throws SQLException
    */
-  public int deleteExpired(Connection connection) throws SQLException {
-    final String deleteExpiredSql = "DELETE FROM SES_AI_T_WATCH WHERE ttl < NOW()";
+  public int deleteExpired(final Connection connection, final String tenantId) throws SQLException {
+    final String deleteExpiredSql = "DELETE FROM SES_AI_T_WATCH WHERE ttl < NOW() AND tenant_id = ?";
     PreparedStatement preparedStatement = connection.prepareStatement(deleteExpiredSql);
+    preparedStatement.setString(1, tenantId);
     return preparedStatement.executeUpdate();
   }
 
   @Override
-  public void selectAll(Connection connection) throws SQLException {
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);
+  public void selectAll(final Connection connection, final String tenantId) throws SQLException {
+    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL + " WHERE tenant_id = ?");
+    preparedStatement.setString(1, tenantId);
     ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();
     while (resultSet.next()) {

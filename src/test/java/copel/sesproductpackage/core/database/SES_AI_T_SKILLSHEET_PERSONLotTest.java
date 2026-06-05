@@ -43,6 +43,7 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
     when(mockResultSet.next()).thenReturn(true, false);
     when(mockResultSet.getString("file_id")).thenReturn("f1");
     when(mockResultSet.getString("person_id")).thenReturn("p1");
+    when(mockResultSet.getString("tenant_id")).thenReturn("test-tenant");
 
     if (hasDistance) {
       when(mockResultSetMetaData.getColumnCount()).thenReturn(2);
@@ -59,7 +60,7 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
   void testRetrieveByPersonVector() throws SQLException {
     prepareMockResultSet(true);
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
-    lot.retrieveByPersonVector(mockConnection, mockVector, 0.5, 10);
+    lot.retrieveByPersonVector(mockConnection, "test-tenant", mockVector, 0.5, 10);
     assertEquals(1, lot.size());
     assertEquals("p1", lot.get(0).getPersonId());
     assertEquals(0.85, lot.get(0).getDistance());
@@ -69,7 +70,7 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
   void testRetrieveBySkillSheetVector() throws SQLException {
     prepareMockResultSet(true);
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
-    lot.retrieveBySkillSheetVector(mockConnection, mockVector, 0.6, 5);
+    lot.retrieveBySkillSheetVector(mockConnection, "test-tenant", mockVector, 0.6, 5);
     assertEquals(1, lot.size());
   }
 
@@ -77,11 +78,11 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
   void testRetrieveOuterJoinVectors() throws SQLException {
     prepareMockResultSet(true);
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
-    lot.retrieveOuterJoinByPersonVector(mockConnection, mockVector, 0.5, 10);
+    lot.retrieveOuterJoinByPersonVector(mockConnection, "test-tenant", mockVector, 0.5, 10);
     assertEquals(1, lot.size());
 
     when(mockResultSet.next()).thenReturn(true, false);
-    lot.retrieveOuterJoinBySkillSheetVector(mockConnection, mockVector, 0.5, 10);
+    lot.retrieveOuterJoinBySkillSheetVector(mockConnection, "test-tenant", mockVector, 0.5, 10);
     assertEquals(1, lot.size());
   }
 
@@ -89,12 +90,12 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
   void testRetrieveByPersonRawContent() throws SQLException {
     prepareMockResultSet(false);
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
-    lot.retrieveByPersonRawContent(mockConnection, "keyword");
+    lot.retrieveByPersonRawContent(mockConnection, "test-tenant", "keyword");
     assertEquals(1, lot.size());
 
     when(mockResultSet.next()).thenReturn(true, false);
     lot.retrieveByPersonRawContent(
-        mockConnection, "k1", List.of(new LogicalOperators(論理演算子.AND, "k2")));
+        mockConnection, "test-tenant", "k1", List.of(new LogicalOperators(論理演算子.AND, "k2")));
     assertEquals(1, lot.size());
   }
 
@@ -102,12 +103,12 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
   void testRetrieveBySkillSheetRawContent() throws SQLException {
     prepareMockResultSet(false);
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
-    lot.retrieveBySkillSheetRawContent(mockConnection, "skill");
+    lot.retrieveBySkillSheetRawContent(mockConnection, "test-tenant", "skill");
     assertEquals(1, lot.size());
 
     when(mockResultSet.next()).thenReturn(true, false);
     lot.retrieveBySkillSheetRawContent(
-        mockConnection, "s1", List.of(new LogicalOperators(論理演算子.OR, "s2")));
+        mockConnection, "test-tenant", "s1", List.of(new LogicalOperators(論理演算子.OR, "s2")));
     assertEquals(1, lot.size());
   }
 
@@ -115,7 +116,7 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
   void testGetEntityMethods() throws SQLException {
     prepareMockResultSet(false);
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
-    lot.retrieveByPersonRawContent(mockConnection, "keyword");
+    lot.retrieveByPersonRawContent(mockConnection, "test-tenant", "keyword");
 
     assertNotNull(lot.getEntityByPk("p1"));
     assertNotNull(lot.getEntityByFileId("f1"));
@@ -127,7 +128,7 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
   void testToSelectionTexts() throws SQLException {
     prepareMockResultSet(false);
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
-    lot.retrieveByPersonRawContent(mockConnection, "keyword");
+    lot.retrieveByPersonRawContent(mockConnection, "test-tenant", "keyword");
     lot.get(0).setContentSummary("cs");
     lot.get(0).setFileContentSummary("fs");
 
@@ -152,13 +153,14 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
     when(mockResultSet.next()).thenReturn(true, false);
     when(mockResultSet.getString("file_id")).thenReturn("f1");
     when(mockResultSet.getString("person_id")).thenReturn("p1");
+    when(mockResultSet.getString("tenant_id")).thenReturn("test-tenant");
     when(mockResultSetMetaData.getColumnCount()).thenReturn(1);
     when(mockResultSetMetaData.getColumnLabel(1)).thenReturn("file_id");
 
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
     List<FulltextCondition> conditions =
         List.of(new FulltextCondition("AND", "Java", false));
-    lot.searchByPersonOrSkillSheetSummaryPaged(mockConnection, conditions, 1, 20);
+    lot.searchByPersonOrSkillSheetSummaryPaged(mockConnection, "test-tenant", conditions, 1, 20);
     assertEquals(1, lot.size());
     assertEquals("p1", lot.get(0).getPersonId());
   }
@@ -168,7 +170,7 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
     List<FulltextCondition> conditions =
         List.of(new FulltextCondition("AND", "Java", false));
-    assertDoesNotThrow(() -> lot.searchByPersonOrSkillSheetSummaryPaged(null, conditions, 1, 20));
+    assertDoesNotThrow(() -> lot.searchByPersonOrSkillSheetSummaryPaged(null, "test-tenant", conditions, 1, 20));
     assertEquals(0, lot.size());
   }
 
@@ -188,13 +190,14 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
     when(mockResultSet.next()).thenReturn(true, false);
     when(mockResultSet.getString("file_id")).thenReturn("f1");
     when(mockResultSet.getString("person_id")).thenReturn("p1");
+    when(mockResultSet.getString("tenant_id")).thenReturn("test-tenant");
     when(mockResultSetMetaData.getColumnCount()).thenReturn(1);
     when(mockResultSetMetaData.getColumnLabel(1)).thenReturn("file_id");
 
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
     List<FulltextCondition> conditions =
         List.of(new FulltextCondition("AND", "TWINPOS", false));
-    lot.searchByPersonOrSkillSheetSummaryInnerJoinPaged(mockConnection, conditions, 1, 20);
+    lot.searchByPersonOrSkillSheetSummaryInnerJoinPaged(mockConnection, "test-tenant", conditions, 1, 20);
     assertEquals(1, lot.size());
     assertEquals("p1", lot.get(0).getPersonId());
   }
@@ -205,13 +208,13 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
     List<FulltextCondition> conditions =
         List.of(new FulltextCondition("AND", "TWINPOS", false));
     assertDoesNotThrow(
-        () -> lot.searchByPersonOrSkillSheetSummaryInnerJoinPaged(null, conditions, 1, 20));
+        () -> lot.searchByPersonOrSkillSheetSummaryInnerJoinPaged(null, "test-tenant", conditions, 1, 20));
     assertEquals(0, lot.size());
   }
 
   @Test
   void testSelectAll() throws SQLException {
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
-    assertDoesNotThrow(() -> lot.selectAll(mockConnection));
+    assertDoesNotThrow(() -> lot.selectAll(mockConnection, "test-tenant"));
   }
 }

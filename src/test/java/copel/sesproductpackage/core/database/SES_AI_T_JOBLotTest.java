@@ -47,6 +47,7 @@ class SES_AI_T_JOBLotTest {
     when(mockRs.getString("register_date")).thenReturn("2023-01-01 12:00:00");
     when(mockRs.getString("register_user")).thenReturn("user1");
     when(mockRs.getString("ttl")).thenReturn("2024-01-01 12:00:00");
+    when(mockRs.getString("tenant_id")).thenReturn("test-tenant");
     when(mockRs.getDouble("distance")).thenReturn(0.5);
   }
 
@@ -62,7 +63,7 @@ class SES_AI_T_JOBLotTest {
   void testSelectAll() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    lot.selectAll(mockConn);
+    lot.selectAll(mockConn, "test-tenant");
     assertEquals(1, lot.size());
   }
 
@@ -72,18 +73,18 @@ class SES_AI_T_JOBLotTest {
     when(mockRs.getLong(1)).thenReturn(1L);
     when(mockRs.next()).thenReturn(true, true, false);
     SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    lot.retrieve(mockConn, createTestVector(), 10);
+    lot.retrieve(mockConn, "test-tenant", createTestVector(), 10);
     assertEquals(1, lot.size());
     assertEquals(0.5, lot.get(0).getDistance());
 
     SES_AI_T_JOBLot lotForNull = new SES_AI_T_JOBLot();
-    lotForNull.retrieve(null, null, 0);
+    lotForNull.retrieve(null, "test-tenant", null, 0);
     assertTrue(lotForNull.isEmpty());
 
     setupDefaultResultSet();
     when(mockRs.getLong(1)).thenReturn(1L);
     when(mockRs.next()).thenReturn(true, true, false);
-    lot.retrieve(mockConn, null, 1);
+    lot.retrieve(mockConn, "test-tenant", null, 1);
     verify(mockStmt).setString(1, null);
   }
 
@@ -91,7 +92,7 @@ class SES_AI_T_JOBLotTest {
   void testSearchByRawContentSingle() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    lot.searchByRawContent(mockConn, "query");
+    lot.searchByRawContent(mockConn, "test-tenant", "query");
     assertEquals(1, lot.size());
   }
 
@@ -103,15 +104,15 @@ class SES_AI_T_JOBLotTest {
     queries.add(new LogicalOperators(論理演算子.AND, "val1"));
     queries.add(new LogicalOperators(論理演算子.OR, "val2"));
     queries.add(null);
-    lot.searchByRawContent(mockConn, "first", queries);
+    lot.searchByRawContent(mockConn, "test-tenant", "first", queries);
     assertEquals(1, lot.size());
 
     setupDefaultResultSet();
     SES_AI_T_JOBLot lot2 = new SES_AI_T_JOBLot();
-    lot2.searchByRawContent(mockConn, "first", null);
+    lot2.searchByRawContent(mockConn, "test-tenant", "first", null);
     assertEquals(1, lot2.size());
 
-    lot2.selectAll(null);
+    lot2.selectAll(null, "test-tenant");
     assertEquals(0, lot2.size());
   }
 
@@ -122,12 +123,12 @@ class SES_AI_T_JOBLotTest {
     Map<String, Object> query = new HashMap<>();
     query.put("col1", "val1");
     query.put("col2", "val2");
-    lot.selectByAndQuery(mockConn, query);
+    lot.selectByAndQuery(mockConn, "test-tenant", query);
     assertEquals(1, lot.size());
 
     setupDefaultResultSet();
     SES_AI_T_JOBLot lot2 = new SES_AI_T_JOBLot();
-    lot2.selectByAndQuery(mockConn, Collections.emptyMap());
+    lot2.selectByAndQuery(mockConn, "test-tenant", Collections.emptyMap());
     assertEquals(0, lot2.size());
   }
 
@@ -138,12 +139,12 @@ class SES_AI_T_JOBLotTest {
     Map<String, Object> query = new HashMap<>();
     query.put("col1", "val1");
     query.put("col2", "val2");
-    lot.selectByOrQuery(mockConn, query);
+    lot.selectByOrQuery(mockConn, "test-tenant", query);
     assertEquals(1, lot.size());
 
     setupDefaultResultSet();
     SES_AI_T_JOBLot lot2 = new SES_AI_T_JOBLot();
-    lot2.selectByOrQuery(mockConn, Collections.emptyMap());
+    lot2.selectByOrQuery(mockConn, "test-tenant", Collections.emptyMap());
     assertEquals(0, lot2.size());
   }
 
@@ -151,7 +152,7 @@ class SES_AI_T_JOBLotTest {
   void testGetEntityByPk() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    lot.selectAll(mockConn);
+    lot.selectAll(mockConn, "test-tenant");
 
     assertNotNull(lot.getEntityByPk("jid1"));
     assertNull(lot.getEntityByPk("nonexistent"));
@@ -162,7 +163,7 @@ class SES_AI_T_JOBLotTest {
   void testToJobSelectionText() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    lot.selectAll(mockConn);
+    lot.selectAll(mockConn, "test-tenant");
 
     assertFalse(lot.to案件選出用文章().isEmpty());
 
@@ -176,25 +177,25 @@ class SES_AI_T_JOBLotTest {
     when(mockRs.getLong(1)).thenReturn(1L);
     when(mockRs.next()).thenReturn(true, true, false);
     SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    lot.retrieve(mockConn, createTestVector());
+    lot.retrieve(mockConn, "test-tenant", createTestVector());
     assertEquals(1, lot.size());
     assertEquals(0.5, lot.get(0).getDistance());
 
     setupDefaultResultSet();
     when(mockRs.getLong(1)).thenReturn(1L);
     when(mockRs.next()).thenReturn(true, true, false);
-    lot.retrieveWithThreshold(mockConn, createTestVector(), 0.8, 10);
+    lot.retrieveWithThreshold(mockConn, "test-tenant", createTestVector(), 0.8, 10);
     assertEquals(1, lot.size());
 
     SES_AI_T_JOBLot emptyLot2 = new SES_AI_T_JOBLot();
-    emptyLot2.retrievePagedWithThreshold(null, createTestVector(), 0.8, 1, 10);
+    emptyLot2.retrievePagedWithThreshold(null, "test-tenant", createTestVector(), 0.8, 1, 10);
     assertTrue(emptyLot2.isEmpty());
-    emptyLot2.retrievePagedWithThreshold(mockConn, null, 0.8, 1, 10);
+    emptyLot2.retrievePagedWithThreshold(mockConn, "test-tenant", null, 0.8, 1, 10);
     assertTrue(emptyLot2.isEmpty());
-    
+
     when(mockRs.next()).thenReturn(false);
     when(mockRs.getLong(1)).thenReturn(0L);
-    emptyLot2.retrievePagedWithThreshold(mockConn, createTestVector(), 0.8, 1, 10);
+    emptyLot2.retrievePagedWithThreshold(mockConn, "test-tenant", createTestVector(), 0.8, 1, 10);
     assertTrue(emptyLot2.isEmpty());
   }
 
@@ -207,11 +208,11 @@ class SES_AI_T_JOBLotTest {
     List<FulltextCondition> conds = new ArrayList<>();
     conds.add(new FulltextCondition("AND", "java", false));
     conds.add(new FulltextCondition("OR", "aws", false));
-    lot.searchByRawContentPaged(mockConn, conds, 1, 5);
+    lot.searchByRawContentPaged(mockConn, "test-tenant", conds, 1, 5);
     assertEquals(1, lot.size());
 
     SES_AI_T_JOBLot empty = new SES_AI_T_JOBLot();
-    empty.searchByRawContentPaged(null, conds, 1, 5);
+    empty.searchByRawContentPaged(null, "test-tenant", conds, 1, 5);
     assertTrue(empty.isEmpty());
   }
 }
