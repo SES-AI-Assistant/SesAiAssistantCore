@@ -23,6 +23,10 @@ public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUT
   private static final String SELECT_BY_CHANNEL_AND_ROUTE_SQL =
       "SELECT channel_type, route_key, tenant_id, register_date, register_user FROM SES_AI_M_INGEST_ROUTE WHERE channel_type = ? AND route_key = ?";
 
+  /** チャネルタイプとルートキーで検索するSELECT文（テナントID指定なし）. */
+  private static final String SELECT_BY_CHANNEL_AND_ROUTE_WITHOUT_TENANT_SQL =
+      "SELECT channel_type, route_key, tenant_id, register_date, register_user FROM SES_AI_M_INGEST_ROUTE WHERE channel_type = ? AND route_key = ?";
+
   public SES_AI_M_INGEST_ROUTELot() {
     super();
   }
@@ -74,6 +78,29 @@ public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUT
       return;
     }
     PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BY_CHANNEL_AND_ROUTE_SQL);
+    preparedStatement.setString(1, channelType.getValue());
+    preparedStatement.setString(2, routeKey);
+    ResultSet resultSet = preparedStatement.executeQuery();
+    this.entityLot = new ArrayList<>();
+    while (resultSet.next()) {
+      this.entityLot.add(mapResultSet(resultSet));
+    }
+  }
+
+  /**
+   * チャネルタイプとルートキーで検索し、該当する全テナントID を取得する（テナント指定なし）.
+   *
+   * @param connection DB接続
+   * @param channelType チャネルタイプ (LINE / EMAIL)
+   * @param routeKey ルートキー (メールアドレス、LINE ID など)
+   * @throws SQLException DB例外
+   */
+  public void selectByChannelTypeAndRouteKeyWithoutTenantId(final Connection connection, final ChannelType channelType, final String routeKey) throws SQLException {
+    if (connection == null || channelType == null || routeKey == null) {
+      this.entityLot = new ArrayList<>();
+      return;
+    }
+    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BY_CHANNEL_AND_ROUTE_WITHOUT_TENANT_SQL);
     preparedStatement.setString(1, channelType.getValue());
     preparedStatement.setString(2, routeKey);
     ResultSet resultSet = preparedStatement.executeQuery();

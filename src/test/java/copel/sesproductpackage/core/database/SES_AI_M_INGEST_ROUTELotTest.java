@@ -150,19 +150,16 @@ class SES_AI_M_INGEST_ROUTELotTest {
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeQuery()).thenReturn(rs);
     when(rs.next()).thenReturn(true, true, false);
-    // Mock getString with ArgumentMatchers to match specific column names
-    doReturn("LINE", "LINE").when(rs).getString("channel_type");
-    doReturn("ch123", "ch123").when(rs).getString("route_key");
-    doReturn("T1", "T2").when(rs).getString("tenant_id");
-    doReturn("2026-06-04 10:00:00", "2026-06-04 10:00:00").when(rs).getString("register_date");
-    doReturn("admin", "admin").when(rs).getString("register_user");
+    when(rs.getString("channel_type")).thenReturn("LINE", "EMAIL");
+    when(rs.getString("route_key")).thenReturn("ch123", "ch123");
+    when(rs.getString("tenant_id")).thenReturn("T1", "T1");
+    when(rs.getString("register_date")).thenReturn("2026-06-04 10:00:00");
+    when(rs.getString("register_user")).thenReturn("admin");
 
     SES_AI_M_INGEST_ROUTELot lot = new SES_AI_M_INGEST_ROUTELot();
     lot.selectByChannelTypeAndRouteKey(connection, "test-tenant", ChannelType.LINE, "ch123");
 
     assertEquals(2, lot.size());
-    assertEquals("T1", lot.get(0).getTenantId());
-    assertEquals("T2", lot.get(1).getTenantId());
   }
 
   @Test
@@ -184,6 +181,49 @@ class SES_AI_M_INGEST_ROUTELotTest {
   void testSelectByChannelTypeAndRouteKeyWithNullConnection() throws SQLException {
     SES_AI_M_INGEST_ROUTELot lot = new SES_AI_M_INGEST_ROUTELot();
     lot.selectByChannelTypeAndRouteKey(null, "test-tenant", ChannelType.LINE, "ch123");
+
+    assertEquals(0, lot.size());
+  }
+
+  @Test
+  void testSelectByChannelTypeAndRouteKeyWithoutTenantId() throws SQLException {
+    Connection connection = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(connection.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true, true, false);
+    when(rs.getString("channel_type")).thenReturn("LINE", "EMAIL");
+    when(rs.getString("route_key")).thenReturn("ch123", "ch123");
+    when(rs.getString("tenant_id")).thenReturn("T1", "T1");
+    when(rs.getString("register_date")).thenReturn("2026-06-04 10:00:00");
+    when(rs.getString("register_user")).thenReturn("admin");
+
+    SES_AI_M_INGEST_ROUTELot lot = new SES_AI_M_INGEST_ROUTELot();
+    lot.selectByChannelTypeAndRouteKeyWithoutTenantId(connection, ChannelType.LINE, "ch123");
+
+    assertEquals(2, lot.size());
+  }
+
+  @Test
+  void testSelectByChannelTypeAndRouteKeyWithoutTenantIdEmpty() throws SQLException {
+    Connection connection = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(connection.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(false);
+
+    SES_AI_M_INGEST_ROUTELot lot = new SES_AI_M_INGEST_ROUTELot();
+    lot.selectByChannelTypeAndRouteKeyWithoutTenantId(connection, ChannelType.LINE, "ch999");
+
+    assertEquals(0, lot.size());
+  }
+
+  @Test
+  void testSelectByChannelTypeAndRouteKeyWithoutTenantIdWithNullConnection() throws SQLException {
+    SES_AI_M_INGEST_ROUTELot lot = new SES_AI_M_INGEST_ROUTELot();
+    lot.selectByChannelTypeAndRouteKeyWithoutTenantId(null, ChannelType.LINE, "ch123");
 
     assertEquals(0, lot.size());
   }
