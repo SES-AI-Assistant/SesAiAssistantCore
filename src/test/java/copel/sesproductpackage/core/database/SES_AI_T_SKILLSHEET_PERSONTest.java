@@ -44,7 +44,7 @@ class SES_AI_T_SKILLSHEET_PERSONTest {
     when(mockResultSet.getString("from_id")).thenReturn("i1");
     when(mockResultSet.getString("from_name")).thenReturn("n1");
 
-    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON();
+    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON("test-tenant");
     entity.selectByPersonId(mockConnection, "p1");
 
     assertEquals("f1", entity.getFileId());
@@ -52,7 +52,7 @@ class SES_AI_T_SKILLSHEET_PERSONTest {
     assertNotNull(entity.getRegisterDate());
 
     when(mockResultSet.next()).thenReturn(false);
-    SES_AI_T_SKILLSHEET_PERSON entity2 = new SES_AI_T_SKILLSHEET_PERSON();
+    SES_AI_T_SKILLSHEET_PERSON entity2 = new SES_AI_T_SKILLSHEET_PERSON("test-tenant");
     entity2.selectByPersonId(mockConnection, "p2");
     assertNull(entity2.getFileId());
   }
@@ -61,7 +61,7 @@ class SES_AI_T_SKILLSHEET_PERSONTest {
   void testSelectOuterJoinByPersonId() throws SQLException {
     when(mockResultSet.next()).thenReturn(true);
     when(mockResultSet.getTimestamp("register_date")).thenReturn(null);
-    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON();
+    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON("test-tenant");
     entity.selectOuterJoinByPersonId(mockConnection, "p1");
     assertNull(entity.getRegisterDate());
   }
@@ -69,7 +69,7 @@ class SES_AI_T_SKILLSHEET_PERSONTest {
   @Test
   void testSelectByFileId() throws SQLException {
     when(mockResultSet.next()).thenReturn(true);
-    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON();
+    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON("test-tenant");
     entity.selectByFileId(mockConnection, "f1");
     verify(mockPreparedStatement).setString(1, "f1");
   }
@@ -77,14 +77,14 @@ class SES_AI_T_SKILLSHEET_PERSONTest {
   @Test
   void testSelectOuterJoinByFileId() throws SQLException {
     when(mockResultSet.next()).thenReturn(true);
-    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON();
+    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON("test-tenant");
     entity.selectOuterJoinByFileId(mockConnection, "f1");
     verify(mockPreparedStatement).setString(1, "f1");
   }
 
   @Test
   void testTo要員選出用文章() {
-    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON();
+    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON("test-tenant");
     entity.setPersonId("p1");
     entity.setContentSummary("cs1");
     entity.setFileContentSummary("fs1");
@@ -97,7 +97,7 @@ class SES_AI_T_SKILLSHEET_PERSONTest {
 
   @Test
   void testToスキルシート選出用文章() {
-    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON();
+    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON("test-tenant");
     entity.setFileId("f1");
     entity.setContentSummary("cs1");
     entity.setFileContentSummary("fs1");
@@ -106,7 +106,7 @@ class SES_AI_T_SKILLSHEET_PERSONTest {
 
   @Test
   void testDummyImplementations() throws Exception {
-    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON();
+    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON("test-tenant");
     assertDoesNotThrow(() -> entity.embedding(null));
     assertFalse(entity.uniqueCheck(mockConnection, 0.5));
     assertEquals(0, entity.insert(mockConnection));
@@ -120,13 +120,13 @@ class SES_AI_T_SKILLSHEET_PERSONTest {
 
   @Test
   void testLombokMethods() {
-    SES_AI_T_SKILLSHEET_PERSON entity1 = new SES_AI_T_SKILLSHEET_PERSON();
+    SES_AI_T_SKILLSHEET_PERSON entity1 = new SES_AI_T_SKILLSHEET_PERSON("test-tenant");
     entity1.setFileId("f1");
     entity1.setFileContentSummary("fs1");
     entity1.setPersonId("p1");
     entity1.setContentSummary("cs1");
 
-    SES_AI_T_SKILLSHEET_PERSON entity2 = new SES_AI_T_SKILLSHEET_PERSON();
+    SES_AI_T_SKILLSHEET_PERSON entity2 = new SES_AI_T_SKILLSHEET_PERSON("test-tenant");
     entity2.setFileId("f1");
     entity2.setFileContentSummary("fs1");
     entity2.setPersonId("p1");
@@ -145,7 +145,7 @@ class SES_AI_T_SKILLSHEET_PERSONTest {
   @Test
   void testSelectByFileIdNoResult() throws SQLException {
     when(mockResultSet.next()).thenReturn(false);
-    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON();
+    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON("test-tenant");
     entity.selectByFileId(mockConnection, "f1");
     assertNull(entity.getFileId());
   }
@@ -153,7 +153,7 @@ class SES_AI_T_SKILLSHEET_PERSONTest {
   @Test
   void testSelectOuterJoinByFileIdNoResult() throws SQLException {
     when(mockResultSet.next()).thenReturn(false);
-    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON();
+    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON("test-tenant");
     entity.selectOuterJoinByFileId(mockConnection, "f1");
     assertNull(entity.getFileId());
   }

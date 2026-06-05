@@ -19,9 +19,12 @@ import lombok.ToString;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@NoArgsConstructor
 @ToString(callSuper = true)
 public class SES_AI_M_SENDER extends EntityBase {
+
+  public SES_AI_M_SENDER(String tenantId) {
+    super(tenantId);
+  }
   /** INSERTR文. */
   private static final String INSERT_SQL =
       "INSERT INTO SES_AI_M_SENDER (from_id, from_name, register_date, register_user) VALUES (?, ?, ?, ?)";

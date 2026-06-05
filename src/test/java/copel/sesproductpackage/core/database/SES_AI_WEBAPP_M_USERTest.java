@@ -17,7 +17,7 @@ class SES_AI_WEBAPP_M_USERTest {
 
   @Test
   void testAuth() {
-    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER();
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
     user.setRole(Role.システム管理者);
     assertTrue(user.hasSystemUseAuth());
     user.setRole(Role.システムユーザー);
@@ -30,7 +30,7 @@ class SES_AI_WEBAPP_M_USERTest {
 
   @Test
   void testGetPermissionsBranches() {
-    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER();
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
     assertTrue(user.getPermissions().isEmpty());
 
     user.setRole(Role.システム管理者);
@@ -48,7 +48,7 @@ class SES_AI_WEBAPP_M_USERTest {
 
   @Test
   void registerInfoListImportPermissionRequiresPremiumPlanAndGeneralRoleOrHigher() {
-    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER();
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
     user.setPlan(Plan.PREMIUM);
     user.setRole(Role.システム利用不可);
     assertFalse(user.getPermissions().contains(Permission.REGISTER_INFO_LIST_IMPORT));
@@ -63,7 +63,7 @@ class SES_AI_WEBAPP_M_USERTest {
 
   @Test
   void testNullScenarios() throws SQLException {
-    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER();
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
     Connection connection = mock(Connection.class);
 
     assertEquals(0, user.insert(null));
@@ -105,7 +105,7 @@ class SES_AI_WEBAPP_M_USERTest {
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeQuery()).thenReturn(rs);
 
-    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER();
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
     user.setUserId("U1");
     user.setTenantId("default");
 
@@ -136,7 +136,7 @@ class SES_AI_WEBAPP_M_USERTest {
     when(rs.getString("register_date")).thenReturn("2026-01-01 00:00:00");
     when(rs.getString("register_user")).thenReturn("admin");
 
-    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER();
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
     user.setUserId("U1");
     user.setTenantId("default");
     user.setUserName("Name1");
@@ -146,7 +146,7 @@ class SES_AI_WEBAPP_M_USERTest {
     assertEquals(1, user.insert(connection));
     assertTrue(user.updateByPk(connection));
 
-    SES_AI_WEBAPP_M_USER target = new SES_AI_WEBAPP_M_USER();
+    SES_AI_WEBAPP_M_USER target = new SES_AI_WEBAPP_M_USER("test-tenant");
     target.setUserId("U1");
     target.setTenantId("default");
     target.selectByPk(connection);
@@ -174,7 +174,7 @@ class SES_AI_WEBAPP_M_USERTest {
     SES_AI_WEBAPP_M_USERLot lot = new SES_AI_WEBAPP_M_USERLot();
     lot.selectAll(connection);
 
-    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER();
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
     user.setUserId("U1");
     user.setTenantId("default");
     lot.add(user);

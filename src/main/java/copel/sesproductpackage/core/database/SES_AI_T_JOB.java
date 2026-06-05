@@ -22,9 +22,13 @@ import lombok.ToString;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@NoArgsConstructor
 @ToString(callSuper = true)
 public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
+
+  public SES_AI_T_JOB(String tenantId) {
+    super(tenantId);
+    this.tenantId = tenantId;
+  }
   // ================================
   // SQL
   // ================================
@@ -107,7 +111,7 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
       preparedStatement.setDouble(4, similarityThreshold);
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
-          SES_AI_T_JOB result = new SES_AI_T_JOB();
+          SES_AI_T_JOB result = new SES_AI_T_JOB(tenantId);
           result.setJobId(resultSet.getString("job_id"));
           BigDecimal unitPriceValue = resultSet.getBigDecimal("unit_price");
           result.setUnitPrice(unitPriceValue == null ? Money.empty() : new Money(unitPriceValue));

@@ -13,8 +13,8 @@ class SES_AI_T_MATCHLotTest {
 
   @Test
   void testExistMethods() {
-    SES_AI_T_MATCHLot lot = new SES_AI_T_MATCHLot();
-    SES_AI_T_MATCH match = new SES_AI_T_MATCH();
+    SES_AI_T_MATCHLot lot = new SES_AI_T_MATCHLot("test-tenant");
+    SES_AI_T_MATCH match = new SES_AI_T_MATCH("test-tenant");
     match.setJobId("J123");
     match.setPersonId("P123");
     lot.add(match);
@@ -41,7 +41,7 @@ class SES_AI_T_MATCHLotTest {
     when(rs.getString("status_cd")).thenReturn("00");
     when(rs.getString("register_date")).thenReturn("2026-01-01 10:00:00");
 
-    SES_AI_T_MATCHLot lot = new SES_AI_T_MATCHLot();
+    SES_AI_T_MATCHLot lot = new SES_AI_T_MATCHLot("test-tenant");
     lot.selectAll(connection);
     assertEquals(1, lot.size());
     assertEquals("M1", lot.get(0).getMatchingId());

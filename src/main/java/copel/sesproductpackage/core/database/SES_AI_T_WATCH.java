@@ -19,9 +19,13 @@ import lombok.ToString;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@NoArgsConstructor
 @ToString(callSuper = true)
 public class SES_AI_T_WATCH extends EntityBase {
+
+  public SES_AI_T_WATCH(String tenantId) {
+    super(tenantId);
+    this.tenantId = tenantId;
+  }
   /** INSERT文. */
   private static final String INSERT_SQL =
       "INSERT INTO SES_AI_T_WATCH (user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id) "

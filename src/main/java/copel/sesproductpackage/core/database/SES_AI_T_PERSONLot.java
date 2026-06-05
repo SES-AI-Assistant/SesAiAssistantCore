@@ -435,7 +435,8 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
 
   @Override
   protected SES_AI_T_PERSON mapResultSet(ResultSet resultSet) throws SQLException {
-    SES_AI_T_PERSON sesAiTPerson = new SES_AI_T_PERSON();
+    String tenantId = resultSet.getString("tenant_id");
+    SES_AI_T_PERSON sesAiTPerson = new SES_AI_T_PERSON(tenantId);
     sesAiTPerson.setPersonId(resultSet.getString("person_id"));
     sesAiTPerson.setFromGroup(resultSet.getString("from_group"));
     sesAiTPerson.setFromId(resultSet.getString("from_id"));

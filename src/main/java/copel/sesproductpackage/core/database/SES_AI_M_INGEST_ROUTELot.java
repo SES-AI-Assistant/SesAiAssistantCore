@@ -49,10 +49,10 @@ public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUT
 
   @Override
   protected SES_AI_M_INGEST_ROUTE mapResultSet(ResultSet resultSet) throws SQLException {
-    SES_AI_M_INGEST_ROUTE sesAiMIngestRoute = new SES_AI_M_INGEST_ROUTE();
+    String tenantId = resultSet.getString("tenant_id");
+    SES_AI_M_INGEST_ROUTE sesAiMIngestRoute = new SES_AI_M_INGEST_ROUTE(tenantId);
     sesAiMIngestRoute.setChannelType(ChannelType.fromValue(resultSet.getString("channel_type")));
     sesAiMIngestRoute.setRouteKey(resultSet.getString("route_key"));
-    sesAiMIngestRoute.setTenantId(resultSet.getString("tenant_id"));
     sesAiMIngestRoute.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
     sesAiMIngestRoute.setRegisterUser(resultSet.getString("register_user"));
     return sesAiMIngestRoute;

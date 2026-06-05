@@ -34,7 +34,7 @@ class SES_AI_T_PERSONTest {
     when(rs.getString("register_user")).thenReturn("admin");
     when(rs.getString("ttl")).thenReturn("2026-12-31 23:59:59");
 
-    SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON("test-tenant");
     person.setPersonId("P1");
     person.setTenantId("default");
     person.selectByPk(connection);
@@ -45,7 +45,7 @@ class SES_AI_T_PERSONTest {
     when(rs.next()).thenReturn(true, true);
     when(rs.getString("register_date")).thenReturn("2026-01-01 00:00:00", null);
     when(rs.getString("ttl")).thenReturn("2026-12-31 23:59:59", null);
-    SES_AI_T_PERSON person2 = new SES_AI_T_PERSON();
+    SES_AI_T_PERSON person2 = new SES_AI_T_PERSON("test-tenant");
     person2.setPersonId("P2");
     person2.setTenantId("default");
     person2.selectByPk(connection);
@@ -69,7 +69,7 @@ class SES_AI_T_PERSONTest {
     when(rs.getString("register_date")).thenReturn(null);
     when(rs.getString("register_user")).thenReturn("u1");
     when(rs.getString("ttl")).thenReturn(null);
-    SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON("test-tenant");
     person.setPersonId("P1");
     person.setTenantId("default");
     person.selectByPk(connection);
@@ -83,7 +83,7 @@ class SES_AI_T_PERSONTest {
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeUpdate()).thenReturn(1);
 
-    SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON("test-tenant");
     person.setTenantId("default");
     person.setRegisterDate(new OriginalDateTime());
     person.setTtl(new OriginalDateTime());
@@ -92,7 +92,7 @@ class SES_AI_T_PERSONTest {
     assertEquals(1, result);
     assertNotNull(person.getPersonId());
 
-    SES_AI_T_PERSON personWithVector = new SES_AI_T_PERSON();
+    SES_AI_T_PERSON personWithVector = new SES_AI_T_PERSON("test-tenant");
     personWithVector.setTenantId("default");
     personWithVector.setVectorData(new Vector(mock(Transformer.class)));
     when(ps.executeUpdate()).thenReturn(1);
@@ -106,7 +106,7 @@ class SES_AI_T_PERSONTest {
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeUpdate()).thenReturn(1);
 
-    SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON("test-tenant");
     person.setPersonId("id1");
     person.setTenantId("default");
     person.setRegisterDate(new OriginalDateTime());
@@ -115,7 +115,7 @@ class SES_AI_T_PERSONTest {
 
     assertTrue(result);
 
-    SES_AI_T_PERSON personWithVector = new SES_AI_T_PERSON();
+    SES_AI_T_PERSON personWithVector = new SES_AI_T_PERSON("test-tenant");
     personWithVector.setPersonId("id2");
     personWithVector.setTenantId("default");
     personWithVector.setVectorData(new Vector(mock(Transformer.class)));
@@ -130,7 +130,7 @@ class SES_AI_T_PERSONTest {
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeUpdate()).thenReturn(1);
 
-    SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON("test-tenant");
     person.setPersonId("id1");
     person.setTenantId("default");
     boolean result = person.deleteByPk(connection);
@@ -143,7 +143,7 @@ class SES_AI_T_PERSONTest {
     Transformer transformer = mock(Transformer.class);
     when(transformer.embedding(anyString())).thenReturn(new float[] {0.1f});
 
-    SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON("test-tenant");
     person.setContentSummary("summary");
     person.embedding(transformer);
 
@@ -158,7 +158,7 @@ class SES_AI_T_PERSONTest {
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeQuery()).thenReturn(rs);
 
-    SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON("test-tenant");
 
     when(rs.next()).thenReturn(true);
     when(rs.getInt(1)).thenReturn(0);
@@ -171,7 +171,7 @@ class SES_AI_T_PERSONTest {
 
   @Test
   void testGetCheckSql() throws Exception {
-    SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON("test-tenant");
     java.lang.reflect.Method m = SES_AI_T_PERSON.class.getDeclaredMethod("getCheckSql");
     m.setAccessible(true);
     assertNotNull(m.invoke(person));
@@ -184,7 +184,7 @@ class SES_AI_T_PERSONTest {
     PreparedStatement ps = mock(PreparedStatement.class);
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeUpdate()).thenReturn(0);
-    SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON("test-tenant");
     person.setPersonId(null);
     assertFalse(person.deleteByPk(connection));
   }
@@ -196,7 +196,7 @@ class SES_AI_T_PERSONTest {
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeUpdate()).thenReturn(1);
 
-    SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON("test-tenant");
     person.setPersonId("id1");
     person.setTenantId("default");
     person.setFileId("fid1");
@@ -215,7 +215,7 @@ class SES_AI_T_PERSONTest {
 
   @Test
   void testIsSkillSheetRegistered() {
-    SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON("test-tenant");
     assertFalse(person.isスキルシート登録済());
     person.setFileId("");
     assertFalse(person.isスキルシート登録済());
@@ -225,7 +225,7 @@ class SES_AI_T_PERSONTest {
 
   @Test
   void testToPersonSelectionText() {
-    SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON("test-tenant");
     person.setPersonId("P1");
     person.setRawContent("Content");
     assertEquals("要員ID：P1内容：Content", person.to要員選出用文章());
@@ -236,7 +236,7 @@ class SES_AI_T_PERSONTest {
 
   @Test
   void testGetRawContentAndGetContentSummary() {
-    SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON("test-tenant");
     person.setRawContent("raw");
     person.setContentSummary("summary");
     assertEquals("raw", person.getRawContent());
@@ -245,7 +245,7 @@ class SES_AI_T_PERSONTest {
 
   @Test
   void testNullCases() throws SQLException {
-    SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON("test-tenant");
     assertEquals(0, person.insert(null));
     assertFalse(person.updateByPk(null));
     assertFalse(person.deleteByPk(null));
@@ -278,8 +278,8 @@ class SES_AI_T_PERSONTest {
 
   @Test
   void testSES_AI_T_PERSONLombok() {
-    SES_AI_T_PERSON p1 = new SES_AI_T_PERSON();
-    SES_AI_T_PERSON p2 = new SES_AI_T_PERSON();
+    SES_AI_T_PERSON p1 = new SES_AI_T_PERSON("test-tenant");
+    SES_AI_T_PERSON p2 = new SES_AI_T_PERSON("test-tenant");
     p1.setPersonId("id1");
     p2.setPersonId("id1");
     assertEquals(p1, p1);

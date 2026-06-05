@@ -338,7 +338,8 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
 
   @Override
   protected SES_AI_T_JOB mapResultSet(ResultSet resultSet) throws SQLException {
-    SES_AI_T_JOB sesAiTJob = new SES_AI_T_JOB();
+    String tenantId = resultSet.getString("tenant_id");
+    SES_AI_T_JOB sesAiTJob = new SES_AI_T_JOB(tenantId);
     sesAiTJob.setJobId(resultSet.getString("job_id"));
     sesAiTJob.setFromGroup(resultSet.getString("from_group"));
     sesAiTJob.setFromId(resultSet.getString("from_id"));

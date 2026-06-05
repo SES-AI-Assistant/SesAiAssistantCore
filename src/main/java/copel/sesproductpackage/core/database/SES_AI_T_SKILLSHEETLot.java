@@ -293,7 +293,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         this.entityLot = new ArrayList<>();
         while (resultSet.next()) {
-          SES_AI_T_SKILLSHEET sesAiTSkillsheet = new SES_AI_T_SKILLSHEET();
+          String tenantId = resultSet.getString("tenant_id");
+          SES_AI_T_SKILLSHEET sesAiTSkillsheet = new SES_AI_T_SKILLSHEET(tenantId);
           sesAiTSkillsheet.setFromGroup(resultSet.getString("from_group"));
           sesAiTSkillsheet.setFromId(resultSet.getString("from_id"));
           sesAiTSkillsheet.setFromName(resultSet.getString("from_name"));
@@ -460,7 +461,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
 
   @Override
   protected SES_AI_T_SKILLSHEET mapResultSet(ResultSet resultSet) throws SQLException {
-    SES_AI_T_SKILLSHEET sesAiTSkillsheet = new SES_AI_T_SKILLSHEET();
+    String tenantId = resultSet.getString("tenant_id");
+    SES_AI_T_SKILLSHEET sesAiTSkillsheet = new SES_AI_T_SKILLSHEET(tenantId);
     sesAiTSkillsheet.setFromGroup(resultSet.getString("from_group"));
     sesAiTSkillsheet.setFromId(resultSet.getString("from_id"));
     sesAiTSkillsheet.setFromName(resultSet.getString("from_name"));

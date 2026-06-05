@@ -14,7 +14,7 @@ class SES_AI_WEBAPP_M_NOTIFICATIONTest {
 
   @Test
   void testNullScenarios() throws SQLException {
-    SES_AI_WEBAPP_M_NOTIFICATION notification = new SES_AI_WEBAPP_M_NOTIFICATION();
+    SES_AI_WEBAPP_M_NOTIFICATION notification = new SES_AI_WEBAPP_M_NOTIFICATION("test-tenant");
     Connection connection = mock(Connection.class);
 
     assertEquals(0, notification.insert(null));
@@ -53,7 +53,7 @@ class SES_AI_WEBAPP_M_NOTIFICATIONTest {
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeQuery()).thenReturn(rs);
 
-    SES_AI_WEBAPP_M_NOTIFICATION notification = new SES_AI_WEBAPP_M_NOTIFICATION();
+    SES_AI_WEBAPP_M_NOTIFICATION notification = new SES_AI_WEBAPP_M_NOTIFICATION("test-tenant");
     notification.setNotificationId("N1");
 
     when(rs.next()).thenReturn(false);
@@ -86,7 +86,7 @@ class SES_AI_WEBAPP_M_NOTIFICATIONTest {
     when(rs.getString("register_date")).thenReturn("2026-04-22 00:00:00");
     when(rs.getString("register_user")).thenReturn("admin");
 
-    SES_AI_WEBAPP_M_NOTIFICATION notification = new SES_AI_WEBAPP_M_NOTIFICATION();
+    SES_AI_WEBAPP_M_NOTIFICATION notification = new SES_AI_WEBAPP_M_NOTIFICATION("test-tenant");
     notification.setNotificationId("N1");
     notification.setUserId("U1");
     notification.setDeviceType("WEB_PUSH");
@@ -101,7 +101,7 @@ class SES_AI_WEBAPP_M_NOTIFICATIONTest {
     assertEquals(1, notification.insert(connection));
     assertTrue(notification.updateByPk(connection));
 
-    SES_AI_WEBAPP_M_NOTIFICATION target = new SES_AI_WEBAPP_M_NOTIFICATION();
+    SES_AI_WEBAPP_M_NOTIFICATION target = new SES_AI_WEBAPP_M_NOTIFICATION("test-tenant");
     target.setNotificationId("N1");
     target.selectByPk(connection);
 
@@ -130,7 +130,7 @@ class SES_AI_WEBAPP_M_NOTIFICATIONTest {
     SES_AI_WEBAPP_M_NOTIFICATIONLot lot = new SES_AI_WEBAPP_M_NOTIFICATIONLot();
     lot.selectAll(connection);
 
-    SES_AI_WEBAPP_M_NOTIFICATION notification = new SES_AI_WEBAPP_M_NOTIFICATION();
+    SES_AI_WEBAPP_M_NOTIFICATION notification = new SES_AI_WEBAPP_M_NOTIFICATION("test-tenant");
     notification.setNotificationId("N1");
     lot.add(notification);
     assertNotNull(lot.toString());

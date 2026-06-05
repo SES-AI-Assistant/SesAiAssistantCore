@@ -19,9 +19,12 @@ import lombok.ToString;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@NoArgsConstructor
 @ToString(callSuper = true)
 public class SES_AI_M_INGEST_ROUTE extends EntityBase {
+
+  public SES_AI_M_INGEST_ROUTE(String tenantId) {
+    super(tenantId);
+  }
   /** チャネル種別の列挙型. */
   public enum ChannelType {
     LINE("LINE"),

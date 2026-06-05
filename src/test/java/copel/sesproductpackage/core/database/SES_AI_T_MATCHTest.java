@@ -18,7 +18,7 @@ class SES_AI_T_MATCHTest {
 
   @BeforeEach
   void setUp() {
-    match = new SES_AI_T_MATCH();
+    match = new SES_AI_T_MATCH("test-tenant");
   }
 
   @Test
@@ -101,8 +101,8 @@ class SES_AI_T_MATCHTest {
     when(ps.executeUpdate()).thenReturn(0);
     assertFalse(match.deleteByPk(conn));
 
-    SES_AI_T_MATCH m1 = new SES_AI_T_MATCH();
-    SES_AI_T_MATCH m2 = new SES_AI_T_MATCH();
+    SES_AI_T_MATCH m1 = new SES_AI_T_MATCH("test-tenant");
+    SES_AI_T_MATCH m2 = new SES_AI_T_MATCH("test-tenant");
     m1.setMatchingId("id1");
     m2.setMatchingId("id1");
     assertEquals(m1, m1);

@@ -18,6 +18,12 @@ import org.mockito.Mockito;
 class SES_AI_T_EntityBaseTest {
 
   static class TestVectorEntity extends SES_AI_T_EntityBase {
+
+    public TestVectorEntity(String tenantId) {
+      super(tenantId);
+      this.tenantId = tenantId;
+    }
+
     @Override
     public int insert(Connection connection) throws SQLException {
       return 0;
@@ -54,7 +60,7 @@ class SES_AI_T_EntityBaseTest {
 
   @Test
   void testUniqueCheck_NoResult() throws SQLException {
-    TestVectorEntity entity = new TestVectorEntity();
+    TestVectorEntity entity = new TestVectorEntity("test-tenant");
     Connection connection = Mockito.mock(Connection.class);
     PreparedStatement preparedStatement = Mockito.mock(PreparedStatement.class);
     ResultSet resultSet = Mockito.mock(ResultSet.class);
@@ -68,7 +74,7 @@ class SES_AI_T_EntityBaseTest {
 
   @Test
   void testUniqueCheck_Unique() throws SQLException {
-    TestVectorEntity entity = new TestVectorEntity();
+    TestVectorEntity entity = new TestVectorEntity("test-tenant");
     Connection connection = Mockito.mock(Connection.class);
     PreparedStatement preparedStatement = Mockito.mock(PreparedStatement.class);
     ResultSet resultSet = Mockito.mock(ResultSet.class);
@@ -83,7 +89,7 @@ class SES_AI_T_EntityBaseTest {
 
   @Test
   void testUniqueCheck_Duplicate() throws SQLException {
-    TestVectorEntity entity = new TestVectorEntity();
+    TestVectorEntity entity = new TestVectorEntity("test-tenant");
     Connection connection = Mockito.mock(Connection.class);
     PreparedStatement preparedStatement = Mockito.mock(PreparedStatement.class);
     ResultSet resultSet = Mockito.mock(ResultSet.class);
@@ -98,7 +104,7 @@ class SES_AI_T_EntityBaseTest {
 
   @Test
   void testSES_AI_T_EntityBaseBasic() {
-    TestVectorEntity entity = new TestVectorEntity();
+    TestVectorEntity entity = new TestVectorEntity("test-tenant");
 
     entity.setFromGroup("group1");
     entity.setFromId("id1");
@@ -119,8 +125,8 @@ class SES_AI_T_EntityBaseTest {
 
   @Test
   void testCompareTo() {
-    TestVectorEntity e1 = new TestVectorEntity();
-    TestVectorEntity e2 = new TestVectorEntity();
+    TestVectorEntity e1 = new TestVectorEntity("test-tenant");
+    TestVectorEntity e2 = new TestVectorEntity("test-tenant");
 
     e1.setDistance(0.1);
     e2.setDistance(0.2);

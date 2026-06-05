@@ -20,6 +20,17 @@ public abstract class EntityBase implements Comparable<EntityBase> {
   @Column(required = true, physicalName = "register_user", logicalName = "登録ユーザー")
   protected String registerUser;
 
+  /** テナントID / tenant_id */
+  @Column(physicalName = "tenant_id", logicalName = "テナントID")
+  protected String tenantId;
+
+  protected EntityBase(String tenantId) {
+    if (tenantId == null || tenantId.trim().isEmpty()) {
+      throw new IllegalArgumentException("tenantId must not be null or empty");
+    }
+    this.tenantId = tenantId;
+  }
+
   /**
    * INSERT処理を実行します.
    *

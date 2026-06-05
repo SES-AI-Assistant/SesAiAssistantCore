@@ -44,8 +44,8 @@ public class SES_AI_M_TENANTLot extends EntityLotBase<SES_AI_M_TENANT> {
 
   @Override
   protected SES_AI_M_TENANT mapResultSet(ResultSet resultSet) throws SQLException {
-    SES_AI_M_TENANT sesAiMTenant = new SES_AI_M_TENANT();
-    sesAiMTenant.setTenantId(resultSet.getString("tenant_id"));
+    String tenantId = resultSet.getString("tenant_id");
+    SES_AI_M_TENANT sesAiMTenant = new SES_AI_M_TENANT(tenantId);
     sesAiMTenant.setTenantName(resultSet.getString("tenant_name"));
     sesAiMTenant.setTenantStatusCd(resultSet.getString("tenant_status_cd"));
     sesAiMTenant.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));

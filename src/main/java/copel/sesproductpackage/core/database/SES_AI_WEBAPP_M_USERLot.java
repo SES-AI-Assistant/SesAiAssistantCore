@@ -45,7 +45,8 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
 
   @Override
   protected SES_AI_WEBAPP_M_USER mapResultSet(ResultSet resultSet) throws SQLException {
-    SES_AI_WEBAPP_M_USER sesAiWebappMUser = new SES_AI_WEBAPP_M_USER();
+    String tenantId = resultSet.getString("tenant_id");
+    SES_AI_WEBAPP_M_USER sesAiWebappMUser = new SES_AI_WEBAPP_M_USER(tenantId);
     sesAiWebappMUser.setUserId(resultSet.getString("user_id"));
     sesAiWebappMUser.setUserName(resultSet.getString("user_name"));
     sesAiWebappMUser.setRole(Role.getEnum(resultSet.getString("role_cd")));

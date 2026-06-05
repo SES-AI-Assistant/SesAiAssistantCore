@@ -20,6 +20,12 @@ import lombok.ToString;
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
+
+  public SES_AI_T_SKILLSHEET(String tenantId) {
+    super(tenantId);
+    this.tenantId = tenantId;
+  }
+
   // ================================
   // SQL
   // ================================

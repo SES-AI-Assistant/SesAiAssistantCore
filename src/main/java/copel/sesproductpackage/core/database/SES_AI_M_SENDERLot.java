@@ -44,7 +44,8 @@ public class SES_AI_M_SENDERLot extends EntityLotBase<SES_AI_M_SENDER> {
 
   @Override
   protected SES_AI_M_SENDER mapResultSet(ResultSet resultSet) throws SQLException {
-    SES_AI_M_SENDER sesAiMSender = new SES_AI_M_SENDER();
+    String tenantId = resultSet.getString("tenant_id");
+    SES_AI_M_SENDER sesAiMSender = new SES_AI_M_SENDER(tenantId);
     sesAiMSender.setFromId(resultSet.getString("from_id"));
     sesAiMSender.setFromName(resultSet.getString("from_name"));
     sesAiMSender.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));

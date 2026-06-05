@@ -15,6 +15,11 @@ import lombok.Data;
 @lombok.EqualsAndHashCode(callSuper = false)
 public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
 
+  public SES_AI_T_SKILLSHEET_PERSON(String tenantId) {
+    super(tenantId);
+    this.tenantId = tenantId;
+  }
+
   /** ファイルID / file_id */
   @Column(physicalName = "file_id", logicalName = "ファイルID")
   private String fileId;
@@ -42,11 +47,6 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
   /** 単価 / unit_price */
   @Column(physicalName = "unit_price", logicalName = "単価")
   private Money unitPrice;
-
-  /** コンストラクタ. */
-  public SES_AI_T_SKILLSHEET_PERSON() {
-    super();
-  }
 
   // ================================
   // Overrideメソッド (EntityBaseの抽象メソッド実装)

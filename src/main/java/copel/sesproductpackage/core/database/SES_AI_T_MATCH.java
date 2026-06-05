@@ -22,9 +22,13 @@ import lombok.ToString;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@NoArgsConstructor
 @ToString(callSuper = true)
 public class SES_AI_T_MATCH extends EntityBase {
+
+  public SES_AI_T_MATCH(String tenantId) {
+    super(tenantId);
+    this.tenantId = tenantId;
+  }
   /** INSERTR文. */
   private static final String INSERT_SQL =
       "INSERT INTO SES_AI_T_MATCH (matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";

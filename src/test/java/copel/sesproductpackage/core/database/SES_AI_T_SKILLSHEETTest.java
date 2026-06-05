@@ -18,7 +18,7 @@ class SES_AI_T_SKILLSHEETTest {
 
   @Test
   void testSKILLSHEETBasics() throws SQLException {
-    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
+    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET("test-tenant");
     assertNotNull(ss.getSkillSheet());
 
     ss.setFromGroup("G1");
@@ -38,7 +38,7 @@ class SES_AI_T_SKILLSHEETTest {
 
   @Test
   void testGetFileUrlAndKey() {
-    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
+    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET("test-tenant");
     ss.setSkillSheet(new SkillSheet("F1", "N1", "C1"));
     assertNotNull(ss.getFileUrl());
     assertEquals("F1_N1", ss.getObjectKey());
@@ -63,7 +63,7 @@ class SES_AI_T_SKILLSHEETTest {
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeQuery()).thenReturn(rs);
 
-    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
+    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET("test-tenant");
 
     ss.selectByPk(null);
     ss.selectByPkWithoutRawContent(null);
@@ -90,7 +90,7 @@ class SES_AI_T_SKILLSHEETTest {
     PreparedStatement ps = mock(PreparedStatement.class);
     when(connection.prepareStatement(anyString())).thenReturn(ps);
 
-    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
+    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET("test-tenant");
 
     assertEquals(0, ss.insert(null));
 
@@ -116,7 +116,7 @@ class SES_AI_T_SKILLSHEETTest {
 
   @Test
   void testEmbeddingAndCheck() throws Exception {
-    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
+    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET("test-tenant");
     Transformer trans = mock(Transformer.class);
     when(trans.embedding(anyString())).thenReturn(new float[] {0.1f});
 
@@ -143,7 +143,7 @@ class SES_AI_T_SKILLSHEETTest {
     when(connection.prepareStatement(anyString())).thenReturn(ps);
     when(ps.executeUpdate()).thenReturn(1);
 
-    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
+    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET("test-tenant");
     assertFalse(ss.deleteByPk(null));
 
     ss.setFileId("F1");
@@ -153,7 +153,7 @@ class SES_AI_T_SKILLSHEETTest {
 
   @Test
   void testGetterSetterCoverage() {
-    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
+    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET("test-tenant");
     ss.setFileContent("content");
     assertEquals("content", ss.getFileContent());
     ss.setFileContentSummary("summary");
@@ -170,7 +170,7 @@ class SES_AI_T_SKILLSHEETTest {
 
   @Test
   void testToSkillSheetSelectionText() {
-    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
+    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET("test-tenant");
     ss.setSkillSheet(new SkillSheet("F1", "file.pdf", "content"));
     ss.setFileContentSummary("summary");
     assertEquals("ファイルID：F1内容：summary", ss.toスキルシート選出用文章());
@@ -178,12 +178,12 @@ class SES_AI_T_SKILLSHEETTest {
 
   @Test
   void testUpdateByPk() throws SQLException {
-    assertFalse(new SES_AI_T_SKILLSHEET().updateByPk(null));
+    assertFalse(new SES_AI_T_SKILLSHEET("test-tenant").updateByPk(null));
   }
 
   @Test
   void testGetRawContentAndGetContentSummary() {
-    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET();
+    SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET("test-tenant");
     ss.setSkillSheet(new SkillSheet("f", "n", "raw"));
     ss.setFileContentSummary("sum");
     assertEquals("raw", ss.getRawContent());

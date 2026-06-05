@@ -21,6 +21,11 @@ import lombok.ToString;
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 public abstract class SES_AI_T_EntityBase extends EntityBase {
+
+  protected SES_AI_T_EntityBase(String tenantId) {
+    super(tenantId);
+  }
+
   /** 送信元グループ / from_group */
   @Column(physicalName = "from_group", logicalName = "送信元グループ")
   protected String fromGroup;
@@ -44,10 +49,6 @@ public abstract class SES_AI_T_EntityBase extends EntityBase {
   /** ユークリッド距離 / distance. */
   @Column(physicalName = "distance", logicalName = "ユークリッド距離")
   protected double distance;
-
-  /** テナントID / tenant_id（Phase 1 テナント対応）*/
-  @Column(physicalName = "tenant_id", logicalName = "テナントID")
-  protected String tenantId;
 
   /**
    * このエンティティが持つ内容をエンベディングする.
@@ -75,9 +76,10 @@ public abstract class SES_AI_T_EntityBase extends EntityBase {
   public boolean uniqueCheck(final Connection connection, final double similarityThreshold)
       throws SQLException {
     PreparedStatement preparedStatement = connection.prepareStatement(getCheckSql());
-    preparedStatement.setString(1, this.getRawContent());
+    preparedStatement.setString(1, this.tenantId);
     preparedStatement.setString(2, this.getRawContent());
-    preparedStatement.setDouble(3, similarityThreshold);
+    preparedStatement.setString(3, this.getRawContent());
+    preparedStatement.setDouble(4, similarityThreshold);
     ResultSet resultSet = preparedStatement.executeQuery();
     if (resultSet.next()) {
       return resultSet.getInt(1) < 1;

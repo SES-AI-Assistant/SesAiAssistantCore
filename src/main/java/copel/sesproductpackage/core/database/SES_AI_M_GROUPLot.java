@@ -44,7 +44,8 @@ public class SES_AI_M_GROUPLot extends EntityLotBase<SES_AI_M_GROUP> {
 
   @Override
   protected SES_AI_M_GROUP mapResultSet(ResultSet resultSet) throws SQLException {
-    SES_AI_M_GROUP sesAiMGroup = new SES_AI_M_GROUP();
+    String tenantId = resultSet.getString("tenant_id");
+    SES_AI_M_GROUP sesAiMGroup = new SES_AI_M_GROUP(tenantId);
     sesAiMGroup.setFromGroup(resultSet.getString("from_group"));
     sesAiMGroup.setGroupName(resultSet.getString("group_name"));
     sesAiMGroup.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));

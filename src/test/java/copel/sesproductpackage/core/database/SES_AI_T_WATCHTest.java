@@ -24,7 +24,7 @@ class SES_AI_T_WATCHTest {
     when(rs.getBoolean(1)).thenReturn(true);
     when(rs.getString(anyString())).thenReturn("JOB", "2024-01-01 00:00:00");
 
-    SES_AI_T_WATCH watch = new SES_AI_T_WATCH();
+    SES_AI_T_WATCH watch = new SES_AI_T_WATCH("test-tenant");
 
     watch.insert(null);
     watch.setUserId("u");
@@ -38,7 +38,7 @@ class SES_AI_T_WATCHTest {
     watch.setTtl(new OriginalDateTime());
     watch.insert(conn);
 
-    SES_AI_T_WATCH watchTtlNull = new SES_AI_T_WATCH();
+    SES_AI_T_WATCH watchTtlNull = new SES_AI_T_WATCH("test-tenant");
     watchTtlNull.setUserId("u2");
     watchTtlNull.setTenantId("default");
     watchTtlNull.setTargetId("t2");
@@ -100,7 +100,7 @@ class SES_AI_T_WATCHTest {
     watch.setRegisterDate(new OriginalDateTime());
     watch.updateByPk(conn);
 
-    SES_AI_T_WATCH watchNoRegDate = new SES_AI_T_WATCH();
+    SES_AI_T_WATCH watchNoRegDate = new SES_AI_T_WATCH("test-tenant");
     watchNoRegDate.setUserId("u3");
     watchNoRegDate.setTenantId("default");
     watchNoRegDate.setTargetId("t3");
@@ -128,8 +128,8 @@ class SES_AI_T_WATCHTest {
         SES_AI_T_WATCH.TargetType.getEnumByName("SKILLSHEET"));
     assertNull(SES_AI_T_WATCH.TargetType.getEnumByName("INVALID"));
 
-    SES_AI_T_WATCH w1 = new SES_AI_T_WATCH();
-    SES_AI_T_WATCH w2 = new SES_AI_T_WATCH();
+    SES_AI_T_WATCH w1 = new SES_AI_T_WATCH("test-tenant");
+    SES_AI_T_WATCH w2 = new SES_AI_T_WATCH("test-tenant");
     w1.setUserId("u");
     w1.setTargetId("t");
     w2.setUserId("u");

@@ -1,13 +1,14 @@
 package copel.sesproductpackage.core.database;
 
-import copel.sesproductpackage.core.database.SES_AI_T_WATCH.TargetType;
-import copel.sesproductpackage.core.database.base.EntityLotBase;
-import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+
+import copel.sesproductpackage.core.database.SES_AI_T_WATCH.TargetType;
+import copel.sesproductpackage.core.database.base.EntityLotBase;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
 
 /**
  * 【Entityクラス】 ウォッチ管理テーブル(SES_AI_T_WATCH)のLotクラス.
@@ -151,7 +152,8 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
 
   @Override
   protected SES_AI_T_WATCH mapResultSet(ResultSet resultSet) throws SQLException {
-    SES_AI_T_WATCH sesAiTWatch = new SES_AI_T_WATCH();
+    String tenantId = resultSet.getString("tenant_id");
+    SES_AI_T_WATCH sesAiTWatch = new SES_AI_T_WATCH(tenantId);
     sesAiTWatch.setUserId(resultSet.getString("user_id"));
     sesAiTWatch.setTargetId(resultSet.getString("target_id"));
     sesAiTWatch.setTargetType(TargetType.getEnumByName(resultSet.getString("target_type")));

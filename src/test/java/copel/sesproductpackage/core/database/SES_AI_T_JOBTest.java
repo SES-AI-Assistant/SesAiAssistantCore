@@ -23,7 +23,7 @@ class SES_AI_T_JOBTest {
     when(rs.next()).thenReturn(true);
     when(rs.getInt(1)).thenReturn(0);
 
-    SES_AI_T_JOB job = new SES_AI_T_JOB();
+    SES_AI_T_JOB job = new SES_AI_T_JOB("test-tenant");
     job.setJobId("J1");
     job.setTenantId("default");
 
@@ -82,7 +82,7 @@ class SES_AI_T_JOBTest {
     when(rs.next()).thenReturn(true, false);
     when(rs.getString(anyString())).thenReturn("test");
 
-    SES_AI_T_JOB job = new SES_AI_T_JOB();
+    SES_AI_T_JOB job = new SES_AI_T_JOB("test-tenant");
     job.setJobId("J1");
     job.setTenantId("default");
     job.setRegisterDate(new OriginalDateTime());
@@ -140,9 +140,9 @@ class SES_AI_T_JOBTest {
 
   @Test
   void testLombokCoverage() throws Exception {
-    SES_AI_T_JOB obj1 = new SES_AI_T_JOB();
-    SES_AI_T_JOB obj2 = new SES_AI_T_JOB();
-    SES_AI_T_JOB diff = new SES_AI_T_JOB();
+    SES_AI_T_JOB obj1 = new SES_AI_T_JOB("test-tenant");
+    SES_AI_T_JOB obj2 = new SES_AI_T_JOB("test-tenant");
+    SES_AI_T_JOB diff = new SES_AI_T_JOB("test-tenant");
     diff.setJobId("test_id");
     diff.setRawContent("test");
 

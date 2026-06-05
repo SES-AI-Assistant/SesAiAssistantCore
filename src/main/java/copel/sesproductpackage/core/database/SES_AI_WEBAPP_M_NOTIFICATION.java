@@ -19,9 +19,12 @@ import lombok.ToString;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@NoArgsConstructor
 @ToString(callSuper = true)
 public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
+
+  public SES_AI_WEBAPP_M_NOTIFICATION(String tenantId) {
+    super(tenantId);
+  }
   /** INSERT文. */
   private static final String INSERT_SQL =
       "INSERT INTO SES_AI_WEBAPP_M_NOTIFICATION (notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
