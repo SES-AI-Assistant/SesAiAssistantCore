@@ -29,18 +29,18 @@ import lombok.ToString;
 public class SES_AI_WEBAPP_M_USER extends EntityBase {
   /** INSERTR文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_WEBAPP_M_USER (user_id, user_name, role_cd, plan_cd, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_WEBAPP_M_USER (user_id, user_name, role_cd, plan_cd, register_date, register_user, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文. */
   private static final String SELECT_SQL =
-      "SELECT user_id, user_name, role_cd, plan_cd, register_date, register_user FROM SES_AI_WEBAPP_M_USER WHERE user_id = ?";
+      "SELECT user_id, user_name, role_cd, plan_cd, register_date, register_user, tenant_id FROM SES_AI_WEBAPP_M_USER WHERE user_id = ? AND tenant_id = ?";
 
   /** UPDATE文. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_WEBAPP_M_USER SET user_id = ?, user_name = ?, role_cd = ?, plan_cd = ?, register_date = ?, register_user = ? WHERE user_id = ?";
+      "UPDATE SES_AI_WEBAPP_M_USER SET user_id = ?, user_name = ?, role_cd = ?, plan_cd = ?, register_date = ?, register_user = ? WHERE user_id = ? AND tenant_id = ?";
 
   /** DELETE文. */
-  private static final String DELETE_SQL = "DELETE FROM SES_AI_WEBAPP_M_USER WHERE user_id = ?";
+  private static final String DELETE_SQL = "DELETE FROM SES_AI_WEBAPP_M_USER WHERE user_id = ? AND tenant_id = ?";
 
   /** 【PK】 ユーザーID* / user_id */
   @Column(required = true, primary = true, physicalName = "user_id", logicalName = "ユーザーID")
@@ -57,6 +57,10 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
   /** プラン / plan_cd */
   @Column(physicalName = "plan_cd", logicalName = "プラン")
   private Plan plan;
+
+  /** テナントID / tenant_id（Phase 1 テナント対応） */
+  @Column(physicalName = "tenant_id", logicalName = "テナントID")
+  private String tenantId;
 
   /**
    * このユーザーがシステム利用可能であるかどうかを判定します.
@@ -120,16 +124,18 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
     preparedStatement.setTimestamp(
         5, this.registerDate == null ? null : this.registerDate.toTimestamp());
     preparedStatement.setString(6, this.registerUser);
+    preparedStatement.setString(7, this.tenantId);
     return preparedStatement.executeUpdate();
   }
 
   @Override
   public void selectByPk(Connection connection) throws SQLException {
-    if (connection == null || this.userId == null) {
+    if (connection == null || this.userId == null || this.tenantId == null) {
       return;
     }
     PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SQL);
     preparedStatement.setString(1, this.userId);
+    preparedStatement.setString(2, this.tenantId);
     ResultSet resultSet = preparedStatement.executeQuery();
     if (resultSet.next()) {
       this.userId = resultSet.getString("user_id");
@@ -138,12 +144,13 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
       this.plan = Plan.getEnum(resultSet.getString("plan_cd"));
       this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
       this.registerUser = resultSet.getString("register_user");
+      this.tenantId = resultSet.getString("tenant_id");
     }
   }
 
   @Override
   public boolean updateByPk(Connection connection) throws SQLException {
-    if (connection == null || this.userId == null) {
+    if (connection == null || this.userId == null || this.tenantId == null) {
       return false;
     }
     PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_SQL);
@@ -155,16 +162,18 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
         5, this.registerDate == null ? null : this.registerDate.toTimestamp());
     preparedStatement.setString(6, this.registerUser);
     preparedStatement.setString(7, this.userId);
+    preparedStatement.setString(8, this.tenantId);
     return preparedStatement.executeUpdate() > 0;
   }
 
   @Override
   public boolean deleteByPk(Connection connection) throws SQLException {
-    if (connection == null || this.userId == null) {
+    if (connection == null || this.userId == null || this.tenantId == null) {
       return false;
     }
     PreparedStatement preparedStatement = connection.prepareStatement(DELETE_SQL);
     preparedStatement.setString(1, this.userId);
+    preparedStatement.setString(2, this.tenantId);
     return preparedStatement.executeUpdate() > 0;
   }
 }

@@ -28,6 +28,7 @@ class SES_AI_T_WATCHTest {
 
     watch.insert(null);
     watch.setUserId("u");
+    watch.setTenantId("default");
     watch.setTargetId("t");
     watch.setTargetType(SES_AI_T_WATCH.TargetType.JOB);
     when(ps.executeUpdate()).thenReturn(1);
@@ -39,6 +40,7 @@ class SES_AI_T_WATCHTest {
 
     SES_AI_T_WATCH watchTtlNull = new SES_AI_T_WATCH();
     watchTtlNull.setUserId("u2");
+    watchTtlNull.setTenantId("default");
     watchTtlNull.setTargetId("t2");
     watchTtlNull.setTargetType(null);
     watchTtlNull.setTtl(null);
@@ -100,6 +102,7 @@ class SES_AI_T_WATCHTest {
 
     SES_AI_T_WATCH watchNoRegDate = new SES_AI_T_WATCH();
     watchNoRegDate.setUserId("u3");
+    watchNoRegDate.setTenantId("default");
     watchNoRegDate.setTargetId("t3");
     watchNoRegDate.setRegisterDate(null);
     when(ps.executeUpdate()).thenReturn(1);

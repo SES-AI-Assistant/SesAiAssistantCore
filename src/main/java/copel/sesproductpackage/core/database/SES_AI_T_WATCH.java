@@ -24,30 +24,30 @@ import lombok.ToString;
 public class SES_AI_T_WATCH extends EntityBase {
   /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_WATCH (user_id, target_id, target_type, memo, register_date, register_user, ttl) "
-          + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_T_WATCH (user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id) "
+          + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文. */
   private static final String SELECT_SQL =
-      "SELECT user_id, target_id, target_type, memo, register_date, register_user ttl"
-          + "FROM SES_AI_T_WATCH WHERE user_id = ? AND target_id = ?";
+      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id "
+          + "FROM SES_AI_T_WATCH WHERE user_id = ? AND target_id = ? AND tenant_id = ?";
 
   /** UPDATE文. */
   private static final String UPDATE_SQL =
       "UPDATE SES_AI_T_WATCH SET target_type = ?, memo = ?, register_date = ?, register_user = ?, ttl = ? "
-          + "WHERE user_id = ? AND target_id = ?";
+          + "WHERE user_id = ? AND target_id = ? AND tenant_id = ?";
 
   /** DELETE文. */
   private static final String DELETE_SQL =
-      "DELETE FROM SES_AI_T_WATCH WHERE user_id = ? AND target_id = ?";
+      "DELETE FROM SES_AI_T_WATCH WHERE user_id = ? AND target_id = ? AND tenant_id = ?";
 
   /** EXISTS文. */
   private static final String EXISTS_SQL =
-      "SELECT EXISTS (SELECT 1 FROM SES_AI_T_WATCH WHERE user_id = ? AND target_id = ?)";
+      "SELECT EXISTS (SELECT 1 FROM SES_AI_T_WATCH WHERE user_id = ? AND target_id = ? AND tenant_id = ?)";
 
   /** EXISTS文2. */
   private static final String EXISTS_BY_TAGET_ID_SQL =
-      "SELECT EXISTS (SELECT 1 FROM SES_AI_T_WATCH WHERE target_id = ?)";
+      "SELECT EXISTS (SELECT 1 FROM SES_AI_T_WATCH WHERE target_id = ? AND tenant_id = ?)";
 
   /** ユーザーID / user_id */
   @Column(physicalName = "user_id", logicalName = "ユーザーID")
@@ -69,6 +69,10 @@ public class SES_AI_T_WATCH extends EntityBase {
   @Column(physicalName = "ttl", logicalName = "有効期限")
   protected OriginalDateTime ttl;
 
+  /** テナントID / tenant_id（Phase 1 テナント対応） */
+  @Column(physicalName = "tenant_id", logicalName = "テナントID")
+  private String tenantId;
+
   /**
    * このEntityの持つユーザーIDと対象IDの組み合わせを持つレコードが存在するかどうかを判定します.
    *
@@ -77,9 +81,13 @@ public class SES_AI_T_WATCH extends EntityBase {
    * @throws SQLException
    */
   public boolean isExist(Connection connection) throws SQLException {
+    if (this.tenantId == null) {
+      return false;
+    }
     PreparedStatement preparedStatement = connection.prepareStatement(EXISTS_SQL);
     preparedStatement.setString(1, this.userId);
     preparedStatement.setString(2, this.targetId);
+    preparedStatement.setString(3, this.tenantId);
     ResultSet resultSet = preparedStatement.executeQuery();
     if (resultSet.next()) {
       return resultSet.getBoolean(1);
@@ -95,8 +103,12 @@ public class SES_AI_T_WATCH extends EntityBase {
    * @throws SQLException
    */
   public boolean isExistByTargetId(Connection connection) throws SQLException {
+    if (this.tenantId == null) {
+      return false;
+    }
     PreparedStatement preparedStatement = connection.prepareStatement(EXISTS_BY_TAGET_ID_SQL);
     preparedStatement.setString(1, this.targetId);
+    preparedStatement.setString(2, this.tenantId);
     ResultSet resultSet = preparedStatement.executeQuery();
     if (resultSet.next()) {
       return resultSet.getBoolean(1);
@@ -118,17 +130,19 @@ public class SES_AI_T_WATCH extends EntityBase {
     preparedStatement.setTimestamp(5, new OriginalDateTime().toTimestamp());
     preparedStatement.setString(6, this.registerUser);
     preparedStatement.setTimestamp(7, this.ttl != null ? this.ttl.toTimestamp() : null);
+    preparedStatement.setString(8, this.tenantId);
     return preparedStatement.executeUpdate();
   }
 
   @Override
   public void selectByPk(Connection connection) throws SQLException {
-    if (connection == null || this.userId == null || this.targetId == null) {
+    if (connection == null || this.userId == null || this.targetId == null || this.tenantId == null) {
       return;
     }
     PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SQL);
     preparedStatement.setString(1, this.userId);
     preparedStatement.setString(2, this.targetId);
+    preparedStatement.setString(3, this.tenantId);
     ResultSet resultSet = preparedStatement.executeQuery();
     if (resultSet.next()) {
       this.userId = resultSet.getString("user_id");
@@ -138,12 +152,13 @@ public class SES_AI_T_WATCH extends EntityBase {
       this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
       this.registerUser = resultSet.getString("register_user");
       this.ttl = new OriginalDateTime(resultSet.getString("ttl"));
+      this.tenantId = resultSet.getString("tenant_id");
     }
   }
 
   @Override
   public boolean updateByPk(Connection connection) throws SQLException {
-    if (connection == null || this.userId == null || this.targetId == null) {
+    if (connection == null || this.userId == null || this.targetId == null || this.tenantId == null) {
       return false;
     }
     PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_SQL);
@@ -155,17 +170,19 @@ public class SES_AI_T_WATCH extends EntityBase {
     preparedStatement.setTimestamp(5, this.ttl != null ? this.ttl.toTimestamp() : null);
     preparedStatement.setString(6, this.userId);
     preparedStatement.setString(7, this.targetId);
+    preparedStatement.setString(8, this.tenantId);
     return preparedStatement.executeUpdate() > 0;
   }
 
   @Override
   public boolean deleteByPk(Connection connection) throws SQLException {
-    if (connection == null || this.userId == null || this.targetId == null) {
+    if (connection == null || this.userId == null || this.targetId == null || this.tenantId == null) {
       return false;
     }
     PreparedStatement preparedStatement = connection.prepareStatement(DELETE_SQL);
     preparedStatement.setString(1, this.userId);
     preparedStatement.setString(2, this.targetId);
+    preparedStatement.setString(3, this.tenantId);
     return preparedStatement.executeUpdate() > 0;
   }
 

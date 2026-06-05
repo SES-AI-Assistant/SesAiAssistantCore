@@ -36,6 +36,7 @@ class SES_AI_T_PERSONTest {
 
     SES_AI_T_PERSON person = new SES_AI_T_PERSON();
     person.setPersonId("P1");
+    person.setTenantId("default");
     person.selectByPk(connection);
 
     assertEquals("group1", person.getFromGroup());
@@ -46,6 +47,7 @@ class SES_AI_T_PERSONTest {
     when(rs.getString("ttl")).thenReturn("2026-12-31 23:59:59", null);
     SES_AI_T_PERSON person2 = new SES_AI_T_PERSON();
     person2.setPersonId("P2");
+    person2.setTenantId("default");
     person2.selectByPk(connection);
     assertEquals("group1", person2.getFromGroup());
   }
@@ -69,6 +71,7 @@ class SES_AI_T_PERSONTest {
     when(rs.getString("ttl")).thenReturn(null);
     SES_AI_T_PERSON person = new SES_AI_T_PERSON();
     person.setPersonId("P1");
+    person.setTenantId("default");
     person.selectByPk(connection);
     assertEquals("g1", person.getFromGroup());
   }
@@ -81,6 +84,7 @@ class SES_AI_T_PERSONTest {
     when(ps.executeUpdate()).thenReturn(1);
 
     SES_AI_T_PERSON person = new SES_AI_T_PERSON();
+    person.setTenantId("default");
     person.setRegisterDate(new OriginalDateTime());
     person.setTtl(new OriginalDateTime());
     int result = person.insert(connection);
@@ -89,6 +93,7 @@ class SES_AI_T_PERSONTest {
     assertNotNull(person.getPersonId());
 
     SES_AI_T_PERSON personWithVector = new SES_AI_T_PERSON();
+    personWithVector.setTenantId("default");
     personWithVector.setVectorData(new Vector(mock(Transformer.class)));
     when(ps.executeUpdate()).thenReturn(1);
     assertEquals(1, personWithVector.insert(connection));
@@ -103,6 +108,7 @@ class SES_AI_T_PERSONTest {
 
     SES_AI_T_PERSON person = new SES_AI_T_PERSON();
     person.setPersonId("id1");
+    person.setTenantId("default");
     person.setRegisterDate(new OriginalDateTime());
     person.setTtl(new OriginalDateTime());
     boolean result = person.updateByPk(connection);
@@ -111,6 +117,7 @@ class SES_AI_T_PERSONTest {
 
     SES_AI_T_PERSON personWithVector = new SES_AI_T_PERSON();
     personWithVector.setPersonId("id2");
+    personWithVector.setTenantId("default");
     personWithVector.setVectorData(new Vector(mock(Transformer.class)));
     personWithVector.setTtl(new OriginalDateTime());
     assertTrue(personWithVector.updateByPk(connection));
@@ -125,6 +132,7 @@ class SES_AI_T_PERSONTest {
 
     SES_AI_T_PERSON person = new SES_AI_T_PERSON();
     person.setPersonId("id1");
+    person.setTenantId("default");
     boolean result = person.deleteByPk(connection);
 
     assertTrue(result);
@@ -190,6 +198,7 @@ class SES_AI_T_PERSONTest {
 
     SES_AI_T_PERSON person = new SES_AI_T_PERSON();
     person.setPersonId("id1");
+    person.setTenantId("default");
     person.setFileId("fid1");
     assertTrue(person.updateFileIdByPk(connection));
 
@@ -198,6 +207,7 @@ class SES_AI_T_PERSONTest {
     assertFalse(person.updateFileIdByPk(connection));
 
     person.setPersonId("id1");
+    person.setTenantId("default");
     person.setFileId(null);
     when(ps.executeUpdate()).thenReturn(1);
     assertTrue(person.updateFileIdByPk(connection));
@@ -247,6 +257,7 @@ class SES_AI_T_PERSONTest {
     assertFalse(person.updateByPk(connection));
 
     person.setPersonId("P1");
+    person.setTenantId("default");
     person.setVectorData(null);
     person.setRegisterDate(null);
     person.setTtl(null);

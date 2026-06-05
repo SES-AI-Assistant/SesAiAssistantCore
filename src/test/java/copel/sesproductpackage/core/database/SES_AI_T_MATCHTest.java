@@ -31,6 +31,7 @@ class SES_AI_T_MATCHTest {
     when(rs.next()).thenReturn(true, false);
 
     match.setUserId("user1");
+    match.setTenantId("default");
     match.setJobId("job1");
     match.setPersonId("person1");
     match.setJobContent("job content");
@@ -65,6 +66,7 @@ class SES_AI_T_MATCHTest {
 
     when(ps.executeUpdate()).thenReturn(1);
     match.setMatchingId("id");
+    match.setTenantId("default");
     match.setStatus(MatchingStatus.提案中);
     match.setRegisterDate(new OriginalDateTime());
     assertTrue(match.updateByPk(conn));

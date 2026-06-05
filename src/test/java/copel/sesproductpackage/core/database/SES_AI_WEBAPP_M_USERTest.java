@@ -82,6 +82,7 @@ class SES_AI_WEBAPP_M_USERTest {
 
     user.setRole(null);
     user.setPlan(null);
+    user.setTenantId("default");
     user.setRegisterDate(null);
     PreparedStatement ps = mock(PreparedStatement.class);
     when(connection.prepareStatement(anyString())).thenReturn(ps);
@@ -106,6 +107,7 @@ class SES_AI_WEBAPP_M_USERTest {
 
     SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER();
     user.setUserId("U1");
+    user.setTenantId("default");
 
     when(rs.next()).thenReturn(false);
     user.selectByPk(connection);
@@ -136,6 +138,7 @@ class SES_AI_WEBAPP_M_USERTest {
 
     SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER();
     user.setUserId("U1");
+    user.setTenantId("default");
     user.setUserName("Name1");
     user.setRole(Role.システムユーザー);
     user.setRegisterDate(new OriginalDateTime());
@@ -145,6 +148,7 @@ class SES_AI_WEBAPP_M_USERTest {
 
     SES_AI_WEBAPP_M_USER target = new SES_AI_WEBAPP_M_USER();
     target.setUserId("U1");
+    target.setTenantId("default");
     target.selectByPk(connection);
 
     assertEquals("U1", target.getUserId());
@@ -172,6 +176,7 @@ class SES_AI_WEBAPP_M_USERTest {
 
     SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER();
     user.setUserId("U1");
+    user.setTenantId("default");
     lot.add(user);
     assertNotNull(lot.toString());
 

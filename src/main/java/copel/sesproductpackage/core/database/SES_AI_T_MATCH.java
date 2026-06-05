@@ -27,18 +27,18 @@ import lombok.ToString;
 public class SES_AI_T_MATCH extends EntityBase {
   /** INSERTR文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_MATCH (matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_T_MATCH (matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文. */
   private static final String SELECT_SQL =
-      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user FROM SES_AI_T_MATCH WHERE matching_id = ?";
+      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user, tenant_id FROM SES_AI_T_MATCH WHERE matching_id = ? AND tenant_id = ?";
 
   /** UPDATE文. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_T_MATCH SET user_id = ?, job_id = ?, person_id = ?, job_content = ?, person_content = ?, status_cd = ?, evaluation_text = ?, register_date = ?, register_user = ? WHERE matching_id = ?";
+      "UPDATE SES_AI_T_MATCH SET user_id = ?, job_id = ?, person_id = ?, job_content = ?, person_content = ?, status_cd = ?, evaluation_text = ?, register_date = ?, register_user = ? WHERE matching_id = ? AND tenant_id = ?";
 
   /** DELETE文. */
-  private static final String DELETE_SQL = "DELETE FROM SES_AI_T_MATCH WHERE matching_id = ?";
+  private static final String DELETE_SQL = "DELETE FROM SES_AI_T_MATCH WHERE matching_id = ? AND tenant_id = ?";
 
   /** マッチングID / matching_id */
   @Column(required = true, primary = true, physicalName = "matching_id", logicalName = "マッチングID")
@@ -71,6 +71,10 @@ public class SES_AI_T_MATCH extends EntityBase {
   /** 評価文 / evaluation_text */
   @Column(physicalName = "evaluation_text", logicalName = "評価文")
   private String evaluationText;
+
+  /** テナントID / tenant_id（Phase 1 テナント対応） */
+  @Column(physicalName = "tenant_id", logicalName = "テナントID")
+  private String tenantId;
 
   /**
    * このレコードがjob_idを持つかどうかを判定します.
@@ -110,16 +114,18 @@ public class SES_AI_T_MATCH extends EntityBase {
     preparedStatement.setString(8, this.evaluationText);
     preparedStatement.setTimestamp(9, new OriginalDateTime().toTimestamp());
     preparedStatement.setString(10, this.registerUser);
+    preparedStatement.setString(11, this.tenantId);
     return preparedStatement.executeUpdate();
   }
 
   @Override
   public void selectByPk(Connection connection) throws SQLException {
-    if (connection == null || this.matchingId == null) {
+    if (connection == null || this.matchingId == null || this.tenantId == null) {
       return;
     }
     PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SQL);
     preparedStatement.setString(1, this.matchingId);
+    preparedStatement.setString(2, this.tenantId);
     ResultSet resultSet = preparedStatement.executeQuery();
     if (resultSet.next()) {
       this.userId = resultSet.getString("user_id");
@@ -131,12 +137,13 @@ public class SES_AI_T_MATCH extends EntityBase {
       this.evaluationText = resultSet.getString("evaluation_text");
       this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
       this.registerUser = resultSet.getString("register_user");
+      this.tenantId = resultSet.getString("tenant_id");
     }
   }
 
   @Override
   public boolean updateByPk(Connection connection) throws SQLException {
-    if (connection == null || this.matchingId == null) {
+    if (connection == null || this.matchingId == null || this.tenantId == null) {
       return false;
     }
     PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_SQL);
@@ -151,16 +158,18 @@ public class SES_AI_T_MATCH extends EntityBase {
         8, this.registerDate == null ? null : this.registerDate.toTimestamp());
     preparedStatement.setString(9, this.registerUser);
     preparedStatement.setString(10, this.matchingId);
+    preparedStatement.setString(11, this.tenantId);
     return preparedStatement.executeUpdate() > 0;
   }
 
   @Override
   public boolean deleteByPk(Connection connection) throws SQLException {
-    if (connection == null || this.matchingId == null) {
+    if (connection == null || this.matchingId == null || this.tenantId == null) {
       return false;
     }
     PreparedStatement preparedStatement = connection.prepareStatement(DELETE_SQL);
     preparedStatement.setString(1, this.matchingId);
+    preparedStatement.setString(2, this.tenantId);
     return preparedStatement.executeUpdate() > 0;
   }
 }

@@ -19,13 +19,13 @@ class SES_AI_T_JOBTest {
     PreparedStatement ps = mock(PreparedStatement.class);
     ResultSet rs = mock(ResultSet.class);
     when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeUpdate()).thenReturn(1, 0, 1, 0, 1);
     when(ps.executeQuery()).thenReturn(rs);
     when(rs.next()).thenReturn(true);
     when(rs.getInt(1)).thenReturn(0);
 
     SES_AI_T_JOB job = new SES_AI_T_JOB();
     job.setJobId("J1");
+    job.setTenantId("default");
 
     // uniqueCheck
     when(rs.getInt(1)).thenReturn(0);
@@ -39,12 +39,22 @@ class SES_AI_T_JOBTest {
     when(rs.next()).thenReturn(false);
     job.selectByPk(connection);
 
-    // updateByPk
+    // updateByPk - expect 1 then 0
+    // Reset jobId/tenantId before updateByPk since selectByPk(connection) didn't set them
+    job.setJobId("J1");
+    job.setTenantId("default");
+    when(ps.executeUpdate()).thenReturn(1);
     assertTrue(job.updateByPk(connection));
+    when(ps.executeUpdate()).thenReturn(0);
     assertFalse(job.updateByPk(connection));
 
-    // deleteByPk
+    // deleteByPk - expect 1 then 0
+    // Reset jobId/tenantId before deleteByPk
+    job.setJobId("J1");
+    job.setTenantId("default");
+    when(ps.executeUpdate()).thenReturn(1);
     assertTrue(job.deleteByPk(connection));
+    when(ps.executeUpdate()).thenReturn(0);
     assertFalse(job.deleteByPk(connection));
 
     // embedding
@@ -57,6 +67,7 @@ class SES_AI_T_JOBTest {
     // registerDate & ttl == null branches
     job.setRegisterDate(null);
     job.setTtl(null);
+    when(ps.executeUpdate()).thenReturn(1);
     job.insert(connection);
   }
 
@@ -73,6 +84,7 @@ class SES_AI_T_JOBTest {
 
     SES_AI_T_JOB job = new SES_AI_T_JOB();
     job.setJobId("J1");
+    job.setTenantId("default");
     job.setRegisterDate(new OriginalDateTime());
 
     assertEquals(1, job.insert(connection));
@@ -85,15 +97,27 @@ class SES_AI_T_JOBTest {
     job.setJobId(null);
     job.selectByPk(connection);
 
+    // tenantId null check - selectByPk should return null when tenantId is null
+    job.setJobId("J1");
+    job.setTenantId(null);
+    job.selectByPk(connection);
+
     // updateByPk return values
     job.setJobId("J1");
+    job.setTenantId("default");
     assertTrue(job.updateByPk(connection));
     assertFalse(job.updateByPk(null));
     job.setJobId(null);
     assertFalse(job.updateByPk(connection));
 
+    // tenantId null check - updateByPk should return false when tenantId is null
+    job.setJobId("J1");
+    job.setTenantId(null);
+    assertFalse(job.updateByPk(connection));
+
     // deleteByPk return values
     job.setJobId("J1");
+    job.setTenantId("default");
     assertTrue(job.deleteByPk(connection));
     assertFalse(job.deleteByPk(null));
 

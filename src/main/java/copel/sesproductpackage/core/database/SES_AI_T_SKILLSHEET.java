@@ -25,22 +25,22 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
   // ================================
   /** INSERTR文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_SKILLSHEET (from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
+      "INSERT INTO SES_AI_T_SKILLSHEET (from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?, ?)";
 
   /** SELECT文. */
   private static final String SELECT_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, register_date, register_user, ttl, tenant_id FROM SES_AI_T_SKILLSHEET WHERE file_id = ? AND tenant_id = ?";
 
   /** SELECT文(原文抜き). */
   private static final String SELECT_WITHOUT_CONTENT_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content_summary, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content_summary, register_date, register_user, ttl, tenant_id FROM SES_AI_T_SKILLSHEET WHERE file_id = ? AND tenant_id = ?";
 
   /** 重複チェック用SQL. */
   private static final String CHECK_SQL =
-      "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET WHERE file_content % ? AND similarity(file_content, ?) > ?";
+      "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET WHERE tenant_id = ? AND file_content % ? AND similarity(file_content, ?) > ?";
 
   /** DELETE文. */
-  private static final String DELETE_SQL = "DELETE FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
+  private static final String DELETE_SQL = "DELETE FROM SES_AI_T_SKILLSHEET WHERE file_id = ? AND tenant_id = ?";
 
   // ================================
   // メンバ
@@ -86,11 +86,12 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
    * @throws SQLException
    */
   public void selectByPkWithoutRawContent(final Connection connection) throws SQLException {
-    if (connection == null || this.getFileId() == null) {
+    if (connection == null || this.getFileId() == null || this.tenantId == null) {
       return;
     }
     PreparedStatement preparedStatement = connection.prepareStatement(SELECT_WITHOUT_CONTENT_SQL);
     preparedStatement.setString(1, this.getFileId());
+    preparedStatement.setString(2, this.tenantId);
     ResultSet resultSet = preparedStatement.executeQuery();
     if (resultSet.next()) {
       this.fromGroup = resultSet.getString("from_group");
@@ -102,6 +103,7 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
       this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
       this.registerUser = resultSet.getString("register_user");
       this.ttl = new OriginalDateTime(resultSet.getString("ttl"));
+      this.tenantId = resultSet.getString("tenant_id");
     }
   }
 
@@ -143,16 +145,18 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
         9, this.registerDate == null ? null : this.registerDate.toTimestamp());
     preparedStatement.setString(10, this.registerUser);
     preparedStatement.setTimestamp(11, this.ttl == null ? null : this.ttl.toTimestamp());
+    preparedStatement.setString(12, this.tenantId);
     return preparedStatement.executeUpdate();
   }
 
   @Override
   public void selectByPk(final Connection connection) throws SQLException {
-    if (connection == null || this.getFileId() == null) {
+    if (connection == null || this.getFileId() == null || this.tenantId == null) {
       return;
     }
     PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SQL);
     preparedStatement.setString(1, this.getFileId());
+    preparedStatement.setString(2, this.tenantId);
     ResultSet resultSet = preparedStatement.executeQuery();
     if (resultSet.next()) {
       this.fromGroup = resultSet.getString("from_group");
@@ -167,6 +171,7 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
       this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
       this.registerUser = resultSet.getString("register_user");
       this.ttl = new OriginalDateTime(resultSet.getString("ttl"));
+      this.tenantId = resultSet.getString("tenant_id");
     }
   }
 
@@ -177,11 +182,12 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
 
   @Override
   public boolean deleteByPk(Connection connection) throws SQLException {
-    if (connection == null) {
+    if (connection == null || this.getFileId() == null || this.tenantId == null) {
       return false;
     }
     PreparedStatement preparedStatement = connection.prepareStatement(DELETE_SQL);
     preparedStatement.setString(1, this.getFileId());
+    preparedStatement.setString(2, this.tenantId);
     return preparedStatement.executeUpdate() > 0;
   }
 

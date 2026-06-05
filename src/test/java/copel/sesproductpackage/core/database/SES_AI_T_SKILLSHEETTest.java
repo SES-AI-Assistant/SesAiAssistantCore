@@ -73,6 +73,7 @@ class SES_AI_T_SKILLSHEETTest {
     ss.selectByPkWithoutRawContent(connection);
 
     ss.setFileId("F1");
+    ss.setTenantId("default");
     when(rs.next()).thenReturn(false);
     ss.selectByPk(connection);
     ss.selectByPkWithoutRawContent(connection);
@@ -93,6 +94,7 @@ class SES_AI_T_SKILLSHEETTest {
 
     assertEquals(0, ss.insert(null));
 
+    ss.setTenantId("default");
     ss.setSkillSheet(null);
     ss.setVectorData(null);
     ss.setRegisterDate(null);
@@ -145,6 +147,7 @@ class SES_AI_T_SKILLSHEETTest {
     assertFalse(ss.deleteByPk(null));
 
     ss.setFileId("F1");
+    ss.setTenantId("default");
     assertTrue(ss.deleteByPk(connection));
   }
 

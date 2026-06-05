@@ -45,6 +45,10 @@ public abstract class SES_AI_T_EntityBase extends EntityBase {
   @Column(physicalName = "distance", logicalName = "ユークリッド距離")
   protected double distance;
 
+  /** テナントID / tenant_id（Phase 1 テナント対応）*/
+  @Column(physicalName = "tenant_id", logicalName = "テナントID")
+  protected String tenantId;
+
   /**
    * このエンティティが持つ内容をエンベディングする.
    *

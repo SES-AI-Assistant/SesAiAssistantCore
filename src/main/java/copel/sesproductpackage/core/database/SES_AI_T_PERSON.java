@@ -31,30 +31,30 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
   // ================================
   /** INSERTR文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_PERSON (person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
+      "INSERT INTO SES_AI_T_PERSON (person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?, ?)";
 
   /** SELECT文. */
   private static final String SELECT_SQL =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE person_id = ?";
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl, tenant_id FROM SES_AI_T_PERSON WHERE person_id = ? AND tenant_id = ?";
 
   /** UPDATE文. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_T_PERSON SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, content_summary = ?, file_id = ?, unit_price = ?, vector_data = ?::vector, ttl = ? WHERE person_id = ?";
+      "UPDATE SES_AI_T_PERSON SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, content_summary = ?, file_id = ?, unit_price = ?, vector_data = ?::vector, ttl = ? WHERE person_id = ? AND tenant_id = ?";
 
   /** UPDATE文(file_idのみ). */
   private static final String UPDATE_FILE_ID_SQL =
-      "UPDATE SES_AI_T_PERSON SET file_id = ? WHERE person_id = ?";
+      "UPDATE SES_AI_T_PERSON SET file_id = ? WHERE person_id = ? AND tenant_id = ?";
 
   /** 重複チェック用SQL. */
   private static final String CHECK_SQL =
-      "SELECT COUNT(*) FROM SES_AI_T_PERSON WHERE raw_content % ? AND similarity(raw_content, ?) > ?";
+      "SELECT COUNT(*) FROM SES_AI_T_PERSON WHERE tenant_id = ? AND raw_content % ? AND similarity(raw_content, ?) > ?";
 
   /** 単価等取得用・重複チェックSQL. */
   private static final String FIND_SIMILAR_SQL =
-      "SELECT person_id, unit_price FROM SES_AI_T_PERSON WHERE regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g') % ? AND similarity(regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g'), ?) > ? LIMIT 1";
+      "SELECT person_id, unit_price FROM SES_AI_T_PERSON WHERE tenant_id = ? AND regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g') % ? AND similarity(regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g'), ?) > ? LIMIT 1";
 
   /** DELETE文. */
-  private static final String DELETE_SQL = "DELETE FROM SES_AI_T_PERSON WHERE person_id = ?";
+  private static final String DELETE_SQL = "DELETE FROM SES_AI_T_PERSON WHERE person_id = ? AND tenant_id = ?";
 
   /** file_id 一致で file_id のみ NULL に戻す（スキルシート削除前の参照解除用）. */
   private static final String CLEAR_FILE_ID_BY_FILE_ID_SQL =
@@ -112,12 +112,13 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
    * @throws SQLException
    */
   public boolean updateFileIdByPk(final Connection connection) throws SQLException {
-    if (connection == null || this.personId == null) {
+    if (connection == null || this.personId == null || this.tenantId == null) {
       return false;
     }
     PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_FILE_ID_SQL);
     preparedStatement.setString(1, this.fileId);
     preparedStatement.setString(2, this.personId);
+    preparedStatement.setString(3, this.tenantId);
     return preparedStatement.executeUpdate() > 0;
   }
 
@@ -147,24 +148,26 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
    * URLを除外したテキストで類似レコードを検索し、存在する場合はそのレコードのIDと単価を返す.
    *
    * @param connection DBコネクション
+   * @param tenantId テナントID
    * @param textToCheck チェック対象のテキスト
    * @param similarityThreshold 類似度のしきい値
    * @return 類似レコードが見つかった場合はそのSES_AI_T_PERSON、見つからなかった場合はnull
    * @throws SQLException
    */
   public static SES_AI_T_PERSON findSimilarRecord(
-      final Connection connection, final String textToCheck, final double similarityThreshold)
+      final Connection connection, final String tenantId, final String textToCheck, final double similarityThreshold)
       throws SQLException {
-    if (connection == null || textToCheck == null) {
+    if (connection == null || tenantId == null || textToCheck == null) {
       return null;
     }
     // 比較用にURLをマスキング
     String maskedText = textToCheck.replaceAll("https?://[^\\s]+", "");
 
     try (PreparedStatement preparedStatement = connection.prepareStatement(FIND_SIMILAR_SQL)) {
-      preparedStatement.setString(1, maskedText);
+      preparedStatement.setString(1, tenantId);
       preparedStatement.setString(2, maskedText);
-      preparedStatement.setDouble(3, similarityThreshold);
+      preparedStatement.setString(3, maskedText);
+      preparedStatement.setDouble(4, similarityThreshold);
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
           SES_AI_T_PERSON result = new SES_AI_T_PERSON();
@@ -219,12 +222,13 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
         10, this.registerDate == null ? null : this.registerDate.toTimestamp());
     preparedStatement.setString(11, this.registerUser);
     preparedStatement.setTimestamp(12, this.ttl == null ? null : this.ttl.toTimestamp());
+    preparedStatement.setString(13, this.tenantId);
     return preparedStatement.executeUpdate();
   }
 
   @Override
   public boolean updateByPk(final Connection connection) throws SQLException {
-    if (connection == null || this.personId == null) {
+    if (connection == null || this.personId == null || this.tenantId == null) {
       return false;
     }
     PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_SQL);
@@ -238,16 +242,18 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
     preparedStatement.setString(8, this.vectorData == null ? null : this.vectorData.toString());
     preparedStatement.setTimestamp(9, this.ttl == null ? null : this.ttl.toTimestamp());
     preparedStatement.setString(10, this.personId);
+    preparedStatement.setString(11, this.tenantId);
     return preparedStatement.executeUpdate() > 0;
   }
 
   @Override
   public void selectByPk(final Connection connection) throws SQLException {
-    if (connection == null || this.personId == null) {
+    if (connection == null || this.personId == null || this.tenantId == null) {
       return;
     }
     PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SQL);
     preparedStatement.setString(1, this.personId);
+    preparedStatement.setString(2, this.tenantId);
     ResultSet resultSet = preparedStatement.executeQuery();
     if (resultSet.next()) {
       this.fromGroup = resultSet.getString("from_group");
@@ -261,16 +267,18 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
       this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
       this.registerUser = resultSet.getString("register_user");
       this.ttl = new OriginalDateTime(resultSet.getString("ttl"));
+      this.tenantId = resultSet.getString("tenant_id");
     }
   }
 
   @Override
   public boolean deleteByPk(Connection connection) throws SQLException {
-    if (connection == null) {
+    if (connection == null || this.personId == null || this.tenantId == null) {
       return false;
     }
     PreparedStatement preparedStatement = connection.prepareStatement(DELETE_SQL);
     preparedStatement.setString(1, this.personId);
+    preparedStatement.setString(2, this.tenantId);
     return preparedStatement.executeUpdate() > 0;
   }
 }
