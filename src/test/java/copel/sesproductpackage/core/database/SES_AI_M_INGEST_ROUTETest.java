@@ -3,6 +3,7 @@ package copel.sesproductpackage.core.database;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import copel.sesproductpackage.core.database.SES_AI_M_INGEST_ROUTE.ChannelType;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -28,7 +29,7 @@ class SES_AI_M_INGEST_ROUTETest {
     entity.setRegisterDate(null);
     PreparedStatement ps = mock(PreparedStatement.class);
     when(connection.prepareStatement(anyString())).thenReturn(ps);
-    entity.setChannelType("LINE");
+    entity.setChannelType(ChannelType.LINE);
     entity.setRouteKey("route1");
     entity.setTenantId("T1");
     entity.insert(connection);
@@ -43,7 +44,7 @@ class SES_AI_M_INGEST_ROUTETest {
     when(ps.executeUpdate()).thenReturn(1);
 
     SES_AI_M_INGEST_ROUTE route = new SES_AI_M_INGEST_ROUTE();
-    route.setChannelType("LINE");
+    route.setChannelType(ChannelType.LINE);
     route.setRouteKey("route1");
     route.setTenantId("T1");
     route.setRegisterDate(new OriginalDateTime());
@@ -71,12 +72,12 @@ class SES_AI_M_INGEST_ROUTETest {
     when(rs.getString("register_user")).thenReturn("admin");
 
     SES_AI_M_INGEST_ROUTE route = new SES_AI_M_INGEST_ROUTE();
-    route.setChannelType("LINE");
+    route.setChannelType(ChannelType.LINE);
     route.setRouteKey("route1");
     route.setTenantId("T1");
     route.selectByPk(connection);
 
-    assertEquals("LINE", route.getChannelType());
+    assertEquals(ChannelType.LINE, route.getChannelType());
     assertEquals("route1", route.getRouteKey());
     assertEquals("T1", route.getTenantId());
     assertEquals("admin", route.getRegisterUser());
@@ -97,7 +98,7 @@ class SES_AI_M_INGEST_ROUTETest {
     Connection connection = mock(Connection.class);
 
     SES_AI_M_INGEST_ROUTE route = new SES_AI_M_INGEST_ROUTE();
-    route.setChannelType("LINE");
+    route.setChannelType(ChannelType.LINE);
     route.selectByPk(connection);
 
     verify(connection, never()).prepareStatement(anyString());
@@ -111,7 +112,7 @@ class SES_AI_M_INGEST_ROUTETest {
     when(ps.executeUpdate()).thenReturn(1);
 
     SES_AI_M_INGEST_ROUTE route = new SES_AI_M_INGEST_ROUTE();
-    route.setChannelType("LINE");
+    route.setChannelType(ChannelType.LINE);
     route.setRouteKey("route1");
     route.setTenantId("T1");
     route.setRegisterUser("updater");
@@ -131,7 +132,7 @@ class SES_AI_M_INGEST_ROUTETest {
     when(ps.executeUpdate()).thenReturn(0);
 
     SES_AI_M_INGEST_ROUTE route = new SES_AI_M_INGEST_ROUTE();
-    route.setChannelType("LINE");
+    route.setChannelType(ChannelType.LINE);
     route.setRouteKey("route1");
     route.setTenantId("T1");
 
@@ -146,7 +147,7 @@ class SES_AI_M_INGEST_ROUTETest {
     when(ps.executeUpdate()).thenReturn(1);
 
     SES_AI_M_INGEST_ROUTE route = new SES_AI_M_INGEST_ROUTE();
-    route.setChannelType("LINE");
+    route.setChannelType(ChannelType.LINE);
     route.setRouteKey("route1");
     route.setTenantId("T1");
 
@@ -164,7 +165,7 @@ class SES_AI_M_INGEST_ROUTETest {
     when(ps.executeUpdate()).thenReturn(0);
 
     SES_AI_M_INGEST_ROUTE route = new SES_AI_M_INGEST_ROUTE();
-    route.setChannelType("LINE");
+    route.setChannelType(ChannelType.LINE);
     route.setRouteKey("route1");
     route.setTenantId("T1");
 
@@ -174,7 +175,7 @@ class SES_AI_M_INGEST_ROUTETest {
   @Test
   void testIngestRouteToString() {
     SES_AI_M_INGEST_ROUTE route = new SES_AI_M_INGEST_ROUTE();
-    route.setChannelType("LINE");
+    route.setChannelType(ChannelType.LINE);
     route.setRouteKey("route1");
     route.setTenantId("T1");
 
@@ -185,12 +186,12 @@ class SES_AI_M_INGEST_ROUTETest {
   @Test
   void testIngestRouteEqualsAndHashCode() {
     SES_AI_M_INGEST_ROUTE route1 = new SES_AI_M_INGEST_ROUTE();
-    route1.setChannelType("LINE");
+    route1.setChannelType(ChannelType.LINE);
     route1.setRouteKey("route1");
     route1.setTenantId("T1");
 
     SES_AI_M_INGEST_ROUTE route2 = new SES_AI_M_INGEST_ROUTE();
-    route2.setChannelType("LINE");
+    route2.setChannelType(ChannelType.LINE);
     route2.setRouteKey("route1");
     route2.setTenantId("T1");
 
@@ -201,7 +202,7 @@ class SES_AI_M_INGEST_ROUTETest {
   @Test
   void testIngestRouteInsertWithNullConnection() throws SQLException {
     SES_AI_M_INGEST_ROUTE route = new SES_AI_M_INGEST_ROUTE();
-    route.setChannelType("LINE");
+    route.setChannelType(ChannelType.LINE);
     route.setRouteKey("route1");
     route.setTenantId("T1");
 

@@ -1,5 +1,6 @@
 package copel.sesproductpackage.core.database;
 
+import copel.sesproductpackage.core.database.SES_AI_M_INGEST_ROUTE.ChannelType;
 import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
@@ -49,7 +50,7 @@ public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUT
   @Override
   protected SES_AI_M_INGEST_ROUTE mapResultSet(ResultSet resultSet) throws SQLException {
     SES_AI_M_INGEST_ROUTE sesAiMIngestRoute = new SES_AI_M_INGEST_ROUTE();
-    sesAiMIngestRoute.setChannelType(resultSet.getString("channel_type"));
+    sesAiMIngestRoute.setChannelType(ChannelType.fromValue(resultSet.getString("channel_type")));
     sesAiMIngestRoute.setRouteKey(resultSet.getString("route_key"));
     sesAiMIngestRoute.setTenantId(resultSet.getString("tenant_id"));
     sesAiMIngestRoute.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
@@ -65,13 +66,13 @@ public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUT
    * @param routeKey ルートキー (メールアドレス、LINE ID など)
    * @throws SQLException DB例外
    */
-  public void selectByChannelTypeAndRouteKey(Connection connection, String channelType, String routeKey) throws SQLException {
+  public void selectByChannelTypeAndRouteKey(Connection connection, ChannelType channelType, String routeKey) throws SQLException {
     if (connection == null || channelType == null || routeKey == null) {
       this.entityLot = new ArrayList<>();
       return;
     }
     PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BY_CHANNEL_AND_ROUTE_SQL);
-    preparedStatement.setString(1, channelType);
+    preparedStatement.setString(1, channelType.getValue());
     preparedStatement.setString(2, routeKey);
     ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();

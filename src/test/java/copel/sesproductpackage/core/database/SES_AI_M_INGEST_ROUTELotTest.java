@@ -3,6 +3,7 @@ package copel.sesproductpackage.core.database;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import copel.sesproductpackage.core.database.SES_AI_M_INGEST_ROUTE.ChannelType;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -102,7 +103,7 @@ class SES_AI_M_INGEST_ROUTELotTest {
     assertEquals(0, lot.size());
 
     SES_AI_M_INGEST_ROUTE route = new SES_AI_M_INGEST_ROUTE();
-    route.setChannelType("LINE");
+    route.setChannelType(ChannelType.LINE);
     route.setRouteKey("route1");
     route.setTenantId("T1");
     lot.add(route);
@@ -123,13 +124,13 @@ class SES_AI_M_INGEST_ROUTELotTest {
     lot.selectAll(connection);
 
     SES_AI_M_INGEST_ROUTE route1 = new SES_AI_M_INGEST_ROUTE();
-    route1.setChannelType("LINE");
+    route1.setChannelType(ChannelType.LINE);
     route1.setRouteKey("route1");
     route1.setTenantId("T1");
     lot.add(route1);
 
     SES_AI_M_INGEST_ROUTE route2 = new SES_AI_M_INGEST_ROUTE();
-    route2.setChannelType("EMAIL");
+    route2.setChannelType(ChannelType.EMAIL);
     route2.setRouteKey("route2");
     route2.setTenantId("T2");
     lot.add(route2);
@@ -152,7 +153,7 @@ class SES_AI_M_INGEST_ROUTELotTest {
     when(rs.getString("register_user")).thenReturn("admin", "admin");
 
     SES_AI_M_INGEST_ROUTELot lot = new SES_AI_M_INGEST_ROUTELot();
-    lot.selectByChannelTypeAndRouteKey(connection, "LINE", "ch123");
+    lot.selectByChannelTypeAndRouteKey(connection, ChannelType.LINE, "ch123");
 
     assertEquals(2, lot.size());
     assertEquals("T1", lot.get(0).getTenantId());
@@ -169,7 +170,7 @@ class SES_AI_M_INGEST_ROUTELotTest {
     when(rs.next()).thenReturn(false);
 
     SES_AI_M_INGEST_ROUTELot lot = new SES_AI_M_INGEST_ROUTELot();
-    lot.selectByChannelTypeAndRouteKey(connection, "LINE", "ch999");
+    lot.selectByChannelTypeAndRouteKey(connection, ChannelType.LINE, "ch999");
 
     assertEquals(0, lot.size());
   }
@@ -177,7 +178,7 @@ class SES_AI_M_INGEST_ROUTELotTest {
   @Test
   void testSelectByChannelTypeAndRouteKeyWithNullConnection() throws SQLException {
     SES_AI_M_INGEST_ROUTELot lot = new SES_AI_M_INGEST_ROUTELot();
-    lot.selectByChannelTypeAndRouteKey(null, "LINE", "ch123");
+    lot.selectByChannelTypeAndRouteKey(null, ChannelType.LINE, "ch123");
 
     assertEquals(0, lot.size());
   }

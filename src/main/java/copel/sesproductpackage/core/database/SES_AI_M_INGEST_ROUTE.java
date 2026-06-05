@@ -22,6 +22,31 @@ import lombok.ToString;
 @NoArgsConstructor
 @ToString(callSuper = true)
 public class SES_AI_M_INGEST_ROUTE extends EntityBase {
+  /** チャネル種別の列挙型. */
+  public enum ChannelType {
+    LINE("LINE"),
+    EMAIL("EMAIL");
+
+    private final String value;
+
+    ChannelType(String value) {
+      this.value = value;
+    }
+
+    public String getValue() {
+      return value;
+    }
+
+    public static ChannelType fromValue(String value) {
+      for (ChannelType ct : ChannelType.values()) {
+        if (ct.value.equals(value)) {
+          return ct;
+        }
+      }
+      throw new IllegalArgumentException("Invalid channel type: " + value);
+    }
+  }
+
   /** INSERT文. */
   private static final String INSERT_SQL =
       "INSERT INTO SES_AI_M_INGEST_ROUTE (channel_type, route_key, tenant_id, register_date, register_user) VALUES (?, ?, ?, ?, ?)";
@@ -39,7 +64,7 @@ public class SES_AI_M_INGEST_ROUTE extends EntityBase {
 
   /** 【PK】 チャネル種別 / channel_type */
   @Column(required = true, primary = true, physicalName = "channel_type", logicalName = "チャネル種別")
-  private String channelType;
+  private ChannelType channelType;
 
   /** 【PK】 ルートキー / route_key */
   @Column(required = true, primary = true, physicalName = "route_key", logicalName = "ルートキー")
@@ -55,7 +80,7 @@ public class SES_AI_M_INGEST_ROUTE extends EntityBase {
       return 0;
     }
     PreparedStatement preparedStatement = connection.prepareStatement(INSERT_SQL);
-    preparedStatement.setString(1, this.channelType);
+    preparedStatement.setString(1, this.channelType == null ? null : this.channelType.getValue());
     preparedStatement.setString(2, this.routeKey);
     preparedStatement.setString(3, this.tenantId);
     preparedStatement.setTimestamp(
@@ -70,12 +95,12 @@ public class SES_AI_M_INGEST_ROUTE extends EntityBase {
       return;
     }
     PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SQL);
-    preparedStatement.setString(1, this.channelType);
+    preparedStatement.setString(1, this.channelType.getValue());
     preparedStatement.setString(2, this.routeKey);
     preparedStatement.setString(3, this.tenantId);
     ResultSet resultSet = preparedStatement.executeQuery();
     if (resultSet.next()) {
-      this.channelType = resultSet.getString("channel_type");
+      this.channelType = ChannelType.fromValue(resultSet.getString("channel_type"));
       this.routeKey = resultSet.getString("route_key");
       this.tenantId = resultSet.getString("tenant_id");
       this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
@@ -90,7 +115,7 @@ public class SES_AI_M_INGEST_ROUTE extends EntityBase {
     }
     PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_SQL);
     preparedStatement.setString(1, this.registerUser);
-    preparedStatement.setString(2, this.channelType);
+    preparedStatement.setString(2, this.channelType.getValue());
     preparedStatement.setString(3, this.routeKey);
     preparedStatement.setString(4, this.tenantId);
     return preparedStatement.executeUpdate() > 0;
@@ -102,7 +127,7 @@ public class SES_AI_M_INGEST_ROUTE extends EntityBase {
       return false;
     }
     PreparedStatement preparedStatement = connection.prepareStatement(DELETE_SQL);
-    preparedStatement.setString(1, this.channelType);
+    preparedStatement.setString(1, this.channelType.getValue());
     preparedStatement.setString(2, this.routeKey);
     preparedStatement.setString(3, this.tenantId);
     return preparedStatement.executeUpdate() > 0;
