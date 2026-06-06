@@ -449,6 +449,25 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
     }
   }
 
+  /**
+   * tenantId指定なしで全レコードを取得する（Batch削除用）.
+   *
+   * @param connection DBコネクション
+   * @throws SQLException
+   */
+  public void selectAllWithoutTenantId(Connection connection) throws SQLException {
+    this.entityLot = new ArrayList<>();
+    if (connection == null) {
+      return;
+    }
+    try (PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);
+        ResultSet resultSet = preparedStatement.executeQuery()) {
+      while (resultSet.next()) {
+        this.entityLot.add(mapResultSet(resultSet));
+      }
+    }
+  }
+
   @Override
   protected SES_AI_T_PERSON mapResultSet(ResultSet resultSet) throws SQLException {
     String tenantId = resultSet.getString("tenant_id");

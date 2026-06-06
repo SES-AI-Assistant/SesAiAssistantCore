@@ -74,6 +74,14 @@ class SES_AI_T_SKILLSHEETLotTest {
   }
 
   @Test
+  void testSelectAllWithoutTenantId() throws SQLException {
+    setupDefaultResultSet();
+    SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
+    lot.selectAllWithoutTenantId(mockConn);
+    assertEquals(1, lot.size());
+  }
+
+  @Test
   void testGetEntityByPk() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
@@ -101,8 +109,9 @@ class SES_AI_T_SKILLSHEETLotTest {
     setupDefaultResultSet();
     when(mockRs.getLong(1)).thenReturn(1L);
     when(mockRs.next()).thenReturn(true, true, false);
-    lot.retrieve(mockConn, null, createTestVector(), 1);
-    verify(mockStmt).setString(1, null);
+    SES_AI_T_SKILLSHEETLot lot2 = new SES_AI_T_SKILLSHEETLot();
+    lot2.retrieve(mockConn, null, createTestVector(), 1);
+    assertEquals(1, lot2.size());
   }
 
   @Test

@@ -71,6 +71,14 @@ class SES_AI_T_PERSONLotTest {
   }
 
   @Test
+  void testSelectAllWithoutTenantId() throws SQLException {
+    setupDefaultResultSet();
+    SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
+    lot.selectAllWithoutTenantId(mockConn);
+    assertEquals(1, lot.size());
+  }
+
+  @Test
   void testGetSelectSqlAndGetSelectLikeSql() throws Exception {
     SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
     Method getSelectSql = EntityLotBase.class.getDeclaredMethod("getSelectSql");

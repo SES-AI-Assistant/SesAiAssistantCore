@@ -49,4 +49,24 @@ class SES_AI_T_MATCHLotTest {
     assertEquals(1, lot.size());
     assertEquals("M1", lot.get(0).getMatchingId());
   }
+
+  @Test
+  void testSelectAllWithoutTenantId() throws SQLException {
+    Connection connection = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(connection.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true, false);
+
+    when(rs.getString("matching_id")).thenReturn("M1");
+    when(rs.getString("tenant_id")).thenReturn("test-tenant");
+    when(rs.getString("status_cd")).thenReturn("00");
+    when(rs.getString("register_date")).thenReturn("2026-01-01 10:00:00");
+
+    SES_AI_T_MATCHLot lot = new SES_AI_T_MATCHLot("test-tenant");
+    lot.selectAllWithoutTenantId(connection);
+    assertEquals(1, lot.size());
+    assertEquals("M1", lot.get(0).getMatchingId());
+  }
 }

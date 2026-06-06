@@ -480,6 +480,27 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     }
   }
 
+  /**
+   * tenantId指定なしで全レコードを取得する（Batch削除用）.
+   *
+   * @param connection DBコネクション
+   * @throws SQLException
+   */
+  public void selectAllWithoutTenantId(final Connection connection) throws SQLException {
+    this.entityLot = new ArrayList<>();
+    if (connection == null) {
+      return;
+    }
+    String sql = getSelectAllSql();
+    try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        while (resultSet.next()) {
+          this.entityLot.add(mapResultSet(resultSet));
+        }
+      }
+    }
+  }
+
   @Override
   protected SES_AI_T_SKILLSHEET mapResultSet(ResultSet resultSet) throws SQLException {
     String tenantId = resultSet.getString("tenant_id");
