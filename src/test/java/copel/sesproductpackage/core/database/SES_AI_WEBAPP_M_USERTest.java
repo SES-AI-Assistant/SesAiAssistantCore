@@ -185,4 +185,81 @@ class SES_AI_WEBAPP_M_USERTest {
     assertFalse(user.updateByPk(connection));
     assertFalse(user.deleteByPk(connection));
   }
+
+  @Test
+  void testSelectByPkWithoutTenantId() throws SQLException {
+    Connection connection = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(connection.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true, false);
+
+    when(rs.getString("user_id")).thenReturn("U1");
+    when(rs.getString("user_name")).thenReturn("Name1");
+    when(rs.getString("role_cd")).thenReturn("10");
+    when(rs.getString("plan_cd")).thenReturn("P1");
+    when(rs.getString("register_date")).thenReturn("2026-01-01 00:00:00");
+    when(rs.getString("register_user")).thenReturn("admin");
+    when(rs.getString("tenant_id")).thenReturn("test-tenant");
+
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
+    user.setUserId("U1");
+    user.selectByPkWithoutTenantId(connection);
+
+    assertEquals("U1", user.getUserId());
+    assertEquals("Name1", user.getUserName());
+    assertEquals(Role.システムユーザー, user.getRole());
+    assertEquals("test-tenant", user.getTenantId());
+  }
+
+  @Test
+  void testSelectByPkWithoutTenantIdNullHandling() throws SQLException {
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
+    Connection connection = mock(Connection.class);
+
+    user.selectByPkWithoutTenantId(null);
+
+    user.setUserId(null);
+    user.selectByPkWithoutTenantId(connection);
+  }
+
+  @Test
+  void testSelectByPkWithoutTenantIdEmptyResult() throws SQLException {
+    Connection connection = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(connection.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(false);
+
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
+    user.setUserId("U1");
+    user.selectByPkWithoutTenantId(connection);
+
+    assertEquals("U1", user.getUserId());
+    assertNull(user.getUserName());
+  }
+
+  @Test
+  void testUSERLotSelectAllWithoutTenantId() throws SQLException {
+    Connection connection = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(connection.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true, true, false);
+    when(rs.getString("user_id")).thenReturn("U1", "U2");
+    when(rs.getString("user_name")).thenReturn("Name1", "Name2");
+    when(rs.getString("role_cd")).thenReturn("10", "20");
+    when(rs.getString("plan_cd")).thenReturn("P1", "P2");
+    when(rs.getString("register_date")).thenReturn("2026-01-01 00:00:00", "2026-01-02 00:00:00");
+    when(rs.getString("register_user")).thenReturn("admin", "user");
+    when(rs.getString("tenant_id")).thenReturn("tenant-a", "tenant-b");
+
+    SES_AI_WEBAPP_M_USERLot lot = new SES_AI_WEBAPP_M_USERLot();
+    lot.selectAllWithoutTenantId(connection);
+
+    assertEquals(2, lot.size());
+  }
 }

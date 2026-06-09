@@ -38,6 +38,10 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
   private static final String SELECT_SQL =
       "SELECT user_id, user_name, role_cd, plan_cd, register_date, register_user, tenant_id FROM SES_AI_WEBAPP_M_USER WHERE user_id = ? AND tenant_id = ?";
 
+  /** SELECT文（tenant_id条件なし）. */
+  private static final String SELECT_WITHOUT_TENANT_ID_SQL =
+      "SELECT user_id, user_name, role_cd, plan_cd, register_date, register_user, tenant_id FROM SES_AI_WEBAPP_M_USER WHERE user_id = ?";
+
   /** UPDATE文. */
   private static final String UPDATE_SQL =
       "UPDATE SES_AI_WEBAPP_M_USER SET user_id = ?, user_name = ?, role_cd = ?, plan_cd = ?, register_date = ?, register_user = ? WHERE user_id = ? AND tenant_id = ?";
@@ -139,6 +143,30 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
     PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SQL);
     preparedStatement.setString(1, this.userId);
     preparedStatement.setString(2, this.tenantId);
+    ResultSet resultSet = preparedStatement.executeQuery();
+    if (resultSet.next()) {
+      this.userId = resultSet.getString("user_id");
+      this.userName = resultSet.getString("user_name");
+      this.role = Role.getEnum(resultSet.getString("role_cd"));
+      this.plan = Plan.getEnum(resultSet.getString("plan_cd"));
+      this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
+      this.registerUser = resultSet.getString("register_user");
+      this.tenantId = resultSet.getString("tenant_id");
+    }
+  }
+
+  /**
+   * ユーザーをユーザーID で取得します（テナントID条件なし、システム管理者用）.
+   *
+   * @param connection DBコネクション
+   * @throws SQLException SQL実行エラー
+   */
+  public void selectByPkWithoutTenantId(Connection connection) throws SQLException {
+    if (connection == null || this.userId == null) {
+      return;
+    }
+    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_WITHOUT_TENANT_ID_SQL);
+    preparedStatement.setString(1, this.userId);
     ResultSet resultSet = preparedStatement.executeQuery();
     if (resultSet.next()) {
       this.userId = resultSet.getString("user_id");

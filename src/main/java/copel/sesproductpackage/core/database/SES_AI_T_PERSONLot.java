@@ -425,6 +425,46 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
     }
   }
 
+  /**
+   * マッチング対象外の期限切れ要員を取得します（テナントID条件なし、バッチ用）.
+   *
+   * @param connection DBコネクション
+   * @param ttlDays TTL日数
+   * @param offset オフセット
+   * @param limit リミット
+   * @throws SQLException SQL実行エラー
+   */
+  public void selectExpiredPersonsNotInMatchWithoutTenantId(
+      final Connection connection,
+      final int ttlDays,
+      final int offset,
+      final int limit)
+      throws SQLException {
+    if (connection == null) {
+      return;
+    }
+    String sql =
+        "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl, tenant_id "
+            + "FROM SES_AI_T_PERSON "
+            + "WHERE ((ttl IS NOT NULL AND ttl < NOW()) "
+            + "   OR (ttl IS NULL AND register_date IS NOT NULL AND (register_date + INTERVAL '"
+            + ttlDays
+            + " days') < NOW())) "
+            + "  AND person_id NOT IN (SELECT DISTINCT person_id FROM SES_AI_T_MATCH) "
+            + "ORDER BY register_date ASC "
+            + "LIMIT ? OFFSET ?";
+    try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+      preparedStatement.setInt(1, limit);
+      preparedStatement.setInt(2, offset);
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        this.entityLot = new ArrayList<>();
+        while (resultSet.next()) {
+          this.entityLot.add(mapResultSet(resultSet));
+        }
+      }
+    }
+  }
+
   @Override
   public String toString() {
     StringBuilder stringBuilder = new StringBuilder();

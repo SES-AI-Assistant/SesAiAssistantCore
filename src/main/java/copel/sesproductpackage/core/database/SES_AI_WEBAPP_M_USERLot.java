@@ -44,6 +44,21 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
     }
   }
 
+  /**
+   * 全ユーザーを取得します（テナントID条件なし、システム管理者用）.
+   *
+   * @param connection DBコネクション
+   * @throws SQLException SQL実行エラー
+   */
+  public void selectAllWithoutTenantId(final Connection connection) throws SQLException {
+    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);
+    ResultSet resultSet = preparedStatement.executeQuery();
+    this.entityLot = new ArrayList<>();
+    while (resultSet.next()) {
+      this.entityLot.add(mapResultSet(resultSet));
+    }
+  }
+
   @Override
   protected SES_AI_WEBAPP_M_USER mapResultSet(ResultSet resultSet) throws SQLException {
     String tenantId = resultSet.getString("tenant_id");
