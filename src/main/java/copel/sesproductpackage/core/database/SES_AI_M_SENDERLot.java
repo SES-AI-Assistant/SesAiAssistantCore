@@ -22,6 +22,10 @@ public class SES_AI_M_SENDERLot extends EntityLotBase<SES_AI_M_SENDER> {
     super();
   }
 
+  public SES_AI_M_SENDERLot(String tenantId) {
+    super();
+  }
+
   @Override
   protected String getSelectAllSql() {
     return SELECT_ALL_SQL;

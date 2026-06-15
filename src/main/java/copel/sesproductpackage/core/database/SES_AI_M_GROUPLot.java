@@ -22,6 +22,10 @@ public class SES_AI_M_GROUPLot extends EntityLotBase<SES_AI_M_GROUP> {
     super();
   }
 
+  public SES_AI_M_GROUPLot(String tenantId) {
+    super();
+  }
+
   @Override
   protected String getSelectAllSql() {
     return SELECT_ALL_SQL;

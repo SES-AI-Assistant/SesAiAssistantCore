@@ -23,6 +23,10 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
     super();
   }
 
+  public SES_AI_WEBAPP_M_USERLot(String tenantId) {
+    super();
+  }
+
   @Override
   protected String getSelectAllSql() {
     return SELECT_ALL_SQL;

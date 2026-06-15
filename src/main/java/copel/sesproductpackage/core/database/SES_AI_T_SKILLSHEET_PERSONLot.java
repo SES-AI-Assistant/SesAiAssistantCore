@@ -67,6 +67,10 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
     super();
   }
 
+  public SES_AI_T_SKILLSHEET_PERSONLot(String tenantId) {
+    super();
+  }
+
   @Override
   protected String getSelectAllSql() {
     return "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id";
