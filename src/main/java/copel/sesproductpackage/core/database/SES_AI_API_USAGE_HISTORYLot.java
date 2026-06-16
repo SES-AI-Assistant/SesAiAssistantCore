@@ -9,10 +9,6 @@ public class SES_AI_API_USAGE_HISTORYLot extends DynamoDBLot<SES_AI_API_USAGE_HI
     super("SES_AI_API_USAGE_HISTORY", SES_AI_API_USAGE_HISTORY.class);
   }
 
-  public SES_AI_API_USAGE_HISTORYLot(String tenantId) {
-    super("SES_AI_API_USAGE_HISTORY", SES_AI_API_USAGE_HISTORY.class);
-  }
-
   /**
    * SES_AI_API_USAGE_HISTORYテーブルをusageMonthで検索する.
    *

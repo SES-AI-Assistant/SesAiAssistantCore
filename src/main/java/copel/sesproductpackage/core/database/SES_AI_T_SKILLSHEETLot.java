@@ -52,9 +52,6 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     super();
   }
 
-  public SES_AI_T_SKILLSHEETLot(String tenantId) {
-    super();
-  }
 
   @Override
   protected String getSelectSql() {

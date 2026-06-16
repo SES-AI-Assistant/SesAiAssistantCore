@@ -49,10 +49,6 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
     super();
   }
 
-  public SES_AI_T_JOBLot(String tenantId) {
-    super();
-  }
-
   @Override
   protected String getSelectSql() {
     return SELECT_SQL;

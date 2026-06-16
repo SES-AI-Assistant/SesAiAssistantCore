@@ -32,9 +32,6 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
     super();
   }
 
-  public SES_AI_T_WATCHLot(String tenantId) {
-    super();
-  }
 
   @Override
   protected String getSelectAllSql() {

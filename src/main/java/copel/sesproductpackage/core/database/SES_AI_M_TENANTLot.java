@@ -22,9 +22,6 @@ public class SES_AI_M_TENANTLot extends EntityLotBase<SES_AI_M_TENANT> {
     super();
   }
 
-  public SES_AI_M_TENANTLot(String tenantId) {
-    super();
-  }
 
   @Override
   protected String getSelectAllSql() {

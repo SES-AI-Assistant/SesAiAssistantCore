@@ -55,9 +55,6 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
     super();
   }
 
-  public SES_AI_T_PERSONLot(String tenantId) {
-    super();
-  }
 
   @Override
   protected String getSelectSql() {
