@@ -73,10 +73,6 @@ public class SES_AI_M_INGEST_ROUTE extends EntityBase {
   @Column(required = true, primary = true, physicalName = "route_key", logicalName = "ルートキー")
   private String routeKey;
 
-  /** 【PK】 テナントID / tenant_id */
-  @Column(required = true, primary = true, physicalName = "tenant_id", logicalName = "テナントID")
-  private String tenantId;
-
   @Override
   public int insert(Connection connection) throws SQLException {
     if (connection == null) {
