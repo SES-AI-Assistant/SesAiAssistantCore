@@ -1,20 +1,20 @@
 package copel.sesproductpackage.core.database;
 
-import copel.sesproductpackage.core.database.base.Column;
-import copel.sesproductpackage.core.database.base.EntityBase;
-import copel.sesproductpackage.core.unit.OriginalDateTime;
-import copel.sesproductpackage.core.unit.Permission;
-import copel.sesproductpackage.core.unit.Plan;
-import copel.sesproductpackage.core.unit.Role;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
+
+import copel.sesproductpackage.core.database.base.Column;
+import copel.sesproductpackage.core.database.base.EntityBase;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.unit.Permission;
+import copel.sesproductpackage.core.unit.Plan;
+import copel.sesproductpackage.core.unit.Role;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /**
@@ -30,6 +30,14 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
   public SES_AI_WEBAPP_M_USER(String tenantId) {
     super(tenantId);
   }
+
+  /**
+   * tenantIdをあとから設定できるコンストラクタ（ログイン時のユーザーID検索時など）.
+   */
+  public SES_AI_WEBAPP_M_USER() {
+    super("_temp_");
+  }
+
   /** INSERTR文. */
   private static final String INSERT_SQL =
       "INSERT INTO SES_AI_WEBAPP_M_USER (user_id, user_name, role_cd, plan_cd, register_date, register_user, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
