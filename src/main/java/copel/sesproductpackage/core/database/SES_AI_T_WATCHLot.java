@@ -22,11 +22,11 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
 
   /** SELECT文(ユーザーIDキー). */
   private static final String SELECT_BY_USER_ID_SQL =
-      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl FROM SES_AI_T_WATCH WHERE user_id = ?";
+      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id FROM SES_AI_T_WATCH WHERE user_id = ?";
 
   /** SELECT文(対象IDキー). */
   private static final String SELECT_BY_TARGET_ID_SQL =
-      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl FROM SES_AI_T_WATCH WHERE target_id = ? AND target_type = ?";
+      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id FROM SES_AI_T_WATCH WHERE target_id = ? AND target_type = ?";
 
   public SES_AI_T_WATCHLot() {
     super();
@@ -40,7 +40,7 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
 
   @Override
   protected String getSelectSql() {
-    return "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl FROM SES_AI_T_WATCH WHERE ";
+    return "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id FROM SES_AI_T_WATCH WHERE ";
   }
 
   /**

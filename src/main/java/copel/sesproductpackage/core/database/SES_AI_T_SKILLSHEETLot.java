@@ -21,31 +21,31 @@ import java.util.List;
 public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
   /** ベクトル検索SQL. */
   private static final String RETRIEVE_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, register_date, register_user, ttl, vector_data <=> ?::vector AS distance FROM SES_AI_T_SKILLSHEET ORDER BY distance LIMIT ?";
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_SKILLSHEET ORDER BY distance LIMIT ?";
 
   /** 類似度閾値を用いたベクトル検索SQL. */
   private static final String RETRIEVE_WITH_THRESHOLD_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, register_date, register_user, ttl, vector_data <=> ?::vector AS distance FROM SES_AI_T_SKILLSHEET WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_SKILLSHEET WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
 
   /** 全文検索SQL(file_contentカラム). */
   private static final String SELECT_FILE_CONTENT_LIKE_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_content LIKE ?";
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl, tenant_id FROM SES_AI_T_SKILLSHEET WHERE file_content LIKE ?";
 
   /** 複合条件全文検索用 SELECT 接頭辞（末尾に WHERE を含む）. */
   private static final String SELECT_FILE_CONTENT_FOR_FULLTEXT =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE ";
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl, tenant_id FROM SES_AI_T_SKILLSHEET WHERE ";
 
   /** 全文検索SQL. */
   private static final String SELECT_LIKE_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE ";
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl, tenant_id FROM SES_AI_T_SKILLSHEET WHERE ";
 
   /** 検索SQL. */
   private static final String SELECT_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE ";
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl, tenant_id FROM SES_AI_T_SKILLSHEET WHERE ";
 
   /** SELECT文(file_name検索). */
   private static final String SELECT_BY_FILE_NAME_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_name = ?";
+      "SELECT from_group, from_id, from_name, file_id, file_name, register_date, register_user, ttl, tenant_id FROM SES_AI_T_SKILLSHEET WHERE file_name = ?";
 
   /** コンストラクタ. */
   public SES_AI_T_SKILLSHEETLot() {
@@ -543,7 +543,7 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     }
     try (PreparedStatement preparedStatement =
             connection.prepareStatement(
-                "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE tenant_id = ?");
+                "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl, tenant_id FROM SES_AI_T_SKILLSHEET WHERE tenant_id = ?");
         ) {
       preparedStatement.setString(1, tenantId);
       try (ResultSet resultSet = preparedStatement.executeQuery()) {

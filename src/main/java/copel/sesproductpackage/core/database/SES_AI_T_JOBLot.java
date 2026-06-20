@@ -22,23 +22,23 @@ import java.util.List;
 public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   /** ベクトル検索SQL. */
   private static final String RETRIEVE_SQL =
-      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, register_date, register_user, ttl, vector_data <=> ?::vector AS distance FROM SES_AI_T_JOB ORDER BY distance LIMIT ?";
+      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB ORDER BY distance LIMIT ?";
 
   /** 類似度閾値を用いたベクトル検索SQL. */
   private static final String RETRIEVE_WITH_THRESHOLD_SQL =
-      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, register_date, register_user, ttl, vector_data <=> ?::vector AS distance FROM SES_AI_T_JOB WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
+      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
 
   /** 全文検索SQL. */
   private static final String SELECT_LIKE_SQL =
-      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, vector_data, register_date, register_user, ttl FROM SES_AI_T_JOB WHERE raw_content LIKE ?";
+      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, vector_data, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE raw_content LIKE ?";
 
   /** 複合条件全文検索用 SELECT 接頭辞（末尾に WHERE を含む）. */
   private static final String SELECT_RAW_CONTENT_FOR_FULLTEXT =
-      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, vector_data, register_date, register_user, ttl FROM SES_AI_T_JOB WHERE ";
+      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, vector_data, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE ";
 
   /** 検索SQL. */
   private static final String SELECT_SQL =
-      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, vector_data, register_date, register_user, ttl FROM SES_AI_T_JOB WHERE ";
+      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, vector_data, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE ";
 
   /** 全件検索SQL. */
   private static final String SELECT_ALL_SQL =

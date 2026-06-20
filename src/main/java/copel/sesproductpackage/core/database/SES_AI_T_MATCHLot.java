@@ -27,7 +27,7 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
 
   @Override
   protected String getSelectSql() {
-    return "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user FROM SES_AI_T_MATCH WHERE ";
+    return "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user, tenant_id FROM SES_AI_T_MATCH WHERE ";
   }
 
   @Override
