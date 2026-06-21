@@ -74,10 +74,10 @@ class SES_AI_T_SKILLSHEETLotTest {
   }
 
   @Test
-  void testSelectAllWithoutTenantId() throws SQLException {
+  void testSelectAllWithoutTenantFilter() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
-    lot.selectAllWithoutTenantId(mockConn);
+    lot.selectAllWithoutTenantFilter(mockConn);
     assertEquals(1, lot.size());
   }
 
@@ -110,7 +110,7 @@ class SES_AI_T_SKILLSHEETLotTest {
     when(mockRs.getLong(1)).thenReturn(1L);
     when(mockRs.next()).thenReturn(true, true, false);
     SES_AI_T_SKILLSHEETLot lot2 = new SES_AI_T_SKILLSHEETLot();
-    lot2.retrieve(mockConn, null, createTestVector(), 1);
+    lot2.retrieve(mockConn, "test-tenant", createTestVector(), 1);
     assertEquals(1, lot2.size());
   }
 

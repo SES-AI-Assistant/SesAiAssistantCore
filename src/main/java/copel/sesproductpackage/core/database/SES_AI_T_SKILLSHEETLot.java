@@ -130,12 +130,15 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
       return;
     }
 
-    // (1) 全件数を取得
+    // (1) 全件数を取得（tenant_id フィルターを適用）
     String countSql = "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET";
-    try (PreparedStatement preparedStatement = connection.prepareStatement(countSql);
-        ResultSet resultSet = preparedStatement.executeQuery()) {
-      if (resultSet.next()) {
-        this.totalCount = resultSet.getLong(1);
+    try (PreparedStatement preparedStatement =
+        connection.prepareStatement(addTenantIdFilter(countSql, tenantId))) {
+      setTenantIdParameter(preparedStatement, 1, tenantId);
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        if (resultSet.next()) {
+          this.totalCount = resultSet.getLong(1);
+        }
       }
     }
     this.pageSize = size;
@@ -145,21 +148,30 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
       return;
     }
 
-    // (2) ページング用ベクトル検索
+    // (2) ページング用ベクトル検索（tenant_id フィルターを適用）
     String sql = RETRIEVE_SQL + " OFFSET ?";
-    try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-      preparedStatement.setString(1, query == null ? null : query.toString());
-      preparedStatement.setInt(2, size);
-      preparedStatement.setInt(3, (page - 1) * size);
-      try (ResultSet resultSet = preparedStatement.executeQuery()) {
-        this.entityLot = new ArrayList<>();
-        while (resultSet.next()) {
-          SES_AI_T_SKILLSHEET sesAiTSkillsheet = mapResultSet(resultSet);
-          sesAiTSkillsheet.setDistance(resultSet.getDouble("distance"));
-          this.entityLot.add(sesAiTSkillsheet);
+    List<SES_AI_T_SKILLSHEET> results = executeQuery(
+        connection,
+        sql,
+        tenantId,
+        rs -> {
+          SES_AI_T_SKILLSHEET sesAiTSkillsheet = mapResultSet(rs);
+          try {
+            sesAiTSkillsheet.setDistance(rs.getDouble("distance"));
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+          return sesAiTSkillsheet;
+        },
+        (stmt, paramIndex) -> {
+          int idx = paramIndex;
+          stmt.setString(idx, query == null ? null : query.toString());
+          stmt.setInt(idx + 1, size);
+          stmt.setInt(idx + 2, (page - 1) * size);
+          return idx + 3;
         }
-      }
-    }
+    );
+    this.entityLot = results;
   }
 
   /**
@@ -205,11 +217,14 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
       return;
     }
 
-    // (1) 全件数を取得
+    // (1) 全件数を取得（tenant_id フィルターを適用）
     String countSql = "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET WHERE 1 - (vector_data <=> ?::vector) >= ?";
-    try (PreparedStatement preparedStatement = connection.prepareStatement(countSql)) {
-      preparedStatement.setString(1, query.toString());
-      preparedStatement.setDouble(2, similarityThreshold);
+    try (PreparedStatement preparedStatement =
+        connection.prepareStatement(addTenantIdFilter(countSql, tenantId))) {
+      int paramIndex = 1;
+      preparedStatement.setString(paramIndex++, query.toString());
+      preparedStatement.setDouble(paramIndex++, similarityThreshold);
+      setTenantIdParameter(preparedStatement, paramIndex, tenantId);
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
           this.totalCount = resultSet.getLong(1);
@@ -223,24 +238,33 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
       return;
     }
 
-    // (2) ページング用ベクトル検索
+    // (2) ページング用ベクトル検索（tenant_id フィルターを適用）
     String sql = RETRIEVE_WITH_THRESHOLD_SQL + " OFFSET ?";
-    try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-      String vectorStr = query.toString();
-      preparedStatement.setString(1, vectorStr);
-      preparedStatement.setString(2, vectorStr);
-      preparedStatement.setDouble(3, similarityThreshold);
-      preparedStatement.setInt(4, size);
-      preparedStatement.setInt(5, (page - 1) * size);
-      try (ResultSet resultSet = preparedStatement.executeQuery()) {
-        this.entityLot = new ArrayList<>();
-        while (resultSet.next()) {
-          SES_AI_T_SKILLSHEET entity = mapResultSet(resultSet);
-          entity.setDistance(resultSet.getDouble("distance"));
-          this.entityLot.add(entity);
+    List<SES_AI_T_SKILLSHEET> results = executeQuery(
+        connection,
+        sql,
+        tenantId,
+        rs -> {
+          SES_AI_T_SKILLSHEET entity = mapResultSet(rs);
+          try {
+            entity.setDistance(rs.getDouble("distance"));
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+          return entity;
+        },
+        (stmt, paramIndex) -> {
+          int idx = paramIndex;
+          String vectorStr = query.toString();
+          stmt.setString(idx, vectorStr);
+          stmt.setString(idx + 1, vectorStr);
+          stmt.setDouble(idx + 2, similarityThreshold);
+          stmt.setInt(idx + 3, size);
+          stmt.setInt(idx + 4, (page - 1) * size);
+          return idx + 5;
         }
-      }
-    }
+    );
+    this.entityLot = results;
   }
 
   /**
@@ -502,13 +526,16 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
   }
 
   /**
-   * 指定された要員に紐づくスキルシート（同一送信元・同一登録日）を取得（テナントID条件なし、バッチ用）.
+   * 指定された要員に紐づくスキルシート（同一送信元・同一登録日）を取得（WithoutTenantFilter - バッチ用）.
+   *
+   * ⚠️ このメソッドは全テナント対象です。
+   * バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
    * @param person 要員
    * @throws SQLException SQL実行エラー
    */
-  public void selectBundledWithPersonWithoutTenantId(
+  public void selectBundledWithPersonWithoutTenantFilter(
       final Connection connection, final SES_AI_T_PERSON person)
       throws SQLException {
     if (connection == null || person == null) {
@@ -518,61 +545,56 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
         "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl, tenant_id "
             + "FROM SES_AI_T_SKILLSHEET "
             + "WHERE from_group = ? AND from_id = ? AND DATE(register_date) = DATE(?)";
-    try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-      preparedStatement.setString(1, person.getFromGroup());
-      preparedStatement.setString(2, person.getFromId());
-      preparedStatement.setTimestamp(
-          3,
-          person.getRegisterDate() != null
-              ? person.getRegisterDate().toTimestamp()
-              : new OriginalDateTime().toTimestamp());
-      try (ResultSet resultSet = preparedStatement.executeQuery()) {
-        this.entityLot = new ArrayList<>();
-        while (resultSet.next()) {
-          this.entityLot.add(mapResultSet(resultSet));
+    List<SES_AI_T_SKILLSHEET> results = executeQueryWithoutTenantFilter(
+        connection,
+        sql,
+        this::mapResultSet,
+        (stmt, paramIndex) -> {
+          int idx = paramIndex;
+          stmt.setString(idx, person.getFromGroup());
+          stmt.setString(idx + 1, person.getFromId());
+          stmt.setTimestamp(
+              idx + 2,
+              person.getRegisterDate() != null
+                  ? person.getRegisterDate().toTimestamp()
+                  : new OriginalDateTime().toTimestamp());
+          return idx + 3;
         }
-      }
-    }
+    );
+    this.entityLot = results;
   }
 
   @Override
   public void selectAll(final Connection connection, final String tenantId) throws SQLException {
     this.entityLot = new ArrayList<>();
-    if (connection == null) {
-      return;
-    }
-    try (PreparedStatement preparedStatement =
-            connection.prepareStatement(
-                "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl, tenant_id FROM SES_AI_T_SKILLSHEET WHERE tenant_id = ?");
-        ) {
-      preparedStatement.setString(1, tenantId);
-      try (ResultSet resultSet = preparedStatement.executeQuery()) {
-        while (resultSet.next()) {
-          this.entityLot.add(mapResultSet(resultSet));
-        }
-      }
-    }
+    List<SES_AI_T_SKILLSHEET> results = executeQuery(
+        connection,
+        getSelectAllSql(),
+        tenantId,
+        this::mapResultSet,
+        (stmt, paramIndex) -> paramIndex
+    );
+    this.entityLot.addAll(results);
   }
 
   /**
-   * tenantId指定なしで全レコードを取得する（Batch削除用）.
+   * 全レコードを取得する（WithoutTenantFilter - バッチ処理専用）.
+   *
+   * ⚠️ このメソッドは全テナント対象です。
+   * バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
    * @throws SQLException
    */
-  public void selectAllWithoutTenantId(final Connection connection) throws SQLException {
+  public void selectAllWithoutTenantFilter(final Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
-    if (connection == null) {
-      return;
-    }
-    String sql = getSelectAllSql();
-    try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-      try (ResultSet resultSet = preparedStatement.executeQuery()) {
-        while (resultSet.next()) {
-          this.entityLot.add(mapResultSet(resultSet));
-        }
-      }
-    }
+    List<SES_AI_T_SKILLSHEET> results = executeQueryWithoutTenantFilter(
+        connection,
+        getSelectAllSql(),
+        this::mapResultSet,
+        (stmt, paramIndex) -> paramIndex
+    );
+    this.entityLot.addAll(results);
   }
 
   @Override

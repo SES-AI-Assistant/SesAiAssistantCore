@@ -68,10 +68,10 @@ class SES_AI_T_JOBLotTest {
   }
 
   @Test
-  void testSelectAllWithoutTenantId() throws SQLException {
+  void testSelectAllWithoutTenantFilter() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    lot.selectAllWithoutTenantId(mockConn);
+    lot.selectAllWithoutTenantFilter(mockConn);
     assertEquals(1, lot.size());
   }
 

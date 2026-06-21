@@ -147,12 +147,15 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
       return;
     }
 
-    // (1) 全件数を取得
+    // (1) 全件数を取得（tenant_id フィルターを適用）
     String countSql = "SELECT COUNT(*) FROM SES_AI_T_PERSON";
-    try (PreparedStatement preparedStatement = connection.prepareStatement(countSql);
-        ResultSet resultSet = preparedStatement.executeQuery()) {
-      if (resultSet.next()) {
-        this.totalCount = resultSet.getLong(1);
+    try (PreparedStatement preparedStatement =
+        connection.prepareStatement(addTenantIdFilter(countSql, tenantId))) {
+      setTenantIdParameter(preparedStatement, 1, tenantId);
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        if (resultSet.next()) {
+          this.totalCount = resultSet.getLong(1);
+        }
       }
     }
     this.pageSize = size;
@@ -162,21 +165,30 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
       return;
     }
 
-    // (2) ページング用ベクトル検索
+    // (2) ページング用ベクトル検索（tenant_id フィルターを適用）
     String sql = RETRIEVE_SQL + " OFFSET ?";
-    try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-      preparedStatement.setString(1, query == null ? null : query.toString());
-      preparedStatement.setInt(2, size);
-      preparedStatement.setInt(3, (page - 1) * size);
-      try (ResultSet resultSet = preparedStatement.executeQuery()) {
-        this.entityLot = new ArrayList<>();
-        while (resultSet.next()) {
-          SES_AI_T_PERSON sesAiTPerson = mapResultSet(resultSet);
-          sesAiTPerson.setDistance(resultSet.getDouble("distance"));
-          this.entityLot.add(sesAiTPerson);
+    List<SES_AI_T_PERSON> results = executeQuery(
+        connection,
+        sql,
+        tenantId,
+        rs -> {
+          SES_AI_T_PERSON sesAiTPerson = mapResultSet(rs);
+          try {
+            sesAiTPerson.setDistance(rs.getDouble("distance"));
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+          return sesAiTPerson;
+        },
+        (stmt, paramIndex) -> {
+          int idx = paramIndex;
+          stmt.setString(idx, query == null ? null : query.toString());
+          stmt.setInt(idx + 1, size);
+          stmt.setInt(idx + 2, (page - 1) * size);
+          return idx + 3;
         }
-      }
-    }
+    );
+    this.entityLot = results;
   }
 
   /**
@@ -222,11 +234,14 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
       return;
     }
 
-    // (1) 全件数を取得
+    // (1) 全件数を取得（tenant_id フィルターを適用）
     String countSql = "SELECT COUNT(*) FROM SES_AI_T_PERSON WHERE 1 - (vector_data <=> ?::vector) >= ?";
-    try (PreparedStatement preparedStatement = connection.prepareStatement(countSql)) {
-      preparedStatement.setString(1, query.toString());
-      preparedStatement.setDouble(2, similarityThreshold);
+    try (PreparedStatement preparedStatement =
+        connection.prepareStatement(addTenantIdFilter(countSql, tenantId))) {
+      int paramIndex = 1;
+      preparedStatement.setString(paramIndex++, query.toString());
+      preparedStatement.setDouble(paramIndex++, similarityThreshold);
+      setTenantIdParameter(preparedStatement, paramIndex, tenantId);
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
           this.totalCount = resultSet.getLong(1);
@@ -240,24 +255,33 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
       return;
     }
 
-    // (2) ページング用ベクトル検索
+    // (2) ページング用ベクトル検索（tenant_id フィルターを適用）
     String sql = RETRIEVE_WITH_THRESHOLD_SQL + " OFFSET ?";
-    try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-      String vectorStr = query.toString();
-      preparedStatement.setString(1, vectorStr);
-      preparedStatement.setString(2, vectorStr);
-      preparedStatement.setDouble(3, similarityThreshold);
-      preparedStatement.setInt(4, size);
-      preparedStatement.setInt(5, (page - 1) * size);
-      try (ResultSet resultSet = preparedStatement.executeQuery()) {
-        this.entityLot = new ArrayList<>();
-        while (resultSet.next()) {
-          SES_AI_T_PERSON entity = mapResultSet(resultSet);
-          entity.setDistance(resultSet.getDouble("distance"));
-          this.entityLot.add(entity);
+    List<SES_AI_T_PERSON> results = executeQuery(
+        connection,
+        sql,
+        tenantId,
+        rs -> {
+          SES_AI_T_PERSON entity = mapResultSet(rs);
+          try {
+            entity.setDistance(rs.getDouble("distance"));
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+          return entity;
+        },
+        (stmt, paramIndex) -> {
+          int idx = paramIndex;
+          String vectorStr = query.toString();
+          stmt.setString(idx, vectorStr);
+          stmt.setString(idx + 1, vectorStr);
+          stmt.setDouble(idx + 2, similarityThreshold);
+          stmt.setInt(idx + 3, size);
+          stmt.setInt(idx + 4, (page - 1) * size);
+          return idx + 5;
         }
-      }
-    }
+    );
+    this.entityLot = results;
   }
 
   /**

@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.List;
 
 import copel.sesproductpackage.core.database.SES_AI_T_WATCH.TargetType;
 import copel.sesproductpackage.core.database.base.EntityLotBase;
@@ -52,16 +53,18 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
    * @throws SQLException
    */
   public void selectByUserId(final Connection connection, final String tenantId, final String userId) throws SQLException {
-    if (connection == null || userId == null) {
-      return;
-    }
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BY_USER_ID_SQL);
-    preparedStatement.setString(1, userId);
-    ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();
-    while (resultSet.next()) {
-      this.entityLot.add(mapResultSet(resultSet));
-    }
+    List<SES_AI_T_WATCH> results = executeQuery(
+        connection,
+        SELECT_BY_USER_ID_SQL,
+        tenantId,
+        this::mapResultSet,
+        (stmt, paramIndex) -> {
+          stmt.setString(paramIndex, userId);
+          return paramIndex + 1;
+        }
+    );
+    this.entityLot.addAll(results);
   }
 
   /**
@@ -84,7 +87,7 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
     this.selectByQueryPaged(
         connection,
         tenantId,
-        "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl FROM SES_AI_T_WATCH",
+        "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id FROM SES_AI_T_WATCH",
         query,
         true,
         page,

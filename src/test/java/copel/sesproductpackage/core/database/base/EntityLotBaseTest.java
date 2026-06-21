@@ -289,4 +289,361 @@ class EntityLotBaseTest {
     assertEquals(10, lot.getPageSize());
     assertEquals(1, lot.getCurrentPageIndex());
   }
+
+  @Test
+  void testAddTenantIdFilter_WithoutTenantId() {
+    TestEntityLot lot = new TestEntityLot();
+    String sql = "SELECT * FROM TEST_TABLE WHERE col1 = ?";
+    String result = lot.addTenantIdFilter(sql, "tenant1");
+    assertEquals("SELECT * FROM TEST_TABLE WHERE col1 = ? AND tenant_id = ?", result);
+  }
+
+  @Test
+  void testAddTenantIdFilter_AlreadyHasTenantId() {
+    TestEntityLot lot = new TestEntityLot();
+    String sql = "SELECT * FROM TEST_TABLE WHERE col1 = ? AND tenant_id = ?";
+    String result = lot.addTenantIdFilter(sql, "tenant1");
+    assertEquals(sql, result);
+  }
+
+  @Test
+  void testAddTenantIdFilter_WithWhitespace() {
+    TestEntityLot lot = new TestEntityLot();
+    String sql = "SELECT * FROM TEST_TABLE WHERE col1 = ?  \n  ";
+    String result = lot.addTenantIdFilter(sql, "tenant1");
+    assertEquals("SELECT * FROM TEST_TABLE WHERE col1 = ? AND tenant_id = ?", result);
+  }
+
+  @Test
+  void testAddTenantIdFilter_NullTenantId() {
+    TestEntityLot lot = new TestEntityLot();
+    String sql = "SELECT * FROM TEST_TABLE";
+    assertThrows(
+        IllegalArgumentException.class, () -> lot.addTenantIdFilter(sql, null),
+        "TenantId must not be null or empty");
+  }
+
+  @Test
+  void testAddTenantIdFilter_EmptyTenantId() {
+    TestEntityLot lot = new TestEntityLot();
+    String sql = "SELECT * FROM TEST_TABLE";
+    assertThrows(
+        IllegalArgumentException.class, () -> lot.addTenantIdFilter(sql, ""),
+        "TenantId must not be null or empty");
+  }
+
+  @Test
+  void testAddTenantIdFilter_NullSql() {
+    TestEntityLot lot = new TestEntityLot();
+    assertThrows(
+        IllegalArgumentException.class, () -> lot.addTenantIdFilter(null, "tenant1"),
+        "baseSql must not be null");
+  }
+
+  @Test
+  void testSetTenantIdParameter() throws SQLException {
+    TestEntityLot lot = new TestEntityLot();
+    PreparedStatement ps = mock(PreparedStatement.class);
+    lot.setTenantIdParameter(ps, 1, "tenant1");
+    verify(ps, times(1)).setString(1, "tenant1");
+  }
+
+  @Test
+  void testSetTenantIdParameter_NullTenantId() throws SQLException {
+    TestEntityLot lot = new TestEntityLot();
+    PreparedStatement ps = mock(PreparedStatement.class);
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> lot.setTenantIdParameter(ps, 1, null),
+        "TenantId must not be null or empty");
+  }
+
+  @Test
+  void testSetTenantIdParameter_EmptyTenantId() throws SQLException {
+    TestEntityLot lot = new TestEntityLot();
+    PreparedStatement ps = mock(PreparedStatement.class);
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> lot.setTenantIdParameter(ps, 1, ""),
+        "TenantId must not be null or empty");
+  }
+
+  @Test
+  void testExecuteQuery_WithNullConnection() throws SQLException {
+    TestEntityLot lot = new TestEntityLot();
+    var results = lot.executeQuery(
+        null,
+        "SELECT * FROM TEST_TABLE",
+        "tenant1",
+        rs -> new TestEntity(new OriginalDateTime()),
+        (stmt, idx) -> idx);
+    assertTrue(results.isEmpty());
+  }
+
+  @Test
+  void testExecuteQuery_WithData() throws SQLException {
+    Connection conn = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(conn.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true, false);
+
+    TestEntityLot lot = new TestEntityLot();
+    var results = lot.executeQuery(
+        conn,
+        "SELECT * FROM TEST_TABLE",
+        "tenant1",
+        rs2 -> new TestEntity(new OriginalDateTime()),
+        (stmt, idx) -> {
+          stmt.setString(idx, "value1");
+          return idx + 1;
+        });
+
+    assertEquals(1, results.size());
+    verify(ps, times(1)).setString(1, "value1");
+    verify(ps, times(1)).setString(2, "tenant1");
+  }
+
+  @Test
+  void testExecuteQuery_AddsTenantIdFilter() throws SQLException {
+    Connection conn = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(conn.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(false);
+
+    TestEntityLot lot = new TestEntityLot();
+    lot.executeQuery(
+        conn,
+        "SELECT * FROM TEST_TABLE WHERE col1 = ?",
+        "tenant1",
+        rs2 -> new TestEntity(new OriginalDateTime()),
+        (stmt, idx) -> {
+          stmt.setString(idx, "value1");
+          return idx + 1;
+        });
+
+    verify(conn, times(1)).prepareStatement(
+        "SELECT * FROM TEST_TABLE WHERE col1 = ? AND tenant_id = ?");
+  }
+
+  @Test
+  void testExecuteQuery_NullTenantId() throws SQLException {
+    Connection conn = mock(Connection.class);
+    TestEntityLot lot = new TestEntityLot();
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> lot.executeQuery(conn, "SELECT * FROM TEST_TABLE", null,
+            rs -> new TestEntity(new OriginalDateTime()),
+            (stmt, idx) -> idx),
+        "TenantId must not be null or empty");
+  }
+
+  @Test
+  void testExecuteQueryWithoutTenantFilter_WithNullConnection() throws SQLException {
+    TestEntityLot lot = new TestEntityLot();
+    var results = lot.executeQueryWithoutTenantFilter(
+        null,
+        "SELECT * FROM TEST_TABLE",
+        rs -> new TestEntity(new OriginalDateTime()),
+        (stmt, idx) -> idx);
+    assertTrue(results.isEmpty());
+  }
+
+  @Test
+  void testExecuteQueryWithoutTenantFilter_WithData() throws SQLException {
+    Connection conn = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(conn.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true, false);
+
+    TestEntityLot lot = new TestEntityLot();
+    var results = lot.executeQueryWithoutTenantFilter(
+        conn,
+        "SELECT * FROM TEST_TABLE",
+        rs2 -> new TestEntity(new OriginalDateTime()),
+        (stmt, idx) -> {
+          stmt.setString(idx, "value1");
+          return idx + 1;
+        });
+
+    assertEquals(1, results.size());
+    verify(ps, times(1)).setString(1, "value1");
+    verify(conn, times(1)).prepareStatement("SELECT * FROM TEST_TABLE");
+  }
+
+  @Test
+  void testExecuteQueryWithoutTenantFilter_NoTenantIdBound() throws SQLException {
+    Connection conn = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(conn.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(false);
+
+    TestEntityLot lot = new TestEntityLot();
+    lot.executeQueryWithoutTenantFilter(
+        conn,
+        "SELECT * FROM TEST_TABLE",
+        rs2 -> new TestEntity(new OriginalDateTime()),
+        (stmt, idx) -> idx);
+
+    verify(ps, never()).setString(anyInt(), eq("tenant-any"));
+  }
+
+  @Test
+  void testSelectByAndQuery_AfterRefactoring() throws SQLException {
+    Connection conn = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(conn.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true, false);
+
+    TestEntityLot lot = new TestEntityLot();
+    Map<String, Object> query = Map.of("col1", "val1");
+    lot.selectByAndQuery(conn, "test-tenant", query);
+
+    assertEquals(1, lot.size());
+    // tenant_id がバインドされていることを確認（最後のパラメータ）
+    verify(ps).setString(anyInt(), eq("test-tenant"));
+    verify(ps).setString(anyInt(), eq("val1"));
+  }
+
+  @Test
+  void testSelectByOrQuery_AfterRefactoring() throws SQLException {
+    Connection conn = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(conn.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true, false);
+
+    TestEntityLot lot = new TestEntityLot();
+    lot.selectByOrQuery(conn, "test-tenant", Map.of("col1", "val1"));
+
+    assertEquals(1, lot.size());
+    verify(ps).setString(1, "val1");
+    verify(ps).setString(2, "test-tenant");
+  }
+
+  @Test
+  void testSelectByLikeQuery_AfterRefactoring() throws SQLException {
+    Connection conn = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(conn.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true, false);
+
+    TestEntityLot lot = new TestEntityLot();
+    lot.selectByLikeQuery(conn, "test-tenant", "SELECT * FROM TEST_TABLE WHERE ", "col1", "search", null);
+
+    assertEquals(1, lot.size());
+    verify(ps).setString(1, "%search%");
+    verify(ps).setString(2, "test-tenant");
+  }
+
+  @Test
+  void testSelectByLikeQuery_WithLogicalOperators() throws SQLException {
+    Connection conn = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(conn.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true, false);
+
+    TestEntityLot lot = new TestEntityLot();
+    java.util.List<copel.sesproductpackage.core.unit.LogicalOperators> operators =
+        java.util.Arrays.asList(
+            new copel.sesproductpackage.core.unit.LogicalOperators(
+                copel.sesproductpackage.core.unit.LogicalOperators.論理演算子.AND, "val1"));
+
+    lot.selectByLikeQuery(conn, "test-tenant", "SELECT * FROM TEST_TABLE WHERE ", "col1", "search", operators);
+
+    assertEquals(1, lot.size());
+    verify(ps).setString(1, "%search%");
+    verify(ps).setString(2, "%val1%");
+    verify(ps).setString(3, "test-tenant");
+  }
+
+  @Test
+  void testCountByQuery_AfterRefactoring() throws SQLException {
+    Connection conn = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(conn.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true);
+    when(rs.getLong(1)).thenReturn(100L);
+
+    TestEntityLot lot = new TestEntityLot();
+    long count = lot.countByQuery(conn, "test-tenant", "SELECT * FROM TEST_TABLE", Map.of("col1", "val1"), true);
+
+    assertEquals(100L, count);
+    verify(ps).setString(1, "val1");
+    verify(ps).setString(2, "test-tenant");
+  }
+
+  @Test
+  void testSelectByQueryPaged_AfterRefactoring() throws SQLException {
+    Connection conn = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(conn.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true, true, false);
+    when(rs.getLong(1)).thenReturn(50L);
+
+    TestEntityLot lot = new TestEntityLot();
+    lot.selectByQueryPaged(conn, "test-tenant", "SELECT * FROM TEST_TABLE", Map.of("col1", "val1"), true, 1, 10);
+
+    assertEquals(1, lot.size());
+    assertEquals(50L, lot.getTotalCount());
+  }
+
+  @Test
+  void testSelectByLikeQueryPaged_AfterRefactoring() throws SQLException {
+    Connection conn = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(conn.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true, true, false);
+    when(rs.getLong(1)).thenReturn(25L);
+
+    TestEntityLot lot = new TestEntityLot();
+    lot.selectByLikeQueryPaged(conn, "test-tenant", "SELECT * FROM TEST_TABLE WHERE ", "col1", "search", null, 1, 10);
+
+    assertEquals(1, lot.size());
+    assertEquals(25L, lot.getTotalCount());
+  }
+
+  @Test
+  void testSelectByDynamicWherePaged_AfterRefactoring() throws SQLException {
+    Connection conn = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(conn.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true, true, false);
+    when(rs.getLong(1)).thenReturn(75L);
+
+    TestEntityLot lot = new TestEntityLot();
+    lot.selectByDynamicWherePaged(
+        conn,
+        "test-tenant",
+        "SELECT * FROM TEST_TABLE WHERE ",
+        "(col1 LIKE ?)",
+        java.util.Arrays.asList("search"),
+        1,
+        10);
+
+    assertEquals(1, lot.size());
+    assertEquals(75L, lot.getTotalCount());
+  }
 }

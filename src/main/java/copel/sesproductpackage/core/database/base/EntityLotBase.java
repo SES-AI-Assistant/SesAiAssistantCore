@@ -364,6 +364,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       return;
     }
 
+    // SQL 構築（tenantId フィルターなし）
     StringBuilder sql = new StringBuilder(baseSql);
     boolean isFirst = true;
     for (final String columnName : query.keySet()) {
@@ -375,28 +376,31 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       }
     }
 
-    try (PreparedStatement preparedStatement = connection.prepareStatement(sql.toString())) {
-      int i = 1;
-      for (final String columnName : query.keySet()) {
-        Object value = query.get(columnName);
-        if (value instanceof Boolean) {
-          preparedStatement.setBoolean(i, (Boolean) value);
-        } else if (value instanceof Integer) {
-          preparedStatement.setInt(i, (Integer) value);
-        } else if (value instanceof Long) {
-          preparedStatement.setLong(i, (Long) value);
-        } else {
-          preparedStatement.setString(i, value != null ? value.toString() : null);
+    // 新しいテンプレートメソッドで実行
+    List<E> results = executeQuery(
+        connection,
+        sql.toString(),
+        tenantId,
+        this::mapResultSet,
+        (stmt, paramIndex) -> {
+          int idx = paramIndex;
+          for (final String columnName : query.keySet()) {
+            Object value = query.get(columnName);
+            if (value instanceof Boolean) {
+              stmt.setBoolean(idx, (Boolean) value);
+            } else if (value instanceof Integer) {
+              stmt.setInt(idx, (Integer) value);
+            } else if (value instanceof Long) {
+              stmt.setLong(idx, (Long) value);
+            } else {
+              stmt.setString(idx, value != null ? value.toString() : null);
+            }
+            idx++;
+          }
+          return idx;
         }
-        i++;
-      }
-
-      try (ResultSet resultSet = preparedStatement.executeQuery()) {
-        while (resultSet.next()) {
-          this.entityLot.add(mapResultSet(resultSet));
-        }
-      }
-    }
+    );
+    this.entityLot.addAll(results);
   }
 
   /**
@@ -423,6 +427,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       return;
     }
 
+    // SQL 構築（tenantId フィルターなし）
     StringBuilder sql = new StringBuilder(baseSql);
     if (query != null) {
       for (final LogicalOperators logicalOperator : query) {
@@ -433,23 +438,28 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       }
     }
 
-    try (PreparedStatement preparedStatement = connection.prepareStatement(sql.toString())) {
-      preparedStatement.setString(1, "%" + firstLikeQuery + "%");
-      if (query != null && !query.isEmpty()) {
-        for (int i = 0; i < query.size(); i++) {
-          LogicalOperators operator = query.get(i);
-          if (operator != null) {
-            preparedStatement.setString(i + 2, "%" + operator.getValue() + "%");
+    // 新しいテンプレートメソッドで実行
+    List<E> results = executeQuery(
+        connection,
+        sql.toString(),
+        tenantId,
+        this::mapResultSet,
+        (stmt, paramIndex) -> {
+          int idx = paramIndex;
+          stmt.setString(idx, "%" + firstLikeQuery + "%");
+          idx++;
+          if (query != null && !query.isEmpty()) {
+            for (LogicalOperators operator : query) {
+              if (operator != null) {
+                stmt.setString(idx, "%" + operator.getValue() + "%");
+                idx++;
+              }
+            }
           }
+          return idx;
         }
-      }
-
-      try (ResultSet resultSet = preparedStatement.executeQuery()) {
-        while (resultSet.next()) {
-          this.entityLot.add(mapResultSet(resultSet));
-        }
-      }
-    }
+    );
+    this.entityLot.addAll(results);
   }
 
   /**
@@ -480,7 +490,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       return;
     }
 
-    // (1) 件数用のSQLを構築して実行
+    // (1) 件数用のSQL構築（tenantId フィルターなし）
     StringBuilder countSql = new StringBuilder(toCountSql(baseSql));
     if (query != null) {
       for (final LogicalOperators logicalOperator : query) {
@@ -491,16 +501,20 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       }
     }
 
-    try (PreparedStatement preparedStatement = connection.prepareStatement(countSql.toString())) {
-      preparedStatement.setString(1, "%" + firstLikeQuery + "%");
+    // tenant_id フィルターを追加して実行
+    try (PreparedStatement preparedStatement =
+        connection.prepareStatement(addTenantIdFilter(countSql.toString(), tenantId))) {
+      int paramIndex = 1;
+      preparedStatement.setString(paramIndex++, "%" + firstLikeQuery + "%");
       if (query != null && !query.isEmpty()) {
-        for (int i = 0; i < query.size(); i++) {
-          LogicalOperators operator = query.get(i);
+        for (LogicalOperators operator : query) {
           if (operator != null) {
-            preparedStatement.setString(i + 2, "%" + operator.getValue() + "%");
+            preparedStatement.setString(paramIndex++, "%" + operator.getValue() + "%");
           }
         }
       }
+      setTenantIdParameter(preparedStatement, paramIndex, tenantId);
+
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
           this.totalCount = resultSet.getLong(1);
@@ -515,7 +529,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       return;
     }
 
-    // (2) ページング用SQLを構築して実行
+    // (2) ページング用SQL構築（tenantId フィルターなし）
     StringBuilder sql = new StringBuilder(baseSql);
     if (query != null) {
       for (final LogicalOperators logicalOperator : query) {
@@ -527,25 +541,28 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     }
     sql.append(" LIMIT ? OFFSET ?");
 
-    try (PreparedStatement preparedStatement = connection.prepareStatement(sql.toString())) {
-      preparedStatement.setString(1, "%" + firstLikeQuery + "%");
-      int paramIndex = 2;
-      if (query != null && !query.isEmpty()) {
-        for (LogicalOperators operator : query) {
-          if (operator != null) {
-            preparedStatement.setString(paramIndex++, "%" + operator.getValue() + "%");
+    // 新しいテンプレートメソッドで実行
+    List<E> results = executeQuery(
+        connection,
+        sql.toString(),
+        tenantId,
+        this::mapResultSet,
+        (stmt, paramIndex) -> {
+          int idx = paramIndex;
+          stmt.setString(idx++, "%" + firstLikeQuery + "%");
+          if (query != null && !query.isEmpty()) {
+            for (LogicalOperators operator : query) {
+              if (operator != null) {
+                stmt.setString(idx++, "%" + operator.getValue() + "%");
+              }
+            }
           }
+          stmt.setInt(idx, size);
+          stmt.setInt(idx + 1, (page - 1) * size);
+          return idx + 2;
         }
-      }
-      preparedStatement.setInt(paramIndex++, size);
-      preparedStatement.setInt(paramIndex, (page - 1) * size);
-
-      try (ResultSet resultSet = preparedStatement.executeQuery()) {
-        while (resultSet.next()) {
-          this.entityLot.add(mapResultSet(resultSet));
-        }
-      }
-    }
+    );
+    this.entityLot.addAll(results);
   }
 
   /**
@@ -577,14 +594,19 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       return;
     }
 
+    // (1) 件数用 SQL 構築（tenantId フィルターなし）
     final String fullSelect = selectSqlPrefix + whereClauseWithoutWhere;
     final String countSql = toCountSql(fullSelect);
 
-    try (PreparedStatement preparedStatement = connection.prepareStatement(countSql)) {
-      int i = 1;
+    // tenant_id フィルターを追加して実行
+    try (PreparedStatement preparedStatement =
+        connection.prepareStatement(addTenantIdFilter(countSql, tenantId))) {
+      int paramIndex = 1;
       for (String p : likeParams) {
-        preparedStatement.setString(i++, p);
+        preparedStatement.setString(paramIndex++, p);
       }
+      setTenantIdParameter(preparedStatement, paramIndex, tenantId);
+
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
           this.totalCount = resultSet.getLong(1);
@@ -599,20 +621,26 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       return;
     }
 
+    // (2) ページング用 SQL（tenantId フィルターなし）
     final String pagedSql = fullSelect + " LIMIT ? OFFSET ?";
-    try (PreparedStatement preparedStatement = connection.prepareStatement(pagedSql)) {
-      int pi = 1;
-      for (String p : likeParams) {
-        preparedStatement.setString(pi++, p);
-      }
-      preparedStatement.setInt(pi++, size);
-      preparedStatement.setInt(pi, (page - 1) * size);
-      try (ResultSet resultSet = preparedStatement.executeQuery()) {
-        while (resultSet.next()) {
-          this.entityLot.add(mapResultSet(resultSet));
+
+    // 新しいテンプレートメソッドで実行
+    List<E> results = executeQuery(
+        connection,
+        pagedSql,
+        tenantId,
+        this::mapResultSet,
+        (stmt, paramIndex) -> {
+          int idx = paramIndex;
+          for (String p : likeParams) {
+            stmt.setString(idx++, p);
+          }
+          stmt.setInt(idx, size);
+          stmt.setInt(idx + 1, (page - 1) * size);
+          return idx + 2;
         }
-      }
-    }
+    );
+    this.entityLot.addAll(results);
   }
 
   /**
@@ -637,6 +665,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       return 0;
     }
 
+    // COUNT SQL 構築（tenantId フィルターなし）
     String countSql = toCountSql(baseSql);
     StringBuilder sql = new StringBuilder(countSql);
 
@@ -658,14 +687,18 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       }
     }
 
-    try (PreparedStatement preparedStatement = connection.prepareStatement(sql.toString())) {
+    // 新しいテンプレートメソッドで実行
+    final int paramCount = query != null ? query.size() : 0;
+    try (PreparedStatement preparedStatement =
+        connection.prepareStatement(addTenantIdFilter(sql.toString(), tenantId))) {
+      int paramIndex = 1;
       if (query != null && !query.isEmpty()) {
-        int i = 1;
         for (final String columnName : query.keySet()) {
-          preparedStatement.setString(i, query.get(columnName));
-          i++;
+          preparedStatement.setString(paramIndex, query.get(columnName));
+          paramIndex++;
         }
       }
+      setTenantIdParameter(preparedStatement, paramIndex, tenantId);
 
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
@@ -702,7 +735,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       return;
     }
 
-    // (1) 全件数を取得
+    // (1) 全件数を取得（countByQuery が tenant_id フィルターを適用済み）
     this.totalCount = countByQuery(connection, tenantId, baseSql, query, isAnd);
     this.pageSize = size;
     this.currentPageIndex = page;
@@ -711,7 +744,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       return;
     }
 
-    // (2) ページングSQLを構築
+    // (2) ページング SQL 構築（tenantId フィルターなし）
     StringBuilder sql = new StringBuilder(baseSql);
     if (query != null && !query.isEmpty()) {
       boolean isFirst = true;
@@ -733,23 +766,183 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
 
     sql.append(" LIMIT ? OFFSET ?");
 
-    try (PreparedStatement preparedStatement = connection.prepareStatement(sql.toString())) {
-      int i = 1;
-      if (query != null && !query.isEmpty()) {
-        for (final String columnName : query.keySet()) {
-          preparedStatement.setString(i, query.get(columnName));
-          i++;
+    // 新しいテンプレートメソッドで実行
+    List<E> results = executeQuery(
+        connection,
+        sql.toString(),
+        tenantId,
+        this::mapResultSet,
+        (stmt, paramIndex) -> {
+          int idx = paramIndex;
+          if (query != null && !query.isEmpty()) {
+            for (final String columnName : query.keySet()) {
+              stmt.setString(idx, query.get(columnName));
+              idx++;
+            }
+          }
+          stmt.setInt(idx, size);
+          stmt.setInt(idx + 1, (page - 1) * size);
+          return idx + 2;
+        }
+    );
+    this.entityLot.addAll(results);
+  }
+
+  // ================================
+  // TenantId フィルター（新規）
+  // ================================
+
+  /**
+   * PreparedStatement へのパラメータバインド処理を定義するインターフェース.
+   * <p>executeQuery() / executeQueryWithoutTenantFilter() で使用。
+   */
+  @FunctionalInterface
+  protected interface PreparedStatementBinder {
+    /**
+     * @param stmt バインド対象の PreparedStatement
+     * @param startIndex 開始パラメータインデックス（通常は 1）
+     * @return 次のパラメータインデックス（tenantId バインド時に使用）
+     * @throws SQLException
+     */
+    int bind(PreparedStatement stmt, int startIndex) throws SQLException;
+  }
+
+  /**
+   * ResultSet → Entity マッピングを定義するインターフェース.
+   * <p>executeQuery() / executeQueryWithoutTenantFilter() で使用。
+   */
+  @FunctionalInterface
+  protected interface ResultSetMapper<T> {
+    /**
+     * @param rs マッピング対象の ResultSet
+     * @return マッピング後のエンティティ
+     * @throws SQLException
+     */
+    T map(ResultSet rs) throws SQLException;
+  }
+
+  /**
+   * SQL末尾に tenant_id フィルター条件を自動付加します.
+   *
+   * <p>既に SQL に tenant_id 条件が含まれている場合はスキップします。
+   *
+   * @param baseSql WHERE句を含まない基本SQL
+   * @param tenantId テナントID（null 不可）
+   * @return 末尾に {@code " AND tenant_id = ?"} が付加された SQL
+   * @throws IllegalArgumentException tenantId が null または空文字列の場合
+   */
+  protected String addTenantIdFilter(final String baseSql, final String tenantId) {
+    if (tenantId == null || tenantId.isEmpty()) {
+      throw new IllegalArgumentException("TenantId must not be null or empty");
+    }
+    if (baseSql == null) {
+      throw new IllegalArgumentException("baseSql must not be null");
+    }
+    // 既に tenant_id 条件がある場合はスキップ
+    if (baseSql.contains("tenant_id")) {
+      return baseSql;
+    }
+    return baseSql.trim() + " AND tenant_id = ?";
+  }
+
+  /**
+   * PreparedStatement に tenant_id パラメータをバインドします.
+   *
+   * @param stmt バインド対象の PreparedStatement
+   * @param paramIndex パラメータインデックス
+   * @param tenantId テナントID（null 不可）
+   * @throws SQLException
+   * @throws IllegalArgumentException tenantId が null または空文字列の場合
+   */
+  protected void setTenantIdParameter(
+      final PreparedStatement stmt, final int paramIndex, final String tenantId)
+      throws SQLException {
+    if (tenantId == null || tenantId.isEmpty()) {
+      throw new IllegalArgumentException("TenantId must not be null or empty");
+    }
+    stmt.setString(paramIndex, tenantId);
+  }
+
+  /**
+   * TenantId 必須の統一クエリ実行テンプレート.
+   *
+   * <p>SQL末尾に自動的に {@code " AND tenant_id = ?"} を付加し、tenantId でフィルターします。
+   * 各 Lot クラスの検索メソッドはこのテンプレートを使用してください。
+   *
+   * @param conn DBコネクション（null の場合は空リストを返す）
+   * @param sql WHERE句を含まない基本SQL
+   * @param tenantId テナントID（必須）
+   * @param mapper ResultSet → Entity マッピング処理
+   * @param binder カスタムパラメータバインド処理
+   * @return クエリ実行結果のエンティティリスト
+   * @throws SQLException
+   * @throws IllegalArgumentException tenantId が null または空文字列の場合
+   */
+  protected List<E> executeQuery(
+      final Connection conn,
+      final String sql,
+      final String tenantId,
+      final ResultSetMapper<E> mapper,
+      final PreparedStatementBinder binder)
+      throws SQLException {
+    if (conn == null) {
+      return new ArrayList<>();
+    }
+
+    // SQL末尾に tenant_id フィルター条件を自動付加
+    final String filteredSql = addTenantIdFilter(sql, tenantId);
+
+    try (PreparedStatement stmt = conn.prepareStatement(filteredSql)) {
+      // ユーザー定義のバインド処理を実行
+      int nextParamIndex = binder.bind(stmt, 1);
+
+      // 最後に tenant_id をバインド
+      setTenantIdParameter(stmt, nextParamIndex, tenantId);
+
+      List<E> results = new ArrayList<>();
+      try (ResultSet rs = stmt.executeQuery()) {
+        while (rs.next()) {
+          results.add(mapper.map(rs));
         }
       }
+      return results;
+    }
+  }
 
-      preparedStatement.setInt(i++, size);
-      preparedStatement.setInt(i, (page - 1) * size);
+  /**
+   * TenantId フィルター無しのクエリ実行テンプレート（WithoutTenantFilter専用）.
+   *
+   * <p>⚠️ このメソッドは tenant_id フィルターを適用しません。
+   * バッチ処理など全テナント対象のクエリのみで使用してください。
+   * メソッド名に {@code WithoutTenantFilter} を含め、コードレビュー対象と明示してください。
+   *
+   * @param conn DBコネクション（null の場合は空リストを返す）
+   * @param sql SQL（WHERE句を含める場合も不含の場合も可）
+   * @param mapper ResultSet → Entity マッピング処理
+   * @param binder カスタムパラメータバインド処理
+   * @return クエリ実行結果のエンティティリスト
+   * @throws SQLException
+   */
+  protected List<E> executeQueryWithoutTenantFilter(
+      final Connection conn,
+      final String sql,
+      final ResultSetMapper<E> mapper,
+      final PreparedStatementBinder binder)
+      throws SQLException {
+    if (conn == null) {
+      return new ArrayList<>();
+    }
 
-      try (ResultSet resultSet = preparedStatement.executeQuery()) {
-        while (resultSet.next()) {
-          this.entityLot.add(mapResultSet(resultSet));
+    try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+      binder.bind(stmt, 1);
+
+      List<E> results = new ArrayList<>();
+      try (ResultSet rs = stmt.executeQuery()) {
+        while (rs.next()) {
+          results.add(mapper.map(rs));
         }
       }
+      return results;
     }
   }
 

@@ -226,13 +226,16 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       return;
     }
 
-    // (1) 全件数を取得 (countQueryPart があれば)
+    // (1) 全件数を取得 (countQueryPart があれば、tenant_id フィルターを適用)
     if (countQueryPart != null) {
       String countSql = "SELECT COUNT(*) " + countQueryPart;
+      countSql = addTenantIdFilter(countSql, tenantId);
       try (PreparedStatement preparedStatement = connection.prepareStatement(countSql)) {
+        int paramIndex = 1;
         String vectorStr = query.toString();
-        preparedStatement.setString(1, vectorStr);
-        preparedStatement.setDouble(2, similarityThreshold);
+        preparedStatement.setString(paramIndex++, vectorStr);
+        preparedStatement.setDouble(paramIndex++, similarityThreshold);
+        setTenantIdParameter(preparedStatement, paramIndex, tenantId);
         try (ResultSet resultSet = preparedStatement.executeQuery()) {
           if (resultSet.next()) {
             this.totalCount = resultSet.getLong(1);
@@ -251,23 +254,25 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       return;
     }
 
-    // (2) ページング実行
+    // (2) ページング実行（tenant_id フィルターを適用）
     String pagedSql = sql + " OFFSET ?";
-    try (PreparedStatement preparedStatement = connection.prepareStatement(pagedSql)) {
-      String vectorStr = query.toString();
-      preparedStatement.setString(1, vectorStr);
-      preparedStatement.setString(2, vectorStr);
-      preparedStatement.setDouble(3, similarityThreshold);
-      preparedStatement.setInt(4, size);
-      preparedStatement.setInt(5, (page - 1) * size);
-
-      try (ResultSet resultSet = preparedStatement.executeQuery()) {
-        this.entityLot = new ArrayList<>();
-        while (resultSet.next()) {
-          this.entityLot.add(mapResultSet(resultSet));
+    List<SES_AI_T_SKILLSHEET_PERSON> results = executeQuery(
+        connection,
+        pagedSql,
+        tenantId,
+        this::mapResultSet,
+        (stmt, paramIndex) -> {
+          int idx = paramIndex;
+          String vectorStr = query.toString();
+          stmt.setString(idx, vectorStr);
+          stmt.setString(idx + 1, vectorStr);
+          stmt.setDouble(idx + 2, similarityThreshold);
+          stmt.setInt(idx + 3, size);
+          stmt.setInt(idx + 4, (page - 1) * size);
+          return idx + 5;
         }
-      }
-    }
+    );
+    this.entityLot = results;
   }
 
   /**
