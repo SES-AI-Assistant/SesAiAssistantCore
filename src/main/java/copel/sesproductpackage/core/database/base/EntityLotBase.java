@@ -825,10 +825,11 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * SQL末尾に tenant_id フィルター条件を自動付加します.
    *
    * <p>既に SQL に tenant_id 条件が含まれている場合はスキップします。
+   * WHERE句がある場合は AND を使用し、ない場合は WHERE を使用します。
    *
-   * @param baseSql WHERE句を含まない基本SQL
+   * @param baseSql 基本SQL（WHERE句を含む場合も含まない場合も可）
    * @param tenantId テナントID（null 不可）
-   * @return 末尾に {@code " AND tenant_id = ?"} が付加された SQL
+   * @return tenant_id フィルターが付加された SQL
    * @throws IllegalArgumentException tenantId が null または空文字列の場合
    */
   protected String addTenantIdFilter(final String baseSql, final String tenantId) {
@@ -842,7 +843,13 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     if (baseSql.contains("tenant_id")) {
       return baseSql;
     }
-    return baseSql.trim() + " AND tenant_id = ?";
+    String trimmedSql = baseSql.trim();
+    // WHERE句が既に含まれているかチェック（大文字小文字を区別しない）
+    if (trimmedSql.toUpperCase().contains(" WHERE ")) {
+      return trimmedSql + " AND tenant_id = ?";
+    } else {
+      return trimmedSql + " WHERE tenant_id = ?";
+    }
   }
 
   /**
