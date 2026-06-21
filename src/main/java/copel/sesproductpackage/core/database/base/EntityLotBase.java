@@ -746,10 +746,13 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
 
     // (2) ページング SQL 構築（tenantId フィルターなし）
     StringBuilder sql = new StringBuilder(baseSql);
+    boolean hasWhereClause = baseSql.toUpperCase().contains("WHERE");
+
     if (query != null && !query.isEmpty()) {
       boolean isFirst = true;
-      if (!baseSql.toUpperCase().contains("WHERE")) {
+      if (!hasWhereClause) {
         sql.append(" WHERE ");
+        hasWhereClause = true;
       } else {
         isFirst = false;
       }
@@ -767,13 +770,19 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     sql.append(" LIMIT ? OFFSET ?");
 
     // 新しいテンプレートメソッドで実行
+    // addTenantIdFilter() が WHERE 句を追加するため、パラメータ位置が変わる
+    final boolean finalHasWhereClause = hasWhereClause;
     List<E> results = executeQuery(
         connection,
         sql.toString(),
         tenantId,
         this::mapResultSet,
         (stmt, paramIndex) -> {
-          int idx = paramIndex;
+          // executeQuery() が WHERE tenant_id = ? を最初に追加する場合、
+          // paramIndex は 2 から開始する（1 は tenant_id）
+          // hasWhereClause がない場合、tenant_id が最初のパラメータになる
+          int idx = !finalHasWhereClause ? paramIndex + 1 : paramIndex;
+
           if (query != null && !query.isEmpty()) {
             for (final String columnName : query.keySet()) {
               stmt.setString(idx, query.get(columnName));
