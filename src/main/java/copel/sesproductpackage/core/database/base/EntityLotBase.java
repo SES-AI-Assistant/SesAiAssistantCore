@@ -826,8 +826,9 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    *
    * <p>既に SQL に tenant_id 条件が含まれている場合はスキップします。
    * WHERE句がある場合は AND を使用し、ない場合は WHERE を使用します。
+   * LIMIT/OFFSET がある場合は、それらの前に条件を挿入します。
    *
-   * @param baseSql 基本SQL（WHERE句を含む場合も含まない場合も可）
+   * @param baseSql 基本SQL（WHERE句を含む場合も含まない場合も可、LIMIT/OFFSETを含む場合も可）
    * @param tenantId テナントID（null 不可）
    * @return tenant_id フィルターが付加された SQL
    * @throws IllegalArgumentException tenantId が null または空文字列の場合
@@ -844,11 +845,29 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       return baseSql;
     }
     String trimmedSql = baseSql.trim();
-    // WHERE句が既に含まれているかチェック（大文字小文字を区別しない）
-    if (trimmedSql.toUpperCase().contains(" WHERE ")) {
-      return trimmedSql + " AND tenant_id = ?";
+    String upperSql = trimmedSql.toUpperCase();
+
+    // LIMIT/OFFSET の位置を検出
+    int limitIndex = upperSql.indexOf(" LIMIT");
+    int offsetIndex = upperSql.indexOf(" OFFSET");
+    int insertPosition = trimmedSql.length();
+
+    if (limitIndex >= 0) {
+      insertPosition = limitIndex;
+    } else if (offsetIndex >= 0) {
+      insertPosition = offsetIndex;
+    }
+
+    String beforeLimitOffset = trimmedSql.substring(0, insertPosition).trim();
+    String afterLimitOffset = insertPosition < trimmedSql.length()
+        ? " " + trimmedSql.substring(insertPosition).trim()
+        : "";
+
+    // WHERE句が含まれているかチェック
+    if (beforeLimitOffset.toUpperCase().contains(" WHERE ")) {
+      return beforeLimitOffset + " AND tenant_id = ?" + afterLimitOffset;
     } else {
-      return trimmedSql + " WHERE tenant_id = ?";
+      return beforeLimitOffset + " WHERE tenant_id = ?" + afterLimitOffset;
     }
   }
 
