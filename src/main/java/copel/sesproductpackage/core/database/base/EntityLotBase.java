@@ -769,32 +769,45 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
 
     sql.append(" LIMIT ? OFFSET ?");
 
-    // 新しいテンプレートメソッドで実行
-    // addTenantIdFilter() が WHERE 句を追加するため、パラメータ位置が変わる
-    final boolean finalHasWhereClause = hasWhereClause;
-    List<E> results = executeQuery(
-        connection,
-        sql.toString(),
-        tenantId,
-        this::mapResultSet,
-        (stmt, paramIndex) -> {
-          // executeQuery() が WHERE tenant_id = ? を最初に追加する場合、
-          // paramIndex は 2 から開始する（1 は tenant_id）
-          // hasWhereClause がない場合、tenant_id が最初のパラメータになる
-          int idx = !finalHasWhereClause ? paramIndex + 1 : paramIndex;
+    if (connection == null) {
+      return;
+    }
 
-          if (query != null && !query.isEmpty()) {
-            for (final String columnName : query.keySet()) {
-              stmt.setString(idx, query.get(columnName));
-              idx++;
-            }
-          }
-          stmt.setInt(idx, size);
-          stmt.setInt(idx + 1, (page - 1) * size);
-          return idx + 2;
+    // tenant_id フィルターを SQL に追加
+    final String filteredSql = addTenantIdFilter(sql.toString(), tenantId);
+
+    try (PreparedStatement stmt = connection.prepareStatement(filteredSql)) {
+      // パラメータ設定順序:
+      // 1. query 値（WHERE 句内）
+      // 2. tenant_id（addTenantIdFilter() で追加された AND tenant_id = ?）
+      // 3. LIMIT
+      // 4. OFFSET
+      int paramIndex = 1;
+
+      // (1) query 値をセット
+      if (query != null && !query.isEmpty()) {
+        for (final String columnName : query.keySet()) {
+          stmt.setString(paramIndex, query.get(columnName));
+          paramIndex++;
         }
-    );
-    this.entityLot.addAll(results);
+      }
+
+      // (2) tenant_id をセット
+      setTenantIdParameter(stmt, paramIndex, tenantId);
+      paramIndex++;
+
+      // (3) LIMIT, OFFSET をセット
+      stmt.setInt(paramIndex, size);
+      stmt.setInt(paramIndex + 1, (page - 1) * size);
+
+      List<E> results = new ArrayList<>();
+      try (ResultSet rs = stmt.executeQuery()) {
+        while (rs.next()) {
+          results.add(mapResultSet(rs));
+        }
+      }
+      this.entityLot.addAll(results);
+    }
   }
 
   // ================================
