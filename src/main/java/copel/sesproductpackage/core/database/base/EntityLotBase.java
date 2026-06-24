@@ -11,12 +11,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * EntityLotの基底クラス.
  *
  * @author Copel Co., Ltd.
  */
+@Slf4j
 public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E> {
 
   /**
@@ -777,6 +779,8 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     final String filteredSql = addTenantIdFilter(sql.toString(), tenantId);
 
     try (PreparedStatement stmt = connection.prepareStatement(filteredSql)) {
+      List<Object> bindValues = new ArrayList<>();
+
       // パラメータ設定順序:
       // 1. query 値（WHERE 句内）
       // 2. tenant_id（addTenantIdFilter() で追加された AND tenant_id = ?）
@@ -787,18 +791,26 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       // (1) query 値をセット
       if (query != null && !query.isEmpty()) {
         for (final String columnName : query.keySet()) {
-          stmt.setString(paramIndex, query.get(columnName));
+          String value = query.get(columnName);
+          stmt.setString(paramIndex, value);
+          bindValues.add(value);
           paramIndex++;
         }
       }
 
       // (2) tenant_id をセット
       setTenantIdParameter(stmt, paramIndex, tenantId);
+      bindValues.add(tenantId);
       paramIndex++;
 
       // (3) LIMIT, OFFSET をセット
       stmt.setInt(paramIndex, size);
+      bindValues.add(size);
       stmt.setInt(paramIndex + 1, (page - 1) * size);
+      bindValues.add((page - 1) * size);
+
+      // SQL と バインド値をログ出力
+      logExecutedSql(filteredSql, bindValues);
 
       List<E> results = new ArrayList<>();
       try (ResultSet rs = stmt.executeQuery()) {
@@ -808,6 +820,52 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       }
       this.entityLot.addAll(results);
     }
+  }
+
+  // ================================
+  // SQL ログ出力
+  // ================================
+
+  /**
+   * 実行される SQL を バインド値を含めてログ出力します.
+   *
+   * <p>パラメータプレースホルダー(?) をバインド値で置換して、実際の SQL を標準出力（ログ）に出力します。
+   *
+   * @param sql パラメータプレースホルダーを含む SQL
+   * @param bindValues バインド値のリスト（順序は SQL 内のプレースホルダーの順序と対応）
+   */
+  protected void logExecutedSql(final String sql, final List<Object> bindValues) {
+    if (!log.isInfoEnabled()) {
+      return;
+    }
+
+    String executedSql = sql;
+    if (bindValues != null && !bindValues.isEmpty()) {
+      // バインド値を SQL に置換
+      for (final Object value : bindValues) {
+        String replacement;
+        if (value == null) {
+          replacement = "NULL";
+        } else if (value instanceof String) {
+          replacement = "'" + escapeQuote((String) value) + "'";
+        } else {
+          replacement = String.valueOf(value);
+        }
+        executedSql = executedSql.replaceFirst("\\?", replacement);
+      }
+    }
+
+    log.info("[SQL] {}", executedSql);
+  }
+
+  /**
+   * SQL 内のシングルクォートをエスケープします.
+   *
+   * @param str エスケープ対象の文字列
+   * @return エスケープされた文字列
+   */
+  private String escapeQuote(final String str) {
+    return str.replace("'", "''");
   }
 
   // ================================
@@ -846,7 +904,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   /**
    * SQL末尾に tenant_id フィルター条件を自動付加します.
    *
-   * <p>既に SQL に tenant_id 条件が含まれている場合はスキップします。
+   * <p>既に WHERE 句に tenant_id 条件が含まれている場合はスキップします。
    * WHERE句がある場合は AND を使用し、ない場合は WHERE を使用します。
    * LIMIT/OFFSET がある場合は、それらの前に条件を挿入します。
    *
@@ -861,10 +919,6 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     }
     if (baseSql == null) {
       throw new IllegalArgumentException("baseSql must not be null");
-    }
-    // 既に tenant_id 条件がある場合はスキップ
-    if (baseSql.contains("tenant_id")) {
-      return baseSql;
     }
     String trimmedSql = baseSql.trim();
     String upperSql = trimmedSql.toUpperCase();
@@ -889,8 +943,15 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
         ? " " + trimmedSql.substring(insertPosition).trim()
         : "";
 
+    // WHERE句内に既に tenant_id フィルターがあるかチェック
+    String beforeClauseUpper = beforeClause.toUpperCase();
+    boolean hasWhereClause = beforeClauseUpper.contains(" WHERE ");
+    if (hasWhereClause && beforeClauseUpper.contains("TENANT_ID")) {
+      return baseSql;
+    }
+
     // WHERE句が含まれているかチェック
-    if (beforeClause.toUpperCase().contains(" WHERE ")) {
+    if (hasWhereClause) {
       return beforeClause + " AND tenant_id = ?" + afterClause;
     } else {
       return beforeClause + " WHERE tenant_id = ?" + afterClause;
