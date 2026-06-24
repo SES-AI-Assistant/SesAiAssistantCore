@@ -946,8 +946,13 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     // WHERE句内に既に tenant_id フィルターがあるかチェック
     String beforeClauseUpper = beforeClause.toUpperCase();
     boolean hasWhereClause = beforeClauseUpper.contains(" WHERE ");
-    if (hasWhereClause && beforeClauseUpper.contains("TENANT_ID")) {
-      return baseSql;
+    if (hasWhereClause) {
+      // WHERE clause のみを抽出して tenant_id チェック（SELECT列のtenant_idと区別）
+      int wherePos = beforeClauseUpper.indexOf(" WHERE ");
+      String whereClausePart = beforeClause.substring(wherePos + " WHERE ".length());
+      if (whereClausePart.toUpperCase().contains("TENANT_ID")) {
+        return baseSql;
+      }
     }
 
     // WHERE句が含まれているかチェック
