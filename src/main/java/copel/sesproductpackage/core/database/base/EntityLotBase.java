@@ -869,27 +869,31 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     String trimmedSql = baseSql.trim();
     String upperSql = trimmedSql.toUpperCase();
 
-    // LIMIT/OFFSET の位置を検出
+    // ORDER BY / GROUP BY / HAVING / LIMIT / OFFSET の位置を検出
+    int orderByIndex = upperSql.indexOf(" ORDER BY");
+    int groupByIndex = upperSql.indexOf(" GROUP BY");
+    int havingIndex = upperSql.indexOf(" HAVING");
     int limitIndex = upperSql.indexOf(" LIMIT");
     int offsetIndex = upperSql.indexOf(" OFFSET");
-    int insertPosition = trimmedSql.length();
 
-    if (limitIndex >= 0) {
-      insertPosition = limitIndex;
-    } else if (offsetIndex >= 0) {
-      insertPosition = offsetIndex;
+    // 最初に現れる句の位置を検出（-1は無視）
+    int insertPosition = trimmedSql.length();
+    for (int pos : new int[]{orderByIndex, groupByIndex, havingIndex, limitIndex, offsetIndex}) {
+      if (pos >= 0 && pos < insertPosition) {
+        insertPosition = pos;
+      }
     }
 
-    String beforeLimitOffset = trimmedSql.substring(0, insertPosition).trim();
-    String afterLimitOffset = insertPosition < trimmedSql.length()
+    String beforeClause = trimmedSql.substring(0, insertPosition).trim();
+    String afterClause = insertPosition < trimmedSql.length()
         ? " " + trimmedSql.substring(insertPosition).trim()
         : "";
 
     // WHERE句が含まれているかチェック
-    if (beforeLimitOffset.toUpperCase().contains(" WHERE ")) {
-      return beforeLimitOffset + " AND tenant_id = ?" + afterLimitOffset;
+    if (beforeClause.toUpperCase().contains(" WHERE ")) {
+      return beforeClause + " AND tenant_id = ?" + afterClause;
     } else {
-      return beforeLimitOffset + " WHERE tenant_id = ?" + afterLimitOffset;
+      return beforeClause + " WHERE tenant_id = ?" + afterClause;
     }
   }
 
