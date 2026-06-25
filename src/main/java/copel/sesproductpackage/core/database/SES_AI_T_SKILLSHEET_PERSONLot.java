@@ -62,6 +62,12 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
           + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
           + "WHERE s.file_content LIKE ?";
 
+  /** COUNT SQL用プレフィックス. */
+  private static final String COUNT_SQL_PREFIX = "SELECT COUNT(*) ";
+
+  /** ページング用 OFFSET サフィックス. */
+  private static final String PAGED_SQL_OFFSET_SUFFIX = " OFFSET ?";
+
   /** コンストラクタ. */
   public SES_AI_T_SKILLSHEET_PERSONLot() {
     super();
@@ -228,7 +234,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
 
     // (1) 全件数を取得 (countQueryPart があれば、tenant_id フィルターを適用)
     if (countQueryPart != null) {
-      String countSql = "SELECT COUNT(*) " + countQueryPart;
+      String countSql = COUNT_SQL_PREFIX + countQueryPart;
       countSql = addTenantIdFilter(countSql, tenantId);
       try (PreparedStatement preparedStatement = connection.prepareStatement(countSql)) {
         int paramIndex = 1;
@@ -255,7 +261,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
     }
 
     // (2) ページング実行（tenant_id フィルターを適用）
-    String pagedSql = sql + " OFFSET ?";
+    String pagedSql = sql + PAGED_SQL_OFFSET_SUFFIX;
     List<SES_AI_T_SKILLSHEET_PERSON> results = executeQuery(
         connection,
         pagedSql,

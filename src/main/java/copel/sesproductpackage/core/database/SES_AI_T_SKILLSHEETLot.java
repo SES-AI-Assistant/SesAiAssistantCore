@@ -47,6 +47,56 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
   private static final String SELECT_BY_FILE_NAME_SQL =
       "SELECT from_group, from_id, from_name, file_id, file_name, register_date, register_user, ttl, tenant_id FROM SES_AI_T_SKILLSHEET WHERE file_name = ?";
 
+  /** ベクトル検索のカウント用SQL. */
+  private static final String COUNT_SQL_FOR_RETRIEVE = "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET";
+
+  /** ベクトル検索のページング用SQL（OFFSET付き）. */
+  private static final String RETRIEVE_SQL_WITH_OFFSET = RETRIEVE_SQL + " OFFSET ?";
+
+  /** 類似度閾値ベクトル検索のカウント用SQL. */
+  private static final String COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD = "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET WHERE 1 - (vector_data <=> ?::vector) >= ?";
+
+  /** 類似度閾値ベクトル検索のページング用SQL（OFFSET付き）. */
+  private static final String RETRIEVE_WITH_THRESHOLD_SQL_WITH_OFFSET = RETRIEVE_WITH_THRESHOLD_SQL + " OFFSET ?";
+
+  /** 期限切れスキルシート取得SQL前半（テナントIDあり）. */
+  private static final String SELECT_EXPIRED_SKILLSHEETS_PREFIX =
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl "
+          + "FROM SES_AI_T_SKILLSHEET "
+          + "WHERE ((ttl IS NOT NULL AND ttl < NOW()) "
+          + "   OR (ttl IS NULL AND register_date IS NOT NULL AND (register_date + INTERVAL '";
+
+  /** 期限切れスキルシート取得SQL後半（テナントIDあり）. */
+  private static final String SELECT_EXPIRED_SKILLSHEETS_SUFFIX =
+      " days') < NOW())) "
+          + "ORDER BY register_date ASC "
+          + "LIMIT ? OFFSET ?";
+
+  /** 期限切れスキルシート取得SQL前半（テナントIDなし、バッチ用）. */
+  private static final String SELECT_EXPIRED_SKILLSHEETS_WITHOUT_TENANT_PREFIX =
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl, tenant_id "
+          + "FROM SES_AI_T_SKILLSHEET "
+          + "WHERE ((ttl IS NOT NULL AND ttl < NOW()) "
+          + "   OR (ttl IS NULL AND register_date IS NOT NULL AND (register_date + INTERVAL '";
+
+  /** 期限切れスキルシート取得SQL後半（テナントIDなし、バッチ用）. */
+  private static final String SELECT_EXPIRED_SKILLSHEETS_WITHOUT_TENANT_SUFFIX =
+      " days') < NOW())) "
+          + "ORDER BY register_date ASC "
+          + "LIMIT ? OFFSET ?";
+
+  /** 要員に紐づくスキルシート取得SQL（テナントIDあり）. */
+  private static final String SELECT_BUNDLED_WITH_PERSON_SQL =
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl "
+          + "FROM SES_AI_T_SKILLSHEET "
+          + "WHERE from_group = ? AND from_id = ? AND DATE(register_date) = DATE(?)";
+
+  /** 要員に紐づくスキルシート取得SQL（テナントIDなし、バッチ用）. */
+  private static final String SELECT_BUNDLED_WITH_PERSON_WITHOUT_TENANT_SQL =
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl, tenant_id "
+          + "FROM SES_AI_T_SKILLSHEET "
+          + "WHERE from_group = ? AND from_id = ? AND DATE(register_date) = DATE(?)";
+
   /** コンストラクタ. */
   public SES_AI_T_SKILLSHEETLot() {
     super();
@@ -131,9 +181,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     }
 
     // (1) 全件数を取得（tenant_id フィルターを適用）
-    String countSql = "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET";
     try (PreparedStatement preparedStatement =
-        connection.prepareStatement(addTenantIdFilter(countSql, tenantId))) {
+        connection.prepareStatement(addTenantIdFilter(COUNT_SQL_FOR_RETRIEVE, tenantId))) {
       setTenantIdParameter(preparedStatement, 1, tenantId);
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
@@ -149,10 +198,9 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     }
 
     // (2) ページング用ベクトル検索（tenant_id フィルターを適用）
-    String sql = RETRIEVE_SQL + " OFFSET ?";
     List<SES_AI_T_SKILLSHEET> results = executeQuery(
         connection,
-        sql,
+        RETRIEVE_SQL_WITH_OFFSET,
         tenantId,
         rs -> {
           SES_AI_T_SKILLSHEET sesAiTSkillsheet = mapResultSet(rs);
@@ -218,9 +266,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     }
 
     // (1) 全件数を取得（tenant_id フィルターを適用）
-    String countSql = "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET WHERE 1 - (vector_data <=> ?::vector) >= ?";
     try (PreparedStatement preparedStatement =
-        connection.prepareStatement(addTenantIdFilter(countSql, tenantId))) {
+        connection.prepareStatement(addTenantIdFilter(COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD, tenantId))) {
       int paramIndex = 1;
       preparedStatement.setString(paramIndex++, query.toString());
       preparedStatement.setDouble(paramIndex++, similarityThreshold);
@@ -239,10 +286,9 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     }
 
     // (2) ページング用ベクトル検索（tenant_id フィルターを適用）
-    String sql = RETRIEVE_WITH_THRESHOLD_SQL + " OFFSET ?";
     List<SES_AI_T_SKILLSHEET> results = executeQuery(
         connection,
-        sql,
+        RETRIEVE_WITH_THRESHOLD_SQL_WITH_OFFSET,
         tenantId,
         rs -> {
           SES_AI_T_SKILLSHEET entity = mapResultSet(rs);
@@ -430,15 +476,9 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     if (connection == null) {
       return;
     }
-    String sql =
-        "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl "
-            + "FROM SES_AI_T_SKILLSHEET "
-            + "WHERE ((ttl IS NOT NULL AND ttl < NOW()) "
-            + "   OR (ttl IS NULL AND register_date IS NOT NULL AND (register_date + INTERVAL '"
-            + ttlDays
-            + " days') < NOW())) "
-            + "ORDER BY register_date ASC "
-            + "LIMIT ? OFFSET ?";
+    String sql = SELECT_EXPIRED_SKILLSHEETS_PREFIX
+        + ttlDays
+        + SELECT_EXPIRED_SKILLSHEETS_SUFFIX;
     try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
       preparedStatement.setInt(1, limit);
       preparedStatement.setInt(2, offset);
@@ -469,15 +509,9 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     if (connection == null) {
       return;
     }
-    String sql =
-        "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl, tenant_id "
-            + "FROM SES_AI_T_SKILLSHEET "
-            + "WHERE ((ttl IS NOT NULL AND ttl < NOW()) "
-            + "   OR (ttl IS NULL AND register_date IS NOT NULL AND (register_date + INTERVAL '"
-            + ttlDays
-            + " days') < NOW())) "
-            + "ORDER BY register_date ASC "
-            + "LIMIT ? OFFSET ?";
+    String sql = SELECT_EXPIRED_SKILLSHEETS_WITHOUT_TENANT_PREFIX
+        + ttlDays
+        + SELECT_EXPIRED_SKILLSHEETS_WITHOUT_TENANT_SUFFIX;
     try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
       preparedStatement.setInt(1, limit);
       preparedStatement.setInt(2, offset);
@@ -504,11 +538,7 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     if (connection == null || person == null) {
       return;
     }
-    String sql =
-        "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl "
-            + "FROM SES_AI_T_SKILLSHEET "
-            + "WHERE from_group = ? AND from_id = ? AND DATE(register_date) = DATE(?)";
-    try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+    try (PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BUNDLED_WITH_PERSON_SQL)) {
       preparedStatement.setString(1, person.getFromGroup());
       preparedStatement.setString(2, person.getFromId());
       preparedStatement.setTimestamp(
@@ -541,13 +571,9 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     if (connection == null || person == null) {
       return;
     }
-    String sql =
-        "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl, tenant_id "
-            + "FROM SES_AI_T_SKILLSHEET "
-            + "WHERE from_group = ? AND from_id = ? AND DATE(register_date) = DATE(?)";
     List<SES_AI_T_SKILLSHEET> results = executeQueryWithoutTenantFilter(
         connection,
-        sql,
+        SELECT_BUNDLED_WITH_PERSON_WITHOUT_TENANT_SQL,
         this::mapResultSet,
         (stmt, paramIndex) -> {
           int idx = paramIndex;

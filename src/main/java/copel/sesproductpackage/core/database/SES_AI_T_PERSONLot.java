@@ -50,6 +50,46 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
   private static final String SELECT_ALL_SQL =
       "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl, tenant_id FROM SES_AI_T_PERSON ORDER BY register_date DESC";
 
+  /** ベクトル検索のカウント用SQL. */
+  private static final String COUNT_SQL_FOR_RETRIEVE = "SELECT COUNT(*) FROM SES_AI_T_PERSON";
+
+  /** ベクトル検索のページング用SQL（OFFSET付き）. */
+  private static final String RETRIEVE_SQL_WITH_OFFSET = RETRIEVE_SQL + " OFFSET ?";
+
+  /** 類似度閾値ベクトル検索のページング用SQL（OFFSET付き）. */
+  private static final String RETRIEVE_WITH_THRESHOLD_SQL_WITH_OFFSET = RETRIEVE_WITH_THRESHOLD_SQL + " OFFSET ?";
+
+  /** 類似度閾値カウント用SQL. */
+  private static final String COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD = "SELECT COUNT(*) FROM SES_AI_T_PERSON WHERE 1 - (vector_data <=> ?::vector) >= ?";
+
+  /** 期限切れ要員取得SQL前半（テナントIDあり）. */
+  private static final String SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_PREFIX =
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl "
+          + "FROM SES_AI_T_PERSON "
+          + "WHERE ((ttl IS NOT NULL AND ttl < NOW()) "
+          + "   OR (ttl IS NULL AND register_date IS NOT NULL AND (register_date + INTERVAL '";
+
+  /** 期限切れ要員取得SQL後半（テナントIDあり）. */
+  private static final String SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_SUFFIX =
+      " days') < NOW())) "
+          + "  AND person_id NOT IN (SELECT DISTINCT person_id FROM SES_AI_T_MATCH) "
+          + "ORDER BY register_date ASC "
+          + "LIMIT ? OFFSET ?";
+
+  /** 期限切れ要員取得SQL前半（テナントIDなし、バッチ用）. */
+  private static final String SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_WITHOUT_TENANT_PREFIX =
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl, tenant_id "
+          + "FROM SES_AI_T_PERSON "
+          + "WHERE ((ttl IS NOT NULL AND ttl < NOW()) "
+          + "   OR (ttl IS NULL AND register_date IS NOT NULL AND (register_date + INTERVAL '";
+
+  /** 期限切れ要員取得SQL後半（テナントIDなし、バッチ用）. */
+  private static final String SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_WITHOUT_TENANT_SUFFIX =
+      " days') < NOW())) "
+          + "  AND person_id NOT IN (SELECT DISTINCT person_id FROM SES_AI_T_MATCH) "
+          + "ORDER BY register_date ASC "
+          + "LIMIT ? OFFSET ?";
+
   /** コンストラクタ. */
   public SES_AI_T_PERSONLot() {
     super();
@@ -148,9 +188,8 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
     }
 
     // (1) 全件数を取得（tenant_id フィルターを適用）
-    String countSql = "SELECT COUNT(*) FROM SES_AI_T_PERSON";
     try (PreparedStatement preparedStatement =
-        connection.prepareStatement(addTenantIdFilter(countSql, tenantId))) {
+        connection.prepareStatement(addTenantIdFilter(COUNT_SQL_FOR_RETRIEVE, tenantId))) {
       setTenantIdParameter(preparedStatement, 1, tenantId);
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
@@ -166,10 +205,9 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
     }
 
     // (2) ページング用ベクトル検索（tenant_id フィルターを適用）
-    String sql = RETRIEVE_SQL + " OFFSET ?";
     List<SES_AI_T_PERSON> results = executeQuery(
         connection,
-        sql,
+        RETRIEVE_SQL_WITH_OFFSET,
         tenantId,
         rs -> {
           SES_AI_T_PERSON sesAiTPerson = mapResultSet(rs);
@@ -235,9 +273,8 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
     }
 
     // (1) 全件数を取得（tenant_id フィルターを適用）
-    String countSql = "SELECT COUNT(*) FROM SES_AI_T_PERSON WHERE 1 - (vector_data <=> ?::vector) >= ?";
     try (PreparedStatement preparedStatement =
-        connection.prepareStatement(addTenantIdFilter(countSql, tenantId))) {
+        connection.prepareStatement(addTenantIdFilter(COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD, tenantId))) {
       int paramIndex = 1;
       preparedStatement.setString(paramIndex++, query.toString());
       preparedStatement.setDouble(paramIndex++, similarityThreshold);
@@ -256,10 +293,9 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
     }
 
     // (2) ページング用ベクトル検索（tenant_id フィルターを適用）
-    String sql = RETRIEVE_WITH_THRESHOLD_SQL + " OFFSET ?";
     List<SES_AI_T_PERSON> results = executeQuery(
         connection,
-        sql,
+        RETRIEVE_WITH_THRESHOLD_SQL_WITH_OFFSET,
         tenantId,
         rs -> {
           SES_AI_T_PERSON entity = mapResultSet(rs);
@@ -428,16 +464,9 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
     if (connection == null) {
       return;
     }
-    String sql =
-        "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl "
-            + "FROM SES_AI_T_PERSON "
-            + "WHERE ((ttl IS NOT NULL AND ttl < NOW()) "
-            + "   OR (ttl IS NULL AND register_date IS NOT NULL AND (register_date + INTERVAL '"
-            + ttlDays
-            + " days') < NOW())) "
-            + "  AND person_id NOT IN (SELECT DISTINCT person_id FROM SES_AI_T_MATCH) "
-            + "ORDER BY register_date ASC "
-            + "LIMIT ? OFFSET ?";
+    String sql = SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_PREFIX
+        + ttlDays
+        + SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_SUFFIX;
     try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
       preparedStatement.setInt(1, limit);
       preparedStatement.setInt(2, offset);
@@ -468,16 +497,9 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
     if (connection == null) {
       return;
     }
-    String sql =
-        "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl, tenant_id "
-            + "FROM SES_AI_T_PERSON "
-            + "WHERE ((ttl IS NOT NULL AND ttl < NOW()) "
-            + "   OR (ttl IS NULL AND register_date IS NOT NULL AND (register_date + INTERVAL '"
-            + ttlDays
-            + " days') < NOW())) "
-            + "  AND person_id NOT IN (SELECT DISTINCT person_id FROM SES_AI_T_MATCH) "
-            + "ORDER BY register_date ASC "
-            + "LIMIT ? OFFSET ?";
+    String sql = SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_WITHOUT_TENANT_PREFIX
+        + ttlDays
+        + SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_WITHOUT_TENANT_SUFFIX;
     try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
       preparedStatement.setInt(1, limit);
       preparedStatement.setInt(2, offset);

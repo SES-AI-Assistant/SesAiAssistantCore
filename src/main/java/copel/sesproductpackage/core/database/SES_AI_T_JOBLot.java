@@ -44,6 +44,18 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   private static final String SELECT_ALL_SQL =
       "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB ORDER BY register_date DESC";
 
+  /** ベクトル検索のカウント用SQL. */
+  private static final String COUNT_SQL_FOR_RETRIEVE = "SELECT COUNT(*) FROM SES_AI_T_JOB";
+
+  /** ベクトル検索のページング用SQL（OFFSET付き）. */
+  private static final String RETRIEVE_SQL_WITH_OFFSET = RETRIEVE_SQL + " OFFSET ?";
+
+  /** 類似度閾値ベクトル検索のカウント用SQL. */
+  private static final String COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD = "SELECT COUNT(*) FROM SES_AI_T_JOB WHERE 1 - (vector_data <=> ?::vector) >= ?";
+
+  /** 類似度閾値ベクトル検索のページング用SQL（OFFSET付き）. */
+  private static final String RETRIEVE_WITH_THRESHOLD_SQL_WITH_OFFSET = RETRIEVE_WITH_THRESHOLD_SQL + " OFFSET ?";
+
   /** コンストラクタ. */
   public SES_AI_T_JOBLot() {
     super();
@@ -127,9 +139,8 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
     }
 
     // (1) 全件数を取得（tenant_id フィルターを適用）
-    String countSql = "SELECT COUNT(*) FROM SES_AI_T_JOB";
     try (PreparedStatement preparedStatement =
-        connection.prepareStatement(addTenantIdFilter(countSql, tenantId));
+        connection.prepareStatement(addTenantIdFilter(COUNT_SQL_FOR_RETRIEVE, tenantId));
         ResultSet resultSet = preparedStatement.executeQuery()) {
       setTenantIdParameter(preparedStatement, 1, tenantId);
       try (ResultSet rs = preparedStatement.executeQuery()) {
@@ -146,10 +157,9 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
     }
 
     // (2) ページング用ベクトル検索（tenant_id フィルターを適用）
-    String sql = RETRIEVE_SQL + " OFFSET ?";
     List<SES_AI_T_JOB> results = executeQuery(
         connection,
-        sql,
+        RETRIEVE_SQL_WITH_OFFSET,
         tenantId,
         rs -> {
           SES_AI_T_JOB sesAiTJob = mapResultSet(rs);
@@ -215,9 +225,8 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
     }
 
     // (1) 全件数を取得（tenant_id フィルターを適用）
-    String countSql = "SELECT COUNT(*) FROM SES_AI_T_JOB WHERE 1 - (vector_data <=> ?::vector) >= ?";
     try (PreparedStatement preparedStatement =
-        connection.prepareStatement(addTenantIdFilter(countSql, tenantId))) {
+        connection.prepareStatement(addTenantIdFilter(COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD, tenantId))) {
       int paramIndex = 1;
       preparedStatement.setString(paramIndex++, query.toString());
       preparedStatement.setDouble(paramIndex++, similarityThreshold);
@@ -236,10 +245,9 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
     }
 
     // (2) ページング用ベクトル検索（tenant_id フィルターを適用）
-    String sql = RETRIEVE_WITH_THRESHOLD_SQL + " OFFSET ?";
     List<SES_AI_T_JOB> results = executeQuery(
         connection,
-        sql,
+        RETRIEVE_WITH_THRESHOLD_SQL_WITH_OFFSET,
         tenantId,
         rs -> {
           SES_AI_T_JOB entity = mapResultSet(rs);
