@@ -853,7 +853,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
         if (value == null) {
           replacement = "NULL";
         } else if (value instanceof String) {
-          replacement = "'" + escapeQuote((String) value) + "'";
+          replacement = "'" + ((String) value).replace("'", "''") + "'";
         } else {
           replacement = String.valueOf(value);
         }
@@ -862,16 +862,6 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     }
 
     log.info("[SQL] {}", executedSql);
-  }
-
-  /**
-   * SQL 内のシングルクォートをエスケープします.
-   *
-   * @param str エスケープ対象の文字列
-   * @return エスケープされた文字列
-   */
-  private String escapeQuote(final String str) {
-    return str.replace("'", "''");
   }
 
   // ================================
@@ -963,7 +953,43 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
 
     // SELECT句からテーブルエイリアス付きの tenant_id を検出（INNER JOIN対応）
     String selectPart = beforeClause;
-    String tableAlias = detectTenantIdTableAlias(selectPart);
+    String tableAlias = null;
+
+    // SELECT句からテーブルエイリアス付きの tenant_id を検出
+    java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+        "\\b([a-zA-Z])\\s*\\.\\s*tenant_id\\b",
+        java.util.regex.Pattern.CASE_INSENSITIVE);
+    java.util.regex.Matcher matcher = pattern.matcher(selectPart);
+    if (matcher.find()) {
+      tableAlias = matcher.group(1);
+    } else {
+      // SELECT句に見つからない場合、FROM句で INNER JOIN を検出
+      java.util.regex.Pattern innerJoinPattern = java.util.regex.Pattern.compile(
+          "FROM\\s+\\w+\\s+([a-zA-Z])\\s+INNER\\s+JOIN",
+          java.util.regex.Pattern.CASE_INSENSITIVE);
+      java.util.regex.Matcher innerJoinMatcher = innerJoinPattern.matcher(selectPart);
+      if (innerJoinMatcher.find()) {
+        // INNER JOINの場合、右側のテーブルエイリアスを探す
+        java.util.regex.Pattern rightTablePattern = java.util.regex.Pattern.compile(
+            "INNER\\s+JOIN\\s+\\w+\\s+([a-zA-Z])\\s+ON",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+        java.util.regex.Matcher rightMatcher = rightTablePattern.matcher(selectPart);
+        if (rightMatcher.find()) {
+          tableAlias = rightMatcher.group(1);
+        }
+      } else {
+        // SELECT句に見つからない場合、FROM句で LEFT JOIN を検出
+        java.util.regex.Pattern leftJoinPattern = java.util.regex.Pattern.compile(
+            "FROM\\s+\\w+\\s+([a-zA-Z])\\s+LEFT\\s+JOIN",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+        java.util.regex.Matcher leftJoinMatcher = leftJoinPattern.matcher(selectPart);
+        if (leftJoinMatcher.find()) {
+          // LEFT JOINの場合、左側のテーブルエイリアスを返す
+          tableAlias = leftJoinMatcher.group(1);
+        }
+      }
+    }
+
     String tenantIdFilter = tableAlias != null ? tableAlias + ".tenant_id" : "tenant_id";
 
     // WHERE句が含まれているかチェック
@@ -974,53 +1000,6 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     }
   }
 
-  /**
-   * SELECT句またはFROM句からテーブルエイリアス付きの tenant_id を検出します（INNER/LEFT JOINでの曖昧性解消）.
-   * SELECT句に「p.tenant_id」「s.tenant_id」等が含まれている場合、そのテーブルエイリアスを返します。
-   * SELECT句に見つからない場合は、FROM句でJOINされているテーブルエイリアスから推測します。
-   * 見つからない場合は null を返します。
-   *
-   * @param selectSql SELECT句を含むSQL文
-   * @return テーブルエイリアス（例：「p」「s」）。見つからない場合は null
-   */
-  private String detectTenantIdTableAlias(final String selectSql) {
-    // まずSELECT句からテーブルエイリアス付きの tenant_id を検出
-    java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
-        "\\b([a-zA-Z])\\s*\\.\\s*tenant_id\\b",
-        java.util.regex.Pattern.CASE_INSENSITIVE);
-    java.util.regex.Matcher matcher = pattern.matcher(selectSql);
-    if (matcher.find()) {
-      return matcher.group(1);
-    }
-
-    // SELECT句に見つからない場合、FROM句で INNER JOIN を検出
-    java.util.regex.Pattern innerJoinPattern = java.util.regex.Pattern.compile(
-        "FROM\\s+\\w+\\s+([a-zA-Z])\\s+INNER\\s+JOIN",
-        java.util.regex.Pattern.CASE_INSENSITIVE);
-    java.util.regex.Matcher innerJoinMatcher = innerJoinPattern.matcher(selectSql);
-    if (innerJoinMatcher.find()) {
-      // INNER JOINの場合、右側のテーブルエイリアスを探す
-      java.util.regex.Pattern rightTablePattern = java.util.regex.Pattern.compile(
-          "INNER\\s+JOIN\\s+\\w+\\s+([a-zA-Z])\\s+ON",
-          java.util.regex.Pattern.CASE_INSENSITIVE);
-      java.util.regex.Matcher rightMatcher = rightTablePattern.matcher(selectSql);
-      if (rightMatcher.find()) {
-        return rightMatcher.group(1);
-      }
-    }
-
-    // SELECT句に見つからない場合、FROM句で LEFT JOIN を検出
-    java.util.regex.Pattern leftJoinPattern = java.util.regex.Pattern.compile(
-        "FROM\\s+\\w+\\s+([a-zA-Z])\\s+LEFT\\s+JOIN",
-        java.util.regex.Pattern.CASE_INSENSITIVE);
-    java.util.regex.Matcher leftJoinMatcher = leftJoinPattern.matcher(selectSql);
-    if (leftJoinMatcher.find()) {
-      // LEFT JOINの場合、左側のテーブルエイリアスを返す
-      return leftJoinMatcher.group(1);
-    }
-
-    return null;
-  }
 
   /**
    * PreparedStatement に tenant_id パラメータをバインドします.
