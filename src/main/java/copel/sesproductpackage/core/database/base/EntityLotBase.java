@@ -632,20 +632,20 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     final String pagedSql = fullSelect + " LIMIT ? OFFSET ?";
     final String filteredPagedSql = addTenantIdFilter(pagedSql, tenantId);
 
-    // 新しいテンプレートメソッドで実行
-    List<E> results = executeQuery(
+    // executeQueryWithoutTenantFilter を使用（filteredPagedSql に既にテナントフィルターが含まれている）
+    List<E> results = executeQueryWithoutTenantFilter(
         connection,
-        pagedSql,
-        tenantId,
+        filteredPagedSql,
         this::mapResultSet,
         (stmt, paramIndex) -> {
           int idx = paramIndex;
           for (String p : likeParams) {
             stmt.setString(idx++, p);
           }
-          stmt.setInt(idx, size);
-          stmt.setInt(idx + 1, (page - 1) * size);
-          return idx + 2;
+          stmt.setString(idx++, tenantId);
+          stmt.setInt(idx++, size);
+          stmt.setInt(idx, (page - 1) * size);
+          return idx + 1;
         }
     );
     this.entityLot.addAll(results);
