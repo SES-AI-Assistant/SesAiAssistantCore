@@ -955,12 +955,36 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       }
     }
 
+    // SELECT句からテーブルエイリアス付きの tenant_id を検出（INNER JOIN対応）
+    String selectPart = beforeClause;
+    String tableAlias = detectTenantIdTableAlias(selectPart);
+    String tenantIdFilter = tableAlias != null ? tableAlias + ".tenant_id" : "tenant_id";
+
     // WHERE句が含まれているかチェック
     if (hasWhereClause) {
-      return beforeClause + " AND tenant_id = ?" + afterClause;
+      return beforeClause + " AND " + tenantIdFilter + " = ?" + afterClause;
     } else {
-      return beforeClause + " WHERE tenant_id = ?" + afterClause;
+      return beforeClause + " WHERE " + tenantIdFilter + " = ?" + afterClause;
     }
+  }
+
+  /**
+   * SELECT句からテーブルエイリアス付きの tenant_id を検出します（INNER JOINでの曖昧性解消）.
+   * SELECT句に「p.tenant_id」「s.tenant_id」等が含まれている場合、そのテーブルエイリアスを返します。
+   * 見つからない場合は null を返します。
+   *
+   * @param selectSql SELECT句を含むSQL文
+   * @return テーブルエイリアス（例：「p」「s」）。見つからない場合は null
+   */
+  private String detectTenantIdTableAlias(final String selectSql) {
+    java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+        "\\b([a-zA-Z])\\s*\\.\\s*tenant_id\\b",
+        java.util.regex.Pattern.CASE_INSENSITIVE);
+    java.util.regex.Matcher matcher = pattern.matcher(selectSql);
+    if (matcher.find()) {
+      return matcher.group(1);
+    }
+    return null;
   }
 
   /**
