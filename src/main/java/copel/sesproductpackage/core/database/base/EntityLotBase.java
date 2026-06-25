@@ -601,8 +601,13 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     final String countSql = toCountSql(fullSelect);
 
     // tenant_id フィルターを追加して実行
+    final String filteredCountSql = addTenantIdFilter(countSql, tenantId);
+    List<Object> countBindValues = new ArrayList<>(likeParams);
+    countBindValues.add(tenantId);
+    logExecutedSql(filteredCountSql, countBindValues);
+
     try (PreparedStatement preparedStatement =
-        connection.prepareStatement(addTenantIdFilter(countSql, tenantId))) {
+        connection.prepareStatement(filteredCountSql)) {
       int paramIndex = 1;
       for (String p : likeParams) {
         preparedStatement.setString(paramIndex++, p);
@@ -625,6 +630,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
 
     // (2) ページング用 SQL（tenantId フィルターなし）
     final String pagedSql = fullSelect + " LIMIT ? OFFSET ?";
+    final String filteredPagedSql = addTenantIdFilter(pagedSql, tenantId);
 
     // 新しいテンプレートメソッドで実行
     List<E> results = executeQuery(
@@ -1040,6 +1046,11 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
 
       // 最後に tenant_id をバインド
       setTenantIdParameter(stmt, nextParamIndex, tenantId);
+
+      // SQL を実行前にログ出力
+      if (log.isInfoEnabled()) {
+        log.info("[SQL] {}", filteredSql);
+      }
 
       List<E> results = new ArrayList<>();
       try (ResultSet rs = stmt.executeQuery()) {
