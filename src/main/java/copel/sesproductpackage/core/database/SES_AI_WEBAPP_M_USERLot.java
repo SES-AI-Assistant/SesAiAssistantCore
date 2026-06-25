@@ -4,10 +4,10 @@ import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Role;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 【Entityクラス】 システムユーザーマスタ(SES_AI_WEBAPP_M_USER)テーブルのLotクラス.
@@ -36,28 +36,35 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
 
   @Override
   public void selectAll(final Connection connection, final String tenantId) throws SQLException {
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL + " WHERE tenant_id = ?");
-    preparedStatement.setString(1, tenantId);
-    ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();
-    while (resultSet.next()) {
-      this.entityLot.add(mapResultSet(resultSet));
-    }
+    List<SES_AI_WEBAPP_M_USER> results = executeQuery(
+        connection,
+        SELECT_ALL_SQL,
+        tenantId,
+        this::mapResultSet,
+        (stmt, paramIndex) -> paramIndex
+    );
+    this.entityLot.addAll(results);
   }
 
   /**
-   * 全ユーザーを取得します（テナントID条件なし、システム管理者用）.
+   * 全レコードを取得する（WithoutTenantFilter - バッチ処理専用）.
+   *
+   * ⚠️ このメソッドは全テナント対象です。
+   * バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
-   * @throws SQLException SQL実行エラー
+   * @throws SQLException
    */
   public void selectAllWithoutTenantId(final Connection connection) throws SQLException {
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);
-    ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();
-    while (resultSet.next()) {
-      this.entityLot.add(mapResultSet(resultSet));
-    }
+    List<SES_AI_WEBAPP_M_USER> results = executeQueryWithoutTenantFilter(
+        connection,
+        SELECT_ALL_SQL,
+        this::mapResultSet,
+        (stmt, paramIndex) -> paramIndex
+    );
+    this.entityLot.addAll(results);
   }
 
   @Override

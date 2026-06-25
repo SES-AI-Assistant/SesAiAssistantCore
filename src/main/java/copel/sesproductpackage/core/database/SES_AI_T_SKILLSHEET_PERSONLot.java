@@ -549,7 +549,35 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
 
   @Override
   public void selectAll(final Connection connection, final String tenantId) throws SQLException {
-    // 全件検索は不要なため未実装とするが、Abstractメソッドのため空実装にしておく
+    this.entityLot = new ArrayList<>();
+    List<SES_AI_T_SKILLSHEET_PERSON> results = executeQuery(
+        connection,
+        getSelectAllSql(),
+        tenantId,
+        this::mapResultSet,
+        (stmt, paramIndex) -> paramIndex
+    );
+    this.entityLot.addAll(results);
+  }
+
+  /**
+   * 全レコードを取得する（WithoutTenantFilter - バッチ処理専用）.
+   *
+   * ⚠️ このメソッドは全テナント対象です。
+   * バッチ処理専用。コードレビュー必須。
+   *
+   * @param connection DBコネクション
+   * @throws SQLException
+   */
+  public void selectAllWithoutTenantFilter(final Connection connection) throws SQLException {
+    this.entityLot = new ArrayList<>();
+    List<SES_AI_T_SKILLSHEET_PERSON> results = executeQueryWithoutTenantFilter(
+        connection,
+        getSelectAllSql(),
+        this::mapResultSet,
+        (stmt, paramIndex) -> paramIndex
+    );
+    this.entityLot.addAll(results);
   }
 
   @Override

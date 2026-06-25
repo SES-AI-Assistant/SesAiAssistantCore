@@ -3,10 +3,10 @@ package copel.sesproductpackage.core.database;
 import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 【Entityクラス】 送信元グループマスタ(SES_AI_M_GROUP)テーブルのLotクラス.
@@ -34,13 +34,35 @@ public class SES_AI_M_GROUPLot extends EntityLotBase<SES_AI_M_GROUP> {
 
   @Override
   public void selectAll(final Connection connection, final String tenantId) throws SQLException {
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL + " WHERE tenant_id = ?");
-    preparedStatement.setString(1, tenantId);
-    ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();
-    while (resultSet.next()) {
-      this.entityLot.add(mapResultSet(resultSet));
-    }
+    List<SES_AI_M_GROUP> results = executeQuery(
+        connection,
+        SELECT_ALL_SQL,
+        tenantId,
+        this::mapResultSet,
+        (stmt, paramIndex) -> paramIndex
+    );
+    this.entityLot.addAll(results);
+  }
+
+  /**
+   * 全レコードを取得する（WithoutTenantFilter - バッチ処理専用）.
+   *
+   * ⚠️ このメソッドは全テナント対象です。
+   * バッチ処理専用。コードレビュー必須。
+   *
+   * @param connection DBコネクション
+   * @throws SQLException
+   */
+  public void selectAllWithoutTenantFilter(final Connection connection) throws SQLException {
+    this.entityLot = new ArrayList<>();
+    List<SES_AI_M_GROUP> results = executeQueryWithoutTenantFilter(
+        connection,
+        SELECT_ALL_SQL,
+        this::mapResultSet,
+        (stmt, paramIndex) -> paramIndex
+    );
+    this.entityLot.addAll(results);
   }
 
   @Override

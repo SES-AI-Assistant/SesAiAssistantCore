@@ -4,10 +4,10 @@ import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.unit.MatchingStatus;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 【Entityクラス】 マッチング(SES_AI_T_MATCH)テーブルのLotクラス.
@@ -32,31 +32,35 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
 
   @Override
   public void selectAll(Connection connection, String tenantId) throws SQLException {
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);
-    ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();
-    while (resultSet.next()) {
-      this.entityLot.add(mapResultSet(resultSet));
-    }
+    List<SES_AI_T_MATCH> results = executeQuery(
+        connection,
+        SELECT_ALL_SQL,
+        tenantId,
+        this::mapResultSet,
+        (stmt, paramIndex) -> paramIndex
+    );
+    this.entityLot.addAll(results);
   }
 
   /**
-   * tenantId指定なしで全レコードを取得する（Batch削除用）.
+   * 全レコードを取得する（WithoutTenantFilter - バッチ処理専用）.
+   *
+   * ⚠️ このメソッドは全テナント対象です。
+   * バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
    * @throws SQLException
    */
   public void selectAllWithoutTenantId(Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
-    if (connection == null) {
-      return;
-    }
-    try (PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SQL);
-        ResultSet resultSet = preparedStatement.executeQuery()) {
-      while (resultSet.next()) {
-        this.entityLot.add(mapResultSet(resultSet));
-      }
-    }
+    List<SES_AI_T_MATCH> results = executeQueryWithoutTenantFilter(
+        connection,
+        SELECT_ALL_SQL,
+        this::mapResultSet,
+        (stmt, paramIndex) -> paramIndex
+    );
+    this.entityLot.addAll(results);
   }
 
   /**
