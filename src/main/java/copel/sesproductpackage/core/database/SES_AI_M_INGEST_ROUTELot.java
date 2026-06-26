@@ -4,7 +4,6 @@ import copel.sesproductpackage.core.database.SES_AI_M_INGEST_ROUTE.ChannelType;
 import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -122,6 +121,8 @@ public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUT
   /**
    * チャネルタイプとルートキーで検索し、該当する全テナントID を取得する（テナント指定なし）.
    *
+   * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
+   *
    * @param connection DB接続
    * @param channelType チャネルタイプ (LINE / EMAIL)
    * @param routeKey ルートキー (メールアドレス、LINE ID など)
@@ -134,14 +135,16 @@ public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUT
       this.entityLot = new ArrayList<>();
       return;
     }
-    PreparedStatement preparedStatement =
-        connection.prepareStatement(SELECT_BY_CHANNEL_AND_ROUTE_WITHOUT_TENANT_SQL);
-    preparedStatement.setString(1, channelType.getValue());
-    preparedStatement.setString(2, routeKey);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    this.entityLot = new ArrayList<>();
-    while (resultSet.next()) {
-      this.entityLot.add(mapResultSet(resultSet));
-    }
+    List<SES_AI_M_INGEST_ROUTE> results =
+        executeQueryWithoutTenantFilter(
+            connection,
+            SELECT_BY_CHANNEL_AND_ROUTE_WITHOUT_TENANT_SQL,
+            this::mapResultSet,
+            (stmt, paramIndex) -> {
+              stmt.setString(paramIndex, channelType.getValue());
+              stmt.setString(paramIndex + 1, routeKey);
+              return paramIndex + 2;
+            });
+    this.entityLot = results;
   }
 }

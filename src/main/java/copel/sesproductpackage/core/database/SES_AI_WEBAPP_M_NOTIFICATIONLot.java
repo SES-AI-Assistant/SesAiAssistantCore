@@ -3,7 +3,6 @@ package copel.sesproductpackage.core.database;
 import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -88,14 +87,17 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
       this.entityLot = new ArrayList<>();
       return;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BY_USER_ID_SQL);
-    preparedStatement.setString(1, userId);
-    preparedStatement.setString(2, tenantId);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    this.entityLot = new ArrayList<>();
-    while (resultSet.next()) {
-      this.entityLot.add(mapResultSet(resultSet));
-    }
+    List<SES_AI_WEBAPP_M_NOTIFICATION> results =
+        executeQuery(
+            connection,
+            SELECT_BY_USER_ID_SQL,
+            tenantId,
+            this::mapResultSet,
+            (stmt, paramIndex) -> {
+              stmt.setString(paramIndex, userId);
+              return paramIndex + 1;
+            });
+    this.entityLot = results;
   }
 
   /**
@@ -107,14 +109,14 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
    */
   public void selectByNotifyAllMatch(final Connection connection, final String tenantId)
       throws SQLException {
-    PreparedStatement preparedStatement =
-        connection.prepareStatement(SELECT_BY_NOTIFY_ALL_MATCH_SQL);
-    preparedStatement.setString(1, tenantId);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    this.entityLot = new ArrayList<>();
-    while (resultSet.next()) {
-      this.entityLot.add(mapResultSet(resultSet));
-    }
+    List<SES_AI_WEBAPP_M_NOTIFICATION> results =
+        executeQuery(
+            connection,
+            SELECT_BY_NOTIFY_ALL_MATCH_SQL,
+            tenantId,
+            this::mapResultSet,
+            (stmt, paramIndex) -> paramIndex);
+    this.entityLot = results;
   }
 
   @Override

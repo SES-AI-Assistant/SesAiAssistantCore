@@ -839,6 +839,17 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   // ================================
 
   /**
+   * SQL をログ出力します（シンプル版）.
+   *
+   * @param sql SQL文
+   */
+  protected void logSql(final String sql) {
+    if (log.isInfoEnabled()) {
+      log.info("[SQL] {}", sql);
+    }
+  }
+
+  /**
    * 実行される SQL を バインド値を含めてログ出力します.
    *
    * <p>パラメータプレースホルダー(?) をバインド値で置換して、実際の SQL を標準出力（ログ）に出力します。
@@ -1066,9 +1077,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       setTenantIdParameter(stmt, nextParamIndex, tenantId);
 
       // SQL を実行前にログ出力
-      if (log.isInfoEnabled()) {
-        log.info("[SQL] {}", filteredSql);
-      }
+      logSql(filteredSql);
 
       List<E> results = new ArrayList<>();
       try (ResultSet rs = stmt.executeQuery()) {
@@ -1144,9 +1153,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       int nextParamIndex = binder.bind(stmt, 1);
       setTenantIdParameter(stmt, nextParamIndex, tenantId);
 
-      if (log.isInfoEnabled()) {
-        log.info("[SQL] {}", filteredSql);
-      }
+      logSql(filteredSql);
 
       return stmt.executeUpdate();
     }
@@ -1174,11 +1181,267 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     try (PreparedStatement stmt = conn.prepareStatement(sql)) {
       binder.bind(stmt, 1);
 
-      if (log.isInfoEnabled()) {
-        log.info("[SQL] {}", sql);
-      }
+      logSql(sql);
 
       return stmt.executeUpdate();
+    }
+  }
+
+  /**
+   * ベクトル検索パラメータをバインドするインターフェース（VectorPagedQuery用）.
+   *
+   * <p>ベクトル値とスレッショルド値以外のパラメータをバインドします。
+   */
+  @FunctionalInterface
+  protected interface VectorParameterBinder {
+    /**
+     * @param stmt バインド対象の PreparedStatement
+     * @param startIndex 開始パラメータインデックス
+     * @param vectorValue ベクトル値（文字列形式）
+     * @param similarityThreshold 類似度スレッショルド（0.0で閾値なし）
+     * @return 次のパラメータインデックス
+     * @throws SQLException
+     */
+    int bind(PreparedStatement stmt, int startIndex, String vectorValue, double similarityThreshold)
+        throws SQLException;
+  }
+
+  /**
+   * ベクトル検索 + ページング実行テンプレート（TenantId フィルター必須）.
+   *
+   * <p>SQL末尾に自動的に {@code " AND tenant_id = ?"} を付加します。 ページング情報（totalCount, pageSize,
+   * currentPageIndex）を自動的に this に設定します。
+   *
+   * @param conn DBコネクション
+   * @param baseQuerySql SELECT ... FROM ... WHERE ... のベースSQL（LIMIT/OFFSET なし）
+   * @param tenantId テナントID（必須）
+   * @param vectorValue ベクトル値（文字列形式、例：「[1.0, 2.0, 3.0]」）
+   * @param similarityThreshold 類似度スレッショルド（0.0 で閾値なし、つまり距離計算のみ）
+   * @param page ページ番号（1-based）
+   * @param size 1ページあたりの件数
+   * @param mapper ResultSet → Entity マッピング処理
+   * @param binder ベクトル値・スレッショルド値以外のパラメータをバインドする処理
+   * @throws SQLException
+   * @throws IllegalArgumentException tenantId が null または空文字列の場合
+   */
+  protected void executeVectorPagedQuery(
+      final Connection conn,
+      final String baseQuerySql,
+      final String tenantId,
+      final String vectorValue,
+      final double similarityThreshold,
+      final int page,
+      final int size,
+      final ResultSetMapper<E> mapper,
+      final VectorParameterBinder binder)
+      throws SQLException {
+    if (conn == null) {
+      this.entityLot = new ArrayList<>();
+      this.totalCount = 0;
+      this.pageSize = size;
+      this.currentPageIndex = page;
+      return;
+    }
+
+    // SQL末尾に tenant_id フィルター条件を自動付加
+    final String filteredSql = addTenantIdFilter(baseQuerySql, tenantId);
+
+    // COUNT クエリを実行
+    this.totalCount =
+        getCountByVector(conn, baseQuerySql, tenantId, vectorValue, similarityThreshold, binder);
+
+    // データ取得クエリにLIMIT/OFFSETを追加
+    final String pagedSql = filteredSql + " LIMIT ? OFFSET ?";
+
+    try (PreparedStatement stmt = conn.prepareStatement(pagedSql)) {
+      // ユーザー定義のバインド処理（ベクトル値・スレッショルド値以外）
+      int nextParamIndex = binder.bind(stmt, 1, vectorValue, similarityThreshold);
+
+      // LIMIT をバインド
+      stmt.setInt(nextParamIndex, size);
+      nextParamIndex++;
+
+      // OFFSET をバインド
+      stmt.setInt(nextParamIndex, (page - 1) * size);
+      nextParamIndex++;
+
+      // tenant_id をバインド
+      setTenantIdParameter(stmt, nextParamIndex, tenantId);
+
+      // SQL をログ出力
+      logSql(pagedSql);
+
+      List<E> results = new ArrayList<>();
+      try (ResultSet rs = stmt.executeQuery()) {
+        while (rs.next()) {
+          results.add(mapper.map(rs));
+        }
+      }
+      this.entityLot = results;
+    }
+
+    this.pageSize = size;
+    this.currentPageIndex = page;
+  }
+
+  /**
+   * ベクトル検索用のCOUNTクエリを実行します（TenantId フィルター必須）.
+   *
+   * @param conn DBコネクション
+   * @param baseQuerySql ベースSQL（LIMIT/OFFSET なし）
+   * @param tenantId テナントID
+   * @param vectorValue ベクトル値
+   * @param similarityThreshold 類似度スレッショルド
+   * @param binder パラメータバインド処理
+   * @return レコード総数
+   * @throws SQLException
+   */
+  private long getCountByVector(
+      final Connection conn,
+      final String baseQuerySql,
+      final String tenantId,
+      final String vectorValue,
+      final double similarityThreshold,
+      final VectorParameterBinder binder)
+      throws SQLException {
+    // COUNT SQL を生成（toCountSql は SELECT を COUNT(*) に置換）
+    final String countSql = addTenantIdFilter(toCountSql(baseQuerySql), tenantId);
+
+    try (PreparedStatement stmt = conn.prepareStatement(countSql)) {
+      // パラメータをバインド
+      int nextParamIndex = binder.bind(stmt, 1, vectorValue, similarityThreshold);
+
+      // tenant_id をバインド
+      setTenantIdParameter(stmt, nextParamIndex, tenantId);
+
+      logSql(countSql);
+
+      try (ResultSet rs = stmt.executeQuery()) {
+        if (rs.next()) {
+          return rs.getLong(1);
+        }
+      }
+    }
+
+    return 0;
+  }
+
+  /**
+   * TTL 期限切れレコード取得テンプレート（TenantId フィルター必須）.
+   *
+   * <p>SQL末尾に自動的に {@code " AND tenant_id = ?"} を付加します。 WHERE句に INTERVAL を含む場合、INTERVAL '?' days
+   * のように ?::integer でバインドします。
+   *
+   * @param conn DBコネクション
+   * @param selectPrefix SELECT ... FROM ... WHERE ((ttl IS NOT NULL AND ttl < NOW()) OR ...
+   *     INTERVAL ' のプレフィックス
+   * @param selectSuffix days') < NOW())) ... のサフィックス
+   * @param tenantId テナントID（必須）
+   * @param ttlDays TTL日数（パラメータバインディング用）
+   * @param offset オフセット
+   * @param limit リミット
+   * @param mapper ResultSet → Entity マッピング処理
+   * @return クエリ実行結果のエンティティリスト
+   * @throws SQLException
+   * @throws IllegalArgumentException tenantId が null または空文字列の場合
+   */
+  protected List<E> executeTTLExpiredQuery(
+      final Connection conn,
+      final String selectPrefix,
+      final String selectSuffix,
+      final String tenantId,
+      final int ttlDays,
+      final int offset,
+      final int limit,
+      final ResultSetMapper<E> mapper)
+      throws SQLException {
+    if (conn == null) {
+      return new ArrayList<>();
+    }
+
+    // TTL WHERE句（INTERVAL パラメータなし。直接組み立て）
+    final String baseSql = selectPrefix + ttlDays + selectSuffix;
+
+    // tenant_id フィルター追加
+    final String filteredSql = addTenantIdFilter(baseSql, tenantId);
+
+    try (PreparedStatement stmt = conn.prepareStatement(filteredSql)) {
+      int paramIndex = 1;
+
+      // LIMIT をバインド
+      stmt.setInt(paramIndex, limit);
+      paramIndex++;
+
+      // OFFSET をバインド
+      stmt.setInt(paramIndex, offset);
+      paramIndex++;
+
+      // tenant_id をバインド
+      setTenantIdParameter(stmt, paramIndex, tenantId);
+
+      logSql(filteredSql);
+
+      List<E> results = new ArrayList<>();
+      try (ResultSet rs = stmt.executeQuery()) {
+        while (rs.next()) {
+          results.add(mapper.map(rs));
+        }
+      }
+      return results;
+    }
+  }
+
+  /**
+   * TTL 期限切れレコード取得テンプレート（TenantId フィルター無し、バッチ処理専用）.
+   *
+   * <p>⚠️ このメソッドは tenant_id フィルターを適用しません。 バッチ処理など全テナント対象のクエリのみで使用してください。 メソッド名に {@code
+   * WithoutTenantFilter} を含め、コードレビュー対象と明示してください。
+   *
+   * @param conn DBコネクション
+   * @param selectPrefix SELECT ... FROM ... WHERE ((ttl IS NOT NULL AND ttl < NOW()) OR ...
+   *     INTERVAL ' のプレフィックス
+   * @param selectSuffix days') < NOW())) ... のサフィックス
+   * @param ttlDays TTL日数
+   * @param offset オフセット
+   * @param limit リミット
+   * @param mapper ResultSet → Entity マッピング処理
+   * @return クエリ実行結果のエンティティリスト
+   * @throws SQLException
+   */
+  protected List<E> executeTTLExpiredQueryWithoutTenantFilter(
+      final Connection conn,
+      final String selectPrefix,
+      final String selectSuffix,
+      final int ttlDays,
+      final int offset,
+      final int limit,
+      final ResultSetMapper<E> mapper)
+      throws SQLException {
+    if (conn == null) {
+      return new ArrayList<>();
+    }
+
+    final String sql = selectPrefix + ttlDays + selectSuffix;
+
+    try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+      int paramIndex = 1;
+
+      // LIMIT をバインド
+      stmt.setInt(paramIndex, limit);
+      paramIndex++;
+
+      // OFFSET をバインド
+      stmt.setInt(paramIndex, offset);
+
+      logSql(sql);
+
+      List<E> results = new ArrayList<>();
+      try (ResultSet rs = stmt.executeQuery()) {
+        while (rs.next()) {
+          results.add(mapper.map(rs));
+        }
+      }
+      return results;
     }
   }
 

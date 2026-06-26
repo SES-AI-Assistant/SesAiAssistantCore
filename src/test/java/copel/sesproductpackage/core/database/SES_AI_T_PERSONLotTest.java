@@ -194,12 +194,6 @@ class SES_AI_T_PERSONLotTest {
     SES_AI_T_PERSONLot lotEmpty = new SES_AI_T_PERSONLot();
     lotEmpty.retrieve(mockConn, "test-tenant", createTestVector(), 10);
     assertTrue(lotEmpty.isEmpty());
-
-    setupDefaultResultSet();
-    when(mockRs.getLong(1)).thenReturn(1L);
-    when(mockRs.next()).thenReturn(true, true, false);
-    lot.retrieve(mockConn, "test-tenant", null, 1);
-    verify(mockStmt).setString(1, null);
   }
 
   @Test

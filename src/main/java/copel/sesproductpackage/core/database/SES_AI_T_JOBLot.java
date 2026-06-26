@@ -8,7 +8,6 @@ import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -134,51 +133,31 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   public void retrievePaged(
       Connection connection, String tenantId, Vector query, int page, int size)
       throws SQLException {
-    if (connection == null) {
+    if (connection == null || query == null) {
       return;
     }
 
-    // (1) 全件数を取得（tenant_id フィルターを適用）
-    try (PreparedStatement preparedStatement =
-            connection.prepareStatement(addTenantIdFilter(COUNT_SQL_FOR_RETRIEVE, tenantId));
-        ResultSet resultSet = preparedStatement.executeQuery()) {
-      setTenantIdParameter(preparedStatement, 1, tenantId);
-      try (ResultSet rs = preparedStatement.executeQuery()) {
-        if (rs.next()) {
-          this.totalCount = rs.getLong(1);
-        }
-      }
-    }
-    this.pageSize = size;
-    this.currentPageIndex = page;
-
-    if (this.totalCount == 0) {
-      return;
-    }
-
-    // (2) ページング用ベクトル検索（tenant_id フィルターを適用）
-    List<SES_AI_T_JOB> results =
-        executeQuery(
-            connection,
-            RETRIEVE_SQL_WITH_OFFSET,
-            tenantId,
-            rs -> {
-              SES_AI_T_JOB sesAiTJob = mapResultSet(rs);
-              try {
-                sesAiTJob.setDistance(rs.getDouble("distance"));
-              } catch (SQLException e) {
-                throw new RuntimeException(e);
-              }
-              return sesAiTJob;
-            },
-            (stmt, paramIndex) -> {
-              int idx = paramIndex;
-              stmt.setString(idx, query == null ? null : query.toString());
-              stmt.setInt(idx + 1, size);
-              stmt.setInt(idx + 2, (page - 1) * size);
-              return idx + 3;
-            });
-    this.entityLot = results;
+    executeVectorPagedQuery(
+        connection,
+        COUNT_SQL_FOR_RETRIEVE,
+        tenantId,
+        query.toString(),
+        0.0,
+        page,
+        size,
+        rs -> {
+          SES_AI_T_JOB entity = mapResultSet(rs);
+          try {
+            entity.setDistance(rs.getDouble("distance"));
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+          return entity;
+        },
+        (stmt, paramIndex, vectorValue, similarityThreshold) -> {
+          stmt.setString(paramIndex, vectorValue);
+          return paramIndex + 1;
+        });
   }
 
   /**
@@ -232,53 +211,29 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       return;
     }
 
-    // (1) 全件数を取得（tenant_id フィルターを適用）
-    try (PreparedStatement preparedStatement =
-        connection.prepareStatement(
-            addTenantIdFilter(COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD, tenantId))) {
-      int paramIndex = 1;
-      preparedStatement.setString(paramIndex++, query.toString());
-      preparedStatement.setDouble(paramIndex++, similarityThreshold);
-      setTenantIdParameter(preparedStatement, paramIndex, tenantId);
-      try (ResultSet resultSet = preparedStatement.executeQuery()) {
-        if (resultSet.next()) {
-          this.totalCount = resultSet.getLong(1);
-        }
-      }
-    }
-    this.pageSize = size;
-    this.currentPageIndex = page;
-
-    if (this.totalCount == 0) {
-      return;
-    }
-
-    // (2) ページング用ベクトル検索（tenant_id フィルターを適用）
-    List<SES_AI_T_JOB> results =
-        executeQuery(
-            connection,
-            RETRIEVE_WITH_THRESHOLD_SQL_WITH_OFFSET,
-            tenantId,
-            rs -> {
-              SES_AI_T_JOB entity = mapResultSet(rs);
-              try {
-                entity.setDistance(rs.getDouble("distance"));
-              } catch (SQLException e) {
-                throw new RuntimeException(e);
-              }
-              return entity;
-            },
-            (stmt, paramIndex) -> {
-              int idx = paramIndex;
-              String vectorStr = query.toString();
-              stmt.setString(idx, vectorStr);
-              stmt.setString(idx + 1, vectorStr);
-              stmt.setDouble(idx + 2, similarityThreshold);
-              stmt.setInt(idx + 3, size);
-              stmt.setInt(idx + 4, (page - 1) * size);
-              return idx + 5;
-            });
-    this.entityLot = results;
+    executeVectorPagedQuery(
+        connection,
+        COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD,
+        tenantId,
+        query.toString(),
+        similarityThreshold,
+        page,
+        size,
+        rs -> {
+          SES_AI_T_JOB entity = mapResultSet(rs);
+          try {
+            entity.setDistance(rs.getDouble("distance"));
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+          return entity;
+        },
+        (stmt, paramIndex, vectorValue, threshold) -> {
+          stmt.setString(paramIndex, vectorValue);
+          stmt.setString(paramIndex + 1, vectorValue);
+          stmt.setDouble(paramIndex + 2, threshold);
+          return paramIndex + 3;
+        });
   }
 
   /**

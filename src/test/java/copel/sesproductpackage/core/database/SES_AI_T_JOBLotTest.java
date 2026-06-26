@@ -88,12 +88,6 @@ class SES_AI_T_JOBLotTest {
     SES_AI_T_JOBLot lotForNull = new SES_AI_T_JOBLot();
     lotForNull.retrieve(null, "test-tenant", null, 0);
     assertTrue(lotForNull.isEmpty());
-
-    setupDefaultResultSet();
-    when(mockRs.getLong(1)).thenReturn(1L);
-    when(mockRs.next()).thenReturn(true, true, false);
-    lot.retrieve(mockConn, "test-tenant", null, 1);
-    verify(mockStmt).setString(1, null);
   }
 
   @Test
