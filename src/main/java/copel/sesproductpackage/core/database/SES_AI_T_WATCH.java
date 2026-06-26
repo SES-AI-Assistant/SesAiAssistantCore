@@ -26,24 +26,24 @@ public class SES_AI_T_WATCH extends EntityBase {
     super(tenantId);
     this.tenantId = tenantId;
   }
-  /** INSERT文. */
+  /** INSERT文（tenantId を含む）. */
   private static final String INSERT_SQL =
       "INSERT INTO SES_AI_T_WATCH (user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id) "
           + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-  /** SELECT文. */
+  /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
-      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id "
-          + "FROM SES_AI_T_WATCH WHERE user_id = ? AND target_id = ? AND tenant_id = ?";
+      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl "
+          + "FROM SES_AI_T_WATCH WHERE user_id = ? AND target_id = ?";
 
-  /** UPDATE文. */
+  /** UPDATE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String UPDATE_SQL =
       "UPDATE SES_AI_T_WATCH SET target_type = ?, memo = ?, register_date = ?, register_user = ?, ttl = ? "
-          + "WHERE user_id = ? AND target_id = ? AND tenant_id = ?";
+          + "WHERE user_id = ? AND target_id = ?";
 
-  /** DELETE文. */
+  /** DELETE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String DELETE_SQL =
-      "DELETE FROM SES_AI_T_WATCH WHERE user_id = ? AND target_id = ? AND tenant_id = ?";
+      "DELETE FROM SES_AI_T_WATCH WHERE user_id = ? AND target_id = ?";
 
   /** EXISTS文. */
   private static final String EXISTS_SQL =
@@ -122,72 +122,83 @@ public class SES_AI_T_WATCH extends EntityBase {
 
   @Override
   public int insert(Connection connection) throws SQLException {
-    if (connection == null) {
-      return 0;
-    }
-
-    PreparedStatement preparedStatement = connection.prepareStatement(INSERT_SQL);
-    preparedStatement.setString(1, this.userId);
-    preparedStatement.setString(2, this.targetId);
-    preparedStatement.setString(3, this.targetType == null ? null : this.targetType.name());
-    preparedStatement.setString(4, this.memo);
-    preparedStatement.setTimestamp(5, new OriginalDateTime().toTimestamp());
-    preparedStatement.setString(6, this.registerUser);
-    preparedStatement.setTimestamp(7, this.ttl != null ? this.ttl.toTimestamp() : null);
-    preparedStatement.setString(8, this.tenantId);
-    return preparedStatement.executeUpdate();
+    return executeInsert(
+        connection,
+        INSERT_SQL,
+        this.tenantId,
+        (stmt) -> {
+          stmt.setString(1, this.userId);
+          stmt.setString(2, this.targetId);
+          stmt.setString(3, this.targetType == null ? null : this.targetType.name());
+          stmt.setString(4, this.memo);
+          stmt.setTimestamp(5, new OriginalDateTime().toTimestamp());
+          stmt.setString(6, this.registerUser);
+          stmt.setTimestamp(7, this.ttl != null ? this.ttl.toTimestamp() : null);
+          stmt.setString(8, this.tenantId);
+        },
+        "SES_AI_T_WATCH.insert");
   }
 
   @Override
   public void selectByPk(Connection connection) throws SQLException {
-    if (connection == null || this.userId == null || this.targetId == null || this.tenantId == null) {
+    if (this.userId == null || this.targetId == null) {
       return;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SQL);
-    preparedStatement.setString(1, this.userId);
-    preparedStatement.setString(2, this.targetId);
-    preparedStatement.setString(3, this.tenantId);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    if (resultSet.next()) {
-      this.userId = resultSet.getString("user_id");
-      this.targetId = resultSet.getString("target_id");
-      this.targetType = TargetType.getEnumByName(resultSet.getString("target_type"));
-      this.memo = resultSet.getString("memo");
-      this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
-      this.registerUser = resultSet.getString("register_user");
-      this.ttl = new OriginalDateTime(resultSet.getString("ttl"));
-      this.tenantId = resultSet.getString("tenant_id");
-    }
+    executeSelectByPk(
+        connection,
+        SELECT_SQL,
+        this.tenantId,
+        (stmt) -> {
+          stmt.setString(1, this.userId);
+          stmt.setString(2, this.targetId);
+        },
+        (rs) -> {
+          this.userId = rs.getString("user_id");
+          this.targetId = rs.getString("target_id");
+          this.targetType = TargetType.getEnumByName(rs.getString("target_type"));
+          this.memo = rs.getString("memo");
+          this.registerDate = new OriginalDateTime(rs.getString("register_date"));
+          this.registerUser = rs.getString("register_user");
+          this.ttl = new OriginalDateTime(rs.getString("ttl"));
+        },
+        "SES_AI_T_WATCH.selectByPk");
   }
 
   @Override
   public boolean updateByPk(Connection connection) throws SQLException {
-    if (connection == null || this.userId == null || this.targetId == null || this.tenantId == null) {
+    if (this.userId == null || this.targetId == null) {
       return false;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_SQL);
-    preparedStatement.setString(1, this.targetType != null ? this.targetType.name() : null);
-    preparedStatement.setString(2, this.memo);
-    preparedStatement.setTimestamp(
-        3, this.registerDate == null ? null : this.registerDate.toTimestamp());
-    preparedStatement.setString(4, this.registerUser);
-    preparedStatement.setTimestamp(5, this.ttl != null ? this.ttl.toTimestamp() : null);
-    preparedStatement.setString(6, this.userId);
-    preparedStatement.setString(7, this.targetId);
-    preparedStatement.setString(8, this.tenantId);
-    return preparedStatement.executeUpdate() > 0;
+    return executeUpdateByPk(
+        connection,
+        UPDATE_SQL,
+        this.tenantId,
+        (stmt) -> {
+          stmt.setString(1, this.targetType != null ? this.targetType.name() : null);
+          stmt.setString(2, this.memo);
+          stmt.setTimestamp(3, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(4, this.registerUser);
+          stmt.setTimestamp(5, this.ttl != null ? this.ttl.toTimestamp() : null);
+          stmt.setString(6, this.userId);
+          stmt.setString(7, this.targetId);
+        },
+        "SES_AI_T_WATCH.updateByPk");
   }
 
   @Override
   public boolean deleteByPk(Connection connection) throws SQLException {
-    if (connection == null || this.userId == null || this.targetId == null || this.tenantId == null) {
+    if (this.userId == null || this.targetId == null) {
       return false;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(DELETE_SQL);
-    preparedStatement.setString(1, this.userId);
-    preparedStatement.setString(2, this.targetId);
-    preparedStatement.setString(3, this.tenantId);
-    return preparedStatement.executeUpdate() > 0;
+    return executeDeleteByPk(
+        connection,
+        DELETE_SQL,
+        this.tenantId,
+        (stmt) -> {
+          stmt.setString(1, this.userId);
+          stmt.setString(2, this.targetId);
+        },
+        "SES_AI_T_WATCH.deleteByPk");
   }
 
   /** 対象種別Enum. */

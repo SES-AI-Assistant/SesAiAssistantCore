@@ -33,17 +33,17 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
   // ================================
   // SQL
   // ================================
-  /** INSERTR文. */
+  /** INSERT文（tenantId を含む）. */
   private static final String INSERT_SQL =
       "INSERT INTO SES_AI_T_PERSON (person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?, ?)";
 
-  /** SELECT文. */
+  /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl, tenant_id FROM SES_AI_T_PERSON WHERE person_id = ? AND tenant_id = ?";
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE person_id = ?";
 
-  /** UPDATE文. */
+  /** UPDATE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_T_PERSON SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, content_summary = ?, file_id = ?, unit_price = ?, vector_data = ?::vector, ttl = ? WHERE person_id = ? AND tenant_id = ?";
+      "UPDATE SES_AI_T_PERSON SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, content_summary = ?, file_id = ?, unit_price = ?, vector_data = ?::vector, ttl = ? WHERE person_id = ?";
 
   /** UPDATE文(file_idのみ). */
   private static final String UPDATE_FILE_ID_SQL =
@@ -205,84 +205,91 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
 
   @Override
   public int insert(final Connection connection) throws SQLException {
-    if (connection == null) {
-      return 0;
-    }
-
     // 要員IDを発行
     this.personId = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
 
-    PreparedStatement preparedStatement = connection.prepareStatement(INSERT_SQL);
-    preparedStatement.setString(1, this.personId);
-    preparedStatement.setString(2, this.fromGroup);
-    preparedStatement.setString(3, this.fromId);
-    preparedStatement.setString(4, this.fromName);
-    preparedStatement.setString(5, this.rawContent);
-    preparedStatement.setString(6, this.contentSummary);
-    preparedStatement.setString(7, this.fileId);
-    preparedStatement.setObject(8, this.unitPrice == null ? null : this.unitPrice.getValue());
-    preparedStatement.setString(9, this.vectorData == null ? null : this.vectorData.toString());
-    preparedStatement.setTimestamp(
-        10, this.registerDate == null ? null : this.registerDate.toTimestamp());
-    preparedStatement.setString(11, this.registerUser);
-    preparedStatement.setTimestamp(12, this.ttl == null ? null : this.ttl.toTimestamp());
-    preparedStatement.setString(13, this.tenantId);
-    return preparedStatement.executeUpdate();
+    return executeInsert(
+        connection,
+        INSERT_SQL,
+        this.tenantId,
+        (stmt) -> {
+          stmt.setString(1, this.personId);
+          stmt.setString(2, this.fromGroup);
+          stmt.setString(3, this.fromId);
+          stmt.setString(4, this.fromName);
+          stmt.setString(5, this.rawContent);
+          stmt.setString(6, this.contentSummary);
+          stmt.setString(7, this.fileId);
+          stmt.setObject(8, this.unitPrice == null ? null : this.unitPrice.getValue());
+          stmt.setString(9, this.vectorData == null ? null : this.vectorData.toString());
+          stmt.setTimestamp(10, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(11, this.registerUser);
+          stmt.setTimestamp(12, this.ttl == null ? null : this.ttl.toTimestamp());
+          stmt.setString(13, this.tenantId);
+        },
+        "SES_AI_T_PERSON.insert");
   }
 
   @Override
   public boolean updateByPk(final Connection connection) throws SQLException {
-    if (connection == null || this.personId == null || this.tenantId == null) {
+    if (this.personId == null) {
       return false;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_SQL);
-    preparedStatement.setString(1, this.fromGroup);
-    preparedStatement.setString(2, this.fromId);
-    preparedStatement.setString(3, this.fromName);
-    preparedStatement.setString(4, this.rawContent);
-    preparedStatement.setString(5, this.contentSummary);
-    preparedStatement.setString(6, this.fileId);
-    preparedStatement.setObject(7, this.unitPrice == null ? null : this.unitPrice.getValue());
-    preparedStatement.setString(8, this.vectorData == null ? null : this.vectorData.toString());
-    preparedStatement.setTimestamp(9, this.ttl == null ? null : this.ttl.toTimestamp());
-    preparedStatement.setString(10, this.personId);
-    preparedStatement.setString(11, this.tenantId);
-    return preparedStatement.executeUpdate() > 0;
+    return executeUpdateByPk(
+        connection,
+        UPDATE_SQL,
+        this.tenantId,
+        (stmt) -> {
+          stmt.setString(1, this.fromGroup);
+          stmt.setString(2, this.fromId);
+          stmt.setString(3, this.fromName);
+          stmt.setString(4, this.rawContent);
+          stmt.setString(5, this.contentSummary);
+          stmt.setString(6, this.fileId);
+          stmt.setObject(7, this.unitPrice == null ? null : this.unitPrice.getValue());
+          stmt.setString(8, this.vectorData == null ? null : this.vectorData.toString());
+          stmt.setTimestamp(9, this.ttl == null ? null : this.ttl.toTimestamp());
+          stmt.setString(10, this.personId);
+        },
+        "SES_AI_T_PERSON.updateByPk");
   }
 
   @Override
   public void selectByPk(final Connection connection) throws SQLException {
-    if (connection == null || this.personId == null || this.tenantId == null) {
+    if (this.personId == null) {
       return;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SQL);
-    preparedStatement.setString(1, this.personId);
-    preparedStatement.setString(2, this.tenantId);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    if (resultSet.next()) {
-      this.fromGroup = resultSet.getString("from_group");
-      this.fromId = resultSet.getString("from_id");
-      this.fromName = resultSet.getString("from_name");
-      this.rawContent = resultSet.getString("raw_content");
-      this.contentSummary = resultSet.getString("content_summary");
-      this.fileId = resultSet.getString("file_id");
-      BigDecimal unitPriceValue = resultSet.getBigDecimal("unit_price");
-      this.unitPrice = unitPriceValue == null ? Money.empty() : new Money(unitPriceValue);
-      this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
-      this.registerUser = resultSet.getString("register_user");
-      this.ttl = new OriginalDateTime(resultSet.getString("ttl"));
-      this.tenantId = resultSet.getString("tenant_id");
-    }
+    executeSelectByPk(
+        connection,
+        SELECT_SQL,
+        this.tenantId,
+        (stmt) -> stmt.setString(1, this.personId),
+        (rs) -> {
+          this.fromGroup = rs.getString("from_group");
+          this.fromId = rs.getString("from_id");
+          this.fromName = rs.getString("from_name");
+          this.rawContent = rs.getString("raw_content");
+          this.contentSummary = rs.getString("content_summary");
+          this.fileId = rs.getString("file_id");
+          BigDecimal unitPriceValue = rs.getBigDecimal("unit_price");
+          this.unitPrice = unitPriceValue == null ? Money.empty() : new Money(unitPriceValue);
+          this.registerDate = new OriginalDateTime(rs.getString("register_date"));
+          this.registerUser = rs.getString("register_user");
+          this.ttl = new OriginalDateTime(rs.getString("ttl"));
+        },
+        "SES_AI_T_PERSON.selectByPk");
   }
 
   @Override
   public boolean deleteByPk(Connection connection) throws SQLException {
-    if (connection == null || this.personId == null || this.tenantId == null) {
+    if (this.personId == null) {
       return false;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(DELETE_SQL);
-    preparedStatement.setString(1, this.personId);
-    preparedStatement.setString(2, this.tenantId);
-    return preparedStatement.executeUpdate() > 0;
+    return executeDeleteByPk(
+        connection,
+        DELETE_SQL,
+        this.tenantId,
+        (stmt) -> stmt.setString(1, this.personId),
+        "SES_AI_T_PERSON.deleteByPk");
   }
 }

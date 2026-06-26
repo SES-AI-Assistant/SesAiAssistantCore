@@ -25,19 +25,19 @@ public class SES_AI_M_GROUP extends EntityBase {
   public SES_AI_M_GROUP(String tenantId) {
     super(tenantId);
   }
-  /** INSERTR文. */
+  /** INSERT文（tenantId を含む）. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_M_GROUP (from_group, group_name, register_date, register_user) VALUES (?, ?, ?, ?)";
+      "INSERT INTO SES_AI_M_GROUP (from_group, group_name, register_date, register_user, tenant_id) VALUES (?, ?, ?, ?, ?)";
 
-  /** SELECT文. */
+  /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
       "SELECT from_group, group_name, register_date, register_user FROM SES_AI_M_GROUP WHERE from_group = ?";
 
-  /** UPDATE文. */
+  /** UPDATE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_M_GROUP SET from_group = ?, group_name = ?, register_date = ?, register_user = ? WHERE from_group = ?";
+      "UPDATE SES_AI_M_GROUP SET group_name = ?, register_date = ?, register_user = ? WHERE from_group = ?";
 
-  /** DELETE文. */
+  /** DELETE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_M_GROUP WHERE from_group = ?";
 
   /** 【PK】 送信元グループ* / from_group */
@@ -50,56 +50,69 @@ public class SES_AI_M_GROUP extends EntityBase {
 
   @Override
   public int insert(Connection connection) throws SQLException {
-    if (connection == null) {
-      return 0;
-    }
-    PreparedStatement preparedStatement = connection.prepareStatement(INSERT_SQL);
-    preparedStatement.setString(1, this.fromGroup);
-    preparedStatement.setString(2, this.groupName);
-    preparedStatement.setTimestamp(
-        3, this.registerDate == null ? null : this.registerDate.toTimestamp());
-    preparedStatement.setString(4, this.registerUser);
-    return preparedStatement.executeUpdate();
+    return executeInsert(
+        connection,
+        INSERT_SQL,
+        this.tenantId,
+        (stmt) -> {
+          stmt.setString(1, this.fromGroup);
+          stmt.setString(2, this.groupName);
+          stmt.setTimestamp(
+              3, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(4, this.registerUser);
+          stmt.setString(5, this.tenantId);
+        },
+        "SES_AI_M_GROUP.insert");
   }
 
   @Override
   public void selectByPk(Connection connection) throws SQLException {
-    if (connection == null || this.fromGroup == null) {
+    if (this.fromGroup == null) {
       return;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SQL);
-    preparedStatement.setString(1, this.fromGroup);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    if (resultSet.next()) {
-      this.fromGroup = resultSet.getString("from_group");
-      this.groupName = resultSet.getString("group_name");
-      this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
-      this.registerUser = resultSet.getString("register_user");
-    }
+    executeSelectByPk(
+        connection,
+        SELECT_SQL,
+        this.tenantId,
+        (stmt) -> stmt.setString(1, this.fromGroup),
+        (rs) -> {
+          this.fromGroup = rs.getString("from_group");
+          this.groupName = rs.getString("group_name");
+          this.registerDate = new OriginalDateTime(rs.getString("register_date"));
+          this.registerUser = rs.getString("register_user");
+        },
+        "SES_AI_M_GROUP.selectByPk");
   }
 
   @Override
   public boolean updateByPk(Connection connection) throws SQLException {
-    if (connection == null || this.fromGroup == null) {
+    if (this.fromGroup == null) {
       return false;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_SQL);
-    preparedStatement.setString(1, this.fromGroup);
-    preparedStatement.setString(2, this.groupName);
-    preparedStatement.setTimestamp(
-        3, this.registerDate == null ? null : this.registerDate.toTimestamp());
-    preparedStatement.setString(4, this.registerUser);
-    preparedStatement.setString(5, this.fromGroup);
-    return preparedStatement.executeUpdate() > 0;
+    return executeUpdateByPk(
+        connection,
+        UPDATE_SQL,
+        this.tenantId,
+        (stmt) -> {
+          stmt.setString(1, this.groupName);
+          stmt.setTimestamp(
+              2, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(3, this.registerUser);
+          stmt.setString(4, this.fromGroup);
+        },
+        "SES_AI_M_GROUP.updateByPk");
   }
 
   @Override
   public boolean deleteByPk(Connection connection) throws SQLException {
-    if (connection == null || this.fromGroup == null) {
+    if (this.fromGroup == null) {
       return false;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(DELETE_SQL);
-    preparedStatement.setString(1, this.fromGroup);
-    return preparedStatement.executeUpdate() > 0;
+    return executeDeleteByPk(
+        connection,
+        DELETE_SQL,
+        this.tenantId,
+        (stmt) -> stmt.setString(1, this.fromGroup),
+        "SES_AI_M_GROUP.deleteByPk");
   }
 }

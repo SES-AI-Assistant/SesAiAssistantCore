@@ -29,20 +29,20 @@ public class SES_AI_T_MATCH extends EntityBase {
     super(tenantId);
     this.tenantId = tenantId;
   }
-  /** INSERTR文. */
+  /** INSERT文（tenantId を含む）. */
   private static final String INSERT_SQL =
       "INSERT INTO SES_AI_T_MATCH (matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-  /** SELECT文. */
+  /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
-      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user, tenant_id FROM SES_AI_T_MATCH WHERE matching_id = ? AND tenant_id = ?";
+      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user FROM SES_AI_T_MATCH WHERE matching_id = ?";
 
-  /** UPDATE文. */
+  /** UPDATE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_T_MATCH SET user_id = ?, job_id = ?, person_id = ?, job_content = ?, person_content = ?, status_cd = ?, evaluation_text = ?, register_date = ?, register_user = ? WHERE matching_id = ? AND tenant_id = ?";
+      "UPDATE SES_AI_T_MATCH SET user_id = ?, job_id = ?, person_id = ?, job_content = ?, person_content = ?, status_cd = ?, evaluation_text = ?, register_date = ?, register_user = ? WHERE matching_id = ?";
 
-  /** DELETE文. */
-  private static final String DELETE_SQL = "DELETE FROM SES_AI_T_MATCH WHERE matching_id = ? AND tenant_id = ?";
+  /** DELETE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
+  private static final String DELETE_SQL = "DELETE FROM SES_AI_T_MATCH WHERE matching_id = ?";
 
   /** マッチングID / matching_id */
   @Column(required = true, primary = true, physicalName = "matching_id", logicalName = "マッチングID")
@@ -100,80 +100,87 @@ public class SES_AI_T_MATCH extends EntityBase {
 
   @Override
   public int insert(Connection connection) throws SQLException {
-    if (connection == null) {
-      return 0;
-    }
-
     // マッチングIDを発行
     this.matchingId = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
 
-    PreparedStatement preparedStatement = connection.prepareStatement(INSERT_SQL);
-    preparedStatement.setString(1, this.matchingId);
-    preparedStatement.setString(2, this.userId);
-    preparedStatement.setString(3, this.jobId);
-    preparedStatement.setString(4, this.personId);
-    preparedStatement.setString(5, this.jobContent);
-    preparedStatement.setString(6, this.personContent);
-    preparedStatement.setString(7, this.status == null ? null : this.status.getCode());
-    preparedStatement.setString(8, this.evaluationText);
-    preparedStatement.setTimestamp(9, new OriginalDateTime().toTimestamp());
-    preparedStatement.setString(10, this.registerUser);
-    preparedStatement.setString(11, this.tenantId);
-    return preparedStatement.executeUpdate();
+    return executeInsert(
+        connection,
+        INSERT_SQL,
+        this.tenantId,
+        (stmt) -> {
+          stmt.setString(1, this.matchingId);
+          stmt.setString(2, this.userId);
+          stmt.setString(3, this.jobId);
+          stmt.setString(4, this.personId);
+          stmt.setString(5, this.jobContent);
+          stmt.setString(6, this.personContent);
+          stmt.setString(7, this.status == null ? null : this.status.getCode());
+          stmt.setString(8, this.evaluationText);
+          stmt.setTimestamp(9, new OriginalDateTime().toTimestamp());
+          stmt.setString(10, this.registerUser);
+          stmt.setString(11, this.tenantId);
+        },
+        "SES_AI_T_MATCH.insert");
   }
 
   @Override
   public void selectByPk(Connection connection) throws SQLException {
-    if (connection == null || this.matchingId == null || this.tenantId == null) {
+    if (this.matchingId == null) {
       return;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SQL);
-    preparedStatement.setString(1, this.matchingId);
-    preparedStatement.setString(2, this.tenantId);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    if (resultSet.next()) {
-      this.userId = resultSet.getString("user_id");
-      this.jobId = resultSet.getString("job_id");
-      this.personId = resultSet.getString("person_id");
-      this.jobContent = resultSet.getString("job_content");
-      this.personContent = resultSet.getString("person_content");
-      this.status = MatchingStatus.getEnum(resultSet.getString("status_cd"));
-      this.evaluationText = resultSet.getString("evaluation_text");
-      this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
-      this.registerUser = resultSet.getString("register_user");
-      this.tenantId = resultSet.getString("tenant_id");
-    }
+    executeSelectByPk(
+        connection,
+        SELECT_SQL,
+        this.tenantId,
+        (stmt) -> stmt.setString(1, this.matchingId),
+        (rs) -> {
+          this.userId = rs.getString("user_id");
+          this.jobId = rs.getString("job_id");
+          this.personId = rs.getString("person_id");
+          this.jobContent = rs.getString("job_content");
+          this.personContent = rs.getString("person_content");
+          this.status = MatchingStatus.getEnum(rs.getString("status_cd"));
+          this.evaluationText = rs.getString("evaluation_text");
+          this.registerDate = new OriginalDateTime(rs.getString("register_date"));
+          this.registerUser = rs.getString("register_user");
+        },
+        "SES_AI_T_MATCH.selectByPk");
   }
 
   @Override
   public boolean updateByPk(Connection connection) throws SQLException {
-    if (connection == null || this.matchingId == null || this.tenantId == null) {
+    if (this.matchingId == null) {
       return false;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_SQL);
-    preparedStatement.setString(1, this.userId);
-    preparedStatement.setString(2, this.jobId);
-    preparedStatement.setString(3, this.personId);
-    preparedStatement.setString(4, this.jobContent);
-    preparedStatement.setString(5, this.personContent);
-    preparedStatement.setString(6, this.status == null ? null : this.status.getCode());
-    preparedStatement.setString(7, this.evaluationText);
-    preparedStatement.setTimestamp(
-        8, this.registerDate == null ? null : this.registerDate.toTimestamp());
-    preparedStatement.setString(9, this.registerUser);
-    preparedStatement.setString(10, this.matchingId);
-    preparedStatement.setString(11, this.tenantId);
-    return preparedStatement.executeUpdate() > 0;
+    return executeUpdateByPk(
+        connection,
+        UPDATE_SQL,
+        this.tenantId,
+        (stmt) -> {
+          stmt.setString(1, this.userId);
+          stmt.setString(2, this.jobId);
+          stmt.setString(3, this.personId);
+          stmt.setString(4, this.jobContent);
+          stmt.setString(5, this.personContent);
+          stmt.setString(6, this.status == null ? null : this.status.getCode());
+          stmt.setString(7, this.evaluationText);
+          stmt.setTimestamp(8, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(9, this.registerUser);
+          stmt.setString(10, this.matchingId);
+        },
+        "SES_AI_T_MATCH.updateByPk");
   }
 
   @Override
   public boolean deleteByPk(Connection connection) throws SQLException {
-    if (connection == null || this.matchingId == null || this.tenantId == null) {
+    if (this.matchingId == null) {
       return false;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(DELETE_SQL);
-    preparedStatement.setString(1, this.matchingId);
-    preparedStatement.setString(2, this.tenantId);
-    return preparedStatement.executeUpdate() > 0;
+    return executeDeleteByPk(
+        connection,
+        DELETE_SQL,
+        this.tenantId,
+        (stmt) -> stmt.setString(1, this.matchingId),
+        "SES_AI_T_MATCH.deleteByPk");
   }
 }

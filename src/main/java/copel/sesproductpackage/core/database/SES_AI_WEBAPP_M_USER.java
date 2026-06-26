@@ -128,39 +128,43 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
 
   @Override
   public int insert(Connection connection) throws SQLException {
-    if (connection == null) {
-      return 0;
-    }
-    PreparedStatement preparedStatement = connection.prepareStatement(INSERT_SQL);
-    preparedStatement.setString(1, this.userId);
-    preparedStatement.setString(2, this.userName);
-    preparedStatement.setString(3, this.role == null ? null : this.role.getCode());
-    preparedStatement.setString(4, this.plan == null ? null : this.plan.getCode());
-    preparedStatement.setTimestamp(
-        5, this.registerDate == null ? null : this.registerDate.toTimestamp());
-    preparedStatement.setString(6, this.registerUser);
-    preparedStatement.setString(7, this.tenantId);
-    return preparedStatement.executeUpdate();
+    return executeInsertWithoutTenantFilter(
+        connection,
+        INSERT_SQL,
+        (stmt) -> {
+          stmt.setString(1, this.userId);
+          stmt.setString(2, this.userName);
+          stmt.setString(3, this.role == null ? null : this.role.getCode());
+          stmt.setString(4, this.plan == null ? null : this.plan.getCode());
+          stmt.setTimestamp(5, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(6, this.registerUser);
+          stmt.setString(7, this.tenantId);
+        },
+        "SES_AI_WEBAPP_M_USER.insert");
   }
 
   @Override
   public void selectByPk(Connection connection) throws SQLException {
-    if (connection == null || this.userId == null || this.tenantId == null) {
+    if (this.userId == null) {
       return;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SQL);
-    preparedStatement.setString(1, this.userId);
-    preparedStatement.setString(2, this.tenantId);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    if (resultSet.next()) {
-      this.userId = resultSet.getString("user_id");
-      this.userName = resultSet.getString("user_name");
-      this.role = Role.getEnum(resultSet.getString("role_cd"));
-      this.plan = Plan.getEnum(resultSet.getString("plan_cd"));
-      this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
-      this.registerUser = resultSet.getString("register_user");
-      this.tenantId = resultSet.getString("tenant_id");
-    }
+    executeSelectByPkWithoutTenantFilter(
+        connection,
+        SELECT_SQL,
+        (stmt) -> {
+          stmt.setString(1, this.userId);
+          stmt.setString(2, this.tenantId);
+        },
+        (rs) -> {
+          this.userId = rs.getString("user_id");
+          this.userName = rs.getString("user_name");
+          this.role = Role.getEnum(rs.getString("role_cd"));
+          this.plan = Plan.getEnum(rs.getString("plan_cd"));
+          this.registerDate = new OriginalDateTime(rs.getString("register_date"));
+          this.registerUser = rs.getString("register_user");
+          this.tenantId = rs.getString("tenant_id");
+        },
+        "SES_AI_WEBAPP_M_USER.selectByPk");
   }
 
   /**
@@ -170,49 +174,58 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
    * @throws SQLException SQL実行エラー
    */
   public void selectByPkWithoutTenantId(Connection connection) throws SQLException {
-    if (connection == null || this.userId == null) {
+    if (this.userId == null) {
       return;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_WITHOUT_TENANT_ID_SQL);
-    preparedStatement.setString(1, this.userId);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    if (resultSet.next()) {
-      this.userId = resultSet.getString("user_id");
-      this.userName = resultSet.getString("user_name");
-      this.role = Role.getEnum(resultSet.getString("role_cd"));
-      this.plan = Plan.getEnum(resultSet.getString("plan_cd"));
-      this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
-      this.registerUser = resultSet.getString("register_user");
-      this.tenantId = resultSet.getString("tenant_id");
-    }
+    executeSelectByPkWithoutTenantFilter(
+        connection,
+        SELECT_WITHOUT_TENANT_ID_SQL,
+        (stmt) -> stmt.setString(1, this.userId),
+        (rs) -> {
+          this.userId = rs.getString("user_id");
+          this.userName = rs.getString("user_name");
+          this.role = Role.getEnum(rs.getString("role_cd"));
+          this.plan = Plan.getEnum(rs.getString("plan_cd"));
+          this.registerDate = new OriginalDateTime(rs.getString("register_date"));
+          this.registerUser = rs.getString("register_user");
+          this.tenantId = rs.getString("tenant_id");
+        },
+        "SES_AI_WEBAPP_M_USER.selectByPkWithoutTenantId");
   }
 
   @Override
   public boolean updateByPk(Connection connection) throws SQLException {
-    if (connection == null || this.userId == null || this.tenantId == null) {
+    if (this.userId == null) {
       return false;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_SQL);
-    preparedStatement.setString(1, this.userId);
-    preparedStatement.setString(2, this.userName);
-    preparedStatement.setString(3, this.role == null ? null : this.role.getCode());
-    preparedStatement.setString(4, this.plan == null ? null : this.plan.getCode());
-    preparedStatement.setTimestamp(
-        5, this.registerDate == null ? null : this.registerDate.toTimestamp());
-    preparedStatement.setString(6, this.registerUser);
-    preparedStatement.setString(7, this.userId);
-    preparedStatement.setString(8, this.tenantId);
-    return preparedStatement.executeUpdate() > 0;
+    return executeUpdateByPkWithoutTenantFilter(
+        connection,
+        UPDATE_SQL,
+        (stmt) -> {
+          stmt.setString(1, this.userId);
+          stmt.setString(2, this.userName);
+          stmt.setString(3, this.role == null ? null : this.role.getCode());
+          stmt.setString(4, this.plan == null ? null : this.plan.getCode());
+          stmt.setTimestamp(5, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(6, this.registerUser);
+          stmt.setString(7, this.userId);
+          stmt.setString(8, this.tenantId);
+        },
+        "SES_AI_WEBAPP_M_USER.updateByPk");
   }
 
   @Override
   public boolean deleteByPk(Connection connection) throws SQLException {
-    if (connection == null || this.userId == null || this.tenantId == null) {
+    if (this.userId == null) {
       return false;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(DELETE_SQL);
-    preparedStatement.setString(1, this.userId);
-    preparedStatement.setString(2, this.tenantId);
-    return preparedStatement.executeUpdate() > 0;
+    return executeDeleteByPkWithoutTenantFilter(
+        connection,
+        DELETE_SQL,
+        (stmt) -> {
+          stmt.setString(1, this.userId);
+          stmt.setString(2, this.tenantId);
+        },
+        "SES_AI_WEBAPP_M_USER.deleteByPk");
   }
 }

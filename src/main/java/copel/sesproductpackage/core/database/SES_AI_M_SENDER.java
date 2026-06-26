@@ -25,7 +25,7 @@ public class SES_AI_M_SENDER extends EntityBase {
   public SES_AI_M_SENDER(String tenantId) {
     super(tenantId);
   }
-  /** INSERTR文. */
+  /** INSERT文. */
   private static final String INSERT_SQL =
       "INSERT INTO SES_AI_M_SENDER (from_id, from_name, register_date, register_user) VALUES (?, ?, ?, ?)";
 
@@ -35,7 +35,7 @@ public class SES_AI_M_SENDER extends EntityBase {
 
   /** UPDATE文. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_M_SENDER SET from_id = ?, from_name = ?, register_date = ?, register_user = ? WHERE from_id = ?";
+      "UPDATE SES_AI_M_SENDER SET from_name = ?, register_date = ?, register_user = ? WHERE from_id = ?";
 
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_M_SENDER WHERE from_id = ?";
@@ -54,57 +54,63 @@ public class SES_AI_M_SENDER extends EntityBase {
 
   @Override
   public int insert(Connection connection) throws SQLException {
-    if (connection == null) {
-      return 0;
-    }
-    PreparedStatement preparedStatement = connection.prepareStatement(INSERT_SQL);
-    preparedStatement.setString(1, this.fromId);
-    preparedStatement.setString(2, this.fromName);
-    preparedStatement.setTimestamp(
-        3, this.registerDate == null ? null : this.registerDate.toTimestamp());
-    preparedStatement.setString(4, this.registerUser);
-    return preparedStatement.executeUpdate();
+    return executeInsertWithoutTenantFilter(
+        connection,
+        INSERT_SQL,
+        (stmt) -> {
+          stmt.setString(1, this.fromId);
+          stmt.setString(2, this.fromName);
+          stmt.setTimestamp(3, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(4, this.registerUser);
+        },
+        "SES_AI_M_SENDER.insert");
   }
 
   @Override
   public void selectByPk(Connection connection) throws SQLException {
-    if (connection == null || this.fromId == null) {
+    if (this.fromId == null) {
       return;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SQL);
-    preparedStatement.setString(1, this.fromId);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    if (resultSet.next()) {
-      this.fromId = resultSet.getString("from_id");
-      this.fromName = resultSet.getString("from_name");
-      this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
-      this.registerUser = resultSet.getString("register_user");
-    }
+    executeSelectByPkWithoutTenantFilter(
+        connection,
+        SELECT_SQL,
+        (stmt) -> stmt.setString(1, this.fromId),
+        (rs) -> {
+          this.fromId = rs.getString("from_id");
+          this.fromName = rs.getString("from_name");
+          this.registerDate = new OriginalDateTime(rs.getString("register_date"));
+          this.registerUser = rs.getString("register_user");
+        },
+        "SES_AI_M_SENDER.selectByPk");
   }
 
   @Override
   public boolean updateByPk(Connection connection) throws SQLException {
-    if (connection == null || this.fromId == null) {
+    if (this.fromId == null) {
       return false;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_SQL);
-    preparedStatement.setString(1, this.fromId);
-    preparedStatement.setString(2, this.fromName);
-    preparedStatement.setTimestamp(
-        3, this.registerDate == null ? null : this.registerDate.toTimestamp());
-    preparedStatement.setString(4, this.registerUser);
-    preparedStatement.setString(5, this.fromId);
-    return preparedStatement.executeUpdate() > 0;
+    return executeUpdateByPkWithoutTenantFilter(
+        connection,
+        UPDATE_SQL,
+        (stmt) -> {
+          stmt.setString(1, this.fromName);
+          stmt.setTimestamp(2, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(3, this.registerUser);
+          stmt.setString(4, this.fromId);
+        },
+        "SES_AI_M_SENDER.updateByPk");
   }
 
   @Override
   public boolean deleteByPk(Connection connection) throws SQLException {
-    if (connection == null || this.fromId == null) {
+    if (this.fromId == null) {
       return false;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(DELETE_SQL);
-    preparedStatement.setString(1, this.fromId);
-    return preparedStatement.executeUpdate() > 0;
+    return executeDeleteByPkWithoutTenantFilter(
+        connection,
+        DELETE_SQL,
+        (stmt) -> stmt.setString(1, this.fromId),
+        "SES_AI_M_SENDER.deleteByPk");
   }
 
   /**

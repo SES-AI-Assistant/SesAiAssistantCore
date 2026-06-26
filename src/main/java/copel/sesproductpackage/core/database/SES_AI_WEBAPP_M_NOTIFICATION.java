@@ -78,77 +78,84 @@ public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
 
   @Override
   public int insert(Connection connection) throws SQLException {
-    if (connection == null) {
-      return 0;
-    }
-    PreparedStatement preparedStatement = connection.prepareStatement(INSERT_SQL);
-    preparedStatement.setString(1, this.notificationId);
-    preparedStatement.setString(2, this.userId);
-    preparedStatement.setString(3, this.deviceType);
-    preparedStatement.setString(4, this.deviceName);
-    preparedStatement.setString(5, this.pushNotificationEndpoint);
-    preparedStatement.setString(6, this.p256dh);
-    preparedStatement.setString(7, this.auth);
-    preparedStatement.setBoolean(8, this.enabled != null && this.enabled);
-    preparedStatement.setBoolean(9, this.notifyAllMatch != null && this.notifyAllMatch);
-    preparedStatement.setTimestamp(
-        10, this.registerDate == null ? null : this.registerDate.toTimestamp());
-    preparedStatement.setString(11, this.registerUser);
-    return preparedStatement.executeUpdate();
+    return executeInsertWithoutTenantFilter(
+        connection,
+        INSERT_SQL,
+        (stmt) -> {
+          stmt.setString(1, this.notificationId);
+          stmt.setString(2, this.userId);
+          stmt.setString(3, this.deviceType);
+          stmt.setString(4, this.deviceName);
+          stmt.setString(5, this.pushNotificationEndpoint);
+          stmt.setString(6, this.p256dh);
+          stmt.setString(7, this.auth);
+          stmt.setBoolean(8, this.enabled != null && this.enabled);
+          stmt.setBoolean(9, this.notifyAllMatch != null && this.notifyAllMatch);
+          stmt.setTimestamp(10, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(11, this.registerUser);
+        },
+        "SES_AI_WEBAPP_M_NOTIFICATION.insert");
   }
 
   @Override
   public void selectByPk(Connection connection) throws SQLException {
-    if (connection == null || this.notificationId == null) {
+    if (this.notificationId == null) {
       return;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SQL);
-    preparedStatement.setString(1, this.notificationId);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    if (resultSet.next()) {
-      this.notificationId = resultSet.getString("notification_id");
-      this.userId = resultSet.getString("user_id");
-      this.deviceType = resultSet.getString("device_type");
-      this.deviceName = resultSet.getString("device_name");
-      this.pushNotificationEndpoint = resultSet.getString("push_notification_endpoint");
-      this.p256dh = resultSet.getString("p256dh");
-      this.auth = resultSet.getString("auth");
-      this.enabled = resultSet.getBoolean("enabled");
-      this.notifyAllMatch = resultSet.getBoolean("notify_all_match");
-      this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
-      this.registerUser = resultSet.getString("register_user");
-    }
+    executeSelectByPkWithoutTenantFilter(
+        connection,
+        SELECT_SQL,
+        (stmt) -> stmt.setString(1, this.notificationId),
+        (rs) -> {
+          this.notificationId = rs.getString("notification_id");
+          this.userId = rs.getString("user_id");
+          this.deviceType = rs.getString("device_type");
+          this.deviceName = rs.getString("device_name");
+          this.pushNotificationEndpoint = rs.getString("push_notification_endpoint");
+          this.p256dh = rs.getString("p256dh");
+          this.auth = rs.getString("auth");
+          this.enabled = rs.getBoolean("enabled");
+          this.notifyAllMatch = rs.getBoolean("notify_all_match");
+          this.registerDate = new OriginalDateTime(rs.getString("register_date"));
+          this.registerUser = rs.getString("register_user");
+        },
+        "SES_AI_WEBAPP_M_NOTIFICATION.selectByPk");
   }
 
   @Override
   public boolean updateByPk(Connection connection) throws SQLException {
-    if (connection == null || this.notificationId == null) {
+    if (this.notificationId == null) {
       return false;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_SQL);
-    preparedStatement.setString(1, this.notificationId);
-    preparedStatement.setString(2, this.userId);
-    preparedStatement.setString(3, this.deviceType);
-    preparedStatement.setString(4, this.deviceName);
-    preparedStatement.setString(5, this.pushNotificationEndpoint);
-    preparedStatement.setString(6, this.p256dh);
-    preparedStatement.setString(7, this.auth);
-    preparedStatement.setBoolean(8, this.enabled != null && this.enabled);
-    preparedStatement.setBoolean(9, this.notifyAllMatch != null && this.notifyAllMatch);
-    preparedStatement.setTimestamp(
-        10, this.registerDate == null ? null : this.registerDate.toTimestamp());
-    preparedStatement.setString(11, this.registerUser);
-    preparedStatement.setString(12, this.notificationId);
-    return preparedStatement.executeUpdate() > 0;
+    return executeUpdateByPkWithoutTenantFilter(
+        connection,
+        UPDATE_SQL,
+        (stmt) -> {
+          stmt.setString(1, this.notificationId);
+          stmt.setString(2, this.userId);
+          stmt.setString(3, this.deviceType);
+          stmt.setString(4, this.deviceName);
+          stmt.setString(5, this.pushNotificationEndpoint);
+          stmt.setString(6, this.p256dh);
+          stmt.setString(7, this.auth);
+          stmt.setBoolean(8, this.enabled != null && this.enabled);
+          stmt.setBoolean(9, this.notifyAllMatch != null && this.notifyAllMatch);
+          stmt.setTimestamp(10, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(11, this.registerUser);
+          stmt.setString(12, this.notificationId);
+        },
+        "SES_AI_WEBAPP_M_NOTIFICATION.updateByPk");
   }
 
   @Override
   public boolean deleteByPk(Connection connection) throws SQLException {
-    if (connection == null || this.notificationId == null) {
+    if (this.notificationId == null) {
       return false;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(DELETE_SQL);
-    preparedStatement.setString(1, this.notificationId);
-    return preparedStatement.executeUpdate() > 0;
+    return executeDeleteByPkWithoutTenantFilter(
+        connection,
+        DELETE_SQL,
+        (stmt) -> stmt.setString(1, this.notificationId),
+        "SES_AI_WEBAPP_M_NOTIFICATION.deleteByPk");
   }
 }

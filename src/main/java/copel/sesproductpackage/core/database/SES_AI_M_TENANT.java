@@ -54,55 +54,63 @@ public class SES_AI_M_TENANT extends EntityBase {
 
   @Override
   public int insert(Connection connection) throws SQLException {
-    if (connection == null) {
-      return 0;
-    }
-    PreparedStatement preparedStatement = connection.prepareStatement(INSERT_SQL);
-    preparedStatement.setString(1, this.tenantId);
-    preparedStatement.setString(2, this.tenantName);
-    preparedStatement.setString(3, this.tenantStatusCd);
-    preparedStatement.setTimestamp(
-        4, this.registerDate == null ? null : this.registerDate.toTimestamp());
-    preparedStatement.setString(5, this.registerUser);
-    return preparedStatement.executeUpdate();
+    return executeInsertWithoutTenantFilter(
+        connection,
+        INSERT_SQL,
+        (stmt) -> {
+          stmt.setString(1, this.tenantId);
+          stmt.setString(2, this.tenantName);
+          stmt.setString(3, this.tenantStatusCd);
+          stmt.setTimestamp(4, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(5, this.registerUser);
+        },
+        "SES_AI_M_TENANT.insert");
   }
 
   @Override
   public void selectByPk(Connection connection) throws SQLException {
-    if (connection == null || this.tenantId == null) {
+    if (this.tenantId == null) {
       return;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SQL);
-    preparedStatement.setString(1, this.tenantId);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    if (resultSet.next()) {
-      this.tenantId = resultSet.getString("tenant_id");
-      this.tenantName = resultSet.getString("tenant_name");
-      this.tenantStatusCd = resultSet.getString("tenant_status_cd");
-      this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
-      this.registerUser = resultSet.getString("register_user");
-    }
+    executeSelectByPkWithoutTenantFilter(
+        connection,
+        SELECT_SQL,
+        (stmt) -> stmt.setString(1, this.tenantId),
+        (rs) -> {
+          this.tenantId = rs.getString("tenant_id");
+          this.tenantName = rs.getString("tenant_name");
+          this.tenantStatusCd = rs.getString("tenant_status_cd");
+          this.registerDate = new OriginalDateTime(rs.getString("register_date"));
+          this.registerUser = rs.getString("register_user");
+        },
+        "SES_AI_M_TENANT.selectByPk");
   }
 
   @Override
   public boolean updateByPk(Connection connection) throws SQLException {
-    if (connection == null || this.tenantId == null) {
+    if (this.tenantId == null) {
       return false;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_SQL);
-    preparedStatement.setString(1, this.tenantName);
-    preparedStatement.setString(2, this.tenantStatusCd);
-    preparedStatement.setString(3, this.tenantId);
-    return preparedStatement.executeUpdate() > 0;
+    return executeUpdateByPkWithoutTenantFilter(
+        connection,
+        UPDATE_SQL,
+        (stmt) -> {
+          stmt.setString(1, this.tenantName);
+          stmt.setString(2, this.tenantStatusCd);
+          stmt.setString(3, this.tenantId);
+        },
+        "SES_AI_M_TENANT.updateByPk");
   }
 
   @Override
   public boolean deleteByPk(Connection connection) throws SQLException {
-    if (connection == null || this.tenantId == null) {
+    if (this.tenantId == null) {
       return false;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(DELETE_SQL);
-    preparedStatement.setString(1, this.tenantId);
-    return preparedStatement.executeUpdate() > 0;
+    return executeDeleteByPkWithoutTenantFilter(
+        connection,
+        DELETE_SQL,
+        (stmt) -> stmt.setString(1, this.tenantId),
+        "SES_AI_M_TENANT.deleteByPk");
   }
 }

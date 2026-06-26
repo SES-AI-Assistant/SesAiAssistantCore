@@ -29,24 +29,24 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
   // ================================
   // SQL
   // ================================
-  /** INSERTR文. */
+  /** INSERT文（tenantId を含む）. */
   private static final String INSERT_SQL =
       "INSERT INTO SES_AI_T_SKILLSHEET (from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?, ?)";
 
-  /** SELECT文. */
+  /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, register_date, register_user, ttl, tenant_id FROM SES_AI_T_SKILLSHEET WHERE file_id = ? AND tenant_id = ?";
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
 
-  /** SELECT文(原文抜き). */
+  /** SELECT文(原文抜き、tenantId フィルタなし、テンプレートメソッドが自動追加する). */
   private static final String SELECT_WITHOUT_CONTENT_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content_summary, register_date, register_user, ttl, tenant_id FROM SES_AI_T_SKILLSHEET WHERE file_id = ? AND tenant_id = ?";
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content_summary, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
 
   /** 重複チェック用SQL. */
   private static final String CHECK_SQL =
       "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET WHERE tenant_id = ? AND file_content % ? AND similarity(file_content, ?) > ?";
 
-  /** DELETE文. */
-  private static final String DELETE_SQL = "DELETE FROM SES_AI_T_SKILLSHEET WHERE file_id = ? AND tenant_id = ?";
+  /** DELETE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
+  private static final String DELETE_SQL = "DELETE FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
 
   // ================================
   // メンバ
@@ -92,25 +92,26 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
    * @throws SQLException
    */
   public void selectByPkWithoutRawContent(final Connection connection) throws SQLException {
-    if (connection == null || this.getFileId() == null || this.tenantId == null) {
+    if (this.getFileId() == null) {
       return;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_WITHOUT_CONTENT_SQL);
-    preparedStatement.setString(1, this.getFileId());
-    preparedStatement.setString(2, this.tenantId);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    if (resultSet.next()) {
-      this.fromGroup = resultSet.getString("from_group");
-      this.fromId = resultSet.getString("from_id");
-      this.fromName = resultSet.getString("from_name");
-      this.skillSheet =
-          new SkillSheet(resultSet.getString("file_id"), resultSet.getString("file_name"), "");
-      this.skillSheet.setFileContentSummary(resultSet.getString("file_content_summary"));
-      this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
-      this.registerUser = resultSet.getString("register_user");
-      this.ttl = new OriginalDateTime(resultSet.getString("ttl"));
-      this.tenantId = resultSet.getString("tenant_id");
-    }
+    executeSelectByPk(
+        connection,
+        SELECT_WITHOUT_CONTENT_SQL,
+        this.tenantId,
+        (stmt) -> stmt.setString(1, this.getFileId()),
+        (rs) -> {
+          this.fromGroup = rs.getString("from_group");
+          this.fromId = rs.getString("from_id");
+          this.fromName = rs.getString("from_name");
+          this.skillSheet =
+              new SkillSheet(rs.getString("file_id"), rs.getString("file_name"), "");
+          this.skillSheet.setFileContentSummary(rs.getString("file_content_summary"));
+          this.registerDate = new OriginalDateTime(rs.getString("register_date"));
+          this.registerUser = rs.getString("register_user");
+          this.ttl = new OriginalDateTime(rs.getString("ttl"));
+        },
+        "SES_AI_T_SKILLSHEET.selectByPkWithoutRawContent");
   }
 
   // ================================
@@ -133,52 +134,52 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
 
   @Override
   public int insert(Connection connection) throws SQLException {
-    if (connection == null) {
-      return 0;
-    }
-    PreparedStatement preparedStatement = connection.prepareStatement(INSERT_SQL);
-    preparedStatement.setString(1, this.fromGroup);
-    preparedStatement.setString(2, this.fromId);
-    preparedStatement.setString(3, this.fromName);
-    preparedStatement.setString(4, this.skillSheet == null ? null : this.skillSheet.getFileId());
-    preparedStatement.setString(5, this.skillSheet == null ? null : this.skillSheet.getFileName());
-    preparedStatement.setString(
-        6, this.skillSheet == null ? null : this.skillSheet.getFileContent());
-    preparedStatement.setString(
-        7, this.skillSheet == null ? null : this.skillSheet.getFileContentSummary());
-    preparedStatement.setString(8, this.vectorData == null ? null : this.vectorData.toString());
-    preparedStatement.setTimestamp(
-        9, this.registerDate == null ? null : this.registerDate.toTimestamp());
-    preparedStatement.setString(10, this.registerUser);
-    preparedStatement.setTimestamp(11, this.ttl == null ? null : this.ttl.toTimestamp());
-    preparedStatement.setString(12, this.tenantId);
-    return preparedStatement.executeUpdate();
+    return executeInsert(
+        connection,
+        INSERT_SQL,
+        this.tenantId,
+        (stmt) -> {
+          stmt.setString(1, this.fromGroup);
+          stmt.setString(2, this.fromId);
+          stmt.setString(3, this.fromName);
+          stmt.setString(4, this.skillSheet == null ? null : this.skillSheet.getFileId());
+          stmt.setString(5, this.skillSheet == null ? null : this.skillSheet.getFileName());
+          stmt.setString(6, this.skillSheet == null ? null : this.skillSheet.getFileContent());
+          stmt.setString(7, this.skillSheet == null ? null : this.skillSheet.getFileContentSummary());
+          stmt.setString(8, this.vectorData == null ? null : this.vectorData.toString());
+          stmt.setTimestamp(9, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(10, this.registerUser);
+          stmt.setTimestamp(11, this.ttl == null ? null : this.ttl.toTimestamp());
+          stmt.setString(12, this.tenantId);
+        },
+        "SES_AI_T_SKILLSHEET.insert");
   }
 
   @Override
   public void selectByPk(final Connection connection) throws SQLException {
-    if (connection == null || this.getFileId() == null || this.tenantId == null) {
+    if (this.getFileId() == null) {
       return;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SQL);
-    preparedStatement.setString(1, this.getFileId());
-    preparedStatement.setString(2, this.tenantId);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    if (resultSet.next()) {
-      this.fromGroup = resultSet.getString("from_group");
-      this.fromId = resultSet.getString("from_id");
-      this.fromName = resultSet.getString("from_name");
-      this.skillSheet =
-          new SkillSheet(
-              resultSet.getString("file_id"),
-              resultSet.getString("file_name"),
-              resultSet.getString("file_content"));
-      this.skillSheet.setFileContentSummary(resultSet.getString("file_content_summary"));
-      this.registerDate = new OriginalDateTime(resultSet.getString("register_date"));
-      this.registerUser = resultSet.getString("register_user");
-      this.ttl = new OriginalDateTime(resultSet.getString("ttl"));
-      this.tenantId = resultSet.getString("tenant_id");
-    }
+    executeSelectByPk(
+        connection,
+        SELECT_SQL,
+        this.tenantId,
+        (stmt) -> stmt.setString(1, this.getFileId()),
+        (rs) -> {
+          this.fromGroup = rs.getString("from_group");
+          this.fromId = rs.getString("from_id");
+          this.fromName = rs.getString("from_name");
+          this.skillSheet =
+              new SkillSheet(
+                  rs.getString("file_id"),
+                  rs.getString("file_name"),
+                  rs.getString("file_content"));
+          this.skillSheet.setFileContentSummary(rs.getString("file_content_summary"));
+          this.registerDate = new OriginalDateTime(rs.getString("register_date"));
+          this.registerUser = rs.getString("register_user");
+          this.ttl = new OriginalDateTime(rs.getString("ttl"));
+        },
+        "SES_AI_T_SKILLSHEET.selectByPk");
   }
 
   @Override
@@ -188,13 +189,15 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
 
   @Override
   public boolean deleteByPk(Connection connection) throws SQLException {
-    if (connection == null || this.getFileId() == null || this.tenantId == null) {
+    if (this.getFileId() == null) {
       return false;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(DELETE_SQL);
-    preparedStatement.setString(1, this.getFileId());
-    preparedStatement.setString(2, this.tenantId);
-    return preparedStatement.executeUpdate() > 0;
+    return executeDeleteByPk(
+        connection,
+        DELETE_SQL,
+        this.tenantId,
+        (stmt) -> stmt.setString(1, this.getFileId()),
+        "SES_AI_T_SKILLSHEET.deleteByPk");
   }
 
   // ================================
