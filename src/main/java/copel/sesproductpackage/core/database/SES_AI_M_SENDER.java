@@ -121,15 +121,13 @@ public class SES_AI_M_SENDER extends EntityBase {
    * @throws SQLException SQL実行エラー時
    */
   public boolean isExist(Connection connection) throws SQLException {
-    if (connection == null || this.fromId == null) {
+    if (this.fromId == null) {
       return false;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(EXISTS_SQL);
-    preparedStatement.setString(1, this.fromId);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    if (resultSet.next()) {
-      return resultSet.getBoolean(1);
-    }
-    return false;
+    return executeExistsWithoutTenantFilter(
+        connection,
+        EXISTS_SQL,
+        (stmt) -> stmt.setString(1, this.fromId),
+        "SES_AI_M_SENDER.isExist");
   }
 }

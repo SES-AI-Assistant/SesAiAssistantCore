@@ -143,15 +143,13 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
    */
   public void selectByPersonId(java.sql.Connection connection, String personId)
       throws java.sql.SQLException {
-    try (java.sql.PreparedStatement preparedStatement =
-        connection.prepareStatement(SELECT_BY_PERSON_ID_SQL)) {
-      preparedStatement.setString(1, personId);
-      try (java.sql.ResultSet resultSet = preparedStatement.executeQuery()) {
-        if (resultSet.next()) {
-          setEntityDataFromResultSet(resultSet);
-        }
-      }
-    }
+    executeSelectByPk(
+        connection,
+        SELECT_BY_PERSON_ID_SQL,
+        this.tenantId,
+        (stmt) -> stmt.setString(1, personId),
+        (rs) -> setEntityDataFromResultSet(rs),
+        "SES_AI_T_SKILLSHEET_PERSON.selectByPersonId");
   }
 
   /**
@@ -163,15 +161,13 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
    */
   public void selectOuterJoinByPersonId(java.sql.Connection connection, String personId)
       throws java.sql.SQLException {
-    try (java.sql.PreparedStatement preparedStatement =
-        connection.prepareStatement(SELECT_OUTER_JOIN_BY_PERSON_ID_SQL)) {
-      preparedStatement.setString(1, personId);
-      try (java.sql.ResultSet resultSet = preparedStatement.executeQuery()) {
-        if (resultSet.next()) {
-          setEntityDataFromResultSet(resultSet);
-        }
-      }
-    }
+    executeSelectByPk(
+        connection,
+        SELECT_OUTER_JOIN_BY_PERSON_ID_SQL,
+        this.tenantId,
+        (stmt) -> stmt.setString(1, personId),
+        (rs) -> setEntityDataFromResultSet(rs),
+        "SES_AI_T_SKILLSHEET_PERSON.selectOuterJoinByPersonId");
   }
 
   /**
@@ -183,15 +179,13 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
    */
   public void selectByFileId(java.sql.Connection connection, String fileId)
       throws java.sql.SQLException {
-    try (java.sql.PreparedStatement preparedStatement =
-        connection.prepareStatement(SELECT_BY_FILE_ID_SQL)) {
-      preparedStatement.setString(1, fileId);
-      try (java.sql.ResultSet resultSet = preparedStatement.executeQuery()) {
-        if (resultSet.next()) {
-          setEntityDataFromResultSet(resultSet);
-        }
-      }
-    }
+    executeSelectByPk(
+        connection,
+        SELECT_BY_FILE_ID_SQL,
+        this.tenantId,
+        (stmt) -> stmt.setString(1, fileId),
+        (rs) -> setEntityDataFromResultSet(rs),
+        "SES_AI_T_SKILLSHEET_PERSON.selectByFileId");
   }
 
   /**
@@ -203,15 +197,13 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
    */
   public void selectOuterJoinByFileId(java.sql.Connection connection, String fileId)
       throws java.sql.SQLException {
-    try (java.sql.PreparedStatement preparedStatement =
-        connection.prepareStatement(SELECT_OUTER_JOIN_BY_FILE_ID_SQL)) {
-      preparedStatement.setString(1, fileId);
-      try (java.sql.ResultSet resultSet = preparedStatement.executeQuery()) {
-        if (resultSet.next()) {
-          setEntityDataFromResultSet(resultSet);
-        }
-      }
-    }
+    executeSelectByPk(
+        connection,
+        SELECT_OUTER_JOIN_BY_FILE_ID_SQL,
+        this.tenantId,
+        (stmt) -> stmt.setString(1, fileId),
+        (rs) -> setEntityDataFromResultSet(rs),
+        "SES_AI_T_SKILLSHEET_PERSON.selectOuterJoinByFileId");
   }
 
   /**

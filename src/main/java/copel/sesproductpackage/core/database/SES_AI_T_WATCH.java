@@ -47,11 +47,11 @@ public class SES_AI_T_WATCH extends EntityBase {
 
   /** EXISTS文. */
   private static final String EXISTS_SQL =
-      "SELECT EXISTS (SELECT 1 FROM SES_AI_T_WATCH WHERE user_id = ? AND target_id = ? AND tenant_id = ?)";
+      "SELECT EXISTS (SELECT 1 FROM SES_AI_T_WATCH WHERE user_id = ? AND target_id = ?)";
 
   /** EXISTS文2. */
   private static final String EXISTS_BY_TAGET_ID_SQL =
-      "SELECT EXISTS (SELECT 1 FROM SES_AI_T_WATCH WHERE target_id = ? AND tenant_id = ?)";
+      "SELECT EXISTS (SELECT 1 FROM SES_AI_T_WATCH WHERE target_id = ?)";
 
   /** ユーザーID / user_id */
   @Column(physicalName = "user_id", logicalName = "ユーザーID")
@@ -85,18 +85,15 @@ public class SES_AI_T_WATCH extends EntityBase {
    * @throws SQLException
    */
   public boolean isExist(Connection connection) throws SQLException {
-    if (this.tenantId == null) {
-      return false;
-    }
-    PreparedStatement preparedStatement = connection.prepareStatement(EXISTS_SQL);
-    preparedStatement.setString(1, this.userId);
-    preparedStatement.setString(2, this.targetId);
-    preparedStatement.setString(3, this.tenantId);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    if (resultSet.next()) {
-      return resultSet.getBoolean(1);
-    }
-    return false;
+    return executeExists(
+        connection,
+        EXISTS_SQL,
+        this.tenantId,
+        (stmt) -> {
+          stmt.setString(1, this.userId);
+          stmt.setString(2, this.targetId);
+        },
+        "SES_AI_T_WATCH.isExist");
   }
 
   /**
@@ -107,17 +104,12 @@ public class SES_AI_T_WATCH extends EntityBase {
    * @throws SQLException
    */
   public boolean isExistByTargetId(Connection connection) throws SQLException {
-    if (this.tenantId == null) {
-      return false;
-    }
-    PreparedStatement preparedStatement = connection.prepareStatement(EXISTS_BY_TAGET_ID_SQL);
-    preparedStatement.setString(1, this.targetId);
-    preparedStatement.setString(2, this.tenantId);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    if (resultSet.next()) {
-      return resultSet.getBoolean(1);
-    }
-    return false;
+    return executeExists(
+        connection,
+        EXISTS_BY_TAGET_ID_SQL,
+        this.tenantId,
+        (stmt) -> stmt.setString(1, this.targetId),
+        "SES_AI_T_WATCH.isExistByTargetId");
   }
 
   @Override

@@ -5,6 +5,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import lombok.Data;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -253,6 +255,79 @@ public abstract class EntityBase implements Comparable<EntityBase> {
   }
 
   /**
+   * EXISTS クエリ実行テンプレートメソッド（WHERE に tenantId フィルタを自動追加）.
+   *
+   * <p>SQL に自動的に "AND tenant_id = ?" を付加して実行します。
+   *
+   * @param conn DBコネクション（null の場合は false を返す）
+   * @param baseSql EXISTS SQL文（WHERE句の有無は自動判定）
+   * @param tenantId テナントID（必須）
+   * @param paramBinder パラメータバインディング処理
+   * @param logLabel ログ出力用ラベル
+   * @return レコードが存在する場合は true、存在しない場合は false
+   * @throws SQLException
+   * @throws IllegalArgumentException tenantId が null または空文字列の場合
+   */
+  protected boolean executeExists(
+      final Connection conn,
+      final String baseSql,
+      final String tenantId,
+      final PreparedStatementBinder paramBinder,
+      final String logLabel) throws SQLException {
+    if (conn == null || tenantId == null || tenantId.isEmpty()) {
+      return false;
+    }
+
+    String filteredSql = addTenantIdFilter(baseSql, tenantId);
+    logSql(filteredSql, logLabel);
+
+    try (PreparedStatement stmt = conn.prepareStatement(filteredSql)) {
+      paramBinder.bind(stmt);
+      setTenantIdParameter(stmt, 2, tenantId); // 通常は PK が第1パラメータなので、tenantId は第2
+      try (ResultSet rs = stmt.executeQuery()) {
+        if (rs.next()) {
+          return rs.getBoolean(1);
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * EXISTS クエリ実行テンプレートメソッド（tenantId フィルタなし）.
+   *
+   * <p>マスタテーブルの確認など、tenantId フィルタリングが不要な場合に使用します。
+   *
+   * @param conn DBコネクション（null の場合は false を返す）
+   * @param sql EXISTS SQL文
+   * @param paramBinder パラメータバインディング処理
+   * @param logLabel ログ出力用ラベル
+   * @return レコードが存在する場合は true、存在しない場合は false
+   * @throws SQLException
+   */
+  protected boolean executeExistsWithoutTenantFilter(
+      final Connection conn,
+      final String sql,
+      final PreparedStatementBinder paramBinder,
+      final String logLabel) throws SQLException {
+    if (conn == null) {
+      return false;
+    }
+
+    logSql(sql, logLabel);
+
+    try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+      paramBinder.bind(stmt);
+      try (ResultSet rs = stmt.executeQuery()) {
+        if (rs.next()) {
+          return rs.getBoolean(1);
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
    * UPDATE-by-PK実行テンプレートメソッド（WHERE に tenantId フィルタを自動追加）.
    *
    * <p>SQL に自動的に "AND tenant_id = ?" を付加して実行します。 これにより、他のテナント行への誤り更新を防止します。
@@ -387,7 +462,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
   /**
    * SQL に tenantId フィルタを自動追加します.
    *
-   * <p>既に WHERE 句に tenant_id 条件が含まれている場合はスキップします。 WHERE句がある場合は AND を使用し、ない場合は WHERE を使用します。
+   * <p>FROM 句からテーブルエイリアスを自動検出し、そのテーブルの tenant_id 条件を追加します。 JOIN を含む複雑な SQL にも対応します。
    *
    * @param baseSql 基本SQL
    * @param tenantId テナントID（必須）
@@ -408,10 +483,23 @@ public abstract class EntityBase implements Comparable<EntityBase> {
     // WHERE句が含まれているかチェック
     boolean hasWhereClause = upperSql.contains(" WHERE ");
 
+    // FROM句からテーブルエイリアスを自動抽出
+    Pattern pattern =
+        Pattern.compile(
+            "FROM\\s+\\S+\\s+([a-zA-Z_]\\w*)(?:\\s|,|JOIN|WHERE|$)",
+            Pattern.CASE_INSENSITIVE);
+    Matcher matcher = pattern.matcher(trimmedSql);
+    String tableAlias = matcher.find() ? matcher.group(1) : null;
+
+    String tenantIdCondition =
+        tableAlias != null && !tableAlias.isEmpty()
+            ? tableAlias + ".tenant_id = ?"
+            : "tenant_id = ?";
+
     if (hasWhereClause) {
-      return trimmedSql + " AND tenant_id = ?";
+      return trimmedSql + " AND " + tenantIdCondition;
     } else {
-      return trimmedSql + " WHERE tenant_id = ?";
+      return trimmedSql + " WHERE " + tenantIdCondition;
     }
   }
 
