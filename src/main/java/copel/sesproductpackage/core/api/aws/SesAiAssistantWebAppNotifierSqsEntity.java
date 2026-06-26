@@ -6,8 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import copel.sesproductpackage.core.api.SesAiAssistantWebAppNotifierRequestEntity;
 
 /**
- * Web Push 通知 SQS 送信エンティティ. SesAiAssistantWebAppNotifier Lambda をトリガーする SQS
- * へメッセージを送信する.
+ * Web Push 通知 SQS 送信エンティティ. SesAiAssistantWebAppNotifier Lambda をトリガーする SQS へメッセージを送信する.
  *
  * @author Copel Co., Ltd.
  */

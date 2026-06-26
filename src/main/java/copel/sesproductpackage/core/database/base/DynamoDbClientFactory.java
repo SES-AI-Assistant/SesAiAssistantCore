@@ -1,11 +1,11 @@
 package copel.sesproductpackage.core.database.base;
 
+import copel.sesproductpackage.core.util.AwsEndpointUtil;
+import java.net.URI;
 import software.amazon.awssdk.auth.credentials.EnvironmentVariableCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import java.net.URI;
-import copel.sesproductpackage.core.util.AwsEndpointUtil;
 
 /** DynamoDbClientを生成するファクトリクラス. */
 public final class DynamoDbClientFactory {

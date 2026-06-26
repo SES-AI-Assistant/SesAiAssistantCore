@@ -269,9 +269,7 @@ public class OpenAI implements Transformer {
     }
   }
 
-  /**
-   * OpenAI API エラー時のレスポンス本文（JSON）を読み取ります。成功時は {@code null} です。
-   */
+  /** OpenAI API エラー時のレスポンス本文（JSON）を読み取ります。成功時は {@code null} です。 */
   private static String readErrorResponseBody(HttpURLConnection conn) {
     try (InputStream es = conn.getErrorStream()) {
       if (es == null) {
@@ -284,9 +282,7 @@ public class OpenAI implements Transformer {
     }
   }
 
-  /**
-   * ログ・例外用に、要約と OpenAI からの本文を結合します。
-   */
+  /** ログ・例外用に、要約と OpenAI からの本文を結合します。 */
   private static String formatOpenAiHttpError(String summary, String responseBody) {
     if (responseBody == null || responseBody.isBlank()) {
       return summary;
@@ -309,41 +305,35 @@ public class OpenAI implements Transformer {
           String body = readErrorResponseBody(conn);
           conn.disconnect();
           throw new RuntimeException(
-              formatOpenAiHttpError(
-                  "400 Bad Request: 無効なパラメータ、または不適切なリクエストフォーマットです", body));
+              formatOpenAiHttpError("400 Bad Request: 無効なパラメータ、または不適切なリクエストフォーマットです", body));
         }
       case HttpURLConnection.HTTP_UNAUTHORIZED:
         {
           String body = readErrorResponseBody(conn);
           conn.disconnect();
           throw new RuntimeException(
-              formatOpenAiHttpError(
-                  "401 Unauthorized: APIキーが無効、または提供されていないエラー", body));
+              formatOpenAiHttpError("401 Unauthorized: APIキーが無効、または提供されていないエラー", body));
         }
       case HttpURLConnection.HTTP_FORBIDDEN:
         {
           String body = readErrorResponseBody(conn);
           conn.disconnect();
           throw new RuntimeException(
-              formatOpenAiHttpError(
-                  "403 Forbidden: アカウントの制限、または対象モデルが利用不可のエラー", body));
+              formatOpenAiHttpError("403 Forbidden: アカウントの制限、または対象モデルが利用不可のエラー", body));
         }
       case HttpURLConnection.HTTP_NOT_FOUND:
         {
           String body = readErrorResponseBody(conn);
           conn.disconnect();
           throw new RuntimeException(
-              formatOpenAiHttpError(
-                  "404 Not Found: APIのエンドポイントが間違っている、またはモデル名が無効のエラー",
-                  body));
+              formatOpenAiHttpError("404 Not Found: APIのエンドポイントが間違っている、またはモデル名が無効のエラー", body));
         }
       case HttpURLConnection.HTTP_CLIENT_TIMEOUT:
         {
           String body = readErrorResponseBody(conn);
           conn.disconnect();
           throw new RuntimeException(
-              formatOpenAiHttpError(
-                  "408 Request Timeout: リクエストが時間内に処理されなかったエラー", body));
+              formatOpenAiHttpError("408 Request Timeout: リクエストが時間内に処理されなかったエラー", body));
         }
       case 429:
         {
@@ -351,8 +341,7 @@ public class OpenAI implements Transformer {
           conn.disconnect();
           throw new RuntimeException(
               formatOpenAiHttpError(
-                  "429 Too Many Requests（レート制限・利用枠・課金など。詳細は OpenAI レスポンス参照）",
-                  body));
+                  "429 Too Many Requests（レート制限・利用枠・課金など。詳細は OpenAI レスポンス参照）", body));
         }
       case HttpURLConnection.HTTP_INTERNAL_ERROR:
         {
@@ -367,8 +356,7 @@ public class OpenAI implements Transformer {
           conn.disconnect();
           throw new RuntimeException(
               formatOpenAiHttpError(
-                  "503 Service Unavailable: OpenAIのサーバーがメンテナンス中、または負荷が高い状態です",
-                  body));
+                  "503 Service Unavailable: OpenAIのサーバーがメンテナンス中、または負荷が高い状態です", body));
         }
       default:
         break;

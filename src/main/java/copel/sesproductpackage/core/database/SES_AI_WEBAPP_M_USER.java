@@ -1,18 +1,15 @@
 package copel.sesproductpackage.core.database;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.HashSet;
-import java.util.Set;
-
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Permission;
 import copel.sesproductpackage.core.unit.Plan;
 import copel.sesproductpackage.core.unit.Role;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.HashSet;
+import java.util.Set;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -31,9 +28,7 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
     super(tenantId);
   }
 
-  /**
-   * tenantIdをあとから設定できるコンストラクタ（ログイン時のユーザーID検索時など）.
-   */
+  /** tenantIdをあとから設定できるコンストラクタ（ログイン時のユーザーID検索時など）. */
   public SES_AI_WEBAPP_M_USER() {
     super("_temp_");
   }
@@ -55,7 +50,8 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
       "UPDATE SES_AI_WEBAPP_M_USER SET user_id = ?, user_name = ?, role_cd = ?, plan_cd = ?, register_date = ?, register_user = ? WHERE user_id = ? AND tenant_id = ?";
 
   /** DELETE文. */
-  private static final String DELETE_SQL = "DELETE FROM SES_AI_WEBAPP_M_USER WHERE user_id = ? AND tenant_id = ?";
+  private static final String DELETE_SQL =
+      "DELETE FROM SES_AI_WEBAPP_M_USER WHERE user_id = ? AND tenant_id = ?";
 
   /** 【PK】 ユーザーID* / user_id */
   @Column(required = true, primary = true, physicalName = "user_id", logicalName = "ユーザーID")

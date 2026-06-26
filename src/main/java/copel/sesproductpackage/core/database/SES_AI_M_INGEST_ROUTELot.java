@@ -49,33 +49,29 @@ public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUT
   @Override
   public void selectAll(final Connection connection, final String tenantId) throws SQLException {
     this.entityLot = new ArrayList<>();
-    List<SES_AI_M_INGEST_ROUTE> results = executeQuery(
-        connection,
-        SELECT_ALL_SQL,
-        tenantId,
-        this::mapResultSet,
-        (stmt, paramIndex) -> paramIndex
-    );
+    List<SES_AI_M_INGEST_ROUTE> results =
+        executeQuery(
+            connection,
+            SELECT_ALL_SQL,
+            tenantId,
+            this::mapResultSet,
+            (stmt, paramIndex) -> paramIndex);
     this.entityLot.addAll(results);
   }
 
   /**
    * 全レコードを取得する（WithoutTenantFilter - バッチ処理専用）.
    *
-   * ⚠️ このメソッドは全テナント対象です。
-   * バッチ処理専用。コードレビュー必須。
+   * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
    * @throws SQLException
    */
   public void selectAllWithoutTenantFilter(final Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
-    List<SES_AI_M_INGEST_ROUTE> results = executeQueryWithoutTenantFilter(
-        connection,
-        SELECT_ALL_SQL,
-        this::mapResultSet,
-        (stmt, paramIndex) -> paramIndex
-    );
+    List<SES_AI_M_INGEST_ROUTE> results =
+        executeQueryWithoutTenantFilter(
+            connection, SELECT_ALL_SQL, this::mapResultSet, (stmt, paramIndex) -> paramIndex);
     this.entityLot.addAll(results);
   }
 
@@ -91,7 +87,7 @@ public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUT
   }
 
   /**
-   * チャネルタイプとルートキーで検索し、該当する全テナントID を取得する（テナント対応）.
+   * チャネルタイプとルートキーで検索し、該当するレコードを取得する（テナント対応）.
    *
    * @param connection DB接続
    * @param tenantId テナントID
@@ -99,19 +95,28 @@ public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUT
    * @param routeKey ルートキー (メールアドレス、LINE ID など)
    * @throws SQLException DB例外
    */
-  public void selectByChannelTypeAndRouteKey(final Connection connection, final String tenantId, final ChannelType channelType, final String routeKey) throws SQLException {
+  public void selectByChannelTypeAndRouteKey(
+      final Connection connection,
+      final String tenantId,
+      final ChannelType channelType,
+      final String routeKey)
+      throws SQLException {
     if (connection == null || channelType == null || routeKey == null) {
       this.entityLot = new ArrayList<>();
       return;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BY_CHANNEL_AND_ROUTE_SQL);
-    preparedStatement.setString(1, channelType.getValue());
-    preparedStatement.setString(2, routeKey);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    this.entityLot = new ArrayList<>();
-    while (resultSet.next()) {
-      this.entityLot.add(mapResultSet(resultSet));
-    }
+    List<SES_AI_M_INGEST_ROUTE> results =
+        executeQuery(
+            connection,
+            SELECT_BY_CHANNEL_AND_ROUTE_SQL,
+            tenantId,
+            this::mapResultSet,
+            (stmt, paramIndex) -> {
+              stmt.setString(paramIndex, channelType.getValue());
+              stmt.setString(paramIndex + 1, routeKey);
+              return paramIndex + 2;
+            });
+    this.entityLot = results;
   }
 
   /**
@@ -122,12 +127,15 @@ public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUT
    * @param routeKey ルートキー (メールアドレス、LINE ID など)
    * @throws SQLException DB例外
    */
-  public void selectByChannelTypeAndRouteKeyWithoutTenantId(final Connection connection, final ChannelType channelType, final String routeKey) throws SQLException {
+  public void selectByChannelTypeAndRouteKeyWithoutTenantId(
+      final Connection connection, final ChannelType channelType, final String routeKey)
+      throws SQLException {
     if (connection == null || channelType == null || routeKey == null) {
       this.entityLot = new ArrayList<>();
       return;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BY_CHANNEL_AND_ROUTE_WITHOUT_TENANT_SQL);
+    PreparedStatement preparedStatement =
+        connection.prepareStatement(SELECT_BY_CHANNEL_AND_ROUTE_WITHOUT_TENANT_SQL);
     preparedStatement.setString(1, channelType.getValue());
     preparedStatement.setString(2, routeKey);
     ResultSet resultSet = preparedStatement.executeQuery();

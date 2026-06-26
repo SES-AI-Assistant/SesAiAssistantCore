@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import copel.sesproductpackage.core.util.Properties;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import org.junit.jupiter.api.AfterEach;
@@ -19,7 +20,6 @@ import software.amazon.awssdk.services.lambda.LambdaClientBuilder;
 import software.amazon.awssdk.services.lambda.model.InvokeRequest;
 import software.amazon.awssdk.services.lambda.model.InvokeResponse;
 import software.amazon.awssdk.services.lambda.model.LambdaException;
-import copel.sesproductpackage.core.util.Properties;
 
 class MarkItDownTest {
 
@@ -40,7 +40,9 @@ class MarkItDownTest {
   @Test
   void invokeThrowsWhenFunctionNameMissing() {
     try (MockedStatic<Properties> props = mockStatic(Properties.class)) {
-      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn(null);
+      props
+          .when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME))
+          .thenReturn(null);
       IllegalStateException ex =
           assertThrows(
               IllegalStateException.class,
@@ -54,7 +56,9 @@ class MarkItDownTest {
   @Test
   void invokeThrowsWhenFunctionNameBlank() {
     try (MockedStatic<Properties> props = mockStatic(Properties.class)) {
-      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("  ");
+      props
+          .when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME))
+          .thenReturn("  ");
       assertThrows(
           IllegalStateException.class,
           () ->
@@ -65,11 +69,12 @@ class MarkItDownTest {
 
   @Test
   void invokeUsesDefaultRegionWhenAwsRegionBlank() {
-    String okJson =
-        "{\"success\":true,\"markdown\":\"# Hi\",\"title\":null,\"error\":null}";
+    String okJson = "{\"success\":true,\"markdown\":\"# Hi\",\"title\":null,\"error\":null}";
     try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
+      props
+          .when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME))
+          .thenReturn("fn");
 
       LambdaClient client = mockLambdaChain(lambda, okJson);
 
@@ -84,11 +89,12 @@ class MarkItDownTest {
 
   @Test
   void invokeUsesExplicitAwsRegion() {
-    String okJson =
-        "{\"success\":true,\"markdown\":\"m\",\"title\":\"t\",\"error\":null}";
+    String okJson = "{\"success\":true,\"markdown\":\"m\",\"title\":\"t\",\"error\":null}";
     try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
+      props
+          .when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME))
+          .thenReturn("fn");
 
       LambdaClient client = mockLambdaChain(lambda, okJson);
 
@@ -103,20 +109,22 @@ class MarkItDownTest {
 
   @Test
   void invokeSuccessParsesResponse() {
-    String okJson =
-        "{\"success\":true,\"markdown\":\"# body\",\"title\":\"T\",\"error\":null}";
+    String okJson = "{\"success\":true,\"markdown\":\"# body\",\"title\":\"T\",\"error\":null}";
     try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
+      props
+          .when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME))
+          .thenReturn("fn");
 
       mockLambdaChain(lambda, okJson);
 
       MarkItDown.MarkitdownLambdaRequestEntity req =
           MarkItDown.MarkitdownLambdaRequestEntity.builder()
-              .s3(MarkItDown.MarkitdownLambdaRequestEntity.S3ObjectRef.builder()
-                  .bucket("b")
-                  .key("k")
-                  .build())
+              .s3(
+                  MarkItDown.MarkitdownLambdaRequestEntity.S3ObjectRef.builder()
+                      .bucket("b")
+                      .key("k")
+                      .build())
               .filename("f.docx")
               .build();
       MarkItDown.MarkitdownLambdaResponseEntity res = MarkItDown.invoke(req);
@@ -131,7 +139,9 @@ class MarkItDownTest {
   void invokeThrowsWhenRequestJsonFails() {
     try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
+      props
+          .when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME))
+          .thenReturn("fn");
       mockLambdaChain(lambda, "{}");
 
       MarkItDown.injectJsonProcessingExceptionOnSerializeForTest = true;
@@ -150,7 +160,9 @@ class MarkItDownTest {
   void invokeThrowsWhenFunctionErrorWithPayload() {
     try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
+      props
+          .when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME))
+          .thenReturn("fn");
 
       InvokeResponse response =
           InvokeResponse.builder()
@@ -174,7 +186,9 @@ class MarkItDownTest {
   void invokeThrowsWhenFunctionErrorWithNullPayload() {
     try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
+      props
+          .when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME))
+          .thenReturn("fn");
 
       InvokeResponse response =
           InvokeResponse.builder().functionError("Unhandled").payload(null).build();
@@ -194,10 +208,11 @@ class MarkItDownTest {
   void invokeThrowsWhenPayloadNullAfterOkFunctionError() {
     try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
+      props
+          .when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME))
+          .thenReturn("fn");
 
-      InvokeResponse response =
-          InvokeResponse.builder().functionError(null).payload(null).build();
+      InvokeResponse response = InvokeResponse.builder().functionError(null).payload(null).build();
       mockLambdaChain(lambda, response);
 
       IllegalStateException ex =
@@ -214,7 +229,9 @@ class MarkItDownTest {
   void invokeThrowsWhenResponseJsonInvalid() {
     try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
+      props
+          .when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME))
+          .thenReturn("fn");
 
       mockLambdaChain(lambda, "{not-json");
 
@@ -232,7 +249,9 @@ class MarkItDownTest {
   void invokeThrowsWhenLambdaClientThrowsLambdaException() {
     try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      props.when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)).thenReturn("fn");
+      props
+          .when(() -> Properties.get(MarkItDown.ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME))
+          .thenReturn("fn");
 
       LambdaClient client = mock(LambdaClient.class);
       LambdaClientBuilder builder = mock(LambdaClientBuilder.class);
@@ -290,13 +309,15 @@ class MarkItDownTest {
     assertNotNull(req.toString());
   }
 
-  private static LambdaClient mockLambdaChain(MockedStatic<LambdaClient> lambda, String payloadUtf8) {
+  private static LambdaClient mockLambdaChain(
+      MockedStatic<LambdaClient> lambda, String payloadUtf8) {
     InvokeResponse response =
         InvokeResponse.builder().payload(SdkBytes.fromUtf8String(payloadUtf8)).build();
     return mockLambdaChain(lambda, response);
   }
 
-  private static LambdaClient mockLambdaChain(MockedStatic<LambdaClient> lambda, InvokeResponse response) {
+  private static LambdaClient mockLambdaChain(
+      MockedStatic<LambdaClient> lambda, InvokeResponse response) {
     LambdaClient client = mock(LambdaClient.class);
     LambdaClientBuilder builder = mock(LambdaClientBuilder.class);
     lambda.when(LambdaClient::builder).thenReturn(builder);

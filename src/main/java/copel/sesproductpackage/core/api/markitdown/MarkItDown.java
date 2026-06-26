@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import copel.sesproductpackage.core.util.Properties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,21 +22,23 @@ import software.amazon.awssdk.services.lambda.model.LambdaException;
 /**
  * markitdown-lambda を同期 invoke して Markdown 変換結果を取得するユーティリティ.
  *
- * <p>関数名は環境変数 {@value #ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME}、リージョンは {@value #ENV_AWS_REGION}
- * （未設定時は {@link Region#AP_NORTHEAST_1}）を使用する。
+ * <p>関数名は環境変数 {@value #ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME}、リージョンは {@value #ENV_AWS_REGION} （未設定時は
+ * {@link Region#AP_NORTHEAST_1}）を使用する。
  */
 @Slf4j
 public final class MarkItDown {
 
   /** markitdown-lambda の関数名（ARN の最後のセグメントでも可）。 */
-  public static final String ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME = "MARKITDOWN_LAMBDA_FUNCTION_NAME";
+  public static final String ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME =
+      "MARKITDOWN_LAMBDA_FUNCTION_NAME";
 
   private static final String ENV_AWS_REGION = "AWS_REGION";
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   /**
-   * UT 専用: {@code true} のとき、リクエストの JSON 化で {@link JsonProcessingException} を投げる（本番では常に {@code false}）。
+   * UT 専用: {@code true} のとき、リクエストの JSON 化で {@link JsonProcessingException} を投げる（本番では常に {@code
+   * false}）。
    */
   static volatile boolean injectJsonProcessingExceptionOnSerializeForTest;
 
@@ -51,7 +52,8 @@ public final class MarkItDown {
   }
 
   /**
-   * {@code MARKITDOWN_LAMBDA_FUNCTION_NAME} で指定した Lambda を同期 invoke し、応答を {@link MarkitdownLambdaResponseEntity} にマッピングする.
+   * {@code MARKITDOWN_LAMBDA_FUNCTION_NAME} で指定した Lambda を同期 invoke し、応答を {@link
+   * MarkitdownLambdaResponseEntity} にマッピングする.
    *
    * @param request 内部ペイロード（SPEC 3.1）
    * @return Lambda が返す JSON（SPEC 3.2）
@@ -91,8 +93,7 @@ public final class MarkItDown {
                   .build());
 
       if (response.functionError() != null) {
-        final String errBody =
-            response.payload() != null ? response.payload().asUtf8String() : "";
+        final String errBody = response.payload() != null ? response.payload().asUtf8String() : "";
         log.error(
             "markitdown-lambda が FunctionError を返しました: type={} body={}",
             response.functionError(),
@@ -120,8 +121,8 @@ public final class MarkItDown {
   /**
    * markitdown-lambda を <strong>同期 invoke</strong> するときのイベント（内部ペイロード）に対応する Entity.
    *
-   * <p>API Gateway / Function URL 経由の HTTP ラッパーではなく、Lambda に直接渡す JSON と同一形状を想定する。
-   * 仕様: markitdown-lambda の SPECIFICATION.md「3.1 リクエスト」。
+   * <p>API Gateway / Function URL 経由の HTTP ラッパーではなく、Lambda に直接渡す JSON と同一形状を想定する。 仕様:
+   * markitdown-lambda の SPECIFICATION.md「3.1 リクエスト」。
    *
    * <p>入力は {@code url} / {@code s3} / {@code file_base64} のいずれか（優先順は Lambda 実装に従う）。
    */
@@ -159,8 +160,8 @@ public final class MarkItDown {
   /**
    * markitdown-lambda の戻り値（同期 invoke のペイロード）に対応する Entity.
    *
-   * <p>業務上の成否は {@link #success} で判別する。失敗時は {@link #error} に詳細が入る。
-   * 仕様: markitdown-lambda の SPECIFICATION.md「3.2 レスポンス」。
+   * <p>業務上の成否は {@link #success} で判別する。失敗時は {@link #error} に詳細が入る。 仕様: markitdown-lambda の
+   * SPECIFICATION.md「3.2 レスポンス」。
    */
   @Data
   @Builder

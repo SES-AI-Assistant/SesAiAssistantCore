@@ -45,7 +45,7 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
 
   /** SELECT文(file_name検索). */
   private static final String SELECT_BY_FILE_NAME_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, register_date, register_user, ttl, tenant_id FROM SES_AI_T_SKILLSHEET WHERE file_name = ?";
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl, tenant_id FROM SES_AI_T_SKILLSHEET WHERE file_name = ?";
 
   /** ベクトル検索のカウント用SQL. */
   private static final String COUNT_SQL_FOR_RETRIEVE = "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET";
@@ -54,10 +54,12 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
   private static final String RETRIEVE_SQL_WITH_OFFSET = RETRIEVE_SQL + " OFFSET ?";
 
   /** 類似度閾値ベクトル検索のカウント用SQL. */
-  private static final String COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD = "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET WHERE 1 - (vector_data <=> ?::vector) >= ?";
+  private static final String COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD =
+      "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET WHERE 1 - (vector_data <=> ?::vector) >= ?";
 
   /** 類似度閾値ベクトル検索のページング用SQL（OFFSET付き）. */
-  private static final String RETRIEVE_WITH_THRESHOLD_SQL_WITH_OFFSET = RETRIEVE_WITH_THRESHOLD_SQL + " OFFSET ?";
+  private static final String RETRIEVE_WITH_THRESHOLD_SQL_WITH_OFFSET =
+      RETRIEVE_WITH_THRESHOLD_SQL + " OFFSET ?";
 
   /** 期限切れスキルシート取得SQL前半（テナントIDあり）. */
   private static final String SELECT_EXPIRED_SKILLSHEETS_PREFIX =
@@ -68,9 +70,7 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
 
   /** 期限切れスキルシート取得SQL後半（テナントIDあり）. */
   private static final String SELECT_EXPIRED_SKILLSHEETS_SUFFIX =
-      " days') < NOW())) "
-          + "ORDER BY register_date ASC "
-          + "LIMIT ? OFFSET ?";
+      " days') < NOW())) " + "ORDER BY register_date ASC " + "LIMIT ? OFFSET ?";
 
   /** 期限切れスキルシート取得SQL前半（テナントIDなし、バッチ用）. */
   private static final String SELECT_EXPIRED_SKILLSHEETS_WITHOUT_TENANT_PREFIX =
@@ -81,9 +81,7 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
 
   /** 期限切れスキルシート取得SQL後半（テナントIDなし、バッチ用）. */
   private static final String SELECT_EXPIRED_SKILLSHEETS_WITHOUT_TENANT_SUFFIX =
-      " days') < NOW())) "
-          + "ORDER BY register_date ASC "
-          + "LIMIT ? OFFSET ?";
+      " days') < NOW())) " + "ORDER BY register_date ASC " + "LIMIT ? OFFSET ?";
 
   /** 要員に紐づくスキルシート取得SQL（テナントIDあり）. */
   private static final String SELECT_BUNDLED_WITH_PERSON_SQL =
@@ -101,7 +99,6 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
   public SES_AI_T_SKILLSHEETLot() {
     super();
   }
-
 
   @Override
   protected String getSelectSql() {
@@ -164,7 +161,9 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * @param limit 取得上限件数
    * @throws SQLException
    */
-  public void retrieve(final Connection connection, final String tenantId, final Vector query, final int limit) throws SQLException {
+  public void retrieve(
+      final Connection connection, final String tenantId, final Vector query, final int limit)
+      throws SQLException {
     this.retrievePaged(connection, tenantId, query, 1, limit);
   }
 
@@ -178,7 +177,12 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
-  public void retrievePaged(final Connection connection, final String tenantId, final Vector query, final int page, final int size)
+  public void retrievePaged(
+      final Connection connection,
+      final String tenantId,
+      final Vector query,
+      final int page,
+      final int size)
       throws SQLException {
     if (connection == null) {
       return;
@@ -202,27 +206,27 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     }
 
     // (2) ページング用ベクトル検索（tenant_id フィルターを適用）
-    List<SES_AI_T_SKILLSHEET> results = executeQuery(
-        connection,
-        RETRIEVE_SQL_WITH_OFFSET,
-        tenantId,
-        rs -> {
-          SES_AI_T_SKILLSHEET sesAiTSkillsheet = mapResultSet(rs);
-          try {
-            sesAiTSkillsheet.setDistance(rs.getDouble("distance"));
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
-          return sesAiTSkillsheet;
-        },
-        (stmt, paramIndex) -> {
-          int idx = paramIndex;
-          stmt.setString(idx, query == null ? null : query.toString());
-          stmt.setInt(idx + 1, size);
-          stmt.setInt(idx + 2, (page - 1) * size);
-          return idx + 3;
-        }
-    );
+    List<SES_AI_T_SKILLSHEET> results =
+        executeQuery(
+            connection,
+            RETRIEVE_SQL_WITH_OFFSET,
+            tenantId,
+            rs -> {
+              SES_AI_T_SKILLSHEET sesAiTSkillsheet = mapResultSet(rs);
+              try {
+                sesAiTSkillsheet.setDistance(rs.getDouble("distance"));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+              return sesAiTSkillsheet;
+            },
+            (stmt, paramIndex) -> {
+              int idx = paramIndex;
+              stmt.setString(idx, query == null ? null : query.toString());
+              stmt.setInt(idx + 1, size);
+              stmt.setInt(idx + 2, (page - 1) * size);
+              return idx + 3;
+            });
     this.entityLot = results;
   }
 
@@ -234,7 +238,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * @param query 検索ベクトル
    * @throws SQLException
    */
-  public void retrieve(final Connection connection, final String tenantId, final Vector query) throws SQLException {
+  public void retrieve(final Connection connection, final String tenantId, final Vector query)
+      throws SQLException {
     this.retrieveWithThreshold(connection, tenantId, query, 0.0, 5);
   }
 
@@ -248,7 +253,13 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * @param limit 取得上限件数
    * @throws SQLException
    */
-  public void retrieveWithThreshold(final Connection connection, final String tenantId, final Vector query, final double similarityThreshold, final int limit) throws SQLException {
+  public void retrieveWithThreshold(
+      final Connection connection,
+      final String tenantId,
+      final Vector query,
+      final double similarityThreshold,
+      final int limit)
+      throws SQLException {
     this.retrievePagedWithThreshold(connection, tenantId, query, similarityThreshold, 1, limit);
   }
 
@@ -263,7 +274,13 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
-  public void retrievePagedWithThreshold(final Connection connection, final String tenantId, final Vector query, final double similarityThreshold, final int page, final int size)
+  public void retrievePagedWithThreshold(
+      final Connection connection,
+      final String tenantId,
+      final Vector query,
+      final double similarityThreshold,
+      final int page,
+      final int size)
       throws SQLException {
     if (connection == null || query == null) {
       return;
@@ -271,7 +288,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
 
     // (1) 全件数を取得（tenant_id フィルターを適用）
     try (PreparedStatement preparedStatement =
-        connection.prepareStatement(addTenantIdFilter(COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD, tenantId))) {
+        connection.prepareStatement(
+            addTenantIdFilter(COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD, tenantId))) {
       int paramIndex = 1;
       preparedStatement.setString(paramIndex++, query.toString());
       preparedStatement.setDouble(paramIndex++, similarityThreshold);
@@ -290,30 +308,30 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     }
 
     // (2) ページング用ベクトル検索（tenant_id フィルターを適用）
-    List<SES_AI_T_SKILLSHEET> results = executeQuery(
-        connection,
-        RETRIEVE_WITH_THRESHOLD_SQL_WITH_OFFSET,
-        tenantId,
-        rs -> {
-          SES_AI_T_SKILLSHEET entity = mapResultSet(rs);
-          try {
-            entity.setDistance(rs.getDouble("distance"));
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
-          return entity;
-        },
-        (stmt, paramIndex) -> {
-          int idx = paramIndex;
-          String vectorStr = query.toString();
-          stmt.setString(idx, vectorStr);
-          stmt.setString(idx + 1, vectorStr);
-          stmt.setDouble(idx + 2, similarityThreshold);
-          stmt.setInt(idx + 3, size);
-          stmt.setInt(idx + 4, (page - 1) * size);
-          return idx + 5;
-        }
-    );
+    List<SES_AI_T_SKILLSHEET> results =
+        executeQuery(
+            connection,
+            RETRIEVE_WITH_THRESHOLD_SQL_WITH_OFFSET,
+            tenantId,
+            rs -> {
+              SES_AI_T_SKILLSHEET entity = mapResultSet(rs);
+              try {
+                entity.setDistance(rs.getDouble("distance"));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+              return entity;
+            },
+            (stmt, paramIndex) -> {
+              int idx = paramIndex;
+              String vectorStr = query.toString();
+              stmt.setString(idx, vectorStr);
+              stmt.setString(idx + 1, vectorStr);
+              stmt.setDouble(idx + 2, similarityThreshold);
+              stmt.setInt(idx + 3, size);
+              stmt.setInt(idx + 4, (page - 1) * size);
+              return idx + 5;
+            });
     this.entityLot = results;
   }
 
@@ -326,7 +344,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * @param query 検索文字列
    * @throws SQLException
    */
-  public void selectLike(final Connection connection, final String tenantId, final String column, final String query)
+  public void selectLike(
+      final Connection connection, final String tenantId, final String column, final String query)
       throws SQLException {
     this.searchByField(connection, tenantId, column, query);
   }
@@ -339,9 +358,10 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * @param query 検索条件Map
    * @throws SQLException
    */
-  public void searchByFileContent(final Connection connection, final String tenantId, final String query)
-      throws SQLException {
-    this.selectByLikeQuery(connection, tenantId, SELECT_FILE_CONTENT_LIKE_SQL, "file_content", query, null);
+  public void searchByFileContent(
+      final Connection connection, final String tenantId, final String query) throws SQLException {
+    this.selectByLikeQuery(
+        connection, tenantId, SELECT_FILE_CONTENT_LIKE_SQL, "file_content", query, null);
   }
 
   /**
@@ -355,10 +375,21 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * @throws SQLException
    */
   public void searchByFileContentPaged(
-      final Connection connection, final String tenantId, final String query, final int page, final int size)
+      final Connection connection,
+      final String tenantId,
+      final String query,
+      final int page,
+      final int size)
       throws SQLException {
     this.selectByLikeQueryPaged(
-        connection, tenantId, SELECT_FILE_CONTENT_LIKE_SQL, "file_content", query, null, page, size);
+        connection,
+        tenantId,
+        SELECT_FILE_CONTENT_LIKE_SQL,
+        "file_content",
+        query,
+        null,
+        page,
+        size);
   }
 
   /**
@@ -369,29 +400,24 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * @param fileName ファイル名
    * @throws SQLException
    */
-  public void selectByFileName(final Connection connection, final String tenantId, final String fileName)
+  public void selectByFileName(
+      final Connection connection, final String tenantId, final String fileName)
       throws SQLException {
-    try (PreparedStatement preparedStatement =
-        connection.prepareStatement(SELECT_BY_FILE_NAME_SQL)) {
-      preparedStatement.setString(1, fileName);
-      try (ResultSet resultSet = preparedStatement.executeQuery()) {
-        this.entityLot = new ArrayList<>();
-        while (resultSet.next()) {
-          String resultTenantId = resultSet.getString("tenant_id");
-          SES_AI_T_SKILLSHEET sesAiTSkillsheet = new SES_AI_T_SKILLSHEET(resultTenantId);
-          sesAiTSkillsheet.setFromGroup(resultSet.getString("from_group"));
-          sesAiTSkillsheet.setFromId(resultSet.getString("from_id"));
-          sesAiTSkillsheet.setFromName(resultSet.getString("from_name"));
-          sesAiTSkillsheet.setFileId(resultSet.getString("file_id"));
-          sesAiTSkillsheet.setFileName(resultSet.getString("file_name"));
-          sesAiTSkillsheet.setRegisterDate(
-              new OriginalDateTime(resultSet.getString("register_date")));
-          sesAiTSkillsheet.setRegisterUser(resultSet.getString("register_user"));
-          sesAiTSkillsheet.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-          this.entityLot.add(sesAiTSkillsheet);
-        }
-      }
+    if (connection == null || fileName == null) {
+      this.entityLot = new ArrayList<>();
+      return;
     }
+    List<SES_AI_T_SKILLSHEET> results =
+        executeQuery(
+            connection,
+            SELECT_BY_FILE_NAME_SQL,
+            tenantId,
+            this::mapResultSet,
+            (stmt, paramIndex) -> {
+              stmt.setString(paramIndex, fileName);
+              return paramIndex + 1;
+            });
+    this.entityLot = results;
   }
 
   /**
@@ -404,7 +430,10 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * @throws SQLException
    */
   public void searchByFileContent(
-      final Connection connection, final String tenantId, final String firstLikeQuery, final List<LogicalOperators> query)
+      final Connection connection,
+      final String tenantId,
+      final String firstLikeQuery,
+      final List<LogicalOperators> query)
       throws SQLException {
     this.searchByField(connection, tenantId, "file_content", firstLikeQuery, query);
   }
@@ -428,7 +457,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
       final int page,
       final int size)
       throws SQLException {
-    this.searchByFieldPaged(connection, tenantId, "file_content", firstLikeQuery, query, page, size);
+    this.searchByFieldPaged(
+        connection, tenantId, "file_content", firstLikeQuery, query, page, size);
   }
 
   /**
@@ -480,9 +510,7 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     if (connection == null) {
       return;
     }
-    String sql = SELECT_EXPIRED_SKILLSHEETS_PREFIX
-        + ttlDays
-        + SELECT_EXPIRED_SKILLSHEETS_SUFFIX;
+    String sql = SELECT_EXPIRED_SKILLSHEETS_PREFIX + ttlDays + SELECT_EXPIRED_SKILLSHEETS_SUFFIX;
     try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
       preparedStatement.setInt(1, limit);
       preparedStatement.setInt(2, offset);
@@ -505,17 +533,15 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    * @throws SQLException SQL実行エラー
    */
   public void selectExpiredSkillsheetsWithoutTenantId(
-      final Connection connection,
-      final int ttlDays,
-      final int offset,
-      final int limit)
+      final Connection connection, final int ttlDays, final int offset, final int limit)
       throws SQLException {
     if (connection == null) {
       return;
     }
-    String sql = SELECT_EXPIRED_SKILLSHEETS_WITHOUT_TENANT_PREFIX
-        + ttlDays
-        + SELECT_EXPIRED_SKILLSHEETS_WITHOUT_TENANT_SUFFIX;
+    String sql =
+        SELECT_EXPIRED_SKILLSHEETS_WITHOUT_TENANT_PREFIX
+            + ttlDays
+            + SELECT_EXPIRED_SKILLSHEETS_WITHOUT_TENANT_SUFFIX;
     try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
       preparedStatement.setInt(1, limit);
       preparedStatement.setInt(2, offset);
@@ -542,7 +568,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     if (connection == null || person == null) {
       return;
     }
-    try (PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BUNDLED_WITH_PERSON_SQL)) {
+    try (PreparedStatement preparedStatement =
+        connection.prepareStatement(SELECT_BUNDLED_WITH_PERSON_SQL)) {
       preparedStatement.setString(1, person.getFromGroup());
       preparedStatement.setString(2, person.getFromId());
       preparedStatement.setTimestamp(
@@ -562,68 +589,62 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
   /**
    * 指定された要員に紐づくスキルシート（同一送信元・同一登録日）を取得（WithoutTenantFilter - バッチ用）.
    *
-   * ⚠️ このメソッドは全テナント対象です。
-   * バッチ処理専用。コードレビュー必須。
+   * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
    * @param person 要員
    * @throws SQLException SQL実行エラー
    */
   public void selectBundledWithPersonWithoutTenantFilter(
-      final Connection connection, final SES_AI_T_PERSON person)
-      throws SQLException {
+      final Connection connection, final SES_AI_T_PERSON person) throws SQLException {
     if (connection == null || person == null) {
       return;
     }
-    List<SES_AI_T_SKILLSHEET> results = executeQueryWithoutTenantFilter(
-        connection,
-        SELECT_BUNDLED_WITH_PERSON_WITHOUT_TENANT_SQL,
-        this::mapResultSet,
-        (stmt, paramIndex) -> {
-          int idx = paramIndex;
-          stmt.setString(idx, person.getFromGroup());
-          stmt.setString(idx + 1, person.getFromId());
-          stmt.setTimestamp(
-              idx + 2,
-              person.getRegisterDate() != null
-                  ? person.getRegisterDate().toTimestamp()
-                  : new OriginalDateTime().toTimestamp());
-          return idx + 3;
-        }
-    );
+    List<SES_AI_T_SKILLSHEET> results =
+        executeQueryWithoutTenantFilter(
+            connection,
+            SELECT_BUNDLED_WITH_PERSON_WITHOUT_TENANT_SQL,
+            this::mapResultSet,
+            (stmt, paramIndex) -> {
+              int idx = paramIndex;
+              stmt.setString(idx, person.getFromGroup());
+              stmt.setString(idx + 1, person.getFromId());
+              stmt.setTimestamp(
+                  idx + 2,
+                  person.getRegisterDate() != null
+                      ? person.getRegisterDate().toTimestamp()
+                      : new OriginalDateTime().toTimestamp());
+              return idx + 3;
+            });
     this.entityLot = results;
   }
 
   @Override
   public void selectAll(final Connection connection, final String tenantId) throws SQLException {
     this.entityLot = new ArrayList<>();
-    List<SES_AI_T_SKILLSHEET> results = executeQuery(
-        connection,
-        getSelectAllSql(),
-        tenantId,
-        this::mapResultSet,
-        (stmt, paramIndex) -> paramIndex
-    );
+    List<SES_AI_T_SKILLSHEET> results =
+        executeQuery(
+            connection,
+            getSelectAllSql(),
+            tenantId,
+            this::mapResultSet,
+            (stmt, paramIndex) -> paramIndex);
     this.entityLot.addAll(results);
   }
 
   /**
    * 全レコードを取得する（WithoutTenantFilter - バッチ処理専用）.
    *
-   * ⚠️ このメソッドは全テナント対象です。
-   * バッチ処理専用。コードレビュー必須。
+   * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
    * @throws SQLException
    */
   public void selectAllWithoutTenantFilter(final Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
-    List<SES_AI_T_SKILLSHEET> results = executeQueryWithoutTenantFilter(
-        connection,
-        getSelectAllSql(),
-        this::mapResultSet,
-        (stmt, paramIndex) -> paramIndex
-    );
+    List<SES_AI_T_SKILLSHEET> results =
+        executeQueryWithoutTenantFilter(
+            connection, getSelectAllSql(), this::mapResultSet, (stmt, paramIndex) -> paramIndex);
     this.entityLot.addAll(results);
   }
 

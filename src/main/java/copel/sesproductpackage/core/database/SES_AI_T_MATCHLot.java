@@ -36,33 +36,29 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
   @Override
   public void selectAll(Connection connection, String tenantId) throws SQLException {
     this.entityLot = new ArrayList<>();
-    List<SES_AI_T_MATCH> results = executeQuery(
-        connection,
-        SELECT_ALL_SQL,
-        tenantId,
-        this::mapResultSet,
-        (stmt, paramIndex) -> paramIndex
-    );
+    List<SES_AI_T_MATCH> results =
+        executeQuery(
+            connection,
+            SELECT_ALL_SQL,
+            tenantId,
+            this::mapResultSet,
+            (stmt, paramIndex) -> paramIndex);
     this.entityLot.addAll(results);
   }
 
   /**
    * 全レコードを取得する（WithoutTenantFilter - バッチ処理専用）.
    *
-   * ⚠️ このメソッドは全テナント対象です。
-   * バッチ処理専用。コードレビュー必須。
+   * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
    * @throws SQLException
    */
   public void selectAllWithoutTenantId(Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
-    List<SES_AI_T_MATCH> results = executeQueryWithoutTenantFilter(
-        connection,
-        SELECT_ALL_SQL,
-        this::mapResultSet,
-        (stmt, paramIndex) -> paramIndex
-    );
+    List<SES_AI_T_MATCH> results =
+        executeQueryWithoutTenantFilter(
+            connection, SELECT_ALL_SQL, this::mapResultSet, (stmt, paramIndex) -> paramIndex);
     this.entityLot.addAll(results);
   }
 
@@ -97,7 +93,8 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
-  public void selectByJobIdPaged(Connection connection, String tenantId, String jobId, int page, int size)
+  public void selectByJobIdPaged(
+      Connection connection, String tenantId, String jobId, int page, int size)
       throws SQLException {
     if (connection == null || jobId == null) {
       return;
@@ -117,7 +114,8 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
-  public void selectByPersonIdPaged(Connection connection, String tenantId, String personId, int page, int size)
+  public void selectByPersonIdPaged(
+      Connection connection, String tenantId, String personId, int page, int size)
       throws SQLException {
     if (connection == null || personId == null) {
       return;

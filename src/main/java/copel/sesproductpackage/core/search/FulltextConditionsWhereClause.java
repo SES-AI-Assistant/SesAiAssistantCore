@@ -3,16 +3,12 @@ package copel.sesproductpackage.core.search;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 全文検索用の WHERE 句（LIKE / NOT LIKE）を、UI と同じ OR 区切り・枠内 AND の論理で組み立てる.
- */
+/** 全文検索用の WHERE 句（LIKE / NOT LIKE）を、UI と同じ OR 区切り・枠内 AND の論理で組み立てる. */
 public final class FulltextConditionsWhereClause {
 
   private FulltextConditionsWhereClause() {}
 
-  /**
-   * LIKE パターン用に {@code %} と {@code _} をエスケープする（キーワード本体のみ。前後の {@code %} は付与側で付与）.
-   */
+  /** LIKE パターン用に {@code %} と {@code _} をエスケープする（キーワード本体のみ。前後の {@code %} は付与側で付与）. */
   public static String escapeLikeKeyword(final String keyword) {
     if (keyword == null) {
       return "";
@@ -20,9 +16,7 @@ public final class FulltextConditionsWhereClause {
     return keyword.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
   }
 
-  /**
-   * 検索可能なキーワードが 1 件以上あるか.
-   */
+  /** 検索可能なキーワードが 1 件以上あるか. */
   public static boolean hasSearchableKeyword(final List<FulltextCondition> conditions) {
     if (conditions == null || conditions.isEmpty()) {
       return false;
@@ -87,7 +81,8 @@ public final class FulltextConditionsWhereClause {
    * 複数カラムに OR で照合する WHERE 句を組み立てる.
    *
    * <p>正のキーワード: {@code (primaryColumn LIKE ? OR nullableColumn LIKE ?)}<br>
-   * 否定キーワード: {@code (primaryColumn NOT LIKE ? AND (nullableColumn IS NULL OR nullableColumn NOT LIKE ?))}<br>
+   * 否定キーワード: {@code (primaryColumn NOT LIKE ? AND (nullableColumn IS NULL OR nullableColumn NOT
+   * LIKE ?))}<br>
    * NULL チェックを加えることで LEFT JOIN 先が NULL の行を NOT 条件で誤除外しない。
    *
    * @param primaryColumn 非 NULL 前提の主カラム（例: {@code p.raw_content}）

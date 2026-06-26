@@ -125,8 +125,10 @@ class GptAnswerTest {
     assertEquals("山田太郎", new GptAnswer("山田　太郎", fakeTransformer).removeSymbolsAndWhitespace());
     assertEquals("山田太郎", new GptAnswer("山田・太郎", fakeTransformer).removeSymbolsAndWhitespace());
     assertEquals("山田太郎", new GptAnswer("山田-太郎", fakeTransformer).removeSymbolsAndWhitespace());
-    assertEquals("abc123", new GptAnswer("a b c 1 2 3", fakeTransformer).removeSymbolsAndWhitespace());
-    assertEquals("abc123", new GptAnswer("a,b.c;1,2.3", fakeTransformer).removeSymbolsAndWhitespace());
+    assertEquals(
+        "abc123", new GptAnswer("a b c 1 2 3", fakeTransformer).removeSymbolsAndWhitespace());
+    assertEquals(
+        "abc123", new GptAnswer("a,b.c;1,2.3", fakeTransformer).removeSymbolsAndWhitespace());
     assertNull(new GptAnswer(null, fakeTransformer).removeSymbolsAndWhitespace());
     assertNull(new GptAnswer("", fakeTransformer).removeSymbolsAndWhitespace());
     assertNull(new GptAnswer("  ", fakeTransformer).removeSymbolsAndWhitespace());

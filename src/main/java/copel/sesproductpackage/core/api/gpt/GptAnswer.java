@@ -198,7 +198,7 @@ public class GptAnswer {
         arrayStr = arrayStr.replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r");
         parsedList = objectMapper.readValue(arrayStr, List.class);
       }
-      
+
       // パースされた要素が必ずしもStringとは限らない（AIがJSONオブジェクトで返す場合がある）ため、
       // 盲目的に List<String> へキャストした際の ClassCastException 発生を防止。
       // 要素がStringでない場合は、再度JSON文字列に変換してリストに格納。

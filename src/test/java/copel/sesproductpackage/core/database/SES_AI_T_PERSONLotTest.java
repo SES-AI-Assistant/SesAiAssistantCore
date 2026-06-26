@@ -330,4 +330,3 @@ class SES_AI_T_PERSONLotTest {
     assertTrue(emptyLot2.isEmpty());
   }
 }
-

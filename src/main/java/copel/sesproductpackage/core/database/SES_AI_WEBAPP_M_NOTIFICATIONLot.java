@@ -35,7 +35,6 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
     super();
   }
 
-
   @Override
   protected String getSelectAllSql() {
     return SELECT_ALL_SQL;
@@ -49,33 +48,29 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
   @Override
   public void selectAll(final Connection connection, final String tenantId) throws SQLException {
     this.entityLot = new ArrayList<>();
-    List<SES_AI_WEBAPP_M_NOTIFICATION> results = executeQuery(
-        connection,
-        SELECT_ALL_SQL,
-        tenantId,
-        this::mapResultSet,
-        (stmt, paramIndex) -> paramIndex
-    );
+    List<SES_AI_WEBAPP_M_NOTIFICATION> results =
+        executeQuery(
+            connection,
+            SELECT_ALL_SQL,
+            tenantId,
+            this::mapResultSet,
+            (stmt, paramIndex) -> paramIndex);
     this.entityLot.addAll(results);
   }
 
   /**
    * 全レコードを取得する（WithoutTenantFilter - バッチ処理専用）.
    *
-   * ⚠️ このメソッドは全テナント対象です。
-   * バッチ処理専用。コードレビュー必須。
+   * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
    * @throws SQLException
    */
   public void selectAllWithoutTenantFilter(final Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
-    List<SES_AI_WEBAPP_M_NOTIFICATION> results = executeQueryWithoutTenantFilter(
-        connection,
-        SELECT_ALL_SQL,
-        this::mapResultSet,
-        (stmt, paramIndex) -> paramIndex
-    );
+    List<SES_AI_WEBAPP_M_NOTIFICATION> results =
+        executeQueryWithoutTenantFilter(
+            connection, SELECT_ALL_SQL, this::mapResultSet, (stmt, paramIndex) -> paramIndex);
     this.entityLot.addAll(results);
   }
 
@@ -87,7 +82,8 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
    * @param userId ユーザーID
    * @throws SQLException SQL実行時の例外
    */
-  public void selectByUserId(final Connection connection, final String tenantId, final String userId) throws SQLException {
+  public void selectByUserId(
+      final Connection connection, final String tenantId, final String userId) throws SQLException {
     if (connection == null || userId == null) {
       this.entityLot = new ArrayList<>();
       return;
@@ -109,8 +105,10 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
    * @param tenantId テナントID
    * @throws SQLException SQL実行時の例外
    */
-  public void selectByNotifyAllMatch(final Connection connection, final String tenantId) throws SQLException {
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BY_NOTIFY_ALL_MATCH_SQL);
+  public void selectByNotifyAllMatch(final Connection connection, final String tenantId)
+      throws SQLException {
+    PreparedStatement preparedStatement =
+        connection.prepareStatement(SELECT_BY_NOTIFY_ALL_MATCH_SQL);
     preparedStatement.setString(1, tenantId);
     ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();

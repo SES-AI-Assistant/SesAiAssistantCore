@@ -212,4 +212,3 @@ class SES_AI_T_SKILLSHEETLotTest {
     assertTrue(emptyLot2.isEmpty());
   }
 }
-

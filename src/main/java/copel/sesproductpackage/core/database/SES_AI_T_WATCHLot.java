@@ -1,15 +1,13 @@
 package copel.sesproductpackage.core.database;
 
+import copel.sesproductpackage.core.database.SES_AI_T_WATCH.TargetType;
+import copel.sesproductpackage.core.database.base.EntityLotBase;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-
-import copel.sesproductpackage.core.database.SES_AI_T_WATCH.TargetType;
-import copel.sesproductpackage.core.database.base.EntityLotBase;
-import copel.sesproductpackage.core.unit.OriginalDateTime;
 
 /**
  * 【Entityクラス】 ウォッチ管理テーブル(SES_AI_T_WATCH)のLotクラス.
@@ -34,15 +32,16 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
       "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id FROM SES_AI_T_WATCH WHERE ";
 
   /** DELETE期限切れSQL. */
-  private static final String DELETE_EXPIRED_SQL = "DELETE FROM SES_AI_T_WATCH WHERE ttl < NOW() AND tenant_id = ?";
+  private static final String DELETE_EXPIRED_SQL =
+      "DELETE FROM SES_AI_T_WATCH WHERE ttl < NOW() AND tenant_id = ?";
 
   /** DELETE期限切れSQL（テナントIDなし、バッチ用）. */
-  private static final String DELETE_EXPIRED_WITHOUT_TENANT_SQL = "DELETE FROM SES_AI_T_WATCH WHERE ttl < NOW()";
+  private static final String DELETE_EXPIRED_WITHOUT_TENANT_SQL =
+      "DELETE FROM SES_AI_T_WATCH WHERE ttl < NOW()";
 
   public SES_AI_T_WATCHLot() {
     super();
   }
-
 
   @Override
   protected String getSelectAllSql() {
@@ -62,18 +61,19 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
    * @param userId ユーザーID
    * @throws SQLException
    */
-  public void selectByUserId(final Connection connection, final String tenantId, final String userId) throws SQLException {
+  public void selectByUserId(
+      final Connection connection, final String tenantId, final String userId) throws SQLException {
     this.entityLot = new ArrayList<>();
-    List<SES_AI_T_WATCH> results = executeQuery(
-        connection,
-        SELECT_BY_USER_ID_SQL,
-        tenantId,
-        this::mapResultSet,
-        (stmt, paramIndex) -> {
-          stmt.setString(paramIndex, userId);
-          return paramIndex + 1;
-        }
-    );
+    List<SES_AI_T_WATCH> results =
+        executeQuery(
+            connection,
+            SELECT_BY_USER_ID_SQL,
+            tenantId,
+            this::mapResultSet,
+            (stmt, paramIndex) -> {
+              stmt.setString(paramIndex, userId);
+              return paramIndex + 1;
+            });
     this.entityLot.addAll(results);
   }
 
@@ -87,21 +87,19 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
-  public void selectByUserIdPaged(final Connection connection, final String tenantId, final String userId, final int page, final int size)
+  public void selectByUserIdPaged(
+      final Connection connection,
+      final String tenantId,
+      final String userId,
+      final int page,
+      final int size)
       throws SQLException {
     if (connection == null || userId == null) {
       return;
     }
     java.util.Map<String, String> query = new java.util.HashMap<>();
     query.put("user_id", userId);
-    this.selectByQueryPaged(
-        connection,
-        tenantId,
-        SELECT_ALL_SQL,
-        query,
-        true,
-        page,
-        size);
+    this.selectByQueryPaged(connection, tenantId, SELECT_ALL_SQL, query, true, page, size);
   }
 
   /**
@@ -130,19 +128,28 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
    * @param targetType 対象種別
    * @throws SQLException
    */
-  public void selectByTargetId(final Connection connection, final String tenantId, final String targetId, final TargetType targetType)
+  public void selectByTargetId(
+      final Connection connection,
+      final String tenantId,
+      final String targetId,
+      final TargetType targetType)
       throws SQLException {
     if (connection == null || targetId == null || targetType == null) {
+      this.entityLot = new ArrayList<>();
       return;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BY_TARGET_ID_SQL);
-    preparedStatement.setString(1, targetId);
-    preparedStatement.setString(2, targetType.name());
-    ResultSet resultSet = preparedStatement.executeQuery();
-    this.entityLot = new ArrayList<>();
-    while (resultSet.next()) {
-      this.entityLot.add(mapResultSet(resultSet));
-    }
+    List<SES_AI_T_WATCH> results =
+        executeQuery(
+            connection,
+            SELECT_BY_TARGET_ID_SQL,
+            tenantId,
+            this::mapResultSet,
+            (stmt, paramIndex) -> {
+              stmt.setString(paramIndex, targetId);
+              stmt.setString(paramIndex + 1, targetType.name());
+              return paramIndex + 2;
+            });
+    this.entityLot = results;
   }
 
   /**
@@ -154,53 +161,50 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
    * @throws SQLException
    */
   public int deleteExpired(final Connection connection, final String tenantId) throws SQLException {
-    PreparedStatement preparedStatement = connection.prepareStatement(DELETE_EXPIRED_SQL);
-    preparedStatement.setString(1, tenantId);
-    return preparedStatement.executeUpdate();
+    return executeDelete(
+        connection, DELETE_EXPIRED_SQL, tenantId, (stmt, paramIndex) -> paramIndex);
   }
 
   /**
    * 期限切れウォッチデータを削除します（テナントID条件なし、バッチ用）.
+   *
+   * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
    * @return 削除件数
    * @throws SQLException SQL実行エラー
    */
   public int deleteExpiredWithoutTenantId(final Connection connection) throws SQLException {
-    PreparedStatement preparedStatement = connection.prepareStatement(DELETE_EXPIRED_WITHOUT_TENANT_SQL);
-    return preparedStatement.executeUpdate();
+    return executeDeleteWithoutTenantFilter(
+        connection, DELETE_EXPIRED_WITHOUT_TENANT_SQL, (stmt, paramIndex) -> paramIndex);
   }
 
   @Override
   public void selectAll(final Connection connection, final String tenantId) throws SQLException {
     this.entityLot = new ArrayList<>();
-    List<SES_AI_T_WATCH> results = executeQuery(
-        connection,
-        SELECT_ALL_SQL,
-        tenantId,
-        this::mapResultSet,
-        (stmt, paramIndex) -> paramIndex
-    );
+    List<SES_AI_T_WATCH> results =
+        executeQuery(
+            connection,
+            SELECT_ALL_SQL,
+            tenantId,
+            this::mapResultSet,
+            (stmt, paramIndex) -> paramIndex);
     this.entityLot.addAll(results);
   }
 
   /**
    * 全レコードを取得する（WithoutTenantFilter - バッチ処理専用）.
    *
-   * ⚠️ このメソッドは全テナント対象です。
-   * バッチ処理専用。コードレビュー必須。
+   * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
    * @throws SQLException
    */
   public void selectAllWithoutTenantFilter(final Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
-    List<SES_AI_T_WATCH> results = executeQueryWithoutTenantFilter(
-        connection,
-        SELECT_ALL_SQL,
-        this::mapResultSet,
-        (stmt, paramIndex) -> paramIndex
-    );
+    List<SES_AI_T_WATCH> results =
+        executeQueryWithoutTenantFilter(
+            connection, SELECT_ALL_SQL, this::mapResultSet, (stmt, paramIndex) -> paramIndex);
     this.entityLot.addAll(results);
   }
 

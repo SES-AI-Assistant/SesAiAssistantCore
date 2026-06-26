@@ -51,10 +51,12 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   private static final String RETRIEVE_SQL_WITH_OFFSET = RETRIEVE_SQL + " OFFSET ?";
 
   /** 類似度閾値ベクトル検索のカウント用SQL. */
-  private static final String COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD = "SELECT COUNT(*) FROM SES_AI_T_JOB WHERE 1 - (vector_data <=> ?::vector) >= ?";
+  private static final String COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD =
+      "SELECT COUNT(*) FROM SES_AI_T_JOB WHERE 1 - (vector_data <=> ?::vector) >= ?";
 
   /** 類似度閾値ベクトル検索のページング用SQL（OFFSET付き）. */
-  private static final String RETRIEVE_WITH_THRESHOLD_SQL_WITH_OFFSET = RETRIEVE_WITH_THRESHOLD_SQL + " OFFSET ?";
+  private static final String RETRIEVE_WITH_THRESHOLD_SQL_WITH_OFFSET =
+      RETRIEVE_WITH_THRESHOLD_SQL + " OFFSET ?";
 
   /** コンストラクタ. */
   public SES_AI_T_JOBLot() {
@@ -79,33 +81,29 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   @Override
   public void selectAll(Connection connection, String tenantId) throws SQLException {
     this.entityLot = new ArrayList<>();
-    List<SES_AI_T_JOB> results = executeQuery(
-        connection,
-        SELECT_ALL_SQL,
-        tenantId,
-        this::mapResultSet,
-        (stmt, paramIndex) -> paramIndex
-    );
+    List<SES_AI_T_JOB> results =
+        executeQuery(
+            connection,
+            SELECT_ALL_SQL,
+            tenantId,
+            this::mapResultSet,
+            (stmt, paramIndex) -> paramIndex);
     this.entityLot.addAll(results);
   }
 
   /**
    * 全レコードを取得する（WithoutTenantFilter - バッチ処理専用）.
    *
-   * ⚠️ このメソッドは全テナント対象です。
-   * バッチ処理専用。コードレビュー必須。
+   * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
    * @throws SQLException
    */
   public void selectAllWithoutTenantFilter(Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
-    List<SES_AI_T_JOB> results = executeQueryWithoutTenantFilter(
-        connection,
-        SELECT_ALL_SQL,
-        this::mapResultSet,
-        (stmt, paramIndex) -> paramIndex
-    );
+    List<SES_AI_T_JOB> results =
+        executeQueryWithoutTenantFilter(
+            connection, SELECT_ALL_SQL, this::mapResultSet, (stmt, paramIndex) -> paramIndex);
     this.entityLot.addAll(results);
   }
 
@@ -118,7 +116,8 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param limit 取得上限件数
    * @throws SQLException
    */
-  public void retrieve(Connection connection, String tenantId, Vector query, int limit) throws SQLException {
+  public void retrieve(Connection connection, String tenantId, Vector query, int limit)
+      throws SQLException {
     this.retrievePaged(connection, tenantId, query, 1, limit);
   }
 
@@ -132,7 +131,8 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
-  public void retrievePaged(Connection connection, String tenantId, Vector query, int page, int size)
+  public void retrievePaged(
+      Connection connection, String tenantId, Vector query, int page, int size)
       throws SQLException {
     if (connection == null) {
       return;
@@ -140,7 +140,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
 
     // (1) 全件数を取得（tenant_id フィルターを適用）
     try (PreparedStatement preparedStatement =
-        connection.prepareStatement(addTenantIdFilter(COUNT_SQL_FOR_RETRIEVE, tenantId));
+            connection.prepareStatement(addTenantIdFilter(COUNT_SQL_FOR_RETRIEVE, tenantId));
         ResultSet resultSet = preparedStatement.executeQuery()) {
       setTenantIdParameter(preparedStatement, 1, tenantId);
       try (ResultSet rs = preparedStatement.executeQuery()) {
@@ -157,27 +157,27 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
     }
 
     // (2) ページング用ベクトル検索（tenant_id フィルターを適用）
-    List<SES_AI_T_JOB> results = executeQuery(
-        connection,
-        RETRIEVE_SQL_WITH_OFFSET,
-        tenantId,
-        rs -> {
-          SES_AI_T_JOB sesAiTJob = mapResultSet(rs);
-          try {
-            sesAiTJob.setDistance(rs.getDouble("distance"));
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
-          return sesAiTJob;
-        },
-        (stmt, paramIndex) -> {
-          int idx = paramIndex;
-          stmt.setString(idx, query == null ? null : query.toString());
-          stmt.setInt(idx + 1, size);
-          stmt.setInt(idx + 2, (page - 1) * size);
-          return idx + 3;
-        }
-    );
+    List<SES_AI_T_JOB> results =
+        executeQuery(
+            connection,
+            RETRIEVE_SQL_WITH_OFFSET,
+            tenantId,
+            rs -> {
+              SES_AI_T_JOB sesAiTJob = mapResultSet(rs);
+              try {
+                sesAiTJob.setDistance(rs.getDouble("distance"));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+              return sesAiTJob;
+            },
+            (stmt, paramIndex) -> {
+              int idx = paramIndex;
+              stmt.setString(idx, query == null ? null : query.toString());
+              stmt.setInt(idx + 1, size);
+              stmt.setInt(idx + 2, (page - 1) * size);
+              return idx + 3;
+            });
     this.entityLot = results;
   }
 
@@ -203,7 +203,9 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param limit 取得上限件数
    * @throws SQLException
    */
-  public void retrieveWithThreshold(Connection connection, String tenantId, Vector query, double similarityThreshold, int limit) throws SQLException {
+  public void retrieveWithThreshold(
+      Connection connection, String tenantId, Vector query, double similarityThreshold, int limit)
+      throws SQLException {
     this.retrievePagedWithThreshold(connection, tenantId, query, similarityThreshold, 1, limit);
   }
 
@@ -218,7 +220,13 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
-  public void retrievePagedWithThreshold(Connection connection, String tenantId, Vector query, double similarityThreshold, int page, int size)
+  public void retrievePagedWithThreshold(
+      Connection connection,
+      String tenantId,
+      Vector query,
+      double similarityThreshold,
+      int page,
+      int size)
       throws SQLException {
     if (connection == null || query == null) {
       return;
@@ -226,7 +234,8 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
 
     // (1) 全件数を取得（tenant_id フィルターを適用）
     try (PreparedStatement preparedStatement =
-        connection.prepareStatement(addTenantIdFilter(COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD, tenantId))) {
+        connection.prepareStatement(
+            addTenantIdFilter(COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD, tenantId))) {
       int paramIndex = 1;
       preparedStatement.setString(paramIndex++, query.toString());
       preparedStatement.setDouble(paramIndex++, similarityThreshold);
@@ -245,30 +254,30 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
     }
 
     // (2) ページング用ベクトル検索（tenant_id フィルターを適用）
-    List<SES_AI_T_JOB> results = executeQuery(
-        connection,
-        RETRIEVE_WITH_THRESHOLD_SQL_WITH_OFFSET,
-        tenantId,
-        rs -> {
-          SES_AI_T_JOB entity = mapResultSet(rs);
-          try {
-            entity.setDistance(rs.getDouble("distance"));
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
-          return entity;
-        },
-        (stmt, paramIndex) -> {
-          int idx = paramIndex;
-          String vectorStr = query.toString();
-          stmt.setString(idx, vectorStr);
-          stmt.setString(idx + 1, vectorStr);
-          stmt.setDouble(idx + 2, similarityThreshold);
-          stmt.setInt(idx + 3, size);
-          stmt.setInt(idx + 4, (page - 1) * size);
-          return idx + 5;
-        }
-    );
+    List<SES_AI_T_JOB> results =
+        executeQuery(
+            connection,
+            RETRIEVE_WITH_THRESHOLD_SQL_WITH_OFFSET,
+            tenantId,
+            rs -> {
+              SES_AI_T_JOB entity = mapResultSet(rs);
+              try {
+                entity.setDistance(rs.getDouble("distance"));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+              return entity;
+            },
+            (stmt, paramIndex) -> {
+              int idx = paramIndex;
+              String vectorStr = query.toString();
+              stmt.setString(idx, vectorStr);
+              stmt.setString(idx + 1, vectorStr);
+              stmt.setDouble(idx + 2, similarityThreshold);
+              stmt.setInt(idx + 3, size);
+              stmt.setInt(idx + 4, (page - 1) * size);
+              return idx + 5;
+            });
     this.entityLot = results;
   }
 
@@ -280,8 +289,8 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param query 検索条件Map
    * @throws SQLException
    */
-  public void searchByRawContent(final Connection connection, final String tenantId, final String query)
-      throws SQLException {
+  public void searchByRawContent(
+      final Connection connection, final String tenantId, final String query) throws SQLException {
     this.searchByField(connection, tenantId, "raw_content", query);
   }
 
@@ -296,7 +305,11 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @throws SQLException
    */
   public void searchByRawContentPaged(
-      final Connection connection, final String tenantId, final String query, final int page, final int size)
+      final Connection connection,
+      final String tenantId,
+      final String query,
+      final int page,
+      final int size)
       throws SQLException {
     this.searchByFieldPaged(connection, tenantId, "raw_content", query, page, size);
   }
@@ -311,7 +324,10 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @throws SQLException
    */
   public void searchByRawContent(
-      final Connection connection, final String tenantId, final String firstLikeQuery, final List<LogicalOperators> query)
+      final Connection connection,
+      final String tenantId,
+      final String firstLikeQuery,
+      final List<LogicalOperators> query)
       throws SQLException {
     this.searchByField(connection, tenantId, "raw_content", firstLikeQuery, query);
   }

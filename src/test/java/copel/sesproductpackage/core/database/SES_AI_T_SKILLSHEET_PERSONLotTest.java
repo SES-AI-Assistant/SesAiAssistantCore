@@ -158,8 +158,7 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
     when(mockResultSetMetaData.getColumnLabel(1)).thenReturn("file_id");
 
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
-    List<FulltextCondition> conditions =
-        List.of(new FulltextCondition("AND", "Java", false));
+    List<FulltextCondition> conditions = List.of(new FulltextCondition("AND", "Java", false));
     lot.searchByPersonOrSkillSheetSummaryPaged(mockConnection, "test-tenant", conditions, 1, 20);
     assertEquals(1, lot.size());
     assertEquals("p1", lot.get(0).getPersonId());
@@ -168,9 +167,9 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
   @Test
   void testRetrieveByPersonOrSkillSheetSummaryPaged_nullConnection() throws SQLException {
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
-    List<FulltextCondition> conditions =
-        List.of(new FulltextCondition("AND", "Java", false));
-    assertDoesNotThrow(() -> lot.searchByPersonOrSkillSheetSummaryPaged(null, "test-tenant", conditions, 1, 20));
+    List<FulltextCondition> conditions = List.of(new FulltextCondition("AND", "Java", false));
+    assertDoesNotThrow(
+        () -> lot.searchByPersonOrSkillSheetSummaryPaged(null, "test-tenant", conditions, 1, 20));
     assertEquals(0, lot.size());
   }
 
@@ -195,9 +194,9 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
     when(mockResultSetMetaData.getColumnLabel(1)).thenReturn("file_id");
 
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
-    List<FulltextCondition> conditions =
-        List.of(new FulltextCondition("AND", "TWINPOS", false));
-    lot.searchByPersonOrSkillSheetSummaryInnerJoinPaged(mockConnection, "test-tenant", conditions, 1, 20);
+    List<FulltextCondition> conditions = List.of(new FulltextCondition("AND", "TWINPOS", false));
+    lot.searchByPersonOrSkillSheetSummaryInnerJoinPaged(
+        mockConnection, "test-tenant", conditions, 1, 20);
     assertEquals(1, lot.size());
     assertEquals("p1", lot.get(0).getPersonId());
   }
@@ -205,10 +204,11 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
   @Test
   void testRetrieveByPersonOrSkillSheetSummaryInnerJoinPaged_nullConnection() {
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
-    List<FulltextCondition> conditions =
-        List.of(new FulltextCondition("AND", "TWINPOS", false));
+    List<FulltextCondition> conditions = List.of(new FulltextCondition("AND", "TWINPOS", false));
     assertDoesNotThrow(
-        () -> lot.searchByPersonOrSkillSheetSummaryInnerJoinPaged(null, "test-tenant", conditions, 1, 20));
+        () ->
+            lot.searchByPersonOrSkillSheetSummaryInnerJoinPaged(
+                null, "test-tenant", conditions, 1, 20));
     assertEquals(0, lot.size());
   }
 

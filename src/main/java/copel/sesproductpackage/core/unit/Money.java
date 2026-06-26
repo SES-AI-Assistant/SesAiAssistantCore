@@ -6,8 +6,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 金額を表す値オブジェクト.
- * 内部は「円」単位で保持し、画面出力時や比較処理に対応する。
+ * 金額を表す値オブジェクト. 内部は「円」単位で保持し、画面出力時や比較処理に対応する。
  *
  * @author Copel Co., Ltd.
  */
@@ -50,12 +49,13 @@ public class Money implements Comparable<Money> {
    * content_summary から案件の単価を抽出（MAX値を取得）.
    *
    * <p>抽出ルール：
+   *
    * <ul>
-   *   <li>「■単価：」以降の数字を抽出</li>
-   *   <li>範囲がある場合は MAX 値を採用（100-130万 → 130万）</li>
-   *   <li>「スキル見合い」「精算確認中」など定量値なしは empty を返す</li>
-   *   <li>括弧内のコメントは無視</li>
-   *   <li>小数点は切り捨て</li>
+   *   <li>「■単価：」以降の数字を抽出
+   *   <li>範囲がある場合は MAX 値を採用（100-130万 → 130万）
+   *   <li>「スキル見合い」「精算確認中」など定量値なしは empty を返す
+   *   <li>括弧内のコメントは無視
+   *   <li>小数点は切り捨て
    * </ul>
    *
    * @param contentSummary AI生成の要約文
@@ -83,12 +83,13 @@ public class Money implements Comparable<Money> {
    * content_summary から要員の単価を抽出（MIN値を取得）.
    *
    * <p>抽出ルール：
+   *
    * <ul>
-   *   <li>「■単価：」以降の数字を抽出</li>
-   *   <li>範囲がある場合は MIN 値を採用（100-120万 → 100万）</li>
-   *   <li>「スキル見合い」など定量値なしは empty を返す</li>
-   *   <li>括弧内のコメントは無視</li>
-   *   <li>小数点は切り捨て</li>
+   *   <li>「■単価：」以降の数字を抽出
+   *   <li>範囲がある場合は MIN 値を採用（100-120万 → 100万）
+   *   <li>「スキル見合い」など定量値なしは empty を返す
+   *   <li>括弧内のコメントは無視
+   *   <li>小数点は切り捨て
    * </ul>
    *
    * @param contentSummary AI生成の要約文
@@ -153,8 +154,7 @@ public class Money implements Comparable<Money> {
     if (isEmpty()) {
       return null;
     }
-    BigDecimal manValue =
-        valueInYen.divide(new BigDecimal("10000"), 2, RoundingMode.FLOOR);
+    BigDecimal manValue = valueInYen.divide(new BigDecimal("10000"), 2, RoundingMode.FLOOR);
     return manValue.stripTrailingZeros().toPlainString() + "万円";
   }
 
@@ -167,8 +167,7 @@ public class Money implements Comparable<Money> {
     if (isEmpty()) {
       return null;
     }
-    BigDecimal manValue =
-        valueInYen.divide(new BigDecimal("10000"), 2, RoundingMode.FLOOR);
+    BigDecimal manValue = valueInYen.divide(new BigDecimal("10000"), 2, RoundingMode.FLOOR);
     return manValue.stripTrailingZeros().toPlainString();
   }
 
@@ -230,8 +229,7 @@ public class Money implements Comparable<Money> {
   // ================================================
 
   /**
-   * content_summary から「■単価：」で始まる行のみを抽出.
-   * 改行まで（次の■が出るまでではなく）を範囲とする。
+   * content_summary から「■単価：」で始まる行のみを抽出. 改行まで（次の■が出るまでではなく）を範囲とする。
    *
    * @param contentSummary AI生成の要約文
    * @return 「■単価：」以降の行の内容、見つからない場合は null
@@ -246,8 +244,7 @@ public class Money implements Comparable<Money> {
   }
 
   /**
-   * 単価セクションから最大値を抽出（案件用）.
-   * 括弧内を削除した後、数字をすべて抽出。数字がなければnullを返す。
+   * 単価セクションから最大値を抽出（案件用）. 括弧内を削除した後、数字をすべて抽出。数字がなければnullを返す。
    *
    * @param unitPriceSection 「■単価：」以降の行のテキスト
    * @return 円単位の最大値、数字が抽出できない場合は null
@@ -277,9 +274,7 @@ public class Money implements Comparable<Money> {
   }
 
   /**
-   * 単価セクションから最小値を抽出（要員用）.
-   * 括弧内を削除した後、数字をすべて抽出。
-   * 最初の範囲がある場合はそのMIN、そうでない場合は最初の数字を採用。
+   * 単価セクションから最小値を抽出（要員用）. 括弧内を削除した後、数字をすべて抽出。 最初の範囲がある場合はそのMIN、そうでない場合は最初の数字を採用。
    *
    * @param unitPriceSection 「■単価：」以降の行のテキスト
    * @return 円単位の最小値、数字が抽出できない場合は null

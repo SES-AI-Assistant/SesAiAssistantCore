@@ -4,12 +4,9 @@ import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /**
@@ -25,6 +22,7 @@ public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
   public SES_AI_WEBAPP_M_NOTIFICATION(String tenantId) {
     super(tenantId);
   }
+
   /** INSERT文. */
   private static final String INSERT_SQL =
       "INSERT INTO SES_AI_WEBAPP_M_NOTIFICATION (notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -38,10 +36,15 @@ public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
       "UPDATE SES_AI_WEBAPP_M_NOTIFICATION SET notification_id = ?, user_id = ?, device_type = ?, device_name = ?, push_notification_endpoint = ?, p256dh = ?, auth = ?, enabled = ?, notify_all_match = ?, register_date = ?, register_user = ? WHERE notification_id = ?";
 
   /** DELETE文. */
-  private static final String DELETE_SQL = "DELETE FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE notification_id = ?";
+  private static final String DELETE_SQL =
+      "DELETE FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE notification_id = ?";
 
   /** 【PK】 通知デバイスID / notification_id */
-  @Column(required = true, primary = true, physicalName = "notification_id", logicalName = "通知デバイスID")
+  @Column(
+      required = true,
+      primary = true,
+      physicalName = "notification_id",
+      logicalName = "通知デバイスID")
   private String notificationId;
 
   /** ユーザーID / user_id */
@@ -57,7 +60,10 @@ public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
   private String deviceName;
 
   /** Push API endpoint URL / push_notification_endpoint */
-  @Column(required = true, physicalName = "push_notification_endpoint", logicalName = "Push APIエンドポイント")
+  @Column(
+      required = true,
+      physicalName = "push_notification_endpoint",
+      logicalName = "Push APIエンドポイント")
   private String pushNotificationEndpoint;
 
   /** ECDH public key (base64) / p256dh */

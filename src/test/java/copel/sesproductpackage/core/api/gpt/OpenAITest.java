@@ -133,7 +133,8 @@ class OpenAITest extends HttpTestBase {
     e = assertThrows(RuntimeException.class, () -> api.embedding("test"));
     assertTrue(e.getMessage().contains("429"));
 
-    String openAiJson = "{\"error\":{\"message\":\"insufficient_quota\",\"type\":\"insufficient_quota\"}}";
+    String openAiJson =
+        "{\"error\":{\"message\":\"insufficient_quota\",\"type\":\"insufficient_quota\"}}";
     when(sharedMockConn.getResponseCode()).thenReturn(429);
     when(sharedMockConn.getErrorStream())
         .thenReturn(new ByteArrayInputStream(openAiJson.getBytes(StandardCharsets.UTF_8)));

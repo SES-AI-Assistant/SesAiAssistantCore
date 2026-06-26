@@ -4,12 +4,9 @@ import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /**
@@ -25,6 +22,7 @@ public class SES_AI_M_TENANT extends EntityBase {
   public SES_AI_M_TENANT(String tenantId) {
     super(tenantId);
   }
+
   /** INSERT文. */
   private static final String INSERT_SQL =
       "INSERT INTO SES_AI_M_TENANT (tenant_id, tenant_name, tenant_status_cd, register_date, register_user) VALUES (?, ?, ?, ?, ?)";

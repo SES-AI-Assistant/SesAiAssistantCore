@@ -4,12 +4,9 @@ import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /**
@@ -25,6 +22,7 @@ public class SES_AI_M_INGEST_ROUTE extends EntityBase {
   public SES_AI_M_INGEST_ROUTE(String tenantId) {
     super(tenantId);
   }
+
   /** チャネル種別の列挙型. */
   public enum ChannelType {
     LINE("LINE"),

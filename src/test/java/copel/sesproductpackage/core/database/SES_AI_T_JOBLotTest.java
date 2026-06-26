@@ -224,4 +224,3 @@ class SES_AI_T_JOBLotTest {
     assertTrue(empty.isEmpty());
   }
 }
-

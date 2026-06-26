@@ -12,7 +12,6 @@ import java.sql.SQLException;
 import java.util.UUID;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /**
@@ -29,6 +28,7 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
     super(tenantId);
     this.tenantId = tenantId;
   }
+
   // ================================
   // SQL
   // ================================
@@ -53,7 +53,8 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
       "SELECT job_id, unit_price FROM SES_AI_T_JOB WHERE tenant_id = ? AND regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g') % ? AND similarity(regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g'), ?) > ? LIMIT 1";
 
   /** DELETE文. */
-  private static final String DELETE_SQL = "DELETE FROM SES_AI_T_JOB WHERE job_id = ? AND tenant_id = ?";
+  private static final String DELETE_SQL =
+      "DELETE FROM SES_AI_T_JOB WHERE job_id = ? AND tenant_id = ?";
 
   // ================================
   // メンバ
@@ -97,7 +98,10 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
    * @throws SQLException
    */
   public static SES_AI_T_JOB findSimilarRecord(
-      final Connection connection, final String tenantId, final String textToCheck, final double similarityThreshold)
+      final Connection connection,
+      final String tenantId,
+      final String textToCheck,
+      final double similarityThreshold)
       throws SQLException {
     if (connection == null || tenantId == null || textToCheck == null) {
       return null;

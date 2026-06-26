@@ -91,14 +91,20 @@ class EntityLotBaseTest {
 
   @Test
   void testToCountSql_removesOrderByClause() {
-    String personWithOrderBy = "SELECT person_id, register_date FROM SES_AI_T_PERSON ORDER BY register_date DESC";
-    assertEquals("SELECT COUNT(*) FROM SES_AI_T_PERSON", EntityLotBase.toCountSql(personWithOrderBy));
+    String personWithOrderBy =
+        "SELECT person_id, register_date FROM SES_AI_T_PERSON ORDER BY register_date DESC";
+    assertEquals(
+        "SELECT COUNT(*) FROM SES_AI_T_PERSON", EntityLotBase.toCountSql(personWithOrderBy));
 
-    String jobWithOrderBy = "SELECT job_id, register_date FROM SES_AI_T_JOB ORDER BY register_date DESC";
+    String jobWithOrderBy =
+        "SELECT job_id, register_date FROM SES_AI_T_JOB ORDER BY register_date DESC";
     assertEquals("SELECT COUNT(*) FROM SES_AI_T_JOB", EntityLotBase.toCountSql(jobWithOrderBy));
 
-    String skillsheetWithOrderBy = "SELECT file_id, register_date FROM SES_AI_T_SKILLSHEET ORDER BY register_date DESC";
-    assertEquals("SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET", EntityLotBase.toCountSql(skillsheetWithOrderBy));
+    String skillsheetWithOrderBy =
+        "SELECT file_id, register_date FROM SES_AI_T_SKILLSHEET ORDER BY register_date DESC";
+    assertEquals(
+        "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET",
+        EntityLotBase.toCountSql(skillsheetWithOrderBy));
   }
 
   @Test
@@ -283,7 +289,8 @@ class EntityLotBaseTest {
     when(rs.getLong(1)).thenReturn(100L);
 
     TestEntityLot lot = new TestEntityLot();
-    lot.selectByQueryPaged(conn, "test-tenant", "SELECT * FROM TEST_TABLE", Map.of("id", "1"), true, 1, 10);
+    lot.selectByQueryPaged(
+        conn, "test-tenant", "SELECT * FROM TEST_TABLE", Map.of("id", "1"), true, 1, 10);
     assertEquals(1, lot.size());
     assertEquals(100, lot.getTotalCount());
     assertEquals(10, lot.getPageSize());
@@ -319,7 +326,8 @@ class EntityLotBaseTest {
     TestEntityLot lot = new TestEntityLot();
     String sql = "SELECT * FROM TEST_TABLE";
     assertThrows(
-        IllegalArgumentException.class, () -> lot.addTenantIdFilter(sql, null),
+        IllegalArgumentException.class,
+        () -> lot.addTenantIdFilter(sql, null),
         "TenantId must not be null or empty");
   }
 
@@ -328,7 +336,8 @@ class EntityLotBaseTest {
     TestEntityLot lot = new TestEntityLot();
     String sql = "SELECT * FROM TEST_TABLE";
     assertThrows(
-        IllegalArgumentException.class, () -> lot.addTenantIdFilter(sql, ""),
+        IllegalArgumentException.class,
+        () -> lot.addTenantIdFilter(sql, ""),
         "TenantId must not be null or empty");
   }
 
@@ -336,7 +345,8 @@ class EntityLotBaseTest {
   void testAddTenantIdFilter_NullSql() {
     TestEntityLot lot = new TestEntityLot();
     assertThrows(
-        IllegalArgumentException.class, () -> lot.addTenantIdFilter(null, "tenant1"),
+        IllegalArgumentException.class,
+        () -> lot.addTenantIdFilter(null, "tenant1"),
         "baseSql must not be null");
   }
 
@@ -371,12 +381,13 @@ class EntityLotBaseTest {
   @Test
   void testExecuteQuery_WithNullConnection() throws SQLException {
     TestEntityLot lot = new TestEntityLot();
-    var results = lot.executeQuery(
-        null,
-        "SELECT * FROM TEST_TABLE",
-        "tenant1",
-        rs -> new TestEntity(new OriginalDateTime()),
-        (stmt, idx) -> idx);
+    var results =
+        lot.executeQuery(
+            null,
+            "SELECT * FROM TEST_TABLE",
+            "tenant1",
+            rs -> new TestEntity(new OriginalDateTime()),
+            (stmt, idx) -> idx);
     assertTrue(results.isEmpty());
   }
 
@@ -390,15 +401,16 @@ class EntityLotBaseTest {
     when(rs.next()).thenReturn(true, false);
 
     TestEntityLot lot = new TestEntityLot();
-    var results = lot.executeQuery(
-        conn,
-        "SELECT * FROM TEST_TABLE",
-        "tenant1",
-        rs2 -> new TestEntity(new OriginalDateTime()),
-        (stmt, idx) -> {
-          stmt.setString(idx, "value1");
-          return idx + 1;
-        });
+    var results =
+        lot.executeQuery(
+            conn,
+            "SELECT * FROM TEST_TABLE",
+            "tenant1",
+            rs2 -> new TestEntity(new OriginalDateTime()),
+            (stmt, idx) -> {
+              stmt.setString(idx, "value1");
+              return idx + 1;
+            });
 
     assertEquals(1, results.size());
     verify(ps, times(1)).setString(1, "value1");
@@ -425,8 +437,8 @@ class EntityLotBaseTest {
           return idx + 1;
         });
 
-    verify(conn, times(1)).prepareStatement(
-        "SELECT * FROM TEST_TABLE WHERE col1 = ? AND tenant_id = ?");
+    verify(conn, times(1))
+        .prepareStatement("SELECT * FROM TEST_TABLE WHERE col1 = ? AND tenant_id = ?");
   }
 
   @Test
@@ -435,20 +447,25 @@ class EntityLotBaseTest {
     TestEntityLot lot = new TestEntityLot();
     assertThrows(
         IllegalArgumentException.class,
-        () -> lot.executeQuery(conn, "SELECT * FROM TEST_TABLE", null,
-            rs -> new TestEntity(new OriginalDateTime()),
-            (stmt, idx) -> idx),
+        () ->
+            lot.executeQuery(
+                conn,
+                "SELECT * FROM TEST_TABLE",
+                null,
+                rs -> new TestEntity(new OriginalDateTime()),
+                (stmt, idx) -> idx),
         "TenantId must not be null or empty");
   }
 
   @Test
   void testExecuteQueryWithoutTenantFilter_WithNullConnection() throws SQLException {
     TestEntityLot lot = new TestEntityLot();
-    var results = lot.executeQueryWithoutTenantFilter(
-        null,
-        "SELECT * FROM TEST_TABLE",
-        rs -> new TestEntity(new OriginalDateTime()),
-        (stmt, idx) -> idx);
+    var results =
+        lot.executeQueryWithoutTenantFilter(
+            null,
+            "SELECT * FROM TEST_TABLE",
+            rs -> new TestEntity(new OriginalDateTime()),
+            (stmt, idx) -> idx);
     assertTrue(results.isEmpty());
   }
 
@@ -462,14 +479,15 @@ class EntityLotBaseTest {
     when(rs.next()).thenReturn(true, false);
 
     TestEntityLot lot = new TestEntityLot();
-    var results = lot.executeQueryWithoutTenantFilter(
-        conn,
-        "SELECT * FROM TEST_TABLE",
-        rs2 -> new TestEntity(new OriginalDateTime()),
-        (stmt, idx) -> {
-          stmt.setString(idx, "value1");
-          return idx + 1;
-        });
+    var results =
+        lot.executeQueryWithoutTenantFilter(
+            conn,
+            "SELECT * FROM TEST_TABLE",
+            rs2 -> new TestEntity(new OriginalDateTime()),
+            (stmt, idx) -> {
+              stmt.setString(idx, "value1");
+              return idx + 1;
+            });
 
     assertEquals(1, results.size());
     verify(ps, times(1)).setString(1, "value1");
@@ -541,7 +559,8 @@ class EntityLotBaseTest {
     when(rs.next()).thenReturn(true, false);
 
     TestEntityLot lot = new TestEntityLot();
-    lot.selectByLikeQuery(conn, "test-tenant", "SELECT * FROM TEST_TABLE WHERE ", "col1", "search", null);
+    lot.selectByLikeQuery(
+        conn, "test-tenant", "SELECT * FROM TEST_TABLE WHERE ", "col1", "search", null);
 
     assertEquals(1, lot.size());
     verify(ps).setString(1, "%search%");
@@ -563,7 +582,8 @@ class EntityLotBaseTest {
             new copel.sesproductpackage.core.unit.LogicalOperators(
                 copel.sesproductpackage.core.unit.LogicalOperators.論理演算子.AND, "val1"));
 
-    lot.selectByLikeQuery(conn, "test-tenant", "SELECT * FROM TEST_TABLE WHERE ", "col1", "search", operators);
+    lot.selectByLikeQuery(
+        conn, "test-tenant", "SELECT * FROM TEST_TABLE WHERE ", "col1", "search", operators);
 
     assertEquals(1, lot.size());
     verify(ps).setString(1, "%search%");
@@ -582,7 +602,9 @@ class EntityLotBaseTest {
     when(rs.getLong(1)).thenReturn(100L);
 
     TestEntityLot lot = new TestEntityLot();
-    long count = lot.countByQuery(conn, "test-tenant", "SELECT * FROM TEST_TABLE", Map.of("col1", "val1"), true);
+    long count =
+        lot.countByQuery(
+            conn, "test-tenant", "SELECT * FROM TEST_TABLE", Map.of("col1", "val1"), true);
 
     assertEquals(100L, count);
     verify(ps).setString(1, "val1");
@@ -600,7 +622,8 @@ class EntityLotBaseTest {
     when(rs.getLong(1)).thenReturn(50L);
 
     TestEntityLot lot = new TestEntityLot();
-    lot.selectByQueryPaged(conn, "test-tenant", "SELECT * FROM TEST_TABLE", Map.of("col1", "val1"), true, 1, 10);
+    lot.selectByQueryPaged(
+        conn, "test-tenant", "SELECT * FROM TEST_TABLE", Map.of("col1", "val1"), true, 1, 10);
 
     assertEquals(1, lot.size());
     assertEquals(50L, lot.getTotalCount());
@@ -617,7 +640,8 @@ class EntityLotBaseTest {
     when(rs.getLong(1)).thenReturn(25L);
 
     TestEntityLot lot = new TestEntityLot();
-    lot.selectByLikeQueryPaged(conn, "test-tenant", "SELECT * FROM TEST_TABLE WHERE ", "col1", "search", null, 1, 10);
+    lot.selectByLikeQueryPaged(
+        conn, "test-tenant", "SELECT * FROM TEST_TABLE WHERE ", "col1", "search", null, 1, 10);
 
     assertEquals(1, lot.size());
     assertEquals(25L, lot.getTotalCount());

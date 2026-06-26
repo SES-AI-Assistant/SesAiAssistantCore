@@ -6,13 +6,10 @@ import copel.sesproductpackage.core.unit.MatchingStatus;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /**
@@ -29,6 +26,7 @@ public class SES_AI_T_MATCH extends EntityBase {
     super(tenantId);
     this.tenantId = tenantId;
   }
+
   /** INSERT文（tenantId を含む）. */
   private static final String INSERT_SQL =
       "INSERT INTO SES_AI_T_MATCH (matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";

@@ -4,8 +4,6 @@ import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.SkillSheet;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -104,8 +102,7 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
           this.fromGroup = rs.getString("from_group");
           this.fromId = rs.getString("from_id");
           this.fromName = rs.getString("from_name");
-          this.skillSheet =
-              new SkillSheet(rs.getString("file_id"), rs.getString("file_name"), "");
+          this.skillSheet = new SkillSheet(rs.getString("file_id"), rs.getString("file_name"), "");
           this.skillSheet.setFileContentSummary(rs.getString("file_content_summary"));
           this.registerDate = new OriginalDateTime(rs.getString("register_date"));
           this.registerUser = rs.getString("register_user");
@@ -145,7 +142,8 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
           stmt.setString(4, this.skillSheet == null ? null : this.skillSheet.getFileId());
           stmt.setString(5, this.skillSheet == null ? null : this.skillSheet.getFileName());
           stmt.setString(6, this.skillSheet == null ? null : this.skillSheet.getFileContent());
-          stmt.setString(7, this.skillSheet == null ? null : this.skillSheet.getFileContentSummary());
+          stmt.setString(
+              7, this.skillSheet == null ? null : this.skillSheet.getFileContentSummary());
           stmt.setString(8, this.vectorData == null ? null : this.vectorData.toString());
           stmt.setTimestamp(9, this.registerDate == null ? null : this.registerDate.toTimestamp());
           stmt.setString(10, this.registerUser);
@@ -171,9 +169,7 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
           this.fromName = rs.getString("from_name");
           this.skillSheet =
               new SkillSheet(
-                  rs.getString("file_id"),
-                  rs.getString("file_name"),
-                  rs.getString("file_content"));
+                  rs.getString("file_id"), rs.getString("file_name"), rs.getString("file_content"));
           this.skillSheet.setFileContentSummary(rs.getString("file_content_summary"));
           this.registerDate = new OriginalDateTime(rs.getString("register_date"));
           this.registerUser = rs.getString("register_user");

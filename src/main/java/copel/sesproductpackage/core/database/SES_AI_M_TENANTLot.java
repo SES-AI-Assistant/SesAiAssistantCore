@@ -26,7 +26,6 @@ public class SES_AI_M_TENANTLot extends EntityLotBase<SES_AI_M_TENANT> {
     super();
   }
 
-
   @Override
   protected String getSelectAllSql() {
     return SELECT_ALL_SQL;
@@ -40,33 +39,29 @@ public class SES_AI_M_TENANTLot extends EntityLotBase<SES_AI_M_TENANT> {
   @Override
   public void selectAll(final Connection connection, final String tenantId) throws SQLException {
     this.entityLot = new ArrayList<>();
-    List<SES_AI_M_TENANT> results = executeQuery(
-        connection,
-        SELECT_ALL_SQL,
-        tenantId,
-        this::mapResultSet,
-        (stmt, paramIndex) -> paramIndex
-    );
+    List<SES_AI_M_TENANT> results =
+        executeQuery(
+            connection,
+            SELECT_ALL_SQL,
+            tenantId,
+            this::mapResultSet,
+            (stmt, paramIndex) -> paramIndex);
     this.entityLot.addAll(results);
   }
 
   /**
    * 全レコードを取得する（WithoutTenantFilter - バッチ処理専用）.
    *
-   * ⚠️ このメソッドは全テナント対象です。
-   * バッチ処理専用。コードレビュー必須。
+   * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
    * @throws SQLException
    */
   public void selectAllWithoutTenantFilter(final Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
-    List<SES_AI_M_TENANT> results = executeQueryWithoutTenantFilter(
-        connection,
-        SELECT_ALL_SQL,
-        this::mapResultSet,
-        (stmt, paramIndex) -> paramIndex
-    );
+    List<SES_AI_M_TENANT> results =
+        executeQueryWithoutTenantFilter(
+            connection, SELECT_ALL_SQL, this::mapResultSet, (stmt, paramIndex) -> paramIndex);
     this.entityLot.addAll(results);
   }
 

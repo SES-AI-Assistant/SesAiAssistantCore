@@ -79,8 +79,7 @@ class FulltextConditionsWhereClauseTest {
   @Test
   void testBuildInvalid() {
     assertThrows(
-        IllegalArgumentException.class,
-        () -> FulltextConditionsWhereClause.build("c", null));
+        IllegalArgumentException.class, () -> FulltextConditionsWhereClause.build("c", null));
     assertThrows(
         IllegalArgumentException.class,
         () -> FulltextConditionsWhereClause.build(null, Collections.emptyList()));
@@ -91,14 +90,12 @@ class FulltextConditionsWhereClauseTest {
         IllegalArgumentException.class,
         () ->
             FulltextConditionsWhereClause.build(
-                null,
-                Collections.singletonList(new FulltextCondition("AND", "ok", false))));
+                null, Collections.singletonList(new FulltextCondition("AND", "ok", false))));
     assertThrows(
         IllegalArgumentException.class,
         () ->
             FulltextConditionsWhereClause.build(
-                "c",
-                Collections.singletonList(new FulltextCondition("AND", "", false))));
+                "c", Collections.singletonList(new FulltextCondition("AND", "", false))));
   }
 
   @Test
@@ -146,8 +143,7 @@ class FulltextConditionsWhereClauseTest {
     segs =
         FulltextConditionsWhereClause.splitSegments(
             Arrays.asList(
-                new FulltextCondition("AND", "a", false),
-                new FulltextCondition(null, "b", false)));
+                new FulltextCondition("AND", "a", false), new FulltextCondition(null, "b", false)));
     assertEquals(1, segs.size());
     assertEquals(2, segs.get(0).size());
   }
@@ -216,8 +212,7 @@ class FulltextConditionsWhereClauseTest {
             "p.raw_content",
             List.of("s.file_content_summary"),
             Arrays.asList(
-                new FulltextCondition("AND", "A", false),
-                new FulltextCondition("OR", "B", false)));
+                new FulltextCondition("AND", "A", false), new FulltextCondition("OR", "B", false)));
     // セグメント2つ(A, B) × カラム2本 = パラメータ4個
     assertEquals(4, b.getLikeParams().size());
     assertTrue(b.getWhereClauseWithoutWhereKeyword().contains(" OR "));
@@ -229,7 +224,9 @@ class FulltextConditionsWhereClauseTest {
         IllegalArgumentException.class,
         () ->
             FulltextConditionsWhereClause.buildForMultipleColumns(
-                null, List.of("s.col"), Collections.singletonList(new FulltextCondition("AND", "x", false))));
+                null,
+                List.of("s.col"),
+                Collections.singletonList(new FulltextCondition("AND", "x", false))));
     assertThrows(
         IllegalArgumentException.class,
         () ->
@@ -239,6 +236,8 @@ class FulltextConditionsWhereClauseTest {
         IllegalArgumentException.class,
         () ->
             FulltextConditionsWhereClause.buildForMultipleColumns(
-                "   ", List.of("s.col"), Collections.singletonList(new FulltextCondition("AND", "x", false))));
+                "   ",
+                List.of("s.col"),
+                Collections.singletonList(new FulltextCondition("AND", "x", false))));
   }
 }

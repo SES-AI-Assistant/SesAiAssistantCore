@@ -4,12 +4,9 @@ import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /**
@@ -25,6 +22,7 @@ public class SES_AI_M_GROUP extends EntityBase {
   public SES_AI_M_GROUP(String tenantId) {
     super(tenantId);
   }
+
   /** INSERT文（tenantId を含む）. */
   private static final String INSERT_SQL =
       "INSERT INTO SES_AI_M_GROUP (from_group, group_name, register_date, register_user, tenant_id) VALUES (?, ?, ?, ?, ?)";
@@ -57,8 +55,7 @@ public class SES_AI_M_GROUP extends EntityBase {
         (stmt) -> {
           stmt.setString(1, this.fromGroup);
           stmt.setString(2, this.groupName);
-          stmt.setTimestamp(
-              3, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setTimestamp(3, this.registerDate == null ? null : this.registerDate.toTimestamp());
           stmt.setString(4, this.registerUser);
           stmt.setString(5, this.tenantId);
         },
@@ -95,8 +92,7 @@ public class SES_AI_M_GROUP extends EntityBase {
         this.tenantId,
         (stmt) -> {
           stmt.setString(1, this.groupName);
-          stmt.setTimestamp(
-              2, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setTimestamp(2, this.registerDate == null ? null : this.registerDate.toTimestamp());
           stmt.setString(3, this.registerUser);
           stmt.setString(4, this.fromGroup);
         },

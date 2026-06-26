@@ -4,12 +4,9 @@ import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /**
@@ -26,6 +23,7 @@ public class SES_AI_T_WATCH extends EntityBase {
     super(tenantId);
     this.tenantId = tenantId;
   }
+
   /** INSERT文（tenantId を含む）. */
   private static final String INSERT_SQL =
       "INSERT INTO SES_AI_T_WATCH (user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id) "

@@ -130,7 +130,8 @@ public abstract class EntityBase implements Comparable<EntityBase> {
       final String sql,
       final String tenantId,
       final PreparedStatementBinder paramBinder,
-      final String logLabel) throws SQLException {
+      final String logLabel)
+      throws SQLException {
     if (conn == null || tenantId == null || tenantId.isEmpty()) {
       return 0;
     }
@@ -160,7 +161,8 @@ public abstract class EntityBase implements Comparable<EntityBase> {
       final Connection conn,
       final String sql,
       final PreparedStatementBinder paramBinder,
-      final String logLabel) throws SQLException {
+      final String logLabel)
+      throws SQLException {
     if (conn == null) {
       return 0;
     }
@@ -194,7 +196,8 @@ public abstract class EntityBase implements Comparable<EntityBase> {
       final String tenantId,
       final PreparedStatementBinder paramBinder,
       final ResultSetMapper resultMapper,
-      final String logLabel) throws SQLException {
+      final String logLabel)
+      throws SQLException {
     if (conn == null || tenantId == null || tenantId.isEmpty()) {
       return false;
     }
@@ -234,7 +237,8 @@ public abstract class EntityBase implements Comparable<EntityBase> {
       final String sql,
       final PreparedStatementBinder paramBinder,
       final ResultSetMapper resultMapper,
-      final String logLabel) throws SQLException {
+      final String logLabel)
+      throws SQLException {
     if (conn == null) {
       return false;
     }
@@ -273,7 +277,8 @@ public abstract class EntityBase implements Comparable<EntityBase> {
       final String baseSql,
       final String tenantId,
       final PreparedStatementBinder paramBinder,
-      final String logLabel) throws SQLException {
+      final String logLabel)
+      throws SQLException {
     if (conn == null || tenantId == null || tenantId.isEmpty()) {
       return false;
     }
@@ -309,7 +314,8 @@ public abstract class EntityBase implements Comparable<EntityBase> {
       final Connection conn,
       final String sql,
       final PreparedStatementBinder paramBinder,
-      final String logLabel) throws SQLException {
+      final String logLabel)
+      throws SQLException {
     if (conn == null) {
       return false;
     }
@@ -346,7 +352,8 @@ public abstract class EntityBase implements Comparable<EntityBase> {
       final String baseSql,
       final String tenantId,
       final PreparedStatementBinder paramBinder,
-      final String logLabel) throws SQLException {
+      final String logLabel)
+      throws SQLException {
     if (conn == null || tenantId == null || tenantId.isEmpty()) {
       return false;
     }
@@ -378,7 +385,8 @@ public abstract class EntityBase implements Comparable<EntityBase> {
       final Connection conn,
       final String sql,
       final PreparedStatementBinder paramBinder,
-      final String logLabel) throws SQLException {
+      final String logLabel)
+      throws SQLException {
     if (conn == null) {
       return false;
     }
@@ -410,7 +418,8 @@ public abstract class EntityBase implements Comparable<EntityBase> {
       final String baseSql,
       final String tenantId,
       final PreparedStatementBinder paramBinder,
-      final String logLabel) throws SQLException {
+      final String logLabel)
+      throws SQLException {
     if (conn == null || tenantId == null || tenantId.isEmpty()) {
       return false;
     }
@@ -442,7 +451,8 @@ public abstract class EntityBase implements Comparable<EntityBase> {
       final Connection conn,
       final String sql,
       final PreparedStatementBinder paramBinder,
-      final String logLabel) throws SQLException {
+      final String logLabel)
+      throws SQLException {
     if (conn == null) {
       return false;
     }
@@ -486,8 +496,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
     // FROM句からテーブルエイリアスを自動抽出
     Pattern pattern =
         Pattern.compile(
-            "FROM\\s+\\S+\\s+([a-zA-Z_]\\w*)(?:\\s|,|JOIN|WHERE|$)",
-            Pattern.CASE_INSENSITIVE);
+            "FROM\\s+\\S+\\s+([a-zA-Z_]\\w*)(?:\\s|,|JOIN|WHERE|$)", Pattern.CASE_INSENSITIVE);
     Matcher matcher = pattern.matcher(trimmedSql);
     String tableAlias = matcher.find() ? matcher.group(1) : null;
 

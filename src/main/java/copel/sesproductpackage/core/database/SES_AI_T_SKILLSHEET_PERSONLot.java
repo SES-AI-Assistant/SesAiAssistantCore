@@ -85,7 +85,6 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
     super();
   }
 
-
   @Override
   protected String getSelectAllSql() {
     return SELECT_ALL_SQL;
@@ -118,7 +117,8 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       final double similarityThreshold,
       final int limit)
       throws SQLException {
-    executeRetrieve(connection, tenantId, RETRIEVE_BY_PERSON_VECTOR_SQL, query, similarityThreshold, limit);
+    executeRetrieve(
+        connection, tenantId, RETRIEVE_BY_PERSON_VECTOR_SQL, query, similarityThreshold, limit);
   }
 
   /**
@@ -160,7 +160,12 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       final int limit)
       throws SQLException {
     executeRetrieve(
-        connection, tenantId, RETRIEVE_OUTER_JOIN_BY_PERSON_VECTOR_SQL, query, similarityThreshold, limit);
+        connection,
+        tenantId,
+        RETRIEVE_OUTER_JOIN_BY_PERSON_VECTOR_SQL,
+        query,
+        similarityThreshold,
+        limit);
   }
 
   /**
@@ -274,22 +279,22 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
 
     // (2) ページング実行（tenant_id フィルターを適用）
     String pagedSql = sql + PAGED_SQL_OFFSET_SUFFIX;
-    List<SES_AI_T_SKILLSHEET_PERSON> results = executeQuery(
-        connection,
-        pagedSql,
-        tenantId,
-        this::mapResultSet,
-        (stmt, paramIndex) -> {
-          int idx = paramIndex;
-          String vectorStr = query.toString();
-          stmt.setString(idx, vectorStr);
-          stmt.setString(idx + 1, vectorStr);
-          stmt.setDouble(idx + 2, similarityThreshold);
-          stmt.setInt(idx + 3, size);
-          stmt.setInt(idx + 4, (page - 1) * size);
-          return idx + 5;
-        }
-    );
+    List<SES_AI_T_SKILLSHEET_PERSON> results =
+        executeQuery(
+            connection,
+            pagedSql,
+            tenantId,
+            this::mapResultSet,
+            (stmt, paramIndex) -> {
+              int idx = paramIndex;
+              String vectorStr = query.toString();
+              stmt.setString(idx, vectorStr);
+              stmt.setString(idx + 1, vectorStr);
+              stmt.setDouble(idx + 2, similarityThreshold);
+              stmt.setInt(idx + 3, size);
+              stmt.setInt(idx + 4, (page - 1) * size);
+              return idx + 5;
+            });
     this.entityLot = results;
   }
 
@@ -301,8 +306,8 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param query 検索キーワード
    * @throws SQLException
    */
-  public void retrieveByPersonRawContent(final Connection connection, final String tenantId, final String query)
-      throws SQLException {
+  public void retrieveByPersonRawContent(
+      final Connection connection, final String tenantId, final String query) throws SQLException {
     this.selectByLikeQuery(
         connection, tenantId, SELECT_BY_PERSON_RAW_CONTENT_SQL, "p.raw_content", query, null);
   }
@@ -318,17 +323,27 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @throws SQLException
    */
   public void retrieveByPersonRawContentPaged(
-      final Connection connection, final String tenantId, final String query, final int page, final int size)
+      final Connection connection,
+      final String tenantId,
+      final String query,
+      final int page,
+      final int size)
       throws SQLException {
     this.selectByLikeQueryPaged(
-        connection, tenantId, SELECT_BY_PERSON_RAW_CONTENT_SQL, "p.raw_content", query, null, page, size);
+        connection,
+        tenantId,
+        SELECT_BY_PERSON_RAW_CONTENT_SQL,
+        "p.raw_content",
+        query,
+        null,
+        page,
+        size);
   }
 
   /**
    * 要員の raw_content とスキルシートの file_content_summary の両方に対して複合条件でページング検索します（LEFT JOIN）.
    *
-   * <p>スキルシート未紐づきの要員は raw_content のみが照合対象となり、結果から除外されない。
-   * スキルシート原文（file_content）は検索対象外。
+   * <p>スキルシート未紐づきの要員は raw_content のみが照合対象となり、結果から除外されない。 スキルシート原文（file_content）は検索対象外。
    *
    * @param connection DBコネクション
    * @param tenantId テナントID
@@ -360,8 +375,8 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
   /**
    * 要員の raw_content とスキルシートの file_content_summary の両方に対して複合条件でページング検索します（INNER JOIN）.
    *
-   * <p>スキルシートが紐づいている要員のみが対象（has_skillsheet_only: true）。
-   * file_content_summary が NULL の行も NOT 条件で誤除外されないよう IS NULL チェックを行う。
+   * <p>スキルシートが紐づいている要員のみが対象（has_skillsheet_only: true）。 file_content_summary が NULL の行も NOT
+   * 条件で誤除外されないよう IS NULL チェックを行う。
    *
    * @param connection DBコネクション
    * @param tenantId テナントID
@@ -429,10 +444,18 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @throws SQLException
    */
   public void retrieveByPersonRawContent(
-      final Connection connection, final String tenantId, final String firstLikeQuery, final List<LogicalOperators> query)
+      final Connection connection,
+      final String tenantId,
+      final String firstLikeQuery,
+      final List<LogicalOperators> query)
       throws SQLException {
     this.selectByLikeQuery(
-        connection, tenantId, SELECT_BY_PERSON_RAW_CONTENT_SQL, "p.raw_content", firstLikeQuery, query);
+        connection,
+        tenantId,
+        SELECT_BY_PERSON_RAW_CONTENT_SQL,
+        "p.raw_content",
+        firstLikeQuery,
+        query);
   }
 
   /**
@@ -443,8 +466,8 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param query 検索キーワード
    * @throws SQLException
    */
-  public void retrieveBySkillSheetRawContent(final Connection connection, final String tenantId, final String query)
-      throws SQLException {
+  public void retrieveBySkillSheetRawContent(
+      final Connection connection, final String tenantId, final String query) throws SQLException {
     this.selectByLikeQuery(
         connection, tenantId, SELECT_BY_SKILLSHEET_RAW_CONTENT_SQL, "s.file_content", query, null);
   }
@@ -460,7 +483,11 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @throws SQLException
    */
   public void retrieveBySkillSheetRawContentPaged(
-      final Connection connection, final String tenantId, final String query, final int page, final int size)
+      final Connection connection,
+      final String tenantId,
+      final String query,
+      final int page,
+      final int size)
       throws SQLException {
     this.selectByLikeQueryPaged(
         connection,
@@ -483,10 +510,18 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @throws SQLException
    */
   public void retrieveBySkillSheetRawContent(
-      final Connection connection, final String tenantId, final String firstLikeQuery, final List<LogicalOperators> query)
+      final Connection connection,
+      final String tenantId,
+      final String firstLikeQuery,
+      final List<LogicalOperators> query)
       throws SQLException {
     this.selectByLikeQuery(
-        connection, tenantId, SELECT_BY_SKILLSHEET_RAW_CONTENT_SQL, "s.file_content", firstLikeQuery, query);
+        connection,
+        tenantId,
+        SELECT_BY_SKILLSHEET_RAW_CONTENT_SQL,
+        "s.file_content",
+        firstLikeQuery,
+        query);
   }
 
   /**
@@ -562,33 +597,29 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
   @Override
   public void selectAll(final Connection connection, final String tenantId) throws SQLException {
     this.entityLot = new ArrayList<>();
-    List<SES_AI_T_SKILLSHEET_PERSON> results = executeQuery(
-        connection,
-        getSelectAllSql(),
-        tenantId,
-        this::mapResultSet,
-        (stmt, paramIndex) -> paramIndex
-    );
+    List<SES_AI_T_SKILLSHEET_PERSON> results =
+        executeQuery(
+            connection,
+            getSelectAllSql(),
+            tenantId,
+            this::mapResultSet,
+            (stmt, paramIndex) -> paramIndex);
     this.entityLot.addAll(results);
   }
 
   /**
    * 全レコードを取得する（WithoutTenantFilter - バッチ処理専用）.
    *
-   * ⚠️ このメソッドは全テナント対象です。
-   * バッチ処理専用。コードレビュー必須。
+   * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
    * @throws SQLException
    */
   public void selectAllWithoutTenantFilter(final Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
-    List<SES_AI_T_SKILLSHEET_PERSON> results = executeQueryWithoutTenantFilter(
-        connection,
-        getSelectAllSql(),
-        this::mapResultSet,
-        (stmt, paramIndex) -> paramIndex
-    );
+    List<SES_AI_T_SKILLSHEET_PERSON> results =
+        executeQueryWithoutTenantFilter(
+            connection, getSelectAllSql(), this::mapResultSet, (stmt, paramIndex) -> paramIndex);
     this.entityLot.addAll(results);
   }
 

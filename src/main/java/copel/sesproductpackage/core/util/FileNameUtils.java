@@ -153,8 +153,8 @@ public class FileNameUtils {
   /**
    * Content-Dispositionヘッダなどで、UTF-8バイト列がISO-8859-1として誤解釈された文字列を修正する.
    *
-   * <p>例: "スキルシート"のUTF-8バイト列(E3 82 B9...)がISO-8859-1文字として解釈されると
-   * "ã¹ã­ã«ã·ã¼ã" となる。このような場合、正しいUTF-8文字列に復元する。
+   * <p>例: "スキルシート"のUTF-8バイト列(E3 82 B9...)がISO-8859-1文字として解釈されると "ã¹ã­ã«ã·ã¼ã"
+   * となる。このような場合、正しいUTF-8文字列に復元する。
    *
    * @param text 対象の文字列
    * @return 修正後の文字列（修正不要な場合は元の文字列）
@@ -189,12 +189,12 @@ public class FileNameUtils {
     }
     for (char c : text.toCharArray()) {
       // ひらがな、カタカナ、漢字、その他のCJK文字（U+2E80-U+9FFF）
-      if ((c >= '぀' && c <= 'ゟ')  // ひらがな
-          || (c >= '゠' && c <= 'ヿ')  // カタカナ
-          || (c >= '一' && c <= '鿿')  // 漢字
-          || (c >= '⺀' && c <= '⻿')  // CJK Radicals Supplement
-          || (c >= '㐀' && c <= '䶿')  // CJK Unified Ideographs Extension A
-          || (c >= '豈' && c <= '﫿')) {  // CJK Compatibility Ideographs
+      if ((c >= '぀' && c <= 'ゟ') // ひらがな
+          || (c >= '゠' && c <= 'ヿ') // カタカナ
+          || (c >= '一' && c <= '鿿') // 漢字
+          || (c >= '⺀' && c <= '⻿') // CJK Radicals Supplement
+          || (c >= '㐀' && c <= '䶿') // CJK Unified Ideographs Extension A
+          || (c >= '豈' && c <= '﫿')) { // CJK Compatibility Ideographs
         return true;
       }
     }
