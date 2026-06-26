@@ -113,9 +113,13 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
     return SELECT_LIKE_SQL;
   }
 
+  /** SELECT_ALL_SQL - 全件取得（登録日降順）. */
+  private static final String SELECT_ALL_SQL =
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl, tenant_id FROM SES_AI_T_SKILLSHEET ORDER BY register_date DESC";
+
   @Override
   protected String getSelectAllSql() {
-    return "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl, tenant_id FROM SES_AI_T_SKILLSHEET ORDER BY register_date DESC";
+    return SELECT_ALL_SQL;
   }
 
   /**

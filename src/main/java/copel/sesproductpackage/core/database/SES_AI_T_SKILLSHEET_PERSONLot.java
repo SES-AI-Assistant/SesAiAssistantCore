@@ -19,6 +19,24 @@ import java.util.List;
  */
 public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLSHEET_PERSON> {
 
+  /** SELECT_ALL_SQL - 全件取得. */
+  private static final String SELECT_ALL_SQL =
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.tenant_id FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id";
+
+  /** SELECT_SQL - WHERE句あり. */
+  private static final String SELECT_SQL =
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.tenant_id FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id WHERE ";
+
+  /** COUNT SQL用プレフィックス. */
+  private static final String COUNT_SQL_PREFIX = "SELECT COUNT(*) ";
+
+  /** ページング用 OFFSET サフィックス. */
+  private static final String PAGED_SQL_OFFSET_SUFFIX = " OFFSET ?";
+
+  /** 要員ベクトル検索用COUNT_QUERY_PART. */
+  private static final String COUNT_QUERY_PART_FOR_PERSON_VECTOR =
+      "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id WHERE 1 - (p.vector_data <=> ?::vector) >= ?";
+
   private static final String RETRIEVE_BY_PERSON_VECTOR_SQL =
       "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.vector_data <=> ?::vector AS distance, p.tenant_id "
           + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
@@ -62,12 +80,6 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
           + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
           + "WHERE s.file_content LIKE ?";
 
-  /** COUNT SQL用プレフィックス. */
-  private static final String COUNT_SQL_PREFIX = "SELECT COUNT(*) ";
-
-  /** ページング用 OFFSET サフィックス. */
-  private static final String PAGED_SQL_OFFSET_SUFFIX = " OFFSET ?";
-
   /** コンストラクタ. */
   public SES_AI_T_SKILLSHEET_PERSONLot() {
     super();
@@ -76,12 +88,12 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
 
   @Override
   protected String getSelectAllSql() {
-    return "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.tenant_id FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id";
+    return SELECT_ALL_SQL;
   }
 
   @Override
   protected String getSelectSql() {
-    return "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.tenant_id FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id WHERE ";
+    return SELECT_SQL;
   }
 
   @Override
@@ -204,7 +216,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
         similarityThreshold,
         page,
         size,
-        "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id WHERE 1 - (p.vector_data <=> ?::vector) >= ?");
+        COUNT_QUERY_PART_FOR_PERSON_VECTOR);
   }
 
   private void executeRetrieve(

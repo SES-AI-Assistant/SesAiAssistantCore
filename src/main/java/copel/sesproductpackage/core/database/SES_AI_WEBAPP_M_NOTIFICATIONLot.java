@@ -19,6 +19,18 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
   private static final String SELECT_ALL_SQL =
       "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user, tenant_id FROM SES_AI_WEBAPP_M_NOTIFICATION";
 
+  /** SELECT文（WHERE句あり）. */
+  private static final String SELECT_SQL =
+      "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE ";
+
+  /** SELECT文（user_id検索）. */
+  private static final String SELECT_BY_USER_ID_SQL =
+      "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE user_id = ? AND tenant_id = ?";
+
+  /** SELECT文（notify_all_match検索）. */
+  private static final String SELECT_BY_NOTIFY_ALL_MATCH_SQL =
+      "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE notify_all_match = true AND tenant_id = ?";
+
   public SES_AI_WEBAPP_M_NOTIFICATIONLot() {
     super();
   }
@@ -31,7 +43,7 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
 
   @Override
   protected String getSelectSql() {
-    return "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE ";
+    return SELECT_SQL;
   }
 
   @Override
@@ -80,9 +92,7 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
       this.entityLot = new ArrayList<>();
       return;
     }
-    String sql =
-        "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE user_id = ? AND tenant_id = ?";
-    PreparedStatement preparedStatement = connection.prepareStatement(sql);
+    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BY_USER_ID_SQL);
     preparedStatement.setString(1, userId);
     preparedStatement.setString(2, tenantId);
     ResultSet resultSet = preparedStatement.executeQuery();
@@ -100,9 +110,7 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
    * @throws SQLException SQL実行時の例外
    */
   public void selectByNotifyAllMatch(final Connection connection, final String tenantId) throws SQLException {
-    String sql =
-        "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE notify_all_match = true AND tenant_id = ?";
-    PreparedStatement preparedStatement = connection.prepareStatement(sql);
+    PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BY_NOTIFY_ALL_MATCH_SQL);
     preparedStatement.setString(1, tenantId);
     ResultSet resultSet = preparedStatement.executeQuery();
     this.entityLot = new ArrayList<>();

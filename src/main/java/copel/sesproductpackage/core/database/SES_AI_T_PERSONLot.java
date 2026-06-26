@@ -1,5 +1,12 @@
 package copel.sesproductpackage.core.database;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
 import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.search.FulltextCondition;
 import copel.sesproductpackage.core.search.FulltextConditionsWhereClause;
@@ -7,12 +14,6 @@ import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -118,15 +119,12 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
    * @return SES_AI_T_PERSON
    */
   public SES_AI_T_PERSON getEntityByPk(final String personId) {
-    log.debug("【getEntityByPk】personId:" + personId);
     if (personId == null) {
       return null;
     }
 
     for (SES_AI_T_PERSON entity : this.entityLot) {
-      log.debug("【getEntityByPk】entity.getPersonId():" + entity.getPersonId());
       if (personId.trim().equals(entity.getPersonId().trim())) {
-        log.debug("【getEntityByPk】return:" + entity.getPersonId());
         return entity;
       }
     }

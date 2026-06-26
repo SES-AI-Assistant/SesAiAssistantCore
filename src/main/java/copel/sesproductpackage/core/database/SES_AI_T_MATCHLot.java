@@ -19,6 +19,9 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
   private static final String SELECT_ALL_SQL =
       "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user, tenant_id FROM SES_AI_T_MATCH";
 
+  /** SELECT文（WHERE句あり）. */
+  private static final String SELECT_SQL =
+      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user, tenant_id FROM SES_AI_T_MATCH WHERE ";
 
   @Override
   protected String getSelectAllSql() {
@@ -27,7 +30,7 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
 
   @Override
   protected String getSelectSql() {
-    return "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user, tenant_id FROM SES_AI_T_MATCH WHERE ";
+    return SELECT_SQL;
   }
 
   @Override

@@ -18,6 +18,10 @@ public class SES_AI_M_TENANTLot extends EntityLotBase<SES_AI_M_TENANT> {
   private static final String SELECT_ALL_SQL =
       "SELECT tenant_id, tenant_name, tenant_status_cd, register_date, register_user FROM SES_AI_M_TENANT";
 
+  /** SELECT文（WHERE句あり）. */
+  private static final String SELECT_SQL =
+      "SELECT tenant_id, tenant_name, tenant_status_cd, register_date, register_user FROM SES_AI_M_TENANT WHERE ";
+
   public SES_AI_M_TENANTLot() {
     super();
   }
@@ -30,7 +34,7 @@ public class SES_AI_M_TENANTLot extends EntityLotBase<SES_AI_M_TENANT> {
 
   @Override
   protected String getSelectSql() {
-    return "SELECT tenant_id, tenant_name, tenant_status_cd, register_date, register_user FROM SES_AI_M_TENANT WHERE ";
+    return SELECT_SQL;
   }
 
   @Override

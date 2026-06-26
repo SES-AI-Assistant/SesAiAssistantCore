@@ -28,6 +28,10 @@ public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUT
   private static final String SELECT_BY_CHANNEL_AND_ROUTE_WITHOUT_TENANT_SQL =
       "SELECT channel_type, route_key, tenant_id, register_date, register_user FROM SES_AI_M_INGEST_ROUTE WHERE channel_type = ? AND route_key = ?";
 
+  /** SELECT文（WHERE句あり）. */
+  private static final String SELECT_SQL =
+      "SELECT channel_type, route_key, tenant_id, register_date, register_user FROM SES_AI_M_INGEST_ROUTE WHERE ";
+
   public SES_AI_M_INGEST_ROUTELot() {
     super();
   }
@@ -39,7 +43,7 @@ public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUT
 
   @Override
   protected String getSelectSql() {
-    return "SELECT channel_type, route_key, tenant_id, register_date, register_user FROM SES_AI_M_INGEST_ROUTE WHERE ";
+    return SELECT_SQL;
   }
 
   @Override

@@ -29,6 +29,16 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
   private static final String SELECT_BY_TARGET_ID_SQL =
       "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id FROM SES_AI_T_WATCH WHERE target_id = ? AND target_type = ?";
 
+  /** SELECT文（WHERE句あり）. */
+  private static final String SELECT_SQL =
+      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id FROM SES_AI_T_WATCH WHERE ";
+
+  /** DELETE期限切れSQL. */
+  private static final String DELETE_EXPIRED_SQL = "DELETE FROM SES_AI_T_WATCH WHERE ttl < NOW() AND tenant_id = ?";
+
+  /** DELETE期限切れSQL（テナントIDなし、バッチ用）. */
+  private static final String DELETE_EXPIRED_WITHOUT_TENANT_SQL = "DELETE FROM SES_AI_T_WATCH WHERE ttl < NOW()";
+
   public SES_AI_T_WATCHLot() {
     super();
   }
@@ -41,7 +51,7 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
 
   @Override
   protected String getSelectSql() {
-    return "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id FROM SES_AI_T_WATCH WHERE ";
+    return SELECT_SQL;
   }
 
   /**
@@ -87,7 +97,7 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
     this.selectByQueryPaged(
         connection,
         tenantId,
-        "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id FROM SES_AI_T_WATCH",
+        SELECT_ALL_SQL,
         query,
         true,
         page,
@@ -144,8 +154,7 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
    * @throws SQLException
    */
   public int deleteExpired(final Connection connection, final String tenantId) throws SQLException {
-    final String deleteExpiredSql = "DELETE FROM SES_AI_T_WATCH WHERE ttl < NOW() AND tenant_id = ?";
-    PreparedStatement preparedStatement = connection.prepareStatement(deleteExpiredSql);
+    PreparedStatement preparedStatement = connection.prepareStatement(DELETE_EXPIRED_SQL);
     preparedStatement.setString(1, tenantId);
     return preparedStatement.executeUpdate();
   }
@@ -158,8 +167,7 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
    * @throws SQLException SQL実行エラー
    */
   public int deleteExpiredWithoutTenantId(final Connection connection) throws SQLException {
-    final String deleteExpiredSql = "DELETE FROM SES_AI_T_WATCH WHERE ttl < NOW()";
-    PreparedStatement preparedStatement = connection.prepareStatement(deleteExpiredSql);
+    PreparedStatement preparedStatement = connection.prepareStatement(DELETE_EXPIRED_WITHOUT_TENANT_SQL);
     return preparedStatement.executeUpdate();
   }
 
