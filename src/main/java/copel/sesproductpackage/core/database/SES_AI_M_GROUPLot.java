@@ -20,7 +20,7 @@ public class SES_AI_M_GROUPLot extends EntityLotBase<SES_AI_M_GROUP> {
 
   /** SELECT文（WHERE句あり）. */
   private static final String SELECT_SQL =
-      "SELECT from_group, group_name, register_date, register_user FROM SES_AI_M_GROUP WHERE ";
+      "SELECT from_group, group_name, register_date, register_user, tenant_id FROM SES_AI_M_GROUP WHERE ";
 
   public SES_AI_M_GROUPLot() {
     super();
@@ -67,8 +67,7 @@ public class SES_AI_M_GROUPLot extends EntityLotBase<SES_AI_M_GROUP> {
 
   @Override
   protected SES_AI_M_GROUP mapResultSet(ResultSet resultSet) throws SQLException {
-    String tenantId = resultSet.getString("tenant_id");
-    SES_AI_M_GROUP sesAiMGroup = new SES_AI_M_GROUP(tenantId);
+    SES_AI_M_GROUP sesAiMGroup = new SES_AI_M_GROUP(resultSet.getString("tenant_id"));
     sesAiMGroup.setFromGroup(resultSet.getString("from_group"));
     sesAiMGroup.setGroupName(resultSet.getString("group_name"));
     sesAiMGroup.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));

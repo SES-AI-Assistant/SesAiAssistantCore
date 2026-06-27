@@ -210,8 +210,7 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
 
   @Override
   protected SES_AI_T_WATCH mapResultSet(ResultSet resultSet) throws SQLException {
-    String tenantId = resultSet.getString("tenant_id");
-    SES_AI_T_WATCH sesAiTWatch = new SES_AI_T_WATCH(tenantId);
+    SES_AI_T_WATCH sesAiTWatch = new SES_AI_T_WATCH(resultSet.getString("tenant_id"));
     sesAiTWatch.setUserId(resultSet.getString("user_id"));
     sesAiTWatch.setTargetId(resultSet.getString("target_id"));
     sesAiTWatch.setTargetType(TargetType.getEnumByName(resultSet.getString("target_type")));

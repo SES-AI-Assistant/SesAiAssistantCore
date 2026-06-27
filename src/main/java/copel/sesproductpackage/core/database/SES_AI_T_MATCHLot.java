@@ -127,8 +127,7 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
 
   @Override
   protected SES_AI_T_MATCH mapResultSet(ResultSet resultSet) throws SQLException {
-    String tenantId = resultSet.getString("tenant_id");
-    SES_AI_T_MATCH sesAiTMatch = new SES_AI_T_MATCH(tenantId);
+    SES_AI_T_MATCH sesAiTMatch = new SES_AI_T_MATCH(resultSet.getString("tenant_id"));
     sesAiTMatch.setMatchingId(resultSet.getString("matching_id"));
     sesAiTMatch.setUserId(resultSet.getString("user_id"));
     sesAiTMatch.setJobId(resultSet.getString("job_id"));

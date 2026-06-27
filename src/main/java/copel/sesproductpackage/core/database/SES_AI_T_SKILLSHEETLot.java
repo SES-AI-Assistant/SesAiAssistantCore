@@ -63,7 +63,7 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
 
   /** 期限切れスキルシート取得SQL前半（テナントIDあり）. */
   private static final String SELECT_EXPIRED_SKILLSHEETS_PREFIX =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl "
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl, tenant_id "
           + "FROM SES_AI_T_SKILLSHEET "
           + "WHERE ((ttl IS NOT NULL AND ttl < NOW()) "
           + "   OR (ttl IS NULL AND register_date IS NOT NULL AND (register_date + INTERVAL '";
@@ -85,7 +85,7 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
 
   /** 要員に紐づくスキルシート取得SQL（テナントIDあり）. */
   private static final String SELECT_BUNDLED_WITH_PERSON_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl "
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl, tenant_id "
           + "FROM SES_AI_T_SKILLSHEET "
           + "WHERE from_group = ? AND from_id = ? AND DATE(register_date) = DATE(?)";
 
@@ -599,8 +599,7 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
 
   @Override
   protected SES_AI_T_SKILLSHEET mapResultSet(ResultSet resultSet) throws SQLException {
-    String tenantId = resultSet.getString("tenant_id");
-    SES_AI_T_SKILLSHEET sesAiTSkillsheet = new SES_AI_T_SKILLSHEET(tenantId);
+    SES_AI_T_SKILLSHEET sesAiTSkillsheet = new SES_AI_T_SKILLSHEET(resultSet.getString("tenant_id"));
     sesAiTSkillsheet.setFromGroup(resultSet.getString("from_group"));
     sesAiTSkillsheet.setFromId(resultSet.getString("from_id"));
     sesAiTSkillsheet.setFromName(resultSet.getString("from_name"));

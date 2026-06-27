@@ -20,15 +20,15 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
 
   /** SELECT文（WHERE句あり）. */
   private static final String SELECT_SQL =
-      "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE ";
+      "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user, tenant_id FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE ";
 
   /** SELECT文（user_id検索）. */
   private static final String SELECT_BY_USER_ID_SQL =
-      "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE user_id = ? AND tenant_id = ?";
+      "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user, tenant_id FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE user_id = ?";
 
   /** SELECT文（notify_all_match検索）. */
   private static final String SELECT_BY_NOTIFY_ALL_MATCH_SQL =
-      "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE notify_all_match = true AND tenant_id = ?";
+      "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user, tenant_id FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE notify_all_match = true";
 
   public SES_AI_WEBAPP_M_NOTIFICATIONLot() {
     super();
@@ -121,8 +121,7 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
 
   @Override
   protected SES_AI_WEBAPP_M_NOTIFICATION mapResultSet(ResultSet resultSet) throws SQLException {
-    String tenantId = resultSet.getString("tenant_id");
-    SES_AI_WEBAPP_M_NOTIFICATION notification = new SES_AI_WEBAPP_M_NOTIFICATION(tenantId);
+    SES_AI_WEBAPP_M_NOTIFICATION notification = new SES_AI_WEBAPP_M_NOTIFICATION(resultSet.getString("tenant_id"));
     notification.setNotificationId(resultSet.getString("notification_id"));
     notification.setUserId(resultSet.getString("user_id"));
     notification.setDeviceType(resultSet.getString("device_type"));

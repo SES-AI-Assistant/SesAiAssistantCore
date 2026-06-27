@@ -21,10 +21,16 @@ class SES_AI_WEBAPP_M_NOTIFICATIONLotTest {
     when(rs.next()).thenReturn(true, false);
 
     when(rs.getString("notification_id")).thenReturn("N1");
-    when(rs.getString("tenant_id")).thenReturn("test-tenant");
     when(rs.getString("user_id")).thenReturn("U1");
-    when(rs.getString("tenant_id")).thenReturn("test-tenant");
     when(rs.getString("device_type")).thenReturn("WEB_PUSH");
+    when(rs.getString("device_name")).thenReturn("test-device");
+    when(rs.getString("push_notification_endpoint")).thenReturn("https://example.com");
+    when(rs.getString("p256dh")).thenReturn("p256dh-key");
+    when(rs.getString("auth")).thenReturn("auth-key");
+    when(rs.getBoolean("enabled")).thenReturn(true);
+    when(rs.getBoolean("notify_all_match")).thenReturn(false);
+    when(rs.getString("register_date")).thenReturn("2026-06-27 12:00:00");
+    when(rs.getString("register_user")).thenReturn("admin");
     when(rs.getString("tenant_id")).thenReturn("test-tenant");
 
     SES_AI_WEBAPP_M_NOTIFICATIONLot lot = new SES_AI_WEBAPP_M_NOTIFICATIONLot();
@@ -34,6 +40,7 @@ class SES_AI_WEBAPP_M_NOTIFICATIONLotTest {
     SES_AI_WEBAPP_M_NOTIFICATION first = lot.get(0);
     assertEquals("N1", first.getNotificationId());
     assertEquals("U1", first.getUserId());
+    assertEquals("test-tenant", first.getTenantId());
 
     assertNotNull(lot.toString());
   }
@@ -48,18 +55,24 @@ class SES_AI_WEBAPP_M_NOTIFICATIONLotTest {
     when(rs.next()).thenReturn(true, false);
 
     when(rs.getString("notification_id")).thenReturn("N1");
-    when(rs.getString("tenant_id")).thenReturn("test-tenant");
     when(rs.getString("user_id")).thenReturn("U1");
-    when(rs.getString("tenant_id")).thenReturn("test-tenant");
     when(rs.getString("device_type")).thenReturn("WEB_PUSH");
-    when(rs.getString("tenant_id")).thenReturn("test-tenant");
+    when(rs.getString("device_name")).thenReturn("test-device");
+    when(rs.getString("push_notification_endpoint")).thenReturn("https://example.com");
+    when(rs.getString("p256dh")).thenReturn("p256dh-key");
+    when(rs.getString("auth")).thenReturn("auth-key");
+    when(rs.getBoolean("enabled")).thenReturn(true);
     when(rs.getBoolean("notify_all_match")).thenReturn(true);
+    when(rs.getString("register_date")).thenReturn("2026-06-27 12:00:00");
+    when(rs.getString("register_user")).thenReturn("admin");
+    when(rs.getString("tenant_id")).thenReturn("test-tenant");
 
     SES_AI_WEBAPP_M_NOTIFICATIONLot lot = new SES_AI_WEBAPP_M_NOTIFICATIONLot();
     lot.selectByUserId(connection, "test-tenant", "U1");
 
     assertEquals(1, lot.size());
     assertEquals("N1", lot.get(0).getNotificationId());
+    assertEquals("test-tenant", lot.get(0).getTenantId());
     assertTrue(lot.get(0).getNotifyAllMatch());
   }
 

@@ -21,7 +21,7 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
 
   /** SELECT文（WHERE句あり）. */
   private static final String SELECT_SQL =
-      "SELECT user_id, user_name, role_cd, register_date, register_user FROM SES_AI_WEBAPP_M_USER WHERE ";
+      "SELECT user_id, user_name, role_cd, register_date, register_user, tenant_id FROM SES_AI_WEBAPP_M_USER WHERE ";
 
   public SES_AI_WEBAPP_M_USERLot() {
     super();
@@ -68,8 +68,7 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
 
   @Override
   protected SES_AI_WEBAPP_M_USER mapResultSet(ResultSet resultSet) throws SQLException {
-    String tenantId = resultSet.getString("tenant_id");
-    SES_AI_WEBAPP_M_USER sesAiWebappMUser = new SES_AI_WEBAPP_M_USER(tenantId);
+    SES_AI_WEBAPP_M_USER sesAiWebappMUser = new SES_AI_WEBAPP_M_USER(resultSet.getString("tenant_id"));
     sesAiWebappMUser.setUserId(resultSet.getString("user_id"));
     sesAiWebappMUser.setUserName(resultSet.getString("user_name"));
     sesAiWebappMUser.setRole(Role.getEnum(resultSet.getString("role_cd")));

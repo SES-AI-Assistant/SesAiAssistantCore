@@ -43,7 +43,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
           + "WHERE 1 - (p.vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
 
   private static final String RETRIEVE_BY_SKILLSHEET_VECTOR_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, s.vector_data <=> ?::vector AS distance, s.tenant_id "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, s.vector_data <=> ?::vector AS distance, p.tenant_id "
           + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
           + "WHERE 1 - (s.vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
 
@@ -53,7 +53,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
           + "WHERE 1 - (p.vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
 
   private static final String RETRIEVE_OUTER_JOIN_BY_SKILLSHEET_VECTOR_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, s.register_date, s.register_user, p.unit_price, COALESCE(s.from_group, p.from_group) AS from_group, COALESCE(s.from_id, p.from_id) AS from_id, COALESCE(s.from_name, p.from_name) AS from_name, s.vector_data <=> ?::vector AS distance, s.tenant_id "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, s.register_date, s.register_user, p.unit_price, COALESCE(s.from_group, p.from_group) AS from_group, COALESCE(s.from_id, p.from_id) AS from_id, COALESCE(s.from_name, p.from_name) AS from_name, s.vector_data <=> ?::vector AS distance, p.tenant_id "
           + "FROM SES_AI_T_SKILLSHEET s LEFT JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
           + "WHERE 1 - (s.vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
 
@@ -76,7 +76,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
           + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id WHERE ";
 
   private static final String SELECT_BY_SKILLSHEET_RAW_CONTENT_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, s.tenant_id "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.tenant_id "
           + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
           + "WHERE s.file_content LIKE ?";
 
@@ -625,8 +625,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
 
   @Override
   protected SES_AI_T_SKILLSHEET_PERSON mapResultSet(ResultSet resultSet) throws SQLException {
-    String tenantId = resultSet.getString("tenant_id");
-    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON(tenantId);
+    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON(resultSet.getString("tenant_id"));
     entity.setEntityDataFromResultSet(resultSet);
     if (hasColumn(resultSet, "distance")) {
       entity.setDistance(resultSet.getDouble("distance"));

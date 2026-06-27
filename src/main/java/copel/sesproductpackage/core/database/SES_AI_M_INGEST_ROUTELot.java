@@ -17,19 +17,19 @@ import java.util.List;
 public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUTE> {
   /** 全件SELECT文. */
   private static final String SELECT_ALL_SQL =
-      "SELECT channel_type, route_key, tenant_id, register_date, register_user FROM SES_AI_M_INGEST_ROUTE";
+      "SELECT channel_type, route_key, register_date, register_user, tenant_id FROM SES_AI_M_INGEST_ROUTE";
 
   /** チャネルタイプとルートキーで検索するSELECT文. */
   private static final String SELECT_BY_CHANNEL_AND_ROUTE_SQL =
-      "SELECT channel_type, route_key, tenant_id, register_date, register_user FROM SES_AI_M_INGEST_ROUTE WHERE channel_type = ? AND route_key = ?";
+      "SELECT channel_type, route_key, register_date, register_user, tenant_id FROM SES_AI_M_INGEST_ROUTE WHERE channel_type = ? AND route_key = ?";
 
   /** チャネルタイプとルートキーで検索するSELECT文（テナントID指定なし）. */
   private static final String SELECT_BY_CHANNEL_AND_ROUTE_WITHOUT_TENANT_SQL =
-      "SELECT channel_type, route_key, tenant_id, register_date, register_user FROM SES_AI_M_INGEST_ROUTE WHERE channel_type = ? AND route_key = ?";
+      "SELECT channel_type, route_key, register_date, register_user, tenant_id FROM SES_AI_M_INGEST_ROUTE WHERE channel_type = ? AND route_key = ?";
 
   /** SELECT文（WHERE句あり）. */
   private static final String SELECT_SQL =
-      "SELECT channel_type, route_key, tenant_id, register_date, register_user FROM SES_AI_M_INGEST_ROUTE WHERE ";
+      "SELECT channel_type, route_key, register_date, register_user, tenant_id FROM SES_AI_M_INGEST_ROUTE WHERE ";
 
   public SES_AI_M_INGEST_ROUTELot() {
     super();
@@ -76,8 +76,7 @@ public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUT
 
   @Override
   protected SES_AI_M_INGEST_ROUTE mapResultSet(ResultSet resultSet) throws SQLException {
-    String tenantId = resultSet.getString("tenant_id");
-    SES_AI_M_INGEST_ROUTE sesAiMIngestRoute = new SES_AI_M_INGEST_ROUTE(tenantId);
+    SES_AI_M_INGEST_ROUTE sesAiMIngestRoute = new SES_AI_M_INGEST_ROUTE(resultSet.getString("tenant_id"));
     sesAiMIngestRoute.setChannelType(ChannelType.fromValue(resultSet.getString("channel_type")));
     sesAiMIngestRoute.setRouteKey(resultSet.getString("route_key"));
     sesAiMIngestRoute.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));

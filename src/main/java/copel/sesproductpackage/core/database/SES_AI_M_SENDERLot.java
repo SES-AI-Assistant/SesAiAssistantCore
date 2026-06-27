@@ -20,7 +20,7 @@ public class SES_AI_M_SENDERLot extends EntityLotBase<SES_AI_M_SENDER> {
 
   /** SELECT文（WHERE句あり）. */
   private static final String SELECT_SQL =
-      "SELECT from_id, from_name, register_date, register_user FROM SES_AI_M_SENDER WHERE ";
+      "SELECT from_id, from_name, register_date, register_user, tenant_id FROM SES_AI_M_SENDER WHERE ";
 
   public SES_AI_M_SENDERLot() {
     super();
@@ -67,8 +67,7 @@ public class SES_AI_M_SENDERLot extends EntityLotBase<SES_AI_M_SENDER> {
 
   @Override
   protected SES_AI_M_SENDER mapResultSet(ResultSet resultSet) throws SQLException {
-    String tenantId = resultSet.getString("tenant_id");
-    SES_AI_M_SENDER sesAiMSender = new SES_AI_M_SENDER(tenantId);
+    SES_AI_M_SENDER sesAiMSender = new SES_AI_M_SENDER(resultSet.getString("tenant_id"));
     sesAiMSender.setFromId(resultSet.getString("from_id"));
     sesAiMSender.setFromName(resultSet.getString("from_name"));
     sesAiMSender.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
