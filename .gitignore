@@ -14,6 +14,13 @@ local.properties
 
 # Original
 /target/
-TODO.md
 /.apt_generated/
 /.apt_generated_tests/
+
+# AI Agent
+CLAUDE.md
+GEMINI.md
+TODO.md
+./cursor
+./gemini
+./claude

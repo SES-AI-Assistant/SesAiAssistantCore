@@ -1,56 +1,82 @@
-# SES AI ASSISTANT Core Library
+# SES AI Assistant Core Library
 
-## 1. 概要 (Overview)
-本プロジェクトは、SES AI ASSISTANT システムのバックエンドで共通的に利用されるJavaライブラリです。
-データベースエンティティ（RDB/DynamoDB）、ドメインロジック（Value Object）、および外部API（AWS, OpenAI, Gemini, Slack等）との通信基盤を提供します。
+**SES AI ASSISTANT システム全体の共通基盤**を提供する Java ライブラリです。RDB エンティティ、Domain Primitive（Value Object）、外部サービス（AWS, LLM, Slack等）との統一的な通信基盤を提供します。
 
-## 2. プロジェクト構造 (Project Structure)
-- `documents`
-    - 各種設計書・規約・AIエージェント利用ファイル
-- `src/main/java/copel/sesproductpackage/core/`
-    - `api/`: 外部サービス（AWS, GPT, Slack, LINE）との連携クラス。
-    - `database/`: Entity/Lotパターンに基づいたDB操作クラス。
-    - `unit/`: ドメイン知識をカプセル化した Value Object 群。
-    - `util/`: 共通ユーティリティ（DB接続、文字列操作、プロパティ管理）。
+## 概要
 
-## 3. 開発ガイドライン (Development Guidelines)
-本プロジェクトのメンテナンスには Gemini CLI を使用し、以下の「掟」に従います。
-詳細は `GEMINI.md` を参照してください。
+**言語**: Java 17 | **ビルド**: Maven | **テスト**: ユニットテストのみ
 
-### 3.1 AI Agent 開発手順 (AI Agent Development Procedure)
-本プロジェクトでは、Gemini CLI を「自律型エンジニア」として扱い、以下の手順で開発を進めます。
+他の 8 つのリポジトリ（Lambda 関数、Web API、Batch）が依存する中核ライブラリです。Entity/Lot パターン、Domain Primitive、API アダプタの設計思想を統一的に提供し、システム全体の整合性を保ちます。
 
-1. **指示の作成 (`INSTRUCTION.md`)**:
-   - `documents/INSTRUCTION.md` のテンプレートに従い、実装したい内容（機能追加、バグ修正、リサーチ等）を具体的に記載します。
-   - 過去の指示は消さずに追記しても構いませんが、AIは常に「最新の未完了指示」を優先します。
+## プロジェクト構造
 
-2. **AI の起動**:
-   - ターミナルで Gemini CLI を起動し、以下のプロンプトを入力して指示を読み込ませます。
-   - 例: `documents/INSTRUCTION.md と documents/GEMINI.md を読み取って、自律的に開発を開始してください。`
+| パッケージ | 内容 |
+|----------|------|
+| **`database/`** | Entity/Lot パターンに基づいた RDB 操作クラス（`SES_AI_T_*`, `SES_AI_*Lot`） |
+| **`unit/`** | ドメイン知識をカプセル化した Value Object 群（Domain Primitive） |
+| **`api/`** | 外部サービス（AWS, OpenAI, Gemini, Slack, LINE）との統一的なアダプタ層 |
+| **`util/`** | 共通ユーティリティ（DB接続、文字列操作、プロパティ管理） |
 
-3. **自律フェーズ (AI による自動実行)**:
-   - **調査**: AI が既存の `unit` や `api` クラスを調査し、プロジェクトの設計思想に沿った最適な実装方針を提示します。
-   - **計画**: AI が `TODO.md` を作成・更新し、具体的な作業ステップ（プラン）を管理します。
-   - **実行・検証**: AI が `replace` 等でコードを修正し、`mvn test` 等で自律的に動作確認とリファクタリングを行います。
+## 設計原則
 
-4. **完了と整理 (Auto-Archive)**:
-   - タスクが成功（検証パス）すると、AI は実行した指示を `documents/ARCHIVE_INSTRUCTIONS.md` に自動的に移動します。
-   - `INSTRUCTION.md` は再び次の指示を受け取れるようテンプレートの状態に初期化されます。
+### Entity/Lot パターン
 
-### 3.2 設計思想
-- **Entity/Lot パターン**: 単一レコード（Entity）とリスト操作（Lot）の分離。
-- **Domain Primitive**: プリミティブ型を避け、`unit` パッケージの型を積極的に利用。
-- **抽象化レイヤー**: ビジネスロジックから外部APIの具体的実装を隠蔽。
+- 単一レコード = `SES_AI_...` クラス
+- リスト操作 = `SES_AI_...Lot` クラス
+- 新しいテーブル追加時は、必ず対になる Lot クラスを作成
 
-## 4. ビルドとテスト (Build & Test)
-Mavenを使用してビルドおよびテストを行います。
+### Domain Primitive（Value Object）
+
+プリミティブ型（String, int等）ではなく、`unit` パッケージのドメイン型を優先：
+- `Money`, `Currency`, `OriginalDateTime` など
+
+### API 抽象化層
+
+LLM や外部サービスは `api` パッケージのプロキシを経由。特定のベンダーに依存した実装を避け、入れ替え可能な設計を維持。
+
+## ビルド・テスト
+
 ```bash
-mvn clean install
+# コンパイル
+mvn clean compile
+
+# ユニットテスト実行（カバレッジ確認）
 mvn test
+
+# パッケージ（JAR 生成）
+mvn clean package
+
+# 静的解析
+mvn rewrite:run checkstyle:check spotless:apply pmd:pmd pmd:cpd spotbugs:check
 ```
 
-## 5. 関連ファイル
-- `documents/GEMINI.md`: プロジェクト固有の設計ルールとAI運用規約。
-- `documents/INSTRUCTION.md`: AIへの開発指示用ファイル（入力用）。
-- `documents/ARCHIVE_INSTRUCTIONS.md`: 完了した指示の履歴。
-- `TODO.md`: 現在進行中のタスクログ（AI管理）。
+## ドキュメント
+
+| ファイル | 用途 |
+|---------|------|
+| **AGENTS.md** | 開発ガイドライン・AI エージェント運用規約（必読） |
+| **docs/INSTRUCTION.md** | AI への開発指示（テンプレート） |
+| **docs/ARCHIVE_INSTRUCTIONS.md** | 完了した指示の履歴 |
+
+## 依存元リポジトリ（8個）
+
+このライブラリは以下リポジトリの土台となっています：
+
+1. **AwsLambdaEmailMssageReceiver** — メール受信
+2. **AwsLambdaLineMssageReceiver** — LINE 受信
+3. **AwsLambdaSesInfoRegister** — 情報登録パイプライン
+4. **AwsLambdaSesInfoMatcher** — マッチングエンジン
+5. **SesAiAssitantWebAppBackend** — REST API バックエンド
+6. **SesAiAssitantWebAppBatch** — バッチ処理
+7. **AwsModuleEnvironmentVariables** — 環境変数設定
+8. **SesAiAssistantDesignSpecification** — 設計書・仕様
+
+**注意**: このライブラリの変更は、上記 8 つのリポジトリに波及します。変更後は、依存元リポジトリの README を確認し、矛盾がないか検証してください。
+
+## 関連リポジトリ
+
+- `../SesAiAssistantDesignSpecification/` — マスター仕様・全体アーキテクチャ
+
+---
+
+© 2024 Copel Co., Ltd.
