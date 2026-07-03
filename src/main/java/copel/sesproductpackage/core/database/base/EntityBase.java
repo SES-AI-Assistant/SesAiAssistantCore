@@ -498,7 +498,14 @@ public abstract class EntityBase implements Comparable<EntityBase> {
         Pattern.compile(
             "FROM\\s+\\S+\\s+([a-zA-Z_]\\w*)(?:\\s|,|JOIN|WHERE|$)", Pattern.CASE_INSENSITIVE);
     Matcher matcher = pattern.matcher(trimmedSql);
-    String tableAlias = matcher.find() ? matcher.group(1) : null;
+    String tableAlias = null;
+    if (matcher.find()) {
+      String alias = matcher.group(1);
+      // WHERE, JOIN, ON などの予約語がテーブルエイリアスと誤検出されないようフィルタ
+      if (!alias.matches("(?i)WHERE|JOIN|ON|AND|OR|LIMIT|ORDER|GROUP|OFFSET|UNION")) {
+        tableAlias = alias;
+      }
+    }
 
     String tenantIdCondition =
         tableAlias != null && !tableAlias.isEmpty()
