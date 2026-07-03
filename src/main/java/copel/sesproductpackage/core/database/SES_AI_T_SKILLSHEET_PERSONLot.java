@@ -291,9 +291,8 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
               stmt.setString(idx, vectorStr);
               stmt.setString(idx + 1, vectorStr);
               stmt.setDouble(idx + 2, similarityThreshold);
-              // パラメータ idx + 3 は setTenantIdParameter で tenant_id がセット
-              stmt.setInt(idx + 3, size);
-              stmt.setInt(idx + 4, (page - 1) * size);
+              stmt.setInt(idx + 4, size);
+              stmt.setInt(idx + 5, (page - 1) * size);
               return idx + 3;
             });
     this.entityLot = results;
