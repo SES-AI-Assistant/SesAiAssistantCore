@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -15,6 +16,11 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.ssm.SsmClient;
+import software.amazon.awssdk.services.ssm.SsmClientBuilder;
+import software.amazon.awssdk.services.ssm.model.GetParametersByPathRequest;
+import software.amazon.awssdk.services.ssm.model.GetParametersByPathResponse;
+import software.amazon.awssdk.services.ssm.model.Parameter;
 
 /**
  * プロパティファイルを扱うクラス.
@@ -38,8 +44,12 @@ public class Properties {
   /** 環境変数: S3 クライアントのリージョン（未設定時は ap-northeast-1）. */
   private static final String ENV_AWS_REGION = "AWS_REGION";
 
+  /** 環境変数: Parameter Store の環境（dev または prod）. */
+  private static final String ENV_ENVIRONMENT = "ENVIRONMENT";
+
   private static final String CONFIG_BUCKET = resolveConfigBucketName();
   private static final String CONFIG_OBJECT_KEY = resolveConfigObjectKey();
+  private static final String ENVIRONMENT = resolveEnvironment();
 
   /** プロパティ. */
   private static final Map<String, String> properties = new HashMap<>();
@@ -49,6 +59,9 @@ public class Properties {
     try {
       try (S3Client s3Client = buildS3ClientForConfigLoad()) {
         load(s3Client);
+      }
+      try (SsmClient ssmClient = buildSsmClientForConfigLoad()) {
+        loadFromParameterStore(ssmClient);
       }
     } catch (Throwable e) {
       log.error("【SesAiAssitantCore】Properties static block failed", e);
@@ -72,6 +85,18 @@ public class Properties {
   private static String resolveConfigObjectKey() {
     String v = trimOrNull(System.getenv(ENV_CONFIG_OBJECT_KEY));
     return v != null ? v : DEFAULT_CONFIG_OBJECT_KEY;
+  }
+
+  private static String resolveEnvironment() {
+    String v = trimOrNull(System.getenv(ENV_ENVIRONMENT));
+    if (v != null) {
+      return v;
+    }
+    String region = trimOrNull(System.getenv(ENV_AWS_REGION));
+    if (region != null && region.contains("prod")) {
+      return "prod";
+    }
+    return "dev";
   }
 
   private static Region resolveS3Region() {
@@ -115,6 +140,35 @@ public class Properties {
     return b.build();
   }
 
+  static SsmClient buildSsmClientForConfigLoad() {
+    Region region = resolveS3Region();
+    String endpointUrl = AwsEndpointUtil.resolveEndpointUrl();
+    SsmClientBuilder b = SsmClient.builder().region(region);
+
+    if (endpointUrl != null) {
+      try {
+        URI uri = URI.create(endpointUrl);
+        b.endpointOverride(uri);
+        log.info("【SesAiAssitantCore】Properties SSM はカスタムエンドポイントを使用します: {}", endpointUrl);
+        String ak = trimOrNull(System.getenv("AWS_ACCESS_KEY_ID"));
+        String sk = trimOrNull(System.getenv("AWS_SECRET_ACCESS_KEY"));
+        if (ak != null && sk != null) {
+          b.credentialsProvider(
+              StaticCredentialsProvider.create(AwsBasicCredentials.create(ak, sk)));
+        } else {
+          b.credentialsProvider(
+              StaticCredentialsProvider.create(AwsBasicCredentials.create("test", "test")));
+        }
+      } catch (IllegalArgumentException e) {
+        log.warn("【SesAiAssitantCore】無効なエンドポイント URL のためデフォルトの SSM エンドポイントを使用します: {}", endpointUrl);
+        b.credentialsProvider(DefaultCredentialsProvider.create());
+      }
+    } else {
+      b.credentialsProvider(DefaultCredentialsProvider.create());
+    }
+    return b.build();
+  }
+
   /**
    * プロパティファイルをS3から読み込みます。
    *
@@ -141,6 +195,53 @@ public class Properties {
     } catch (IOException e) {
       log.info("【SesAiAssitantCore】バケット名：{} ファイル名：{}", CONFIG_BUCKET, CONFIG_OBJECT_KEY);
       log.error("【SesAiAssitantCore】環境変数の読み込みに失敗しました。{}", e.getMessage());
+    }
+  }
+
+  /**
+   * Parameter Store からパラメータを読み込みます。/nectar/{env}/ 以下のパラメータを全て読み込みます。
+   * キー名が S3 のプロパティと被った場合は Parameter Store の値を優先します。
+   *
+   * @param ssmClient SSM クライアント
+   */
+  static void loadFromParameterStore(SsmClient ssmClient) {
+    try {
+      String parameterPath = String.format("/nectar/%s/", ENVIRONMENT);
+      GetParametersByPathRequest request =
+          GetParametersByPathRequest.builder()
+              .path(parameterPath)
+              .recursive(true)
+              .maxResults(10)
+              .build();
+
+      GetParametersByPathResponse response = ssmClient.getParametersByPath(request);
+      List<Parameter> params = response.parameters();
+
+      while (params != null) {
+        for (Parameter param : params) {
+          String fullPath = param.name();
+          String normalizedKey = fullPath.substring(parameterPath.length());
+          properties.put(normalizedKey, param.value());
+        }
+
+        if (response.nextToken() != null) {
+          GetParametersByPathRequest nextRequest =
+              GetParametersByPathRequest.builder()
+                  .path(parameterPath)
+                  .recursive(true)
+                  .maxResults(10)
+                  .nextToken(response.nextToken())
+                  .build();
+          response = ssmClient.getParametersByPath(nextRequest);
+          params = response.parameters();
+        } else {
+          params = null;
+        }
+      }
+
+      log.info("【SesAiAssitantCore】Parameter Store から {} 件のパラメータを読み込みました。", properties.size());
+    } catch (Exception e) {
+      log.warn("【SesAiAssitantCore】Parameter Store からのパラメータ読み込みに失敗しました。{}", e.getMessage());
     }
   }
 

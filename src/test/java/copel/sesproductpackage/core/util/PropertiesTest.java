@@ -14,12 +14,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.ssm.SsmClient;
+import software.amazon.awssdk.services.ssm.model.GetParametersByPathRequest;
+import software.amazon.awssdk.services.ssm.model.GetParametersByPathResponse;
+import software.amazon.awssdk.services.ssm.model.Parameter;
 
 class PropertiesTest {
 
@@ -102,5 +108,74 @@ class PropertiesTest {
     assertEquals(0, Properties.getInt("MISSING_KEY"));
     assertEquals(0.0, Properties.getDouble("MISSING_KEY"));
     assertArrayEquals(new String[0], Properties.getAsArray("MISSING_KEY"));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void testLoadFromParameterStore() throws Exception {
+    Field field = Properties.class.getDeclaredField("properties");
+    field.setAccessible(true);
+    Map<String, String> propertiesMap = (Map<String, String>) field.get(null);
+    propertiesMap.clear();
+    propertiesMap.put("infrastructure/s3/bucket/name", "S3_OLD_VALUE");
+
+    SsmClient mockSsm = mock(SsmClient.class);
+    List<Parameter> params = new ArrayList<>();
+    params.add(Parameter.builder().name("/nectar/dev/infrastructure/s3/bucket/name")
+        .value("test-bucket").build());
+    params.add(Parameter.builder().name("/nectar/dev/infrastructure/rds/endpoint")
+        .value("test-endpoint").build());
+
+    GetParametersByPathResponse response =
+        GetParametersByPathResponse.builder().parameters(params).nextToken(null).build();
+    when(mockSsm.getParametersByPath(any(GetParametersByPathRequest.class)))
+        .thenReturn(response);
+
+    Properties.loadFromParameterStore(mockSsm);
+
+    assertEquals("test-bucket",
+        Properties.get("infrastructure/s3/bucket/name"));
+    assertEquals("test-endpoint",
+        Properties.get("infrastructure/rds/endpoint"));
+  }
+
+  @Test
+  void testLoadFromParameterStoreException() throws Exception {
+    SsmClient mockSsm = mock(SsmClient.class);
+    when(mockSsm.getParametersByPath(any(GetParametersByPathRequest.class)))
+        .thenThrow(new RuntimeException("SSM access failed"));
+
+    assertDoesNotThrow(() -> Properties.loadFromParameterStore(mockSsm));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void testLoadFromParameterStoreWithPagination() throws Exception {
+    Field field = Properties.class.getDeclaredField("properties");
+    field.setAccessible(true);
+    Map<String, String> propertiesMap = (Map<String, String>) field.get(null);
+    propertiesMap.clear();
+
+    SsmClient mockSsm = mock(SsmClient.class);
+
+    List<Parameter> paramsPage1 = new ArrayList<>();
+    paramsPage1.add(Parameter.builder().name("/nectar/dev/param1").value("value1").build());
+
+    List<Parameter> paramsPage2 = new ArrayList<>();
+    paramsPage2.add(Parameter.builder().name("/nectar/dev/param2").value("value2").build());
+
+    GetParametersByPathResponse responsePage1 =
+        GetParametersByPathResponse.builder().parameters(paramsPage1).nextToken("next").build();
+    GetParametersByPathResponse responsePage2 =
+        GetParametersByPathResponse.builder().parameters(paramsPage2).nextToken(null).build();
+
+    when(mockSsm.getParametersByPath(any(GetParametersByPathRequest.class)))
+        .thenReturn(responsePage1)
+        .thenReturn(responsePage2);
+
+    Properties.loadFromParameterStore(mockSsm);
+
+    assertEquals("value1", Properties.get("param1"));
+    assertEquals("value2", Properties.get("param2"));
   }
 }
