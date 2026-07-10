@@ -1,8 +1,6 @@
 package copel.sesproductpackage.core.util;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -59,14 +57,6 @@ class SsmParameterKeyTest {
         SsmParameterKey.ENVIRONMENT_CONFIG_BUCKET_ARN
             .getKey()
             .equals("infrastructure/s3/environment-config-bucket/arn"));
-    assertTrue(
-        SsmParameterKey.LAMBDA_DEPLOY_BUCKET_NAME
-            .getKey()
-            .equals("infrastructure/s3/lambda-deploy-bucket/name"));
-    assertTrue(
-        SsmParameterKey.LAMBDA_DEPLOY_BUCKET_ARN
-            .getKey()
-            .equals("infrastructure/s3/lambda-deploy-bucket/arn"));
   }
 
   @Test
@@ -220,19 +210,6 @@ class SsmParameterKeyTest {
         SsmParameterKey.API_USAGE_HISTORY_TABLE_ARN
             .getKey()
             .equals("infrastructure/dynamodb/api-usage-history-table/arn"));
-  }
-
-  @Test
-  @DisplayName("ECR パラメータキーが正しいこと")
-  void testEcrParameterKeys() {
-    assertTrue(
-        SsmParameterKey.MARKITDOWN_REPOSITORY_URI
-            .getKey()
-            .equals("infrastructure/ecr/markitdown-repository/uri"));
-    assertTrue(
-        SsmParameterKey.MARKITDOWN_REPOSITORY_NAME
-            .getKey()
-            .equals("infrastructure/ecr/markitdown-repository/name"));
   }
 
   @Test

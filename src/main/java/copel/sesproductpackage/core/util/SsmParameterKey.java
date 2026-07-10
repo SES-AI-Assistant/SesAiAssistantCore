@@ -13,8 +13,9 @@ public enum SsmParameterKey {
   SKILLSHEET_ARCHIVE_BUCKET_ARN("infrastructure/s3/skillsheet-archive-bucket/arn"),
   ENVIRONMENT_CONFIG_BUCKET_NAME("infrastructure/s3/environment-config-bucket/name"),
   ENVIRONMENT_CONFIG_BUCKET_ARN("infrastructure/s3/environment-config-bucket/arn"),
-  LAMBDA_DEPLOY_BUCKET_NAME("infrastructure/s3/lambda-deploy-bucket/name"),
-  LAMBDA_DEPLOY_BUCKET_ARN("infrastructure/s3/lambda-deploy-bucket/arn"),
+  // アプリケーションからアクセスさせたくないインフラリソースのためコメントアウト
+//  LAMBDA_DEPLOY_BUCKET_NAME("infrastructure/s3/lambda-deploy-bucket/name"),
+//  LAMBDA_DEPLOY_BUCKET_ARN("infrastructure/s3/lambda-deploy-bucket/arn"),
 
   // Messaging
   REGISTER_QUEUE_URL("infrastructure/messaging/register-queue/url"),
@@ -70,11 +71,12 @@ public enum SsmParameterKey {
 
   // DynamoDB
   API_USAGE_HISTORY_TABLE_NAME("infrastructure/dynamodb/api-usage-history-table/name"),
-  API_USAGE_HISTORY_TABLE_ARN("infrastructure/dynamodb/api-usage-history-table/arn"),
+  API_USAGE_HISTORY_TABLE_ARN("infrastructure/dynamodb/api-usage-history-table/arn");
 
+  // アプリケーションからアクセスさせたくないインフラリソースのためコメントアウト
   // ECR
-  MARKITDOWN_REPOSITORY_URI("infrastructure/ecr/markitdown-repository/uri"),
-  MARKITDOWN_REPOSITORY_NAME("infrastructure/ecr/markitdown-repository/name");
+//  MARKITDOWN_REPOSITORY_URI("infrastructure/ecr/markitdown-repository/uri"),
+//  MARKITDOWN_REPOSITORY_NAME("infrastructure/ecr/markitdown-repository/name");
 
   private final String path;
 
