@@ -54,6 +54,12 @@
         <artifactId>ssm</artifactId>
     </dependency>
 
+    <!-- AWS SDK for Secrets Manager -->
+    <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>secretsmanager</artifactId>
+    </dependency>
+
     <!-- AWS SDK Auth -->
     <dependency>
         <groupId>software.amazon.awssdk</groupId>

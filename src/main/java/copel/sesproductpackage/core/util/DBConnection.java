@@ -4,20 +4,52 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import copel.sesproductpackage.core.api.aws.SecretManager;
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 【フレームワーク部品】 DBコネクションを取得するためのクラス.
  *
  * @author Copel Co., Ltd.
  */
+@Slf4j
 public class DBConnection {
-  /** RDBのエンドポイントURL. */
-  private static final String URL = Properties.get("SES_DB_ENDPOINT_URL");
+  private static String url;
+  private static String userName;
+  private static String password;
 
-  /** RDBのユーザー名. */
-  private static final String USER_NAME = Properties.get("SES_DB_USER_NAME");
+  static {
+    try {
+      initializeDbConnectionCredentials();
+    } catch (Throwable e) {
+      log.error("【SesAiAssitantCore】DB接続情報の初期化に失敗しました", e);
+    }
+  }
 
-  /** RDBのパスワード. */
-  private static final String PASSWORD = Properties.get("SES_DB_USER_PASSWORD");
+  private static void initializeDbConnectionCredentials() throws Exception {
+    // ParameterStoreからSecretManagerのARNを取得する
+    String secretArn = Properties.get(SsmParameterKey.RDS_DATABASE_SECRET_ARN.getKey());
+
+    // SecretManagerからDB接続情報を取得する
+    SecretManager secretManager = new SecretManager(secretArn);
+    try {
+      secretManager.load();
+      log.info("SecretManagerからDB接続情報を取得しました");
+
+      String host = secretManager.get("host");
+      String port = secretManager.get("port");
+      String dbName = secretManager.get("dbname");
+      String username = secretManager.get("username");
+      String pwd = secretManager.get("password");
+
+      url = String.format("jdbc:mysql://%s:%s/%s", host, port, dbName);
+      userName = username;
+      password = pwd;
+
+    } finally {
+      secretManager.close();
+    }
+  }
 
   /**
    * DBコネクションを生成し返却します.
@@ -27,11 +59,8 @@ public class DBConnection {
    * @throws ClassNotFoundException
    */
   public static Connection getConnection() throws SQLException, ClassNotFoundException {
-    // (1) コネクションを取得する
-    Connection connection = DriverManager.getConnection(URL, USER_NAME, PASSWORD);
-    // (2) オートコミットをオフにする
+    Connection connection = DriverManager.getConnection(url, userName, password);
     connection.setAutoCommit(false);
-    // (4) DBコネクションを返却する
     return connection;
   }
 }
