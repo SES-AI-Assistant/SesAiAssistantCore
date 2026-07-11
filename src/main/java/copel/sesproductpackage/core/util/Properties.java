@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
@@ -29,17 +30,8 @@ import software.amazon.awssdk.services.ssm.model.Parameter;
  */
 @Slf4j
 public class Properties {
-  /** デフォルト: 本番で従来から使用しているバケット名. */
-  private static final String DEFAULT_CONFIG_BUCKET = "environment-variables-configuration";
-
-  /** デフォルト: 本番で従来から使用しているオブジェクトキー. */
-  private static final String DEFAULT_CONFIG_OBJECT_KEY = "config.properties";
-
-  /** 環境変数: config を格納する S3 バケット（IT1 / LocalStack 用に上書き可）. */
-  private static final String ENV_CONFIG_BUCKET = "SES_AI_PROPERTIES_S3_BUCKET";
-
-  /** 環境変数: config のオブジェクトキー. */
-  private static final String ENV_CONFIG_OBJECT_KEY = "SES_AI_PROPERTIES_S3_KEY";
+  /** S3 上の config ファイルのオブジェクトキー（固定）. */
+  private static final String CONFIG_OBJECT_KEY = "config.properties";
 
   /** 環境変数: S3 クライアントのリージョン（未設定時は ap-northeast-1）. */
   private static final String ENV_AWS_REGION = "AWS_REGION";
@@ -47,24 +39,26 @@ public class Properties {
   /** 環境変数: Parameter Store の環境（dev または prod）. */
   private static final String ENV_ENVIRONMENT = "ENVIRONMENT";
 
-  private static final String CONFIG_BUCKET = resolveConfigBucketName();
-  private static final String CONFIG_OBJECT_KEY = resolveConfigObjectKey();
   private static final String ENVIRONMENT = resolveEnvironment();
 
   /** プロパティ. */
   private static final Map<String, String> properties = new HashMap<>();
 
+  /** S3 バケット名（Parameter Store から動的に解決）. */
+  private static String CONFIG_BUCKET;
+
   /* staticイニシャライザ. */
   static {
     try {
-      try (S3Client s3Client = buildS3ClientForConfigLoad()) {
-        load(s3Client);
-      }
       try (SsmClient ssmClient = buildSsmClientForConfigLoad()) {
         loadFromParameterStore(ssmClient);
       }
+      CONFIG_BUCKET = resolveConfigBucketName();
+      try (S3Client s3Client = buildS3ClientForConfigLoad()) {
+        load(s3Client);
+      }
     } catch (Throwable e) {
-      log.error("【SesAiAssitantCore】Properties static block failed", e);
+      log.error("Properties static block failed", e);
       // We don't rethrow to avoid "Could not initialize class" errors in subsequent tests
     }
   }
@@ -78,13 +72,13 @@ public class Properties {
   }
 
   private static String resolveConfigBucketName() {
-    String v = trimOrNull(System.getenv(ENV_CONFIG_BUCKET));
-    return v != null ? v : DEFAULT_CONFIG_BUCKET;
-  }
-
-  private static String resolveConfigObjectKey() {
-    String v = trimOrNull(System.getenv(ENV_CONFIG_OBJECT_KEY));
-    return v != null ? v : DEFAULT_CONFIG_OBJECT_KEY;
+    String bucketName = properties.get(SsmParameterKey.ENVIRONMENT_CONFIG_BUCKET_NAME.getKey());
+    if (trimOrNull(bucketName) != null) {
+      log.info("Parameter Store から環境設定バケット名を取得しました: {}", bucketName);
+      return bucketName;
+    }
+    log.warn("Parameter Store から環境設定バケット名を取得できませんでした");
+    return null;
   }
 
   private static String resolveEnvironment() {
@@ -105,7 +99,7 @@ public class Properties {
       try {
         return Region.of(r);
       } catch (Exception e) {
-        log.warn("【SesAiAssitantCore】無効なリージョン '{}' のため {} を使用します。", r, Region.AP_NORTHEAST_1);
+        log.warn("無効なリージョン '{}' のため {} を使用します。", r, Region.AP_NORTHEAST_1);
       }
     }
     return Region.AP_NORTHEAST_1;
@@ -120,7 +114,7 @@ public class Properties {
       try {
         URI uri = URI.create(endpointUrl);
         b.endpointOverride(uri).forcePathStyle(true);
-        log.info("【SesAiAssitantCore】Properties S3 はカスタムエンドポイントを使用します: {}", endpointUrl);
+        log.info("Properties S3 はカスタムエンドポイントを使用します: {}", endpointUrl);
         String ak = trimOrNull(System.getenv("AWS_ACCESS_KEY_ID"));
         String sk = trimOrNull(System.getenv("AWS_SECRET_ACCESS_KEY"));
         if (ak != null && sk != null) {
@@ -131,7 +125,7 @@ public class Properties {
               StaticCredentialsProvider.create(AwsBasicCredentials.create("test", "test")));
         }
       } catch (IllegalArgumentException e) {
-        log.warn("【SesAiAssitantCore】無効なエンドポイント URL のためデフォルトの S3 エンドポイントを使用します: {}", endpointUrl);
+        log.warn("無効なエンドポイント URL のためデフォルトの S3 エンドポイントを使用します: {}", endpointUrl);
         b.credentialsProvider(DefaultCredentialsProvider.create());
       }
     } else {
@@ -149,7 +143,7 @@ public class Properties {
       try {
         URI uri = URI.create(endpointUrl);
         b.endpointOverride(uri);
-        log.info("【SesAiAssitantCore】Properties SSM はカスタムエンドポイントを使用します: {}", endpointUrl);
+        log.info("Properties SSM はカスタムエンドポイントを使用します: {}", endpointUrl);
         String ak = trimOrNull(System.getenv("AWS_ACCESS_KEY_ID"));
         String sk = trimOrNull(System.getenv("AWS_SECRET_ACCESS_KEY"));
         if (ak != null && sk != null) {
@@ -160,7 +154,7 @@ public class Properties {
               StaticCredentialsProvider.create(AwsBasicCredentials.create("test", "test")));
         }
       } catch (IllegalArgumentException e) {
-        log.warn("【SesAiAssitantCore】無効なエンドポイント URL のためデフォルトの SSM エンドポイントを使用します: {}", endpointUrl);
+        log.warn("無効なエンドポイント URL のためデフォルトの SSM エンドポイントを使用します: {}", endpointUrl);
         b.credentialsProvider(DefaultCredentialsProvider.create());
       }
     } else {
@@ -175,6 +169,11 @@ public class Properties {
    * @param s3Client S3クライアント
    */
   static void load(S3Client s3Client) {
+    if (CONFIG_BUCKET == null) {
+      log.warn("S3 バケット名が解決できなかったため、S3 からのプロパティファイル読み込みをスキップします");
+      return;
+    }
+
     try (InputStream inputStream =
         s3Client.getObject(
             GetObjectRequest.builder().bucket(CONFIG_BUCKET).key(CONFIG_OBJECT_KEY).build())) {
@@ -193,8 +192,8 @@ public class Properties {
         }
       }
     } catch (IOException e) {
-      log.info("【SesAiAssitantCore】バケット名：{} ファイル名：{}", CONFIG_BUCKET, CONFIG_OBJECT_KEY);
-      log.error("【SesAiAssitantCore】環境変数の読み込みに失敗しました。{}", e.getMessage());
+      log.info("バケット名：{} ファイル名：{}", CONFIG_BUCKET, CONFIG_OBJECT_KEY);
+      log.error("環境変数の読み込みに失敗しました。{}", e.getMessage());
     }
   }
 
@@ -239,9 +238,9 @@ public class Properties {
         }
       }
 
-      log.info("【SesAiAssitantCore】Parameter Store から {} 件のパラメータを読み込みました。", properties.size());
+      log.info("Parameter Store から {} 件のパラメータを読み込みました。", properties.size());
     } catch (Exception e) {
-      log.warn("【SesAiAssitantCore】Parameter Store からのパラメータ読み込みに失敗しました。{}", e.getMessage());
+      log.warn("Parameter Store からのパラメータ読み込みに失敗しました。{}", e.getMessage());
     }
   }
 

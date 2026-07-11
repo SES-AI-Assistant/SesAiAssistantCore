@@ -37,6 +37,10 @@ class PropertiesTest {
   @Test
   @SuppressWarnings("unchecked")
   void testLoadAndGetters() throws Exception {
+    Field configBucketField = Properties.class.getDeclaredField("CONFIG_BUCKET");
+    configBucketField.setAccessible(true);
+    configBucketField.set(null, "test-bucket");
+
     S3Client mockS3 = mock(S3Client.class);
     String content = "KEY1=VAL1\nINT=10\nDBL=10.5\nARRAY=A,B,C\n";
     InputStream is = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
@@ -71,6 +75,10 @@ class PropertiesTest {
   @Test
   @SuppressWarnings("unchecked")
   void testLoadNullCheck() throws Exception {
+    Field configBucketField = Properties.class.getDeclaredField("CONFIG_BUCKET");
+    configBucketField.setAccessible(true);
+    configBucketField.set(null, "test-bucket");
+
     Field field = Properties.class.getDeclaredField("properties");
     field.setAccessible(true);
     Map<String, String> propertiesMap = (Map<String, String>) field.get(null);
@@ -93,6 +101,10 @@ class PropertiesTest {
   @Test
   @SuppressWarnings("unchecked")
   void testGettersWhenKeyMissing() throws Exception {
+    Field configBucketField = Properties.class.getDeclaredField("CONFIG_BUCKET");
+    configBucketField.setAccessible(true);
+    configBucketField.set(null, "test-bucket");
+
     Field field = Properties.class.getDeclaredField("properties");
     field.setAccessible(true);
     Map<String, String> propertiesMap = (Map<String, String>) field.get(null);

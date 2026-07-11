@@ -19,13 +19,17 @@ class DBConnectionTest {
 
   @Test
   void testGetConnection() throws Exception {
-    Field propertiesField = Properties.class.getDeclaredField("properties");
-    propertiesField.setAccessible(true);
-    @SuppressWarnings("unchecked")
-    Map<String, String> propertiesMap = (Map<String, String>) propertiesField.get(null);
-    propertiesMap.put("SES_DB_ENDPOINT_URL", "jdbc:postgresql://localhost/test");
-    propertiesMap.put("SES_DB_USER_NAME", "user");
-    propertiesMap.put("SES_DB_USER_PASSWORD", "pass");
+    Field urlField = DBConnection.class.getDeclaredField("url");
+    urlField.setAccessible(true);
+    urlField.set(null, "jdbc:postgresql://localhost/test");
+
+    Field userNameField = DBConnection.class.getDeclaredField("userName");
+    userNameField.setAccessible(true);
+    userNameField.set(null, "user");
+
+    Field passwordField = DBConnection.class.getDeclaredField("password");
+    passwordField.setAccessible(true);
+    passwordField.set(null, "pass");
 
     try (MockedStatic<DriverManager> mockedDriverManager = mockStatic(DriverManager.class)) {
       Connection mockConn = mock(Connection.class);
