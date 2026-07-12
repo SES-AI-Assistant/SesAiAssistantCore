@@ -1,15 +1,16 @@
 package copel.sesproductpackage.core.database;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.HashSet;
+import java.util.Set;
+
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Permission;
 import copel.sesproductpackage.core.unit.Plan;
 import copel.sesproductpackage.core.unit.Role;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.HashSet;
-import java.util.Set;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -68,10 +69,6 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
   /** プラン / plan_cd */
   @Column(physicalName = "plan_cd", logicalName = "プラン")
   private Plan plan;
-
-  /** テナントID / tenant_id（Phase 1 テナント対応） */
-  @Column(physicalName = "tenant_id", logicalName = "テナントID")
-  private String tenantId;
 
   /**
    * このユーザーがシステム利用可能であるかどうかを判定します.
