@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import copel.sesproductpackage.core.util.Properties;
+import copel.sesproductpackage.core.util.SsmParameterKey;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,8 +30,7 @@ import software.amazon.awssdk.services.lambda.model.LambdaException;
 public final class MarkItDown {
 
   /** markitdown-lambda の関数名（ARN の最後のセグメントでも可）。 */
-  public static final String ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME =
-      "MARKITDOWN_LAMBDA_FUNCTION_NAME";
+  private static final String ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME = Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey());
 
   private static final String ENV_AWS_REGION = "AWS_REGION";
 
