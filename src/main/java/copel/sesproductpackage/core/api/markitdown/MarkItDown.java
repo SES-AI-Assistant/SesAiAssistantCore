@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import copel.sesproductpackage.core.util.Properties;
 import copel.sesproductpackage.core.util.SsmParameterKey;
 import lombok.AllArgsConstructor;
@@ -30,7 +31,8 @@ import software.amazon.awssdk.services.lambda.model.LambdaException;
 public final class MarkItDown {
 
   /** markitdown-lambda の関数名（ARN の最後のセグメントでも可）。 */
-  private static final String ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME = Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey());
+  private static final String ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME =
+      Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey());
 
   private static final String ENV_AWS_REGION = "AWS_REGION";
 
@@ -60,11 +62,6 @@ public final class MarkItDown {
    * @throws IllegalStateException 環境変数未設定、JSON 化失敗、invoke 失敗、応答解析失敗、または Lambda の FunctionError 時
    */
   public static MarkitdownLambdaResponseEntity invoke(final MarkitdownLambdaRequestEntity request) {
-    final String functionName = Properties.get(ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME);
-    if (functionName == null || functionName.isBlank()) {
-      throw new IllegalStateException("プロパティ " + ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME + " が未設定です。");
-    }
-
     final String regionStr = System.getenv(ENV_AWS_REGION);
     final Region region =
         regionStr != null && !regionStr.isBlank() ? Region.of(regionStr) : Region.AP_NORTHEAST_1;
@@ -88,7 +85,7 @@ public final class MarkItDown {
       final InvokeResponse response =
           client.invoke(
               InvokeRequest.builder()
-                  .functionName(functionName)
+                  .functionName(ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)
                   .payload(SdkBytes.fromUtf8String(payloadJson))
                   .build());
 
