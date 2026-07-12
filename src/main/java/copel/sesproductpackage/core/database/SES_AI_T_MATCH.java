@@ -1,13 +1,14 @@
 package copel.sesproductpackage.core.database;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.UUID;
+
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.MatchingStatus;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.UUID;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -73,10 +74,6 @@ public class SES_AI_T_MATCH extends EntityBase {
   /** 評価文 / evaluation_text */
   @Column(physicalName = "evaluation_text", logicalName = "評価文")
   private String evaluationText;
-
-  /** テナントID / tenant_id（Phase 1 テナント対応） */
-  @Column(physicalName = "tenant_id", logicalName = "テナントID")
-  private String tenantId;
 
   /**
    * このレコードがjob_idを持つかどうかを判定します.

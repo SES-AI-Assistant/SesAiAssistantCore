@@ -1,10 +1,11 @@
 package copel.sesproductpackage.core.database;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
-import java.sql.Connection;
-import java.sql.SQLException;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -37,10 +38,6 @@ public class SES_AI_M_TENANT extends EntityBase {
 
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_M_TENANT WHERE tenant_id = ?";
-
-  /** 【PK】 テナントID / tenant_id */
-  @Column(required = true, primary = true, physicalName = "tenant_id", logicalName = "テナントID")
-  private String tenantId;
 
   /** テナント名 / tenant_name */
   @Column(physicalName = "tenant_name", logicalName = "テナント名")

@@ -1,10 +1,11 @@
 package copel.sesproductpackage.core.database;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
-import java.sql.Connection;
-import java.sql.SQLException;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -70,10 +71,6 @@ public class SES_AI_T_WATCH extends EntityBase {
   /** 有効期限 / ttl */
   @Column(physicalName = "ttl", logicalName = "有効期限")
   protected OriginalDateTime ttl;
-
-  /** テナントID / tenant_id（Phase 1 テナント対応） */
-  @Column(physicalName = "tenant_id", logicalName = "テナントID")
-  private String tenantId;
 
   /**
    * このEntityの持つユーザーIDと対象IDの組み合わせを持つレコードが存在するかどうかを判定します.
