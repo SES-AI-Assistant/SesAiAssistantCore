@@ -13,7 +13,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 /**
- * SES AIアシスタントのベクトルDB群の基底クラス.
+ * NectarのベクトルDB群の基底クラス.
  *
  * @author Copel Co., Ltd.
  */

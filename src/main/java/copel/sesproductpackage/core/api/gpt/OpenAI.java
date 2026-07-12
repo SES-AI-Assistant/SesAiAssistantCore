@@ -20,7 +20,7 @@ import java.nio.charset.StandardCharsets;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 【SES AIアシスタント】 OpenAIクラス.
+ * OpenAIクラス.
  *
  * @author Copel Co., Ltd..
  */

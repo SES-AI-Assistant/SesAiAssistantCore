@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 【SES AIアシスタント】 GPTが生成した回答を持つクラス.
+ * GPTが生成した回答を持つクラス.
  *
  * @author Copel Co., Ltd.
  */

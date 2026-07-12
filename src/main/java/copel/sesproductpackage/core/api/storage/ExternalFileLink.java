@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 【SES AIアシスタント】 外部ストレージ上の共有URLを1件分表すクラス.
+ * 外部ストレージ上の共有URLを1件分表すクラス.
  *
  * <p>Google Drive, Dropbox, OneDrive/SharePoint の共有リンクを検出し、 ダウンロード可能な直リンクへ変換してファイルを取得する。
  *

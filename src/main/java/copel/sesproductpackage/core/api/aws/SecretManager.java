@@ -11,7 +11,7 @@ import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueReques
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 
 /**
- * 【SES AIアシスタント】 AWS Secrets Manager操作クラス.
+ * AWS Secrets Manager操作クラス.
  *
  * @author Copel Co., Ltd.
  */

@@ -3,7 +3,7 @@ package copel.sesproductpackage.core.api.gpt;
 import java.io.IOException;
 
 /**
- * 【SES AIアシスタント】 GPT処理リスナー.
+ * GPT処理リスナー.
  *
  * @author Copel Co., Ltd..
  */

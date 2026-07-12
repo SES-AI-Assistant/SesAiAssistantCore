@@ -19,7 +19,7 @@ import java.nio.charset.StandardCharsets;
 import lombok.Data;
 
 /**
- * 【SES AIアシスタント】 Geminiクラス.
+ * Geminiクラス.
  *
  * @author Copel Co., Ltd..
  */

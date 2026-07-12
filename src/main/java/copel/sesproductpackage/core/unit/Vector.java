@@ -4,7 +4,7 @@ import copel.sesproductpackage.core.api.gpt.Transformer;
 import java.io.IOException;
 
 /**
- * 【SES AIアシスタント】 ベクトルクラス.
+ * ベクトルクラス.
  *
  * @author Copel Co., Ltd..
  */
