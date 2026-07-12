@@ -22,7 +22,7 @@ public class DBConnection {
     try {
       initializeDbConnectionCredentials();
     } catch (Throwable e) {
-      log.error("【SesAiAssitantCore】DB接続情報の初期化に失敗しました", e);
+      log.error("DB接続情報の初期化に失敗しました", e);
     }
   }
 
@@ -42,7 +42,7 @@ public class DBConnection {
       String username = secretManager.get("username");
       String pwd = secretManager.get("password");
 
-      url = String.format("jdbc:mysql://%s:%s/%s", host, port, dbName);
+      url = String.format("jdbc:postgresql://%s:%s/%s", host, port, dbName);
       userName = username;
       password = pwd;
 
