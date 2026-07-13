@@ -28,9 +28,9 @@ public class SES_AI_T_MATCH extends EntityBase {
     this.tenantId = tenantId;
   }
 
-  /** INSERT文（tenantId を含む）. */
+  /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_MATCH (matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_T_MATCH (matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
@@ -113,7 +113,6 @@ public class SES_AI_T_MATCH extends EntityBase {
           stmt.setString(8, this.evaluationText);
           stmt.setTimestamp(9, new OriginalDateTime().toTimestamp());
           stmt.setString(10, this.registerUser);
-          stmt.setString(11, this.tenantId);
         },
         "SES_AI_T_MATCH.insert");
   }

@@ -33,9 +33,9 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
   // ================================
   // SQL
   // ================================
-  /** INSERT文（tenantId を含む）. */
+  /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_PERSON (person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_T_PERSON (person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
 
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
@@ -229,7 +229,6 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
           stmt.setTimestamp(10, this.registerDate == null ? null : this.registerDate.toTimestamp());
           stmt.setString(11, this.registerUser);
           stmt.setTimestamp(12, this.ttl == null ? null : this.ttl.toTimestamp());
-          stmt.setString(13, this.tenantId);
         },
         "SES_AI_T_PERSON.insert");
   }

@@ -23,9 +23,9 @@ public class SES_AI_M_GROUP extends EntityBase {
     super(tenantId);
   }
 
-  /** INSERT文（tenantId を含む）. */
+  /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_M_GROUP (from_group, group_name, register_date, register_user, tenant_id) VALUES (?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_M_GROUP (from_group, group_name, register_date, register_user) VALUES (?, ?, ?, ?)";
 
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
@@ -57,7 +57,6 @@ public class SES_AI_M_GROUP extends EntityBase {
           stmt.setString(2, this.groupName);
           stmt.setTimestamp(3, this.registerDate == null ? null : this.registerDate.toTimestamp());
           stmt.setString(4, this.registerUser);
-          stmt.setString(5, this.tenantId);
         },
         "SES_AI_M_GROUP.insert");
   }

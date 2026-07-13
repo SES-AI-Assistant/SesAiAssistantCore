@@ -48,9 +48,9 @@ public class SES_AI_M_INGEST_ROUTE extends EntityBase {
     }
   }
 
-  /** INSERT文（tenantId を含む）. */
+  /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_M_INGEST_ROUTE (channel_type, route_key, tenant_id, register_date, register_user) VALUES (?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_M_INGEST_ROUTE (channel_type, route_key, register_date, register_user) VALUES (?, ?, ?, ?)";
 
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
@@ -81,9 +81,8 @@ public class SES_AI_M_INGEST_ROUTE extends EntityBase {
         (stmt) -> {
           stmt.setString(1, this.channelType == null ? null : this.channelType.getValue());
           stmt.setString(2, this.routeKey);
-          stmt.setString(3, this.tenantId);
-          stmt.setTimestamp(4, this.registerDate == null ? null : this.registerDate.toTimestamp());
-          stmt.setString(5, this.registerUser);
+          stmt.setTimestamp(3, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(4, this.registerUser);
         },
         "SES_AI_M_INGEST_ROUTE.insert");
   }

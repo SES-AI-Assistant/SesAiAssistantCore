@@ -136,11 +136,12 @@ public abstract class EntityBase implements Comparable<EntityBase> {
       return 0;
     }
 
-    logSql(sql, logLabel);
+    String modifiedSql = addTenantIdToInsert(sql);
+    logSql(modifiedSql, logLabel);
 
-    try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+    try (PreparedStatement stmt = conn.prepareStatement(modifiedSql)) {
       paramBinder.bind(stmt);
-      // tenantId は呼び出し元が INSERT SQL に含めてバインドすること
+      setTenantIdParameter(stmt, countParameterPlaceholders(sql) + 1, tenantId);
       return stmt.executeUpdate();
     }
   }
@@ -558,5 +559,53 @@ public abstract class EntityBase implements Comparable<EntityBase> {
     if (log.isInfoEnabled()) {
       log.info("[SQL] {} - {}", label, sql);
     }
+  }
+
+  /**
+   * INSERT SQL に tenant_id カラムを自動追加します.
+   *
+   * @param sql 元の INSERT SQL（tenant_id を含まない）
+   * @return tenant_id カラムが追加された SQL
+   */
+  private String addTenantIdToInsert(final String sql) {
+    String upperSql = sql.toUpperCase();
+    int valuesIndex = upperSql.indexOf("VALUES");
+    if (valuesIndex < 0) {
+      throw new IllegalArgumentException("INSERT SQL must contain VALUES clause");
+    }
+
+    String beforeValues = sql.substring(0, valuesIndex);
+    String afterValues = sql.substring(valuesIndex);
+
+    int lastParenBeforeValues = beforeValues.lastIndexOf(')');
+    if (lastParenBeforeValues < 0) {
+      throw new IllegalArgumentException("Column list must be in parentheses");
+    }
+
+    int lastParenInValues = afterValues.lastIndexOf(')');
+    if (lastParenInValues < 0) {
+      throw new IllegalArgumentException("VALUES clause must have parentheses");
+    }
+
+    String columnList = beforeValues.substring(0, lastParenBeforeValues) + ", tenant_id)";
+    String valuesPart = afterValues.substring(0, lastParenInValues) + ", ?)";
+
+    return columnList + " " + valuesPart;
+  }
+
+  /**
+   * SQL 内のパラメータプレースホルダー（?）の数を数えます.
+   *
+   * @param sql SQL文
+   * @return プレースホルダーの数
+   */
+  private int countParameterPlaceholders(final String sql) {
+    int count = 0;
+    for (char c : sql.toCharArray()) {
+      if (c == '?') {
+        count++;
+      }
+    }
+    return count;
   }
 }

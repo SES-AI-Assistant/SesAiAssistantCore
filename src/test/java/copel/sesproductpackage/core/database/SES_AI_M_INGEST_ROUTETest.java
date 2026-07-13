@@ -53,8 +53,7 @@ class SES_AI_M_INGEST_ROUTETest {
     assertEquals(1, route.insert(connection));
     verify(ps, times(1)).setString(1, "LINE");
     verify(ps, times(1)).setString(2, "route1");
-    verify(ps, times(1)).setString(3, "T1");
-    verify(ps, times(1)).setString(5, "admin");
+    verify(ps, times(1)).setString(4, "admin");
   }
 
   @Test

@@ -16,6 +16,11 @@ class SES_AI_M_TENANTTest {
   void testNullScenarios() throws SQLException {
     SES_AI_M_TENANT entity = new SES_AI_M_TENANT("test-tenant");
     Connection connection = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(connection.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(false);
 
     assertEquals(0, entity.insert(null));
     entity.selectByPk(null);
@@ -26,9 +31,8 @@ class SES_AI_M_TENANTTest {
     assertFalse(entity.deleteByPk(connection));
 
     entity.setRegisterDate(null);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
     entity.setTenantId("T1");
+    when(ps.executeUpdate()).thenReturn(1);
     entity.insert(connection);
     entity.updateByPk(connection);
   }
@@ -165,6 +169,7 @@ class SES_AI_M_TENANTTest {
   void testTenantSelectByPkWithNullId() throws SQLException {
     Connection connection = mock(Connection.class);
     SES_AI_M_TENANT tenant = new SES_AI_M_TENANT("test-tenant");
+    tenant.setTenantId(null);
 
     tenant.selectByPk(connection);
 

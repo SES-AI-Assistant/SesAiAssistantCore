@@ -25,10 +25,10 @@ public class SES_AI_T_WATCH extends EntityBase {
     this.tenantId = tenantId;
   }
 
-  /** INSERT文（tenantId を含む）. */
+  /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_WATCH (user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id) "
-          + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_T_WATCH (user_id, target_id, target_type, memo, register_date, register_user, ttl) "
+          + "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
@@ -121,7 +121,6 @@ public class SES_AI_T_WATCH extends EntityBase {
           stmt.setTimestamp(5, new OriginalDateTime().toTimestamp());
           stmt.setString(6, this.registerUser);
           stmt.setTimestamp(7, this.ttl != null ? this.ttl.toTimestamp() : null);
-          stmt.setString(8, this.tenantId);
         },
         "SES_AI_T_WATCH.insert");
   }

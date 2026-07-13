@@ -34,9 +34,9 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
     super("_temp_");
   }
 
-  /** INSERTR文. */
+  /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_WEBAPP_M_USER (user_id, user_name, role_cd, plan_cd, register_date, register_user, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_WEBAPP_M_USER (user_id, user_name, role_cd, plan_cd, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?)";
 
   /** SELECT文. */
   private static final String SELECT_SQL =
@@ -131,7 +131,6 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
           stmt.setString(4, this.plan == null ? null : this.plan.getCode());
           stmt.setTimestamp(5, this.registerDate == null ? null : this.registerDate.toTimestamp());
           stmt.setString(6, this.registerUser);
-          stmt.setString(7, this.tenantId);
         },
         "SES_AI_WEBAPP_M_USER.insert");
   }
