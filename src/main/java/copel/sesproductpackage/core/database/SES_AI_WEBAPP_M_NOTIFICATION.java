@@ -1,10 +1,11 @@
 package copel.sesproductpackage.core.database;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
-import java.sql.Connection;
-import java.sql.SQLException;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -84,9 +85,10 @@ public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
 
   @Override
   public int insert(Connection connection) throws SQLException {
-    return executeInsertWithoutTenantFilter(
+    return executeInsert(
         connection,
         INSERT_SQL,
+        this.tenantId,
         (stmt) -> {
           stmt.setString(1, this.notificationId);
           stmt.setString(2, this.userId);
