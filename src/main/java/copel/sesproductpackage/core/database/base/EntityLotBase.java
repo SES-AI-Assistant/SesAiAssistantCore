@@ -1319,11 +1319,13 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     final String countSql = addTenantIdFilter(toCountSql(baseQuerySql), tenantId);
 
     try (PreparedStatement stmt = conn.prepareStatement(countSql)) {
-      // パラメータをバインド
-      int nextParamIndex = binder.bind(stmt, 1, vectorValue, similarityThreshold);
-
-      // tenant_id をバインド
-      setTenantIdParameter(stmt, nextParamIndex, tenantId);
+      // COUNT SQL のパラメータバインディング
+      // toCountSql は SELECT の列を COUNT(*) に置換し、他の WHERE条件は保持する
+      // 例：「WHERE 1 - (vector_data <=> ?::vector) >= ? AND tenant_id = ?」
+      // つまりプレースホルダーは: vector 1個、threshold 1個、tenant_id 1個
+      stmt.setString(1, vectorValue);
+      stmt.setDouble(2, similarityThreshold);
+      setTenantIdParameter(stmt, 3, tenantId);
 
       logSql(countSql);
 
