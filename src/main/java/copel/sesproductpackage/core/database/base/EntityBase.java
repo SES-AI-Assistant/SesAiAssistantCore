@@ -490,6 +490,17 @@ public abstract class EntityBase implements Comparable<EntityBase> {
     String trimmedSql = baseSql.trim();
     String upperSql = trimmedSql.toUpperCase();
 
+    // SELECT EXISTS の場合は特別処理（括弧内のWHERE句に tenant_id を挿入）
+    if (upperSql.startsWith("SELECT EXISTS")) {
+      if (upperSql.contains(" WHERE ")) {
+        int lastParenIndex = trimmedSql.lastIndexOf(')');
+        if (lastParenIndex > 0) {
+          return trimmedSql.substring(0, lastParenIndex) + " AND tenant_id = ?"
+              + trimmedSql.substring(lastParenIndex);
+        }
+      }
+    }
+
     // WHERE句が含まれているかチェック
     boolean hasWhereClause = upperSql.contains(" WHERE ");
 

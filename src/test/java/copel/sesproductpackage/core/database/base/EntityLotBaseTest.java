@@ -351,6 +351,24 @@ class EntityLotBaseTest {
   }
 
   @Test
+  void testAddTenantIdFilter_SelectExists() {
+    TestEntityLot lot = new TestEntityLot();
+    String sql = "SELECT EXISTS (SELECT 1 FROM SES_AI_M_SENDER WHERE from_id = ?)";
+    String result = lot.addTenantIdFilter(sql, "tenant1");
+    assertEquals(
+        "SELECT EXISTS (SELECT 1 FROM SES_AI_M_SENDER WHERE from_id = ? AND tenant_id = ?)",
+        result);
+  }
+
+  @Test
+  void testAddTenantIdFilter_SelectExistsWithoutWhere() {
+    TestEntityLot lot = new TestEntityLot();
+    String sql = "SELECT EXISTS (SELECT 1 FROM SES_AI_M_SENDER)";
+    String result = lot.addTenantIdFilter(sql, "tenant1");
+    assertEquals("SELECT EXISTS (SELECT 1 FROM SES_AI_M_SENDER) WHERE tenant_id = ?", result);
+  }
+
+  @Test
   void testSetTenantIdParameter() throws SQLException {
     TestEntityLot lot = new TestEntityLot();
     PreparedStatement ps = mock(PreparedStatement.class);
