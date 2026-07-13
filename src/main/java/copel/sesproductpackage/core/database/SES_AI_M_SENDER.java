@@ -1,10 +1,11 @@
 package copel.sesproductpackage.core.database;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
-import java.sql.Connection;
-import java.sql.SQLException;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -52,9 +53,10 @@ public class SES_AI_M_SENDER extends EntityBase {
 
   @Override
   public int insert(Connection connection) throws SQLException {
-    return executeInsertWithoutTenantFilter(
+    return executeInsert(
         connection,
         INSERT_SQL,
+        this.tenantId,
         (stmt) -> {
           stmt.setString(1, this.fromId);
           stmt.setString(2, this.fromName);
@@ -69,9 +71,10 @@ public class SES_AI_M_SENDER extends EntityBase {
     if (this.fromId == null) {
       return;
     }
-    executeSelectByPkWithoutTenantFilter(
+    executeSelectByPk(
         connection,
         SELECT_SQL,
+        this.tenantId,
         (stmt) -> stmt.setString(1, this.fromId),
         (rs) -> {
           this.fromId = rs.getString("from_id");
@@ -87,9 +90,10 @@ public class SES_AI_M_SENDER extends EntityBase {
     if (this.fromId == null) {
       return false;
     }
-    return executeUpdateByPkWithoutTenantFilter(
+    return executeUpdateByPk(
         connection,
         UPDATE_SQL,
+        this.tenantId,
         (stmt) -> {
           stmt.setString(1, this.fromName);
           stmt.setTimestamp(2, this.registerDate == null ? null : this.registerDate.toTimestamp());
@@ -104,9 +108,10 @@ public class SES_AI_M_SENDER extends EntityBase {
     if (this.fromId == null) {
       return false;
     }
-    return executeDeleteByPkWithoutTenantFilter(
+    return executeDeleteByPk(
         connection,
         DELETE_SQL,
+        this.tenantId,
         (stmt) -> stmt.setString(1, this.fromId),
         "SES_AI_M_SENDER.deleteByPk");
   }
@@ -122,9 +127,10 @@ public class SES_AI_M_SENDER extends EntityBase {
     if (this.fromId == null) {
       return false;
     }
-    return executeExistsWithoutTenantFilter(
+    return executeExists(
         connection,
         EXISTS_SQL,
+        this.tenantId,
         (stmt) -> stmt.setString(1, this.fromId),
         "SES_AI_M_SENDER.isExist");
   }

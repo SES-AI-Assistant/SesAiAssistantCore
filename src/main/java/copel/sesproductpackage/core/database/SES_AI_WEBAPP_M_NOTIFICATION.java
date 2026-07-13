@@ -110,9 +110,10 @@ public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
     if (this.notificationId == null) {
       return;
     }
-    executeSelectByPkWithoutTenantFilter(
+    executeSelectByPk(
         connection,
         SELECT_SQL,
+        this.tenantId,
         (stmt) -> stmt.setString(1, this.notificationId),
         (rs) -> {
           this.notificationId = rs.getString("notification_id");
@@ -135,9 +136,10 @@ public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
     if (this.notificationId == null) {
       return false;
     }
-    return executeUpdateByPkWithoutTenantFilter(
+    return executeUpdateByPk(
         connection,
         UPDATE_SQL,
+        this.tenantId,
         (stmt) -> {
           stmt.setString(1, this.notificationId);
           stmt.setString(2, this.userId);
@@ -160,9 +162,10 @@ public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
     if (this.notificationId == null) {
       return false;
     }
-    return executeDeleteByPkWithoutTenantFilter(
+    return executeDeleteByPk(
         connection,
         DELETE_SQL,
+        this.tenantId,
         (stmt) -> stmt.setString(1, this.notificationId),
         "SES_AI_WEBAPP_M_NOTIFICATION.deleteByPk");
   }
