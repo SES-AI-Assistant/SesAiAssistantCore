@@ -1,12 +1,15 @@
 package copel.sesproductpackage.core.database;
 
+import java.math.BigDecimal;
+
 import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.Provider;
 import copel.sesproductpackage.core.database.base.DynamoDBLot;
-import java.math.BigDecimal;
+import copel.sesproductpackage.core.util.Properties;
+import copel.sesproductpackage.core.util.SsmParameterKey;
 
 public class SES_AI_API_USAGE_HISTORYLot extends DynamoDBLot<SES_AI_API_USAGE_HISTORY> {
   public SES_AI_API_USAGE_HISTORYLot() {
-    super("SES_AI_API_USAGE_HISTORY", SES_AI_API_USAGE_HISTORY.class);
+    super(Properties.get(SsmParameterKey.API_USAGE_HISTORY_TABLE_NAME.getKey()), SES_AI_API_USAGE_HISTORY.class);
   }
 
   /**

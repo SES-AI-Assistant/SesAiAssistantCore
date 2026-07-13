@@ -1,10 +1,14 @@
 package copel.sesproductpackage.core.database;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import copel.sesproductpackage.core.database.base.DynamoDB;
 import java.math.BigDecimal;
 import java.time.Instant;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import copel.sesproductpackage.core.database.base.DynamoDB;
+import copel.sesproductpackage.core.util.Properties;
+import copel.sesproductpackage.core.util.SsmParameterKey;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
@@ -53,7 +57,7 @@ public class SES_AI_API_USAGE_HISTORY extends DynamoDB<SES_AI_API_USAGE_HISTORY>
   }
 
   public SES_AI_API_USAGE_HISTORY() {
-    super("SES_AI_API_USAGE_HISTORY", SES_AI_API_USAGE_HISTORY.class);
+    super(Properties.get(SsmParameterKey.API_USAGE_HISTORY_TABLE_NAME.getKey()), SES_AI_API_USAGE_HISTORY.class);
   }
 
   @Override
