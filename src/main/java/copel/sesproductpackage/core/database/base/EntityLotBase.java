@@ -1268,16 +1268,16 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       // ユーザー定義のバインド処理（ベクトル値・スレッショルド値以外）
       int nextParamIndex = binder.bind(stmt, 1, vectorValue, similarityThreshold);
 
+      // tenant_id をバインド
+      setTenantIdParameter(stmt, nextParamIndex, tenantId);
+      nextParamIndex++;
+
       // LIMIT をバインド
       stmt.setInt(nextParamIndex, size);
       nextParamIndex++;
 
       // OFFSET をバインド
       stmt.setInt(nextParamIndex, (page - 1) * size);
-      nextParamIndex++;
-
-      // tenant_id をバインド
-      setTenantIdParameter(stmt, nextParamIndex, tenantId);
 
       // SQL をログ出力
       logSql(pagedSql);
