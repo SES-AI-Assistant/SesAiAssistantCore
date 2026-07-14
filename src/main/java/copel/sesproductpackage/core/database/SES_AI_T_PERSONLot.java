@@ -1,5 +1,11 @@
 package copel.sesproductpackage.core.database;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
 import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.search.FulltextCondition;
 import copel.sesproductpackage.core.search.FulltextConditionsWhereClause;
@@ -7,11 +13,6 @@ import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -21,14 +22,6 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
-  /** ベクトル検索SQL. */
-  private static final String RETRIEVE_SQL =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_PERSON ORDER BY distance LIMIT ?";
-
-  /** 類似度閾値を用いたベクトル検索SQL. */
-  private static final String RETRIEVE_WITH_THRESHOLD_SQL =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_PERSON WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
-
   /** 全文検索SQL. */
   private static final String SELECT_LIKE_SQL =
       "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl, tenant_id FROM SES_AI_T_PERSON WHERE raw_content LIKE ?";
@@ -51,13 +44,6 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
 
   /** ベクトル検索のカウント用SQL. */
   private static final String COUNT_SQL_FOR_RETRIEVE = "SELECT COUNT(*) FROM SES_AI_T_PERSON";
-
-  /** ベクトル検索のページング用SQL（OFFSET付き）. */
-  private static final String RETRIEVE_SQL_WITH_OFFSET = RETRIEVE_SQL + " OFFSET ?";
-
-  /** 類似度閾値ベクトル検索のページング用SQL（OFFSET付き）. */
-  private static final String RETRIEVE_WITH_THRESHOLD_SQL_WITH_OFFSET =
-      RETRIEVE_WITH_THRESHOLD_SQL + " OFFSET ?";
 
   /** 類似度閾値カウント用SQL. */
   private static final String COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD =

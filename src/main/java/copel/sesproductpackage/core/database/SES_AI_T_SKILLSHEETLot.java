@@ -1,11 +1,5 @@
 package copel.sesproductpackage.core.database;
 
-import copel.sesproductpackage.core.database.base.EntityLotBase;
-import copel.sesproductpackage.core.search.FulltextCondition;
-import copel.sesproductpackage.core.search.FulltextConditionsWhereClause;
-import copel.sesproductpackage.core.unit.LogicalOperators;
-import copel.sesproductpackage.core.unit.OriginalDateTime;
-import copel.sesproductpackage.core.unit.Vector;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -13,20 +7,19 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import copel.sesproductpackage.core.database.base.EntityLotBase;
+import copel.sesproductpackage.core.search.FulltextCondition;
+import copel.sesproductpackage.core.search.FulltextConditionsWhereClause;
+import copel.sesproductpackage.core.unit.LogicalOperators;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.unit.Vector;
+
 /**
  * 【Entityクラス】 スキルシート情報(SES_AI_T_SKILLSHEET)テーブルのLotクラス.
  *
  * @author Copel Co., Ltd.
  */
 public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
-  /** ベクトル検索SQL. */
-  private static final String RETRIEVE_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_SKILLSHEET ORDER BY distance LIMIT ?";
-
-  /** 類似度閾値を用いたベクトル検索SQL. */
-  private static final String RETRIEVE_WITH_THRESHOLD_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_SKILLSHEET WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
-
   /** 全文検索SQL(file_contentカラム). */
   private static final String SELECT_FILE_CONTENT_LIKE_SQL =
       "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl, tenant_id FROM SES_AI_T_SKILLSHEET WHERE file_content LIKE ?";
@@ -50,16 +43,9 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
   /** ベクトル検索のカウント用SQL. */
   private static final String COUNT_SQL_FOR_RETRIEVE = "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET";
 
-  /** ベクトル検索のページング用SQL（OFFSET付き）. */
-  private static final String RETRIEVE_SQL_WITH_OFFSET = RETRIEVE_SQL + " OFFSET ?";
-
   /** 類似度閾値ベクトル検索のカウント用SQL. */
   private static final String COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD =
       "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET WHERE 1 - (vector_data <=> ?::vector) >= ?";
-
-  /** 類似度閾値ベクトル検索のページング用SQL（OFFSET付き）. */
-  private static final String RETRIEVE_WITH_THRESHOLD_SQL_WITH_OFFSET =
-      RETRIEVE_WITH_THRESHOLD_SQL + " OFFSET ?";
 
   /** 期限切れスキルシート取得SQL前半（テナントIDあり）. */
   private static final String SELECT_EXPIRED_SKILLSHEETS_PREFIX =
