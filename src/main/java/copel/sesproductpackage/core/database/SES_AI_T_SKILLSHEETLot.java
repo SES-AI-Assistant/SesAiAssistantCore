@@ -47,6 +47,10 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
   private static final String COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD =
       "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET WHERE 1 - (vector_data <=> ?::vector) >= ?";
 
+  /** 類似度閾値ベクトル検索用SQL（ページング用・LIMIT/OFFSET除外）. */
+  private static final String RETRIEVE_WITH_THRESHOLD_SQL_WITHOUT_LIMIT =
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_SKILLSHEET WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
+
   /** 期限切れスキルシート取得SQL前半（テナントIDあり）. */
   private static final String SELECT_EXPIRED_SKILLSHEETS_PREFIX =
       "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl, tenant_id "
@@ -255,7 +259,7 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
 
     executeVectorPagedQuery(
         connection,
-        COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD,
+        RETRIEVE_WITH_THRESHOLD_SQL_WITHOUT_LIMIT,
         tenantId,
         query.toString(),
         similarityThreshold,

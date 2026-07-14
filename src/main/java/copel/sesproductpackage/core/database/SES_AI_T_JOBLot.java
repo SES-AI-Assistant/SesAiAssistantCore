@@ -43,6 +43,10 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   private static final String COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD =
       "SELECT COUNT(*) FROM SES_AI_T_JOB WHERE 1 - (vector_data <=> ?::vector) >= ?";
 
+  /** 類似度閾値ベクトル検索用SQL（ページング用・LIMIT/OFFSET除外）. */
+  private static final String RETRIEVE_WITH_THRESHOLD_SQL_WITHOUT_LIMIT =
+      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
+
   /** コンストラクタ. */
   public SES_AI_T_JOBLot() {
     super();
@@ -199,7 +203,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
 
     executeVectorPagedQuery(
         connection,
-        COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD,
+        RETRIEVE_WITH_THRESHOLD_SQL_WITHOUT_LIMIT,
         tenantId,
         query.toString(),
         similarityThreshold,

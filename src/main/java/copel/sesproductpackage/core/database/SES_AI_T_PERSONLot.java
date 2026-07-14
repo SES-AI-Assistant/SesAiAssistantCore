@@ -49,6 +49,10 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
   private static final String COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD =
       "SELECT COUNT(*) FROM SES_AI_T_PERSON WHERE 1 - (vector_data <=> ?::vector) >= ?";
 
+  /** 類似度閾値ベクトル検索用SQL（ページング用・LIMIT/OFFSET除外）. */
+  private static final String RETRIEVE_WITH_THRESHOLD_SQL_WITHOUT_LIMIT =
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_PERSON WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
+
   /** 期限切れ要員取得SQL前半（テナントIDあり）. */
   private static final String SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_PREFIX =
       "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl "
@@ -248,7 +252,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
 
     executeVectorPagedQuery(
         connection,
-        COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD,
+        RETRIEVE_WITH_THRESHOLD_SQL_WITHOUT_LIMIT,
         tenantId,
         query.toString(),
         similarityThreshold,
