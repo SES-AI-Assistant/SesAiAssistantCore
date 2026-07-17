@@ -2,6 +2,7 @@ package copel.sesproductpackage.core.database;
 
 import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.unit.Plan;
 import copel.sesproductpackage.core.unit.Role;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -17,11 +18,11 @@ import java.util.List;
 public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER> {
   /** 全件SELECT文. */
   private static final String SELECT_ALL_SQL =
-      "SELECT user_id, user_name, role_cd, register_date, register_user, tenant_id FROM SES_AI_WEBAPP_M_USER";
+      "SELECT user_id, user_name, role_cd, plan_cd, register_date, register_user, tenant_id FROM SES_AI_WEBAPP_M_USER";
 
   /** SELECT文（WHERE句あり）. */
   private static final String SELECT_SQL =
-      "SELECT user_id, user_name, role_cd, register_date, register_user, tenant_id FROM SES_AI_WEBAPP_M_USER WHERE ";
+      "SELECT user_id, user_name, role_cd, plan_cd, register_date, register_user, tenant_id FROM SES_AI_WEBAPP_M_USER WHERE ";
 
   public SES_AI_WEBAPP_M_USERLot() {
     super();
@@ -72,6 +73,7 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
     sesAiWebappMUser.setUserId(resultSet.getString("user_id"));
     sesAiWebappMUser.setUserName(resultSet.getString("user_name"));
     sesAiWebappMUser.setRole(Role.getEnum(resultSet.getString("role_cd")));
+    sesAiWebappMUser.setPlan(Plan.getEnum(resultSet.getString("plan_cd")));
     sesAiWebappMUser.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
     sesAiWebappMUser.setRegisterUser(resultSet.getString("register_user"));
     return sesAiWebappMUser;
