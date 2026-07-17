@@ -67,6 +67,47 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
     this.entityLot.addAll(results);
   }
 
+  /**
+   * 全テナント対象でページング検索する（システム管理者用）.
+   *
+   * <p>⚠️ このメソッドは全テナント対象です。 システム管理者のみ使用。
+   *
+   * @param connection DBコネクション
+   * @param page ページ番号
+   * @param size ページサイズ
+   * @throws SQLException
+   */
+  public void selectAllPagedWithoutTenantId(final Connection connection, final int page, final int size)
+      throws SQLException {
+    this.entityLot = new ArrayList<>();
+    if (connection == null) {
+      return;
+    }
+
+    try (var stmt = connection.createStatement()) {
+      // 全件数を取得
+      try (var rs = stmt.executeQuery("SELECT COUNT(*) AS cnt FROM SES_AI_WEBAPP_M_USER")) {
+        if (rs.next()) {
+          this.totalCount = rs.getInt("cnt");
+        }
+      }
+      this.pageSize = size;
+      this.currentPageIndex = page;
+
+      if (totalCount == 0) {
+        return;
+      }
+
+      // ページング検索
+      int offset = (page - 1) * size;
+      String sql = SELECT_ALL_SQL + " LIMIT " + size + " OFFSET " + offset;
+      List<SES_AI_WEBAPP_M_USER> results =
+          executeQueryWithoutTenantFilter(
+              connection, sql, this::mapResultSet, (s, paramIndex) -> paramIndex);
+      this.entityLot.addAll(results);
+    }
+  }
+
   @Override
   protected SES_AI_WEBAPP_M_USER mapResultSet(ResultSet resultSet) throws SQLException {
     SES_AI_WEBAPP_M_USER sesAiWebappMUser = new SES_AI_WEBAPP_M_USER(resultSet.getString("tenant_id"));
