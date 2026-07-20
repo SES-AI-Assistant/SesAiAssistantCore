@@ -1,13 +1,18 @@
 package copel.sesproductpackage.core.unit;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import copel.sesproductpackage.core.api.gpt.GptAnswer;
 import copel.sesproductpackage.core.api.gpt.Transformer;
+import copel.sesproductpackage.core.api.markitdown.MarkItDown;
+import copel.sesproductpackage.core.api.markitdown.MarkItDown.MarkitdownLambdaRequestEntity;
+import copel.sesproductpackage.core.api.markitdown.MarkItDown.MarkitdownLambdaResponseEntity;
 import copel.sesproductpackage.core.util.Properties;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -22,6 +27,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 class SkillSheetTest {
 
@@ -200,5 +206,73 @@ class SkillSheetTest {
 
     s2.setFileId("id2");
     assertNotEquals(s1, s2);
+  }
+
+  @Test
+  void testMarkItDownLambdaSuccess() throws Exception {
+    SkillSheet ss = new SkillSheet();
+    ss.setFileName("test.pdf");
+
+    MarkitdownLambdaResponseEntity mockResponse = new MarkitdownLambdaResponseEntity();
+    mockResponse.setSuccess(true);
+    mockResponse.setMarkdown("Parsed by markitdown");
+
+    try (MockedStatic<MarkItDown> mockedStatic = mockStatic(MarkItDown.class)) {
+      mockedStatic.when(() -> MarkItDown.invoke(any(MarkitdownLambdaRequestEntity.class)))
+          .thenReturn(mockResponse);
+
+      ss.setFileContentFromByte(new byte[] {1, 2, 3});
+      assertEquals("Parsed by markitdown", ss.getFileContent());
+    }
+  }
+
+  @Test
+  void testMarkItDownLambdaFallbackWhenResponseIsError() throws Exception {
+    SkillSheet ss = new SkillSheet();
+    ss.setFileName("test.pdf");
+
+    MarkitdownLambdaResponseEntity mockResponse = new MarkitdownLambdaResponseEntity();
+    mockResponse.setSuccess(false);
+    MarkitdownLambdaResponseEntity.ErrorDetail error = new MarkitdownLambdaResponseEntity.ErrorDetail();
+    error.setMessage("Error in markitdown");
+    mockResponse.setError(error);
+
+    try (MockedStatic<MarkItDown> mockedStatic = mockStatic(MarkItDown.class)) {
+      // Simulate failure response in markitdown
+      mockedStatic.when(() -> MarkItDown.invoke(any(MarkitdownLambdaRequestEntity.class)))
+          .thenReturn(mockResponse);
+
+      // Succeeded fallback requires actual valid pdf bytes.
+      try (PDDocument pdf = new PDDocument();
+          ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+        pdf.addPage(new PDPage());
+        pdf.save(out);
+        
+        ss.setFileContentFromByte(out.toByteArray());
+        assertNotNull(ss.getFileContent());
+      }
+    }
+  }
+  
+  @Test
+  void testMarkItDownLambdaExceptionFallback() throws Exception {
+    SkillSheet ss = new SkillSheet();
+    ss.setFileName("test.pdf");
+
+    try (MockedStatic<MarkItDown> mockedStatic = mockStatic(MarkItDown.class)) {
+      // Simulate exception in markitdown call
+      mockedStatic.when(() -> MarkItDown.invoke(any(MarkitdownLambdaRequestEntity.class)))
+          .thenThrow(new RuntimeException("API Connection Failed"));
+
+      // Succeeded fallback requires actual valid pdf bytes.
+      try (PDDocument pdf = new PDDocument();
+          ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+        pdf.addPage(new PDPage());
+        pdf.save(out);
+        
+        ss.setFileContentFromByte(out.toByteArray());
+        assertNotNull(ss.getFileContent());
+      }
+    }
   }
 }
