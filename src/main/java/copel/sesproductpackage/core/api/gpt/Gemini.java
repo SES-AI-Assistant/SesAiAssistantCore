@@ -264,6 +264,94 @@ public class Gemini implements Transformer {
           return new GptAnswer(resultText, Gemini.class);
         }
       }
+    }
+    return null;
+  }  /**
+   * 引数に入力された文字列を質問として、LLMにJSON形式での回答の生成を実行させその回答を返却します.
+   *
+   * @param prompt プロンプト
+   * @return 回答
+   * @throws IOException
+   * @throws RuntimeException
+   */
+  public GptAnswer generateJson(final String prompt) throws IOException, RuntimeException {
+    if (prompt == null || prompt.isBlank()) {
+      return null;
+    }
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    // リクエストボディの作成
+    ObjectNode rootNode = objectMapper.createObjectNode();
+    ArrayNode contentsArray = rootNode.putArray("contents");
+    ObjectNode contentNode = contentsArray.addObject();
+    ArrayNode partsArray = contentNode.putArray("parts");
+    ObjectNode partNode = partsArray.addObject();
+    partNode.put("text", prompt);
+
+    // JSON指定のための generationConfig を追加
+    ObjectNode configNode = rootNode.putObject("generationConfig");
+    configNode.put("responseMimeType", "application/json");
+
+    String requestBody = objectMapper.writeValueAsString(rootNode);
+
+    // HTTPリクエストの準備
+    URL url =
+        new URL(
+            GEMINI_COMPLETION_API_URL
+                + this.completionModel
+                + ":generateContent?key="
+                + this.apiKey);
+    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+    connection.setRequestMethod("POST");
+    connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+    connection.setDoOutput(true);
+
+    // リクエストボディを送信
+    try (OutputStream os = connection.getOutputStream()) {
+      byte[] input = requestBody.getBytes(StandardCharsets.UTF_8);
+      os.write(input, 0, input.length);
+    }
+
+    // レスポンスの取得
+    int responseCode = connection.getResponseCode();
+    if (responseCode != HttpURLConnection.HTTP_OK) {
+      connection.disconnect();
+      throw new RuntimeException("Gemini JSON API Error: " + responseCode);
+    }
+
+    // JSONレスポンスの解析
+    try (BufferedReader br =
+        new BufferedReader(
+            new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+      StringBuilder response = new StringBuilder();
+      String responseLine;
+      while ((responseLine = br.readLine()) != null) {
+        response.append(responseLine.trim());
+      }
+
+      JsonNode jsonResponse = objectMapper.readTree(response.toString());
+      JsonNode candidates = jsonResponse.path("candidates");
+      if (candidates.isArray() && candidates.size() > 0) {
+        JsonNode content = candidates.get(0).path("content");
+        JsonNode parts = content.path("parts");
+        if (parts.isArray() && parts.size() > 0) {
+          String resultText = parts.get(0).path("text").asText();
+
+          // API使用履歴の登録
+          SES_AI_API_USAGE_HISTORY sesAiApiUsageHistory = new SES_AI_API_USAGE_HISTORY();
+          sesAiApiUsageHistory.setProvider(Provider.Google);
+          sesAiApiUsageHistory.setModel(this.completionModel);
+          sesAiApiUsageHistory.setUsageMonth(new OriginalDateTime().getYYYYMM());
+          sesAiApiUsageHistory.setUserId("SesAiAssitantCore");
+          sesAiApiUsageHistory.setApiType(ApiType.Generate);
+          sesAiApiUsageHistory.fetch();
+          sesAiApiUsageHistory.addInputCount(prompt != null ? prompt.length() : 0);
+          sesAiApiUsageHistory.addOutputCount(resultText != null ? resultText.length() : 0);
+          sesAiApiUsageHistory.save();
+
+          return new GptAnswer(resultText, Gemini.class);
+        }
+      }
 
       return new GptAnswer(null, Gemini.class);
     }
