@@ -80,73 +80,106 @@ public class SkillSheet {
    * @throws IOException
    */
   public void setFileContentFromByte(final byte[] data) throws IOException {
-    // ファイル名が存在する場合のみ処理する
     if (this.fileName != null && data != null) {
-      InputStream inputStream = new ByteArrayInputStream(data);
+      try {
+        // Base64にエンコード
+        String base64 = java.util.Base64.getEncoder().encodeToString(data);
 
-      // Wordファイルを処理
-      if (this.fileName.endsWith(".docx")) {
-        StringBuilder text = new StringBuilder();
-        try (XWPFDocument doc = new XWPFDocument(inputStream)) {
-          for (XWPFParagraph paragraph : doc.getParagraphs()) {
-            text.append(paragraph.getText()).append("\n");
-          }
-          for (XWPFTable table : doc.getTables()) {
-            for (int rowIdx = 0; rowIdx < table.getRows().size(); rowIdx++) {
-              for (int cellIdx = 0;
-                  cellIdx < table.getRow(rowIdx).getTableCells().size();
-                  cellIdx++) {
-                XWPFTableCell cell = table.getRow(rowIdx).getCell(cellIdx);
-                text.append(cell.getText()).append("\t");
-              }
-              text.append("\n");
-            }
-          }
+        // markitdown-lambdaを呼び出すリクエストを構築
+        copel.sesproductpackage.core.api.markitdown.MarkItDown.MarkitdownLambdaRequestEntity mdReq =
+            copel.sesproductpackage.core.api.markitdown.MarkItDown.MarkitdownLambdaRequestEntity.builder()
+                .fileBase64(base64)
+                .filename(this.fileName)
+                .build();
+
+        log.info("markitdown-lambda を呼び出してスキルシートをパースします。ファイル名: {}", this.fileName);
+        copel.sesproductpackage.core.api.markitdown.MarkItDown.MarkitdownLambdaResponseEntity mdRes =
+            copel.sesproductpackage.core.api.markitdown.MarkItDown.invoke(mdReq);
+
+        if (mdRes.isSuccess() && mdRes.getMarkdown() != null && !mdRes.getMarkdown().isBlank()) {
+          this.fileContent = mdRes.getMarkdown();
+          log.info("markitdown-lambda によるパースに成功しました。文字数: {}", this.fileContent.length());
+        } else {
+          String errMsg = mdRes.getError() != null ? mdRes.getError().getMessage() : "不明なエラー";
+          log.error("markitdown-lambda によるパースが失敗しました: {}", errMsg);
+          throw new IOException("markitdown-lambda によるパース失敗: " + errMsg);
         }
-        this.fileContent = text.toString();
+      } catch (Exception e) {
+        log.error("markitdown-lambda の呼び出し中にエラーが発生しました。従来のローカルパース処理へフォールバックします。", e);
+        // フォールバックとして従来の Apache POI / PDFBox によるパースを走らせる
+        fallbackLocalParse(data);
       }
-      // Wordファイルを処理
-      else if (this.fileName.endsWith(".doc")) {
-        StringBuilder text = new StringBuilder();
-        try (HWPFDocument doc = new HWPFDocument(inputStream);
-            WordExtractor extractor = new WordExtractor(doc)) {
-          for (String paragraphText : extractor.getParagraphText()) {
-            text.append(paragraphText);
-          }
-          text.append(extractor.getText());
-          this.fileContent = text.toString();
+    }
+  }
+
+  /**
+   * 従来のローカルパース（Apache POI / PDFBox）によるフォールバック処理.
+   */
+  private void fallbackLocalParse(final byte[] data) throws IOException {
+    InputStream inputStream = new ByteArrayInputStream(data);
+
+    // Wordファイルを処理
+    if (this.fileName.endsWith(".docx")) {
+      StringBuilder text = new StringBuilder();
+      try (XWPFDocument doc = new XWPFDocument(inputStream)) {
+        for (XWPFParagraph paragraph : doc.getParagraphs()) {
+          text.append(paragraph.getText()).append("\n");
         }
-      }
-      // PDFファイルを処理
-      else if (this.fileName.endsWith(".pdf")) {
-        try (PDDocument document = PDDocument.load(inputStream)) {
-          PDFTextStripper stripper = new PDFTextStripper();
-          this.fileContent = stripper.getText(document);
-        }
-      }
-      // Excelファイルを処理
-      else if (this.fileName.endsWith(".xlsx") || this.fileName.endsWith(".xls")) {
-        StringBuilder text = new StringBuilder();
-        try (Workbook workbook =
-            this.fileName.endsWith(".xlsx")
-                ? new XSSFWorkbook(inputStream)
-                : new HSSFWorkbook(inputStream)) {
-          for (Row row : workbook.getSheetAt(0)) {
-            for (Cell cell : row) {
-              CustomCell customCell = new CustomCell(cell);
-              text.append(
-                      customCell.getValue(workbook.getCreationHelper().createFormulaEvaluator()))
-                  .append(",");
+        for (XWPFTable table : doc.getTables()) {
+          for (int rowIdx = 0; rowIdx < table.getRows().size(); rowIdx++) {
+            for (int cellIdx = 0;
+                cellIdx < table.getRow(rowIdx).getTableCells().size();
+                cellIdx++) {
+              XWPFTableCell cell = table.getRow(rowIdx).getCell(cellIdx);
+              text.append(cell.getText()).append("\t");
             }
             text.append("\n");
           }
-          this.fileContent = text.toString();
         }
       }
-      // その他のファイルの場合
-      else {
-        log.info("Word/Excel/PDF以外のファイルのため、スキルシート内容の取得処理をせずに終了します。");
+      this.fileContent = text.toString();
+    }
+    // Wordファイルを処理
+    else if (this.fileName.endsWith(".doc")) {
+      StringBuilder text = new StringBuilder();
+      try (HWPFDocument doc = new HWPFDocument(inputStream);
+          WordExtractor extractor = new WordExtractor(doc)) {
+        for (String paragraphText : extractor.getParagraphText()) {
+          text.append(paragraphText);
+        }
+        text.append(extractor.getText());
+        this.fileContent = text.toString();
       }
+    }
+    // PDFファイルを処理
+    else if (this.fileName.endsWith(".pdf")) {
+      try (PDDocument document = PDDocument.load(inputStream)) {
+        PDFTextStripper stripper = new PDFTextStripper();
+        this.fileContent = stripper.getText(document);
+      }
+    }
+    // Excelファイルを処理
+    else if (this.fileName.endsWith(".xlsx") || this.fileName.endsWith(".xls")) {
+      StringBuilder text = new StringBuilder();
+      try (Workbook workbook =
+          this.fileName.endsWith(".xlsx")
+              ? new XSSFWorkbook(inputStream)
+              : new HSSFWorkbook(inputStream)) {
+        for (Row row : workbook.getSheetAt(0)) {
+          for (Cell cell : row) {
+            CustomCell customCell = new CustomCell(cell);
+            text.append(
+                    customCell.getValue(workbook.getCreationHelper().createFormulaEvaluator()))
+                .append(",");
+          }
+          text.append("\n");
+        }
+        this.fileContent = text.toString();
+      }
+    }
+    // その他のファイルの場合
+    else {
+      log.info("Word/Excel/PDF以外のファイルのため、スキルシート内容の取得処理をせずに終了します。");
     }
   }
 
