@@ -119,7 +119,9 @@ public class OpenAI implements Transformer {
     SES_AI_API_USAGE_HISTORY sesAiApiUsageHistory = new SES_AI_API_USAGE_HISTORY();
     sesAiApiUsageHistory.setProvider(Provider.OpenAI);
     sesAiApiUsageHistory.setModel(this.completionModel);
-    sesAiApiUsageHistory.setUsageMonth(new OriginalDateTime().getYYYYMM());
+    OriginalDateTime nowDt = new OriginalDateTime();
+    sesAiApiUsageHistory.setUsageMonth(nowDt.getYYYYMM());
+    sesAiApiUsageHistory.setUsageDate(nowDt.getYYYYMMDD());
     sesAiApiUsageHistory.setUserId("SesAiAssitantCore");
     sesAiApiUsageHistory.setApiType(ApiType.Embedding);
     sesAiApiUsageHistory.fetch();
@@ -180,7 +182,9 @@ public class OpenAI implements Transformer {
     SES_AI_API_USAGE_HISTORY sesAiApiUsageHistory = new SES_AI_API_USAGE_HISTORY();
     sesAiApiUsageHistory.setProvider(Provider.OpenAI);
     sesAiApiUsageHistory.setModel(this.completionModel);
-    sesAiApiUsageHistory.setUsageMonth(new OriginalDateTime().getYYYYMM());
+    OriginalDateTime nowDtGen = new OriginalDateTime();
+    sesAiApiUsageHistory.setUsageMonth(nowDtGen.getYYYYMM());
+    sesAiApiUsageHistory.setUsageDate(nowDtGen.getYYYYMMDD());
     sesAiApiUsageHistory.setUserId("SesAiAssitantCore");
     sesAiApiUsageHistory.setApiType(ApiType.Generate);
     sesAiApiUsageHistory.fetch();

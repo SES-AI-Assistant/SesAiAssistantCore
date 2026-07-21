@@ -32,6 +32,9 @@ public class SES_AI_API_USAGE_HISTORY extends DynamoDB<SES_AI_API_USAGE_HISTORY>
   /** 【PK】 使用月（YYYYMM形式）. 例：202501、など */
   private String usageMonth;
 
+  /** 【SK】 使用日（YYYYMMDD形式）. 例：20250115、など */
+  private String usageDate;
+
   /** 【SK】 APIを使用したユーザーのID. システムがAPIを利用した場合はモジュール名が入力されます 例：ユーザーID、lambda関数名など */
   private String userId;
 
@@ -53,6 +56,9 @@ public class SES_AI_API_USAGE_HISTORY extends DynamoDB<SES_AI_API_USAGE_HISTORY>
   @DynamoDbSortKey
   @DynamoDbAttribute("sortKey")
   public String getSortKey() {
+    if (this.usageDate != null && !this.usageDate.isEmpty()) {
+      return this.usageDate + "#" + this.userId + "#" + this.apiType;
+    }
     return this.userId + "#" + this.apiType;
   }
 
@@ -95,6 +101,7 @@ public class SES_AI_API_USAGE_HISTORY extends DynamoDB<SES_AI_API_USAGE_HISTORY>
       this.provider = latest.getProvider();
       this.model = latest.getModel();
       this.usageMonth = latest.getUsageMonth();
+      this.usageDate = latest.getUsageDate();
       this.userId = latest.getUserId();
       this.apiType = latest.getApiType();
       this.inputCount = latest.getInputCount();

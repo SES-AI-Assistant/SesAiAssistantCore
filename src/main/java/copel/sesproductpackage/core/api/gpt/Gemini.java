@@ -147,7 +147,9 @@ public class Gemini implements Transformer {
         SES_AI_API_USAGE_HISTORY usageHistory = new SES_AI_API_USAGE_HISTORY();
         usageHistory.setProvider(Provider.Google);
         usageHistory.setModel(this.embeddingModel);
-        usageHistory.setUsageMonth(new OriginalDateTime().getYYYYMM());
+        OriginalDateTime nowDt = new OriginalDateTime();
+        usageHistory.setUsageMonth(nowDt.getYYYYMM());
+        usageHistory.setUsageDate(nowDt.getYYYYMMDD());
         usageHistory.setUserId("SesAiAssitantCore");
         usageHistory.setApiType(ApiType.Embedding);
         usageHistory.fetch();
@@ -253,7 +255,9 @@ public class Gemini implements Transformer {
           SES_AI_API_USAGE_HISTORY sesAiApiUsageHistory = new SES_AI_API_USAGE_HISTORY();
           sesAiApiUsageHistory.setProvider(Provider.Google);
           sesAiApiUsageHistory.setModel(this.completionModel);
-          sesAiApiUsageHistory.setUsageMonth(new OriginalDateTime().getYYYYMM());
+          OriginalDateTime nowDt = new OriginalDateTime();
+          sesAiApiUsageHistory.setUsageMonth(nowDt.getYYYYMM());
+          sesAiApiUsageHistory.setUsageDate(nowDt.getYYYYMMDD());
           sesAiApiUsageHistory.setUserId("SesAiAssitantCore");
           sesAiApiUsageHistory.setApiType(ApiType.Generate);
           sesAiApiUsageHistory.fetch();
@@ -265,7 +269,7 @@ public class Gemini implements Transformer {
         }
       }
     }
-    return null;
+    return new GptAnswer(null, Gemini.class);
   }  /**
    * 引数に入力された文字列を質問として、LLMにJSON形式での回答の生成を実行させその回答を返却します.
    *
@@ -341,7 +345,9 @@ public class Gemini implements Transformer {
           SES_AI_API_USAGE_HISTORY sesAiApiUsageHistory = new SES_AI_API_USAGE_HISTORY();
           sesAiApiUsageHistory.setProvider(Provider.Google);
           sesAiApiUsageHistory.setModel(this.completionModel);
-          sesAiApiUsageHistory.setUsageMonth(new OriginalDateTime().getYYYYMM());
+          OriginalDateTime nowDtJson = new OriginalDateTime();
+          sesAiApiUsageHistory.setUsageMonth(nowDtJson.getYYYYMM());
+          sesAiApiUsageHistory.setUsageDate(nowDtJson.getYYYYMMDD());
           sesAiApiUsageHistory.setUserId("SesAiAssitantCore");
           sesAiApiUsageHistory.setApiType(ApiType.Generate);
           sesAiApiUsageHistory.fetch();
