@@ -188,7 +188,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
   }
 
   /**
-   * このオブジェクトが待つ日時をYYYYMM形式で返却します。
+   * このオブジェクトが持つ日時をYYYYMM形式で返却します。
    *
    * @return YYYYMM形式の日付を表す文字列
    */
@@ -196,9 +196,20 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
     if (this.dateTime == null) {
       return null;
     }
-    // DateTimeFormatterを使用してMM/dd形式にフォーマット
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMM");
-    // YYYYMM形式で日付を返却
+    return this.dateTime.format(formatter);
+  }
+
+  /**
+   * このオブジェクトが持つ日時をYYYYMMDD形式で返却します。
+   *
+   * @return YYYYMMDD形式の日付を表す文字列
+   */
+  public String getYYYYMMDD() {
+    if (this.dateTime == null) {
+      return null;
+    }
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
     return this.dateTime.format(formatter);
   }
 
