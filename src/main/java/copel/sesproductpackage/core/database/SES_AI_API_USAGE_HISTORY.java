@@ -47,6 +47,24 @@ public class SES_AI_API_USAGE_HISTORY extends DynamoDB<SES_AI_API_USAGE_HISTORY>
   /** 出力文字数. */
   private BigDecimal outputCount = BigDecimal.ZERO;
 
+  /**
+   * 使用日を取得します.
+   *
+   * @return 使用日（YYYYMMDD形式）
+   */
+  public String getUsageDate() {
+    return this.usageDate;
+  }
+
+  /**
+   * 使用日を設定します.
+   *
+   * @param usageDate 使用日（YYYYMMDD形式）
+   */
+  public void setUsageDate(String usageDate) {
+    this.usageDate = usageDate;
+  }
+
   @DynamoDbPartitionKey
   @DynamoDbAttribute("partitionKey")
   public String getPartitionKey() {
