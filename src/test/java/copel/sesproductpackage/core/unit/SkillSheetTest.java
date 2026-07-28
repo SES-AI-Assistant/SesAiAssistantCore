@@ -218,7 +218,8 @@ class SkillSheetTest {
     mockResponse.setMarkdown("Parsed by markitdown");
 
     try (MockedStatic<MarkItDown> mockedStatic = mockStatic(MarkItDown.class)) {
-      mockedStatic.when(() -> MarkItDown.invoke(any(MarkitdownLambdaRequestEntity.class)))
+      mockedStatic
+          .when(() -> MarkItDown.invoke(any(MarkitdownLambdaRequestEntity.class)))
           .thenReturn(mockResponse);
 
       ss.setFileContentFromByte(new byte[] {1, 2, 3});
@@ -233,13 +234,15 @@ class SkillSheetTest {
 
     MarkitdownLambdaResponseEntity mockResponse = new MarkitdownLambdaResponseEntity();
     mockResponse.setSuccess(false);
-    MarkitdownLambdaResponseEntity.ErrorDetail error = new MarkitdownLambdaResponseEntity.ErrorDetail();
+    MarkitdownLambdaResponseEntity.ErrorDetail error =
+        new MarkitdownLambdaResponseEntity.ErrorDetail();
     error.setMessage("Error in markitdown");
     mockResponse.setError(error);
 
     try (MockedStatic<MarkItDown> mockedStatic = mockStatic(MarkItDown.class)) {
       // Simulate failure response in markitdown
-      mockedStatic.when(() -> MarkItDown.invoke(any(MarkitdownLambdaRequestEntity.class)))
+      mockedStatic
+          .when(() -> MarkItDown.invoke(any(MarkitdownLambdaRequestEntity.class)))
           .thenReturn(mockResponse);
 
       // Succeeded fallback requires actual valid pdf bytes.
@@ -247,13 +250,13 @@ class SkillSheetTest {
           ByteArrayOutputStream out = new ByteArrayOutputStream()) {
         pdf.addPage(new PDPage());
         pdf.save(out);
-        
+
         ss.setFileContentFromByte(out.toByteArray());
         assertNotNull(ss.getFileContent());
       }
     }
   }
-  
+
   @Test
   void testMarkItDownLambdaExceptionFallback() throws Exception {
     SkillSheet ss = new SkillSheet();
@@ -261,7 +264,8 @@ class SkillSheetTest {
 
     try (MockedStatic<MarkItDown> mockedStatic = mockStatic(MarkItDown.class)) {
       // Simulate exception in markitdown call
-      mockedStatic.when(() -> MarkItDown.invoke(any(MarkitdownLambdaRequestEntity.class)))
+      mockedStatic
+          .when(() -> MarkItDown.invoke(any(MarkitdownLambdaRequestEntity.class)))
           .thenThrow(new RuntimeException("API Connection Failed"));
 
       // Succeeded fallback requires actual valid pdf bytes.
@@ -269,7 +273,7 @@ class SkillSheetTest {
           ByteArrayOutputStream out = new ByteArrayOutputStream()) {
         pdf.addPage(new PDPage());
         pdf.save(out);
-        
+
         ss.setFileContentFromByte(out.toByteArray());
         assertNotNull(ss.getFileContent());
       }

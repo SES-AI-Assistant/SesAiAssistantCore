@@ -279,9 +279,11 @@ public class Gemini implements Transformer {
               break;
             }
           }
-          log.info("【Gemini API】呼び出し元: {}, モデル: {}, 入力: {} 文字, 出力: {} 文字", 
-              callerInfo, this.completionModel, 
-              (prompt != null ? prompt.length() : 0), 
+          log.info(
+              "【Gemini API】呼び出し元: {}, モデル: {}, 入力: {} 文字, 出力: {} 文字",
+              callerInfo,
+              this.completionModel,
+              (prompt != null ? prompt.length() : 0),
               (resultText != null ? resultText.length() : 0));
 
           return new GptAnswer(resultText, Gemini.class);
@@ -289,7 +291,9 @@ public class Gemini implements Transformer {
       }
     }
     return new GptAnswer(null, Gemini.class);
-  }  /**
+  }
+
+  /**
    * 引数に入力された文字列を質問として、LLMにJSON形式での回答の生成を実行させその回答を返却します.
    *
    * @param prompt プロンプト
@@ -386,9 +390,11 @@ public class Gemini implements Transformer {
               break;
             }
           }
-          log.info("【Gemini API (JSON)】呼び出し元: {}, モデル: {}, 入力: {} 文字, 出力: {} 文字", 
-              callerInfo, this.completionModel, 
-              (prompt != null ? prompt.length() : 0), 
+          log.info(
+              "【Gemini API (JSON)】呼び出し元: {}, モデル: {}, 入力: {} 文字, 出力: {} 文字",
+              callerInfo,
+              this.completionModel,
+              (prompt != null ? prompt.length() : 0),
               (resultText != null ? resultText.length() : 0));
 
           return new GptAnswer(resultText, Gemini.class);

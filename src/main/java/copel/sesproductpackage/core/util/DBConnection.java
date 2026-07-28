@@ -1,10 +1,9 @@
 package copel.sesproductpackage.core.util;
 
+import copel.sesproductpackage.core.api.aws.SecretManager;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-
-import copel.sesproductpackage.core.api.aws.SecretManager;
 import lombok.extern.slf4j.Slf4j;
 
 /**

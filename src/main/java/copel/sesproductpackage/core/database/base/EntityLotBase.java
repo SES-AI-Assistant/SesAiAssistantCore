@@ -942,7 +942,8 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       if (upperSql.contains(" WHERE ")) {
         int lastParenIndex = trimmedSql.lastIndexOf(')');
         if (lastParenIndex > 0) {
-          return trimmedSql.substring(0, lastParenIndex) + " AND tenant_id = ?"
+          return trimmedSql.substring(0, lastParenIndex)
+              + " AND tenant_id = ?"
               + trimmedSql.substring(lastParenIndex);
         }
       }

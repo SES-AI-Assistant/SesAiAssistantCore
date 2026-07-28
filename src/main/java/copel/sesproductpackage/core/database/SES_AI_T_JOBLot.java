@@ -1,11 +1,5 @@
 package copel.sesproductpackage.core.database;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-
 import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.search.FulltextCondition;
 import copel.sesproductpackage.core.search.FulltextConditionsWhereClause;
@@ -13,6 +7,11 @@ import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 【Entityクラス】 案件情報(SES_AI_T_JOB)テーブルのLotクラス.

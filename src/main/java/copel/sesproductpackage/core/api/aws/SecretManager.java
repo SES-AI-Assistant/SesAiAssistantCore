@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
-import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 
 /**
@@ -57,9 +56,7 @@ public class SecretManager {
    */
   public void load() throws Exception {
     try {
-      GetSecretValueResponse response =
-          this.client.getSecretValue(
-              r -> r.secretId(this.secretArn));
+      GetSecretValueResponse response = this.client.getSecretValue(r -> r.secretId(this.secretArn));
       String secretValue = response.secretString();
 
       if (secretValue != null && !secretValue.isEmpty()) {

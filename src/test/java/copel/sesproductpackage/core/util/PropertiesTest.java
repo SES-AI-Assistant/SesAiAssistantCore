@@ -133,22 +133,25 @@ class PropertiesTest {
 
     SsmClient mockSsm = mock(SsmClient.class);
     List<Parameter> params = new ArrayList<>();
-    params.add(Parameter.builder().name("/nectar/dev/infrastructure/s3/bucket/name")
-        .value("test-bucket").build());
-    params.add(Parameter.builder().name("/nectar/dev/infrastructure/rds/endpoint")
-        .value("test-endpoint").build());
+    params.add(
+        Parameter.builder()
+            .name("/nectar/dev/infrastructure/s3/bucket/name")
+            .value("test-bucket")
+            .build());
+    params.add(
+        Parameter.builder()
+            .name("/nectar/dev/infrastructure/rds/endpoint")
+            .value("test-endpoint")
+            .build());
 
     GetParametersByPathResponse response =
         GetParametersByPathResponse.builder().parameters(params).nextToken(null).build();
-    when(mockSsm.getParametersByPath(any(GetParametersByPathRequest.class)))
-        .thenReturn(response);
+    when(mockSsm.getParametersByPath(any(GetParametersByPathRequest.class))).thenReturn(response);
 
     Properties.loadFromParameterStore(mockSsm);
 
-    assertEquals("test-bucket",
-        Properties.get("infrastructure/s3/bucket/name"));
-    assertEquals("test-endpoint",
-        Properties.get("infrastructure/rds/endpoint"));
+    assertEquals("test-bucket", Properties.get("infrastructure/s3/bucket/name"));
+    assertEquals("test-endpoint", Properties.get("infrastructure/rds/endpoint"));
   }
 
   @Test

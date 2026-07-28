@@ -4,15 +4,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import copel.sesproductpackage.core.util.Properties;
+import copel.sesproductpackage.core.util.SsmParameterKey;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
-
-import copel.sesproductpackage.core.util.Properties;
-import copel.sesproductpackage.core.util.SsmParameterKey;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.lambda.LambdaClient;
@@ -40,9 +38,7 @@ class MarkItDownTest {
   @Test
   void invokeThrowsWhenFunctionNameBlank() {
     try (MockedStatic<Properties> props = mockStatic(Properties.class)) {
-      props
-          .when(() -> Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey()))
-          .thenReturn("  ");
+      props.when(() -> Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey())).thenReturn("  ");
       assertThrows(
           IllegalStateException.class,
           () ->
@@ -56,9 +52,7 @@ class MarkItDownTest {
     String okJson = "{\"success\":true,\"markdown\":\"# Hi\",\"title\":null,\"error\":null}";
     try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      props
-          .when(() -> Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey()))
-          .thenReturn("fn");
+      props.when(() -> Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey())).thenReturn("fn");
 
       LambdaClient client = mockLambdaChain(lambda, okJson);
 
@@ -76,9 +70,7 @@ class MarkItDownTest {
     String okJson = "{\"success\":true,\"markdown\":\"m\",\"title\":\"t\",\"error\":null}";
     try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      props
-          .when(() -> Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey()))
-          .thenReturn("fn");
+      props.when(() -> Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey())).thenReturn("fn");
 
       LambdaClient client = mockLambdaChain(lambda, okJson);
 
@@ -96,9 +88,7 @@ class MarkItDownTest {
     String okJson = "{\"success\":true,\"markdown\":\"# body\",\"title\":\"T\",\"error\":null}";
     try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      props
-          .when(() -> Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey()))
-          .thenReturn("fn");
+      props.when(() -> Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey())).thenReturn("fn");
 
       mockLambdaChain(lambda, okJson);
 
@@ -123,9 +113,7 @@ class MarkItDownTest {
   void invokeThrowsWhenRequestJsonFails() {
     try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      props
-          .when(() -> Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey()))
-          .thenReturn("fn");
+      props.when(() -> Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey())).thenReturn("fn");
       mockLambdaChain(lambda, "{}");
 
       MarkItDown.injectJsonProcessingExceptionOnSerializeForTest = true;
@@ -144,9 +132,7 @@ class MarkItDownTest {
   void invokeThrowsWhenFunctionErrorWithPayload() {
     try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      props
-          .when(() -> Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey()))
-          .thenReturn("fn");
+      props.when(() -> Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey())).thenReturn("fn");
 
       InvokeResponse response =
           InvokeResponse.builder()
@@ -170,9 +156,7 @@ class MarkItDownTest {
   void invokeThrowsWhenFunctionErrorWithNullPayload() {
     try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      props
-          .when(() -> Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey()))
-          .thenReturn("fn");
+      props.when(() -> Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey())).thenReturn("fn");
 
       InvokeResponse response =
           InvokeResponse.builder().functionError("Unhandled").payload(null).build();
@@ -192,9 +176,7 @@ class MarkItDownTest {
   void invokeThrowsWhenPayloadNullAfterOkFunctionError() {
     try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      props
-          .when(() -> Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey()))
-          .thenReturn("fn");
+      props.when(() -> Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey())).thenReturn("fn");
 
       InvokeResponse response = InvokeResponse.builder().functionError(null).payload(null).build();
       mockLambdaChain(lambda, response);
@@ -213,9 +195,7 @@ class MarkItDownTest {
   void invokeThrowsWhenResponseJsonInvalid() {
     try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      props
-          .when(() -> Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey()))
-          .thenReturn("fn");
+      props.when(() -> Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey())).thenReturn("fn");
 
       mockLambdaChain(lambda, "{not-json");
 
@@ -233,9 +213,7 @@ class MarkItDownTest {
   void invokeThrowsWhenLambdaClientThrowsLambdaException() {
     try (MockedStatic<Properties> props = mockStatic(Properties.class);
         MockedStatic<LambdaClient> lambda = mockStatic(LambdaClient.class)) {
-      props
-          .when(() -> Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey()))
-          .thenReturn("fn");
+      props.when(() -> Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey())).thenReturn("fn");
 
       LambdaClient client = mock(LambdaClient.class);
       LambdaClientBuilder builder = mock(LambdaClientBuilder.class);

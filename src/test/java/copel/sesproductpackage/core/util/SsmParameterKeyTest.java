@@ -83,8 +83,7 @@ class SsmParameterKeyTest {
   @Test
   @DisplayName("Network パラメータキーが正しいこと")
   void testNetworkParameterKeys() {
-    assertTrue(
-        SsmParameterKey.VPC_ID.getKey().equals("infrastructure/network/vpc/id"));
+    assertTrue(SsmParameterKey.VPC_ID.getKey().equals("infrastructure/network/vpc/id"));
     assertTrue(
         SsmParameterKey.DB_SECURITY_GROUP_ID
             .getKey()
@@ -103,9 +102,7 @@ class SsmParameterKeyTest {
             .getKey()
             .equals("infrastructure/rds/database/endpoint"));
     assertTrue(
-        SsmParameterKey.RDS_DATABASE_PORT
-            .getKey()
-            .equals("infrastructure/rds/database/port"));
+        SsmParameterKey.RDS_DATABASE_PORT.getKey().equals("infrastructure/rds/database/port"));
     assertTrue(
         SsmParameterKey.RDS_DATABASE_SECRET_ARN
             .getKey()
@@ -152,9 +149,7 @@ class SsmParameterKeyTest {
             .getKey()
             .equals("infrastructure/lambda/webapp-notifier/name"));
     assertTrue(
-        SsmParameterKey.MARKITDOWN_NAME
-            .getKey()
-            .equals("infrastructure/lambda/markitdown/name"));
+        SsmParameterKey.MARKITDOWN_NAME.getKey().equals("infrastructure/lambda/markitdown/name"));
   }
 
   @Test

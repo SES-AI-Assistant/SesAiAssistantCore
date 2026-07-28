@@ -1,18 +1,17 @@
 package copel.sesproductpackage.core.database;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-
 import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.search.FulltextCondition;
 import copel.sesproductpackage.core.search.FulltextConditionsWhereClause;
 import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 【Entityクラス】 スキルシート情報(SES_AI_T_SKILLSHEET)テーブルのLotクラス.
@@ -589,7 +588,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
 
   @Override
   protected SES_AI_T_SKILLSHEET mapResultSet(ResultSet resultSet) throws SQLException {
-    SES_AI_T_SKILLSHEET sesAiTSkillsheet = new SES_AI_T_SKILLSHEET(resultSet.getString("tenant_id"));
+    SES_AI_T_SKILLSHEET sesAiTSkillsheet =
+        new SES_AI_T_SKILLSHEET(resultSet.getString("tenant_id"));
     sesAiTSkillsheet.setFromGroup(resultSet.getString("from_group"));
     sesAiTSkillsheet.setFromId(resultSet.getString("from_id"));
     sesAiTSkillsheet.setFromName(resultSet.getString("from_name"));

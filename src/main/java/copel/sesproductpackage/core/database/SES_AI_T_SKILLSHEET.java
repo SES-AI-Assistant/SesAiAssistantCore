@@ -1,11 +1,10 @@
 package copel.sesproductpackage.core.database;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-
 import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.SkillSheet;
+import java.sql.Connection;
+import java.sql.SQLException;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;

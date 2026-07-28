@@ -8,7 +8,6 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
@@ -198,8 +197,8 @@ public class Properties {
   }
 
   /**
-   * Parameter Store からパラメータを読み込みます。/nectar/{env}/ 以下のパラメータを全て読み込みます。
-   * キー名が S3 のプロパティと被った場合は Parameter Store の値を優先します。
+   * Parameter Store からパラメータを読み込みます。/nectar/{env}/ 以下のパラメータを全て読み込みます。 キー名が S3 のプロパティと被った場合は
+   * Parameter Store の値を優先します。
    *
    * @param ssmClient SSM クライアント
    */

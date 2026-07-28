@@ -496,7 +496,8 @@ public abstract class EntityBase implements Comparable<EntityBase> {
       if (upperSql.contains(" WHERE ")) {
         int lastParenIndex = trimmedSql.lastIndexOf(')');
         if (lastParenIndex > 0) {
-          return trimmedSql.substring(0, lastParenIndex) + " AND tenant_id = ?"
+          return trimmedSql.substring(0, lastParenIndex)
+              + " AND tenant_id = ?"
               + trimmedSql.substring(lastParenIndex);
         }
       }

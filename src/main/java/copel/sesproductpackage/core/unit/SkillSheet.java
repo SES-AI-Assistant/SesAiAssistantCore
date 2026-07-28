@@ -87,14 +87,15 @@ public class SkillSheet {
 
         // markitdown-lambdaを呼び出すリクエストを構築
         copel.sesproductpackage.core.api.markitdown.MarkItDown.MarkitdownLambdaRequestEntity mdReq =
-            copel.sesproductpackage.core.api.markitdown.MarkItDown.MarkitdownLambdaRequestEntity.builder()
+            copel.sesproductpackage.core.api.markitdown.MarkItDown.MarkitdownLambdaRequestEntity
+                .builder()
                 .fileBase64(base64)
                 .filename(this.fileName)
                 .build();
 
         log.info("markitdown-lambda を呼び出してスキルシートをパースします。ファイル名: {}", this.fileName);
-        copel.sesproductpackage.core.api.markitdown.MarkItDown.MarkitdownLambdaResponseEntity mdRes =
-            copel.sesproductpackage.core.api.markitdown.MarkItDown.invoke(mdReq);
+        copel.sesproductpackage.core.api.markitdown.MarkItDown.MarkitdownLambdaResponseEntity
+            mdRes = copel.sesproductpackage.core.api.markitdown.MarkItDown.invoke(mdReq);
 
         if (mdRes.isSuccess() && mdRes.getMarkdown() != null && !mdRes.getMarkdown().isBlank()) {
           this.fileContent = mdRes.getMarkdown();
@@ -112,9 +113,7 @@ public class SkillSheet {
     }
   }
 
-  /**
-   * 従来のローカルパース（Apache POI / PDFBox）によるフォールバック処理.
-   */
+  /** 従来のローカルパース（Apache POI / PDFBox）によるフォールバック処理. */
   private void fallbackLocalParse(final byte[] data) throws IOException {
     InputStream inputStream = new ByteArrayInputStream(data);
 
@@ -168,8 +167,7 @@ public class SkillSheet {
         for (Row row : workbook.getSheetAt(0)) {
           for (Cell cell : row) {
             CustomCell customCell = new CustomCell(cell);
-            text.append(
-                    customCell.getValue(workbook.getCreationHelper().createFormulaEvaluator()))
+            text.append(customCell.getValue(workbook.getCreationHelper().createFormulaEvaluator()))
                 .append(",");
           }
           text.append("\n");

@@ -8,8 +8,6 @@ import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 
@@ -25,7 +23,8 @@ class SecretManagerTest {
     SecretsManagerClient mockClient = mock(SecretsManagerClient.class);
     when(mockClient.getSecretValue(any(Consumer.class))).thenReturn(mockResponse);
 
-    SecretManager secretManager = new SecretManager("arn:aws:secretsmanager:region:account:secret:test");
+    SecretManager secretManager =
+        new SecretManager("arn:aws:secretsmanager:region:account:secret:test");
     setClientField(secretManager, mockClient);
     secretManager.load();
 
@@ -45,7 +44,8 @@ class SecretManagerTest {
     SecretsManagerClient mockClient = mock(SecretsManagerClient.class);
     when(mockClient.getSecretValue(any(Consumer.class))).thenReturn(mockResponse);
 
-    SecretManager secretManager = new SecretManager("arn:aws:secretsmanager:region:account:secret:test");
+    SecretManager secretManager =
+        new SecretManager("arn:aws:secretsmanager:region:account:secret:test");
     setClientField(secretManager, mockClient);
     secretManager.load();
 
@@ -61,7 +61,8 @@ class SecretManagerTest {
     SecretsManagerClient mockClient = mock(SecretsManagerClient.class);
     when(mockClient.getSecretValue(any(Consumer.class))).thenReturn(mockResponse);
 
-    SecretManager secretManager = new SecretManager("arn:aws:secretsmanager:region:account:secret:test");
+    SecretManager secretManager =
+        new SecretManager("arn:aws:secretsmanager:region:account:secret:test");
     setClientField(secretManager, mockClient);
     secretManager.load();
 
@@ -77,7 +78,8 @@ class SecretManagerTest {
     SecretsManagerClient mockClient = mock(SecretsManagerClient.class);
     when(mockClient.getSecretValue(any(Consumer.class))).thenReturn(mockResponse);
 
-    SecretManager secretManager = new SecretManager("arn:aws:secretsmanager:region:account:secret:test");
+    SecretManager secretManager =
+        new SecretManager("arn:aws:secretsmanager:region:account:secret:test");
     setClientField(secretManager, mockClient);
     secretManager.load();
 
@@ -94,7 +96,8 @@ class SecretManagerTest {
     SecretsManagerClient mockClient = mock(SecretsManagerClient.class);
     when(mockClient.getSecretValue(any(Consumer.class))).thenReturn(mockResponse);
 
-    SecretManager secretManager = new SecretManager("arn:aws:secretsmanager:region:account:secret:test");
+    SecretManager secretManager =
+        new SecretManager("arn:aws:secretsmanager:region:account:secret:test");
     setClientField(secretManager, mockClient);
     secretManager.load();
 
@@ -108,9 +111,11 @@ class SecretManagerTest {
   @Test
   void testLoadException() throws Exception {
     SecretsManagerClient mockClient = mock(SecretsManagerClient.class);
-    when(mockClient.getSecretValue(any(Consumer.class))).thenThrow(new RuntimeException("Test error"));
+    when(mockClient.getSecretValue(any(Consumer.class)))
+        .thenThrow(new RuntimeException("Test error"));
 
-    SecretManager secretManager = new SecretManager("arn:aws:secretsmanager:region:account:secret:test");
+    SecretManager secretManager =
+        new SecretManager("arn:aws:secretsmanager:region:account:secret:test");
     setClientField(secretManager, mockClient);
 
     assertThrows(RuntimeException.class, secretManager::load);
@@ -125,7 +130,8 @@ class SecretManagerTest {
     SecretsManagerClient mockClient = mock(SecretsManagerClient.class);
     when(mockClient.getSecretValue(any(Consumer.class))).thenReturn(mockResponse);
 
-    SecretManager secretManager = new SecretManager("arn:aws:secretsmanager:region:account:secret:test");
+    SecretManager secretManager =
+        new SecretManager("arn:aws:secretsmanager:region:account:secret:test");
     setClientField(secretManager, mockClient);
     secretManager.load();
 

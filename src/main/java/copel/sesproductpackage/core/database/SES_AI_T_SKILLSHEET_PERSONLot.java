@@ -625,7 +625,8 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
 
   @Override
   protected SES_AI_T_SKILLSHEET_PERSON mapResultSet(ResultSet resultSet) throws SQLException {
-    SES_AI_T_SKILLSHEET_PERSON entity = new SES_AI_T_SKILLSHEET_PERSON(resultSet.getString("tenant_id"));
+    SES_AI_T_SKILLSHEET_PERSON entity =
+        new SES_AI_T_SKILLSHEET_PERSON(resultSet.getString("tenant_id"));
     entity.setEntityDataFromResultSet(resultSet);
     if (hasColumn(resultSet, "distance")) {
       entity.setDistance(resultSet.getDouble("distance"));

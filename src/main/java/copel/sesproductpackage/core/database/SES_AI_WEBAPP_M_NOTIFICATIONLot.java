@@ -121,7 +121,8 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
 
   @Override
   protected SES_AI_WEBAPP_M_NOTIFICATION mapResultSet(ResultSet resultSet) throws SQLException {
-    SES_AI_WEBAPP_M_NOTIFICATION notification = new SES_AI_WEBAPP_M_NOTIFICATION(resultSet.getString("tenant_id"));
+    SES_AI_WEBAPP_M_NOTIFICATION notification =
+        new SES_AI_WEBAPP_M_NOTIFICATION(resultSet.getString("tenant_id"));
     notification.setNotificationId(resultSet.getString("notification_id"));
     notification.setUserId(resultSet.getString("user_id"));
     notification.setDeviceType(resultSet.getString("device_type"));

@@ -14,8 +14,8 @@ public enum SsmParameterKey {
   ENVIRONMENT_CONFIG_BUCKET_NAME("infrastructure/s3/environment-config-bucket/name"),
   ENVIRONMENT_CONFIG_BUCKET_ARN("infrastructure/s3/environment-config-bucket/arn"),
   // アプリケーションからアクセスさせたくないインフラリソースのためコメントアウト
-//  LAMBDA_DEPLOY_BUCKET_NAME("infrastructure/s3/lambda-deploy-bucket/name"),
-//  LAMBDA_DEPLOY_BUCKET_ARN("infrastructure/s3/lambda-deploy-bucket/arn"),
+  //  LAMBDA_DEPLOY_BUCKET_NAME("infrastructure/s3/lambda-deploy-bucket/name"),
+  //  LAMBDA_DEPLOY_BUCKET_ARN("infrastructure/s3/lambda-deploy-bucket/arn"),
 
   // Messaging
   REGISTER_QUEUE_URL("infrastructure/messaging/register-queue/url"),
@@ -75,8 +75,8 @@ public enum SsmParameterKey {
 
   // アプリケーションからアクセスさせたくないインフラリソースのためコメントアウト
   // ECR
-//  MARKITDOWN_REPOSITORY_URI("infrastructure/ecr/markitdown-repository/uri"),
-//  MARKITDOWN_REPOSITORY_NAME("infrastructure/ecr/markitdown-repository/name");
+  //  MARKITDOWN_REPOSITORY_URI("infrastructure/ecr/markitdown-repository/uri"),
+  //  MARKITDOWN_REPOSITORY_NAME("infrastructure/ecr/markitdown-repository/name");
 
   private final String path;
 
@@ -85,9 +85,8 @@ public enum SsmParameterKey {
   }
 
   /**
-   * SSM Parameter Store のキーを取得します. Properties.get() で使用するキーを返します.
-   * Parameter Store から読み込まれたキーは /nectar/{ENVIRONMENT}/ 部分が除去されているため、
-   * このメソッドは path をそのまま返します.
+   * SSM Parameter Store のキーを取得します. Properties.get() で使用するキーを返します. Parameter Store から読み込まれたキーは
+   * /nectar/{ENVIRONMENT}/ 部分が除去されているため、 このメソッドは path をそのまま返します.
    *
    * @return SSM Parameter Store のキー（infrastructure/... 形式）
    */

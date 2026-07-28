@@ -1,16 +1,15 @@
 package copel.sesproductpackage.core.database;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.HashSet;
-import java.util.Set;
-
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Permission;
 import copel.sesproductpackage.core.unit.Plan;
 import copel.sesproductpackage.core.unit.Role;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.HashSet;
+import java.util.Set;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -49,6 +48,10 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
   /** UPDATE文. */
   private static final String UPDATE_SQL =
       "UPDATE SES_AI_WEBAPP_M_USER SET user_id = ?, user_name = ?, role_cd = ?, plan_cd = ?, register_date = ?, register_user = ? WHERE user_id = ? AND tenant_id = ?";
+
+  /** UPDATE文（tenant_id条件なし、システム管理者用）. */
+  private static final String UPDATE_WITHOUT_TENANT_ID_SQL =
+      "UPDATE SES_AI_WEBAPP_M_USER SET user_id = ?, user_name = ?, role_cd = ?, plan_cd = ?, register_date = ?, register_user = ? WHERE user_id = ?";
 
   /** DELETE文. */
   private static final String DELETE_SQL =
@@ -204,6 +207,32 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
           stmt.setString(8, this.tenantId);
         },
         "SES_AI_WEBAPP_M_USER.updateByPk");
+  }
+
+  /**
+   * ユーザーをユーザーID で更新します（テナントID条件なし、システム管理者用）.
+   *
+   * @param connection DBコネクション
+   * @return 更新に成功した場合 true、失敗した場合 false
+   * @throws SQLException SQL実行エラー
+   */
+  public boolean updateByPkWithoutTenantId(Connection connection) throws SQLException {
+    if (this.userId == null) {
+      return false;
+    }
+    return executeUpdateByPkWithoutTenantFilter(
+        connection,
+        UPDATE_WITHOUT_TENANT_ID_SQL,
+        (stmt) -> {
+          stmt.setString(1, this.userId);
+          stmt.setString(2, this.userName);
+          stmt.setString(3, this.role == null ? null : this.role.getCode());
+          stmt.setString(4, this.plan == null ? null : this.plan.getCode());
+          stmt.setTimestamp(5, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(6, this.registerUser);
+          stmt.setString(7, this.userId);
+        },
+        "SES_AI_WEBAPP_M_USER.updateByPkWithoutTenantId");
   }
 
   @Override

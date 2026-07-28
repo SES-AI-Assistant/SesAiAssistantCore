@@ -77,8 +77,8 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
    * @param size ページサイズ
    * @throws SQLException
    */
-  public void selectAllPagedWithoutTenantId(final Connection connection, final int page, final int size)
-      throws SQLException {
+  public void selectAllPagedWithoutTenantId(
+      final Connection connection, final int page, final int size) throws SQLException {
     this.entityLot = new ArrayList<>();
     if (connection == null) {
       return;
@@ -110,7 +110,8 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
 
   @Override
   protected SES_AI_WEBAPP_M_USER mapResultSet(ResultSet resultSet) throws SQLException {
-    SES_AI_WEBAPP_M_USER sesAiWebappMUser = new SES_AI_WEBAPP_M_USER(resultSet.getString("tenant_id"));
+    SES_AI_WEBAPP_M_USER sesAiWebappMUser =
+        new SES_AI_WEBAPP_M_USER(resultSet.getString("tenant_id"));
     sesAiWebappMUser.setUserId(resultSet.getString("user_id"));
     sesAiWebappMUser.setUserName(resultSet.getString("user_name"));
     sesAiWebappMUser.setRole(Role.getEnum(resultSet.getString("role_cd")));
