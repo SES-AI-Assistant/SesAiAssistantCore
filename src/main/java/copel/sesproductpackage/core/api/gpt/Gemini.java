@@ -17,6 +17,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Geminiクラス.
@@ -24,6 +25,7 @@ import lombok.Data;
  * @author Copel Co., Ltd..
  */
 @Data
+@Slf4j
 public class Gemini implements Transformer {
   /** 生成APIのエンドポイント. */
   private static final String GEMINI_COMPLETION_API_URL =
@@ -265,6 +267,23 @@ public class Gemini implements Transformer {
           sesAiApiUsageHistory.addOutputCount(resultText != null ? resultText.length() : 0);
           sesAiApiUsageHistory.save();
 
+          // 呼び出し元の特定
+          String callerInfo = "Unknown";
+          StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+          for (int i = 2; i < stackTrace.length; i++) {
+            String className = stackTrace[i].getClassName();
+            if (!className.equals(Gemini.class.getName()) && !className.contains("Thread")) {
+              String[] classNameParts = className.split("\\.");
+              String simpleClassName = classNameParts[classNameParts.length - 1];
+              callerInfo = simpleClassName + "." + stackTrace[i].getMethodName();
+              break;
+            }
+          }
+          log.info("【Gemini API】呼び出し元: {}, モデル: {}, 入力: {} 文字, 出力: {} 文字", 
+              callerInfo, this.completionModel, 
+              (prompt != null ? prompt.length() : 0), 
+              (resultText != null ? resultText.length() : 0));
+
           return new GptAnswer(resultText, Gemini.class);
         }
       }
@@ -354,6 +373,23 @@ public class Gemini implements Transformer {
           sesAiApiUsageHistory.addInputCount(prompt != null ? prompt.length() : 0);
           sesAiApiUsageHistory.addOutputCount(resultText != null ? resultText.length() : 0);
           sesAiApiUsageHistory.save();
+
+          // 呼び出し元の特定
+          String callerInfo = "Unknown";
+          StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+          for (int i = 2; i < stackTrace.length; i++) {
+            String className = stackTrace[i].getClassName();
+            if (!className.equals(Gemini.class.getName()) && !className.contains("Thread")) {
+              String[] classNameParts = className.split("\\.");
+              String simpleClassName = classNameParts[classNameParts.length - 1];
+              callerInfo = simpleClassName + "." + stackTrace[i].getMethodName();
+              break;
+            }
+          }
+          log.info("【Gemini API (JSON)】呼び出し元: {}, モデル: {}, 入力: {} 文字, 出力: {} 文字", 
+              callerInfo, this.completionModel, 
+              (prompt != null ? prompt.length() : 0), 
+              (resultText != null ? resultText.length() : 0));
 
           return new GptAnswer(resultText, Gemini.class);
         }
