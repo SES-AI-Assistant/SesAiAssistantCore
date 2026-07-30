@@ -203,4 +203,57 @@ class GeminiTest extends HttpTestBase {
         .thenReturn(new ByteArrayInputStream("{\"embedding\":{}}".getBytes()));
     assertNull(gemini.embedding("hello"));
   }
+
+  @Test
+  void testGenerateJson_NullOrBlank() throws Exception {
+    Gemini gemini = new Gemini("key");
+    assertNull(gemini.generateJson(null));
+    assertNull(gemini.generateJson(""));
+    assertNull(gemini.generateJson("   "));
+  }
+
+  @Test
+  void testGenerateJson_Success() throws Exception {
+    String jsonResponse =
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"{\\\"result\\\":\\\"matched\\\"}\"}]}}]}";
+    when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
+    when(sharedMockConn.getInputStream())
+        .thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
+    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+
+    Gemini gemini = new Gemini("key");
+    GptAnswer answer = gemini.generateJson("evaluate");
+    assertNotNull(answer.getAnswer());
+    assertTrue(answer.getAnswer().contains("result"));
+  }
+
+  @Test
+  void testGenerateJson_Retry503() throws Exception {
+    String jsonResponse =
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"{\\\"status\\\":\\\"ok\\\"}\"}]}}]}";
+    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+
+    Gemini gemini = new Gemini("key");
+
+    // 1回目のみ503エラー、2回目は成功を返す（Mockitoの連続呼び出し設定）
+    when(sharedMockConn.getResponseCode())
+        .thenReturn(HttpURLConnection.HTTP_UNAVAILABLE)
+        .thenReturn(HttpURLConnection.HTTP_OK);
+
+    when(sharedMockConn.getInputStream())
+        .thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));
+
+    GptAnswer answer = gemini.generateJson("evaluate");
+    assertNotNull(answer.getAnswer());
+  }
+
+  @Test
+  void testGenerateJson_Error() throws Exception {
+    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+    when(sharedMockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_BAD_REQUEST);
+
+    Gemini gemini = new Gemini("key");
+    RuntimeException e = assertThrows(RuntimeException.class, () -> gemini.generateJson("prompt"));
+    assertTrue(e.getMessage().contains("400"));
+  }
 }

@@ -85,6 +85,34 @@ public class OpenAI implements Transformer {
       return null;
     }
 
+    try {
+      return ApiRetryHelper.executeWithRetry(
+          () -> {
+            try {
+              return embeddingInternal(inputString);
+            } catch (IOException e) {
+              throw new RuntimeException("【OpenAI】エンベディング処理でIO例外が発生しました", e);
+            }
+          });
+    } catch (RuntimeException e) {
+      if (e.getCause() instanceof IOException) {
+        throw (IOException) e.getCause();
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * embeddingの内部実装（リトライロジックなし）.
+   *
+   * <p>503（Service Unavailable）と429（Rate Limit）エラーに対してはexponential backoff リトライが自動実行されます。
+   *
+   * @param inputString 入力文字列
+   * @return 埋め込みベクトル
+   * @throws IOException IO例外
+   * @throws RuntimeException API例外
+   */
+  private float[] embeddingInternal(final String inputString) throws IOException, RuntimeException {
     URL url = new URL(EMBEDDING_API_URL);
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
     conn.setRequestMethod("POST");

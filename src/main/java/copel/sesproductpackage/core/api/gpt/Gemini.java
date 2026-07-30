@@ -296,15 +296,35 @@ public class Gemini implements Transformer {
   /**
    * 引数に入力された文字列を質問として、LLMにJSON形式での回答の生成を実行させその回答を返却します.
    *
+   * <p>503（Service Unavailable）と429（Rate Limit）エラーに対してはexponential backoff リトライを自動実行します。
+   *
+   * @param prompt プロンプト
+   * @return 回答
+   * @throws RuntimeException
+   */
+  public GptAnswer generateJson(final String prompt) throws RuntimeException {
+    if (prompt == null || prompt.isBlank()) {
+      return null;
+    }
+    return ApiRetryHelper.executeWithRetry(
+        () -> {
+          try {
+            return generateJsonInternal(prompt);
+          } catch (IOException e) {
+            throw new RuntimeException("【Gemini API】JSON生成処理でIO例外が発生しました", e);
+          }
+        });
+  }
+
+  /**
+   * generateJsonの内部実装（リトライロジックなし）.
+   *
    * @param prompt プロンプト
    * @return 回答
    * @throws IOException
    * @throws RuntimeException
    */
-  public GptAnswer generateJson(final String prompt) throws IOException, RuntimeException {
-    if (prompt == null || prompt.isBlank()) {
-      return null;
-    }
+  private GptAnswer generateJsonInternal(final String prompt) throws IOException, RuntimeException {
     ObjectMapper objectMapper = new ObjectMapper();
 
     // リクエストボディの作成
@@ -383,7 +403,9 @@ public class Gemini implements Transformer {
           StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
           for (int i = 2; i < stackTrace.length; i++) {
             String className = stackTrace[i].getClassName();
-            if (!className.equals(Gemini.class.getName()) && !className.contains("Thread")) {
+            if (!className.equals(Gemini.class.getName())
+                && !className.equals(ApiRetryHelper.class.getName())
+                && !className.contains("Thread")) {
               String[] classNameParts = className.split("\\.");
               String simpleClassName = classNameParts[classNameParts.length - 1];
               callerInfo = simpleClassName + "." + stackTrace[i].getMethodName();
