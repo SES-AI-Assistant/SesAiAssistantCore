@@ -53,8 +53,7 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
       "SELECT job_id, unit_price FROM SES_AI_T_JOB WHERE tenant_id = ? AND regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g') % ? AND similarity(regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g'), ?) > ? LIMIT 1";
 
   /** DELETE文. */
-  private static final String DELETE_SQL =
-      "DELETE FROM SES_AI_T_JOB WHERE job_id = ? AND tenant_id = ?";
+  private static final String DELETE_SQL = "DELETE FROM SES_AI_T_JOB WHERE job_id = ?";
 
   // ================================
   // メンバ

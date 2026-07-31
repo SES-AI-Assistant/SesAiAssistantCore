@@ -54,7 +54,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
 
   /** 期限切れ要員取得SQL前半（テナントIDあり）. */
   private static final String SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_PREFIX =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl "
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl, tenant_id "
           + "FROM SES_AI_T_PERSON "
           + "WHERE ((ttl IS NOT NULL AND ttl < NOW()) "
           + "   OR (ttl IS NULL AND register_date IS NOT NULL AND (register_date + INTERVAL '";
@@ -68,7 +68,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
 
   /** 期限切れ要員取得SQL前半（テナントIDなし、バッチ用）. */
   private static final String SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_WITHOUT_TENANT_PREFIX =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl "
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl, tenant_id "
           + "FROM SES_AI_T_PERSON "
           + "WHERE ((ttl IS NOT NULL AND ttl < NOW()) "
           + "   OR (ttl IS NULL AND register_date IS NOT NULL AND (register_date + INTERVAL '";
