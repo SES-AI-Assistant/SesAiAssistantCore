@@ -118,11 +118,31 @@ public class Gemini implements Transformer {
       os.write(input, 0, input.length);
     }
 
-    // レスポンスの取得（generateと同じエラーハンドリングを利用可能）
+    // レスポンスの取得
     int responseCode = connection.getResponseCode();
     if (responseCode != HttpURLConnection.HTTP_OK) {
-      // 既存のgenerateメソッドと同様のエラー処理ロジックをここに記述、または共通化
-      throw new RuntimeException("Embedding API Error: " + responseCode);
+      connection.disconnect();
+      switch (responseCode) {
+        case HttpURLConnection.HTTP_BAD_REQUEST:
+          throw new RuntimeException("400 Bad Request: 無効なパラメータ、または不適切なリクエストフォーマットです");
+        case HttpURLConnection.HTTP_UNAUTHORIZED:
+          throw new RuntimeException("401 Unauthorized: APIキーが無効、または提供されていないエラー");
+        case HttpURLConnection.HTTP_FORBIDDEN:
+          throw new RuntimeException("403 Forbidden: アカウントの制限、または対象モデルが利用不可のエラー");
+        case HttpURLConnection.HTTP_NOT_FOUND:
+          throw new RuntimeException("404 Not Found: APIのエンドポイントが間違っている、またはモデル名が無効のエラー");
+        case HttpURLConnection.HTTP_CLIENT_TIMEOUT:
+          throw new RuntimeException("408 Request Timeout: リクエストが時間内に処理されなかったエラー");
+        case 429:
+          throw new RuntimeException(
+              "429 Too Many Requests: レート制限に達しました。短時間に過剰なリクエストを送信したためエラーが発生しました");
+        case HttpURLConnection.HTTP_INTERNAL_ERROR:
+          throw new RuntimeException("500 Internal Server Error: Geminiサーバーで問題が発生しました");
+        case HttpURLConnection.HTTP_UNAVAILABLE:
+          throw new RuntimeException("503 Service Unavailable: Geminiサーバーがメンテナンス中、または負荷が高い状態です");
+        default:
+          throw new RuntimeException("Embedding API Error: " + responseCode);
+      }
     }
 
     // JSONレスポンスの解析
@@ -221,13 +241,14 @@ public class Gemini implements Transformer {
         throw new RuntimeException("408 Request Timeout: リクエストが時間内に処理されなかったエラー");
       case 429:
         connection.disconnect();
-        throw new RuntimeException("429 Too Many Requests: クレジット不足、短時間に過剰なリクエストを送信したためエラーが発生しました");
+        throw new RuntimeException(
+            "429 Too Many Requests: レート制限に達しました。短時間に過剰なリクエストを送信したためエラーが発生しました");
       case HttpURLConnection.HTTP_INTERNAL_ERROR:
         connection.disconnect();
-        throw new RuntimeException("500 Internal Server Error: OpenAIのサーバーで問題が発生しました");
+        throw new RuntimeException("500 Internal Server Error: Geminiサーバーで問題が発生しました");
       case HttpURLConnection.HTTP_UNAVAILABLE:
         connection.disconnect();
-        throw new RuntimeException("503 Service Unavailable: OpenAIのサーバーがメンテナンス中、または負荷が高い状態です");
+        throw new RuntimeException("503 Service Unavailable: Geminiサーバーがメンテナンス中、または負荷が高い状態です");
       default:
         break;
     }
@@ -363,7 +384,27 @@ public class Gemini implements Transformer {
     int responseCode = connection.getResponseCode();
     if (responseCode != HttpURLConnection.HTTP_OK) {
       connection.disconnect();
-      throw new RuntimeException("Gemini JSON API Error: " + responseCode);
+      switch (responseCode) {
+        case HttpURLConnection.HTTP_BAD_REQUEST:
+          throw new RuntimeException("400 Bad Request: 無効なパラメータ、または不適切なリクエストフォーマットです");
+        case HttpURLConnection.HTTP_UNAUTHORIZED:
+          throw new RuntimeException("401 Unauthorized: APIキーが無効、または提供されていないエラー");
+        case HttpURLConnection.HTTP_FORBIDDEN:
+          throw new RuntimeException("403 Forbidden: アカウントの制限、または対象モデルが利用不可のエラー");
+        case HttpURLConnection.HTTP_NOT_FOUND:
+          throw new RuntimeException("404 Not Found: APIのエンドポイントが間違っている、またはモデル名が無効のエラー");
+        case HttpURLConnection.HTTP_CLIENT_TIMEOUT:
+          throw new RuntimeException("408 Request Timeout: リクエストが時間内に処理されなかったエラー");
+        case 429:
+          throw new RuntimeException(
+              "429 Too Many Requests: レート制限に達しました。短時間に過剰なリクエストを送信したためエラーが発生しました");
+        case HttpURLConnection.HTTP_INTERNAL_ERROR:
+          throw new RuntimeException("500 Internal Server Error: Geminiサーバーで問題が発生しました");
+        case HttpURLConnection.HTTP_UNAVAILABLE:
+          throw new RuntimeException("503 Service Unavailable: Geminiサーバーがメンテナンス中、または負荷が高い状態です");
+        default:
+          throw new RuntimeException("Gemini JSON API Error: " + responseCode);
+      }
     }
 
     // JSONレスポンスの解析
