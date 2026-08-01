@@ -62,6 +62,10 @@ public abstract class SES_AI_T_EntityBase extends EntityBase {
     // 元データではなく要約をエンベディングする
     this.vectorData.setRawString(this.getContentSummary());
     this.vectorData.embedding();
+
+    if (this.vectorData.getValue() == null || this.vectorData.getValue().length == 0) {
+      throw new RuntimeException("エンベディング処理に失敗しました。エンベディングAPIが無効な結果を返却しました。");
+    }
   }
 
   /**
