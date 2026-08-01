@@ -146,7 +146,7 @@ public class OpenAI implements Transformer {
     // API使用履歴テーブル（SES_AI_API_USAGE_HISTORY）に履歴を登録
     SES_AI_API_USAGE_HISTORY sesAiApiUsageHistory = new SES_AI_API_USAGE_HISTORY();
     sesAiApiUsageHistory.setProvider(Provider.OpenAI);
-    sesAiApiUsageHistory.setModel(this.completionModel);
+    sesAiApiUsageHistory.setModel(EMBEDDING_MODEL);
     OriginalDateTime nowDt = new OriginalDateTime();
     sesAiApiUsageHistory.setUsageMonth(nowDt.getYYYYMM());
     sesAiApiUsageHistory.setUsageDate(nowDt.getYYYYMMDD());

@@ -92,7 +92,6 @@ public class Gemini implements Transformer {
 
     // リクエストボディの作成（JSON連結ではなくObjectMapperで構築）
     ObjectNode rootNode = objectMapper.createObjectNode();
-    rootNode.put("model", EMBEDDING_MODEL_DEFAULT);
     ObjectNode contentNode = rootNode.putObject("content");
     ArrayNode partsArray = contentNode.putArray("parts");
     ObjectNode partNode = partsArray.addObject();
@@ -103,7 +102,7 @@ public class Gemini implements Transformer {
     // エンベディングのエンドポイントは :embedContent
     URL url =
         new URL(
-            "https://generativelanguage.googleapis.com/v1beta/"
+            "https://generativelanguage.googleapis.com/v1beta/models/"
                 + EMBEDDING_MODEL_DEFAULT
                 + ":embedContent?key="
                 + this.apiKey);
@@ -180,6 +179,8 @@ public class Gemini implements Transformer {
 
         return embeddings;
       }
+    } finally {
+      connection.disconnect();
     }
 
     return null;
@@ -221,97 +222,93 @@ public class Gemini implements Transformer {
 
     // レスポンスの取得
     int responseCode = connection.getResponseCode();
-    switch (responseCode) {
-      case HttpURLConnection.HTTP_OK:
-        break;
-      case HttpURLConnection.HTTP_BAD_REQUEST:
-        connection.disconnect();
-        throw new RuntimeException("400 Bad Request: 無効なパラメータ、または不適切なリクエストフォーマットです");
-      case HttpURLConnection.HTTP_UNAUTHORIZED:
-        connection.disconnect();
-        throw new RuntimeException("401 Unauthorized: APIキーが無効、または提供されていないエラー");
-      case HttpURLConnection.HTTP_FORBIDDEN:
-        connection.disconnect();
-        throw new RuntimeException("403 Forbidden: アカウントの制限、または対象モデルが利用不可のエラー");
-      case HttpURLConnection.HTTP_NOT_FOUND:
-        connection.disconnect();
-        throw new RuntimeException("404 Not Found: APIのエンドポイントが間違っている、またはモデル名が無効のエラー");
-      case HttpURLConnection.HTTP_CLIENT_TIMEOUT:
-        connection.disconnect();
-        throw new RuntimeException("408 Request Timeout: リクエストが時間内に処理されなかったエラー");
-      case 429:
-        connection.disconnect();
-        throw new RuntimeException(
-            "429 Too Many Requests: レート制限に達しました。短時間に過剰なリクエストを送信したためエラーが発生しました");
-      case HttpURLConnection.HTTP_INTERNAL_ERROR:
-        connection.disconnect();
-        throw new RuntimeException("500 Internal Server Error: Geminiサーバーで問題が発生しました");
-      case HttpURLConnection.HTTP_UNAVAILABLE:
-        connection.disconnect();
-        throw new RuntimeException("503 Service Unavailable: Geminiサーバーがメンテナンス中、または負荷が高い状態です");
-      default:
-        break;
-    }
-
-    // JSONレスポンスの解析
-    try (BufferedReader br =
-        new BufferedReader(
-            new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
-      StringBuilder response = new StringBuilder();
-      String responseLine;
-      while ((responseLine = br.readLine()) != null) {
-        response.append(responseLine.trim());
+    try {
+      switch (responseCode) {
+        case HttpURLConnection.HTTP_OK:
+          break;
+        case HttpURLConnection.HTTP_BAD_REQUEST:
+          throw new RuntimeException("400 Bad Request: 無効なパラメータ、または不適切なリクエストフォーマットです");
+        case HttpURLConnection.HTTP_UNAUTHORIZED:
+          throw new RuntimeException("401 Unauthorized: APIキーが無効、または提供されていないエラー");
+        case HttpURLConnection.HTTP_FORBIDDEN:
+          throw new RuntimeException("403 Forbidden: アカウントの制限、または対象モデルが利用不可のエラー");
+        case HttpURLConnection.HTTP_NOT_FOUND:
+          throw new RuntimeException("404 Not Found: APIのエンドポイントが間違っている、またはモデル名が無効のエラー");
+        case HttpURLConnection.HTTP_CLIENT_TIMEOUT:
+          throw new RuntimeException("408 Request Timeout: リクエストが時間内に処理されなかったエラー");
+        case 429:
+          throw new RuntimeException(
+              "429 Too Many Requests: レート制限に達しました。短時間に過剰なリクエストを送信したためエラーが発生しました");
+        case HttpURLConnection.HTTP_INTERNAL_ERROR:
+          throw new RuntimeException("500 Internal Server Error: Geminiサーバーで問題が発生しました");
+        case HttpURLConnection.HTTP_UNAVAILABLE:
+          throw new RuntimeException("503 Service Unavailable: Geminiサーバーがメンテナンス中、または負荷が高い状態です");
+        default:
+          throw new RuntimeException("Generate API Error: " + responseCode);
       }
 
-      // JSONをJacksonで解析
-      JsonNode jsonResponse = objectMapper.readTree(response.toString());
+      // JSONレスポンスの解析
+      try (BufferedReader br =
+          new BufferedReader(
+              new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+        StringBuilder response = new StringBuilder();
+        String responseLine;
+        while ((responseLine = br.readLine()) != null) {
+          response.append(responseLine.trim());
+        }
 
-      // "candidates" 配列から "content" -> "parts" -> "text" を取得
-      JsonNode candidates = jsonResponse.path("candidates");
-      if (candidates.isArray() && candidates.size() > 0) {
-        JsonNode content = candidates.get(0).path("content");
-        JsonNode parts = content.path("parts");
-        if (parts.isArray() && parts.size() > 0) {
-          String resultText = parts.get(0).path("text").asText();
+        // JSONをJacksonで解析
+        JsonNode jsonResponse = objectMapper.readTree(response.toString());
 
-          // API使用履歴テーブル（SES_AI_API_USAGE_HISTORY）に履歴を登録
-          SES_AI_API_USAGE_HISTORY sesAiApiUsageHistory = new SES_AI_API_USAGE_HISTORY();
-          sesAiApiUsageHistory.setProvider(Provider.Google);
-          sesAiApiUsageHistory.setModel(this.completionModel);
-          OriginalDateTime nowDt = new OriginalDateTime();
-          sesAiApiUsageHistory.setUsageMonth(nowDt.getYYYYMM());
-          sesAiApiUsageHistory.setUsageDate(nowDt.getYYYYMMDD());
-          sesAiApiUsageHistory.setUserId("SesAiAssitantCore");
-          sesAiApiUsageHistory.setApiType(ApiType.Generate);
-          sesAiApiUsageHistory.fetch();
-          sesAiApiUsageHistory.addInputCount(prompt != null ? prompt.length() : 0);
-          sesAiApiUsageHistory.addOutputCount(resultText != null ? resultText.length() : 0);
-          sesAiApiUsageHistory.save();
+        // "candidates" 配列から "content" -> "parts" -> "text" を取得
+        JsonNode candidates = jsonResponse.path("candidates");
+        if (candidates.isArray() && candidates.size() > 0) {
+          JsonNode content = candidates.get(0).path("content");
+          JsonNode parts = content.path("parts");
+          if (parts.isArray() && parts.size() > 0) {
+            String resultText = parts.get(0).path("text").asText();
 
-          // 呼び出し元の特定
-          String callerInfo = "Unknown";
-          StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-          for (int i = 2; i < stackTrace.length; i++) {
-            String className = stackTrace[i].getClassName();
-            if (!className.equals(Gemini.class.getName()) && !className.contains("Thread")) {
-              String[] classNameParts = className.split("\\.");
-              String simpleClassName = classNameParts[classNameParts.length - 1];
-              callerInfo = simpleClassName + "." + stackTrace[i].getMethodName();
-              break;
+            // API使用履歴テーブル（SES_AI_API_USAGE_HISTORY）に履歴を登録
+            SES_AI_API_USAGE_HISTORY sesAiApiUsageHistory = new SES_AI_API_USAGE_HISTORY();
+            sesAiApiUsageHistory.setProvider(Provider.Google);
+            sesAiApiUsageHistory.setModel(this.completionModel);
+            OriginalDateTime nowDt = new OriginalDateTime();
+            sesAiApiUsageHistory.setUsageMonth(nowDt.getYYYYMM());
+            sesAiApiUsageHistory.setUsageDate(nowDt.getYYYYMMDD());
+            sesAiApiUsageHistory.setUserId("SesAiAssitantCore");
+            sesAiApiUsageHistory.setApiType(ApiType.Generate);
+            sesAiApiUsageHistory.fetch();
+            sesAiApiUsageHistory.addInputCount(prompt != null ? prompt.length() : 0);
+            sesAiApiUsageHistory.addOutputCount(resultText != null ? resultText.length() : 0);
+            sesAiApiUsageHistory.save();
+
+            // 呼び出し元の特定
+            String callerInfo = "Unknown";
+            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+            for (int i = 2; i < stackTrace.length; i++) {
+              String className = stackTrace[i].getClassName();
+              if (!className.equals(Gemini.class.getName()) && !className.contains("Thread")) {
+                String[] classNameParts = className.split("\\.");
+                String simpleClassName = classNameParts[classNameParts.length - 1];
+                callerInfo = simpleClassName + "." + stackTrace[i].getMethodName();
+                break;
+              }
             }
-          }
-          log.info(
-              "【Gemini API】呼び出し元: {}, モデル: {}, 入力: {} 文字, 出力: {} 文字",
-              callerInfo,
-              this.completionModel,
-              (prompt != null ? prompt.length() : 0),
-              (resultText != null ? resultText.length() : 0));
+            log.info(
+                "【Gemini API】呼び出し元: {}, モデル: {}, 入力: {} 文字, 出力: {} 文字",
+                callerInfo,
+                this.completionModel,
+                (prompt != null ? prompt.length() : 0),
+                (resultText != null ? resultText.length() : 0));
 
-          return new GptAnswer(resultText, Gemini.class);
+            return new GptAnswer(resultText, Gemini.class);
+          }
         }
       }
+      return new GptAnswer(null, Gemini.class);
+    } finally {
+      connection.disconnect();
     }
-    return new GptAnswer(null, Gemini.class);
   }
 
   /**
@@ -382,89 +379,92 @@ public class Gemini implements Transformer {
 
     // レスポンスの取得
     int responseCode = connection.getResponseCode();
-    if (responseCode != HttpURLConnection.HTTP_OK) {
-      connection.disconnect();
-      switch (responseCode) {
-        case HttpURLConnection.HTTP_BAD_REQUEST:
-          throw new RuntimeException("400 Bad Request: 無効なパラメータ、または不適切なリクエストフォーマットです");
-        case HttpURLConnection.HTTP_UNAUTHORIZED:
-          throw new RuntimeException("401 Unauthorized: APIキーが無効、または提供されていないエラー");
-        case HttpURLConnection.HTTP_FORBIDDEN:
-          throw new RuntimeException("403 Forbidden: アカウントの制限、または対象モデルが利用不可のエラー");
-        case HttpURLConnection.HTTP_NOT_FOUND:
-          throw new RuntimeException("404 Not Found: APIのエンドポイントが間違っている、またはモデル名が無効のエラー");
-        case HttpURLConnection.HTTP_CLIENT_TIMEOUT:
-          throw new RuntimeException("408 Request Timeout: リクエストが時間内に処理されなかったエラー");
-        case 429:
-          throw new RuntimeException(
-              "429 Too Many Requests: レート制限に達しました。短時間に過剰なリクエストを送信したためエラーが発生しました");
-        case HttpURLConnection.HTTP_INTERNAL_ERROR:
-          throw new RuntimeException("500 Internal Server Error: Geminiサーバーで問題が発生しました");
-        case HttpURLConnection.HTTP_UNAVAILABLE:
-          throw new RuntimeException("503 Service Unavailable: Geminiサーバーがメンテナンス中、または負荷が高い状態です");
-        default:
-          throw new RuntimeException("Gemini JSON API Error: " + responseCode);
-      }
-    }
-
-    // JSONレスポンスの解析
-    try (BufferedReader br =
-        new BufferedReader(
-            new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
-      StringBuilder response = new StringBuilder();
-      String responseLine;
-      while ((responseLine = br.readLine()) != null) {
-        response.append(responseLine.trim());
-      }
-
-      JsonNode jsonResponse = objectMapper.readTree(response.toString());
-      JsonNode candidates = jsonResponse.path("candidates");
-      if (candidates.isArray() && candidates.size() > 0) {
-        JsonNode content = candidates.get(0).path("content");
-        JsonNode parts = content.path("parts");
-        if (parts.isArray() && parts.size() > 0) {
-          String resultText = parts.get(0).path("text").asText();
-
-          // API使用履歴の登録
-          SES_AI_API_USAGE_HISTORY sesAiApiUsageHistory = new SES_AI_API_USAGE_HISTORY();
-          sesAiApiUsageHistory.setProvider(Provider.Google);
-          sesAiApiUsageHistory.setModel(this.completionModel);
-          OriginalDateTime nowDtJson = new OriginalDateTime();
-          sesAiApiUsageHistory.setUsageMonth(nowDtJson.getYYYYMM());
-          sesAiApiUsageHistory.setUsageDate(nowDtJson.getYYYYMMDD());
-          sesAiApiUsageHistory.setUserId("SesAiAssitantCore");
-          sesAiApiUsageHistory.setApiType(ApiType.Generate);
-          sesAiApiUsageHistory.fetch();
-          sesAiApiUsageHistory.addInputCount(prompt != null ? prompt.length() : 0);
-          sesAiApiUsageHistory.addOutputCount(resultText != null ? resultText.length() : 0);
-          sesAiApiUsageHistory.save();
-
-          // 呼び出し元の特定
-          String callerInfo = "Unknown";
-          StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-          for (int i = 2; i < stackTrace.length; i++) {
-            String className = stackTrace[i].getClassName();
-            if (!className.equals(Gemini.class.getName())
-                && !className.equals(ApiRetryHelper.class.getName())
-                && !className.contains("Thread")) {
-              String[] classNameParts = className.split("\\.");
-              String simpleClassName = classNameParts[classNameParts.length - 1];
-              callerInfo = simpleClassName + "." + stackTrace[i].getMethodName();
-              break;
-            }
-          }
-          log.info(
-              "【Gemini API (JSON)】呼び出し元: {}, モデル: {}, 入力: {} 文字, 出力: {} 文字",
-              callerInfo,
-              this.completionModel,
-              (prompt != null ? prompt.length() : 0),
-              (resultText != null ? resultText.length() : 0));
-
-          return new GptAnswer(resultText, Gemini.class);
+    try {
+      if (responseCode != HttpURLConnection.HTTP_OK) {
+        switch (responseCode) {
+          case HttpURLConnection.HTTP_BAD_REQUEST:
+            throw new RuntimeException("400 Bad Request: 無効なパラメータ、または不適切なリクエストフォーマットです");
+          case HttpURLConnection.HTTP_UNAUTHORIZED:
+            throw new RuntimeException("401 Unauthorized: APIキーが無効、または提供されていないエラー");
+          case HttpURLConnection.HTTP_FORBIDDEN:
+            throw new RuntimeException("403 Forbidden: アカウントの制限、または対象モデルが利用不可のエラー");
+          case HttpURLConnection.HTTP_NOT_FOUND:
+            throw new RuntimeException("404 Not Found: APIのエンドポイントが間違っている、またはモデル名が無効のエラー");
+          case HttpURLConnection.HTTP_CLIENT_TIMEOUT:
+            throw new RuntimeException("408 Request Timeout: リクエストが時間内に処理されなかったエラー");
+          case 429:
+            throw new RuntimeException(
+                "429 Too Many Requests: レート制限に達しました。短時間に過剰なリクエストを送信したためエラーが発生しました");
+          case HttpURLConnection.HTTP_INTERNAL_ERROR:
+            throw new RuntimeException("500 Internal Server Error: Geminiサーバーで問題が発生しました");
+          case HttpURLConnection.HTTP_UNAVAILABLE:
+            throw new RuntimeException("503 Service Unavailable: Geminiサーバーがメンテナンス中、または負荷が高い状態です");
+          default:
+            throw new RuntimeException("Gemini JSON API Error: " + responseCode);
         }
       }
 
-      return new GptAnswer(null, Gemini.class);
+      // JSONレスポンスの解析
+      try (BufferedReader br =
+          new BufferedReader(
+              new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+        StringBuilder response = new StringBuilder();
+        String responseLine;
+        while ((responseLine = br.readLine()) != null) {
+          response.append(responseLine.trim());
+        }
+
+        JsonNode jsonResponse = objectMapper.readTree(response.toString());
+        JsonNode candidates = jsonResponse.path("candidates");
+        if (candidates.isArray() && candidates.size() > 0) {
+          JsonNode content = candidates.get(0).path("content");
+          JsonNode parts = content.path("parts");
+          if (parts.isArray() && parts.size() > 0) {
+            String resultText = parts.get(0).path("text").asText();
+
+            // API使用履歴の登録
+            SES_AI_API_USAGE_HISTORY sesAiApiUsageHistory = new SES_AI_API_USAGE_HISTORY();
+            sesAiApiUsageHistory.setProvider(Provider.Google);
+            sesAiApiUsageHistory.setModel(this.completionModel);
+            OriginalDateTime nowDtJson = new OriginalDateTime();
+            sesAiApiUsageHistory.setUsageMonth(nowDtJson.getYYYYMM());
+            sesAiApiUsageHistory.setUsageDate(nowDtJson.getYYYYMMDD());
+            sesAiApiUsageHistory.setUserId("SesAiAssitantCore");
+            sesAiApiUsageHistory.setApiType(ApiType.Generate);
+            sesAiApiUsageHistory.fetch();
+            sesAiApiUsageHistory.addInputCount(prompt != null ? prompt.length() : 0);
+            sesAiApiUsageHistory.addOutputCount(resultText != null ? resultText.length() : 0);
+            sesAiApiUsageHistory.save();
+
+            // 呼び出し元の特定
+            String callerInfo = "Unknown";
+            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+            for (int i = 2; i < stackTrace.length; i++) {
+              String className = stackTrace[i].getClassName();
+              if (!className.equals(Gemini.class.getName())
+                  && !className.equals(ApiRetryHelper.class.getName())
+                  && !className.contains("Thread")) {
+                String[] classNameParts = className.split("\\.");
+                String simpleClassName = classNameParts[classNameParts.length - 1];
+                callerInfo = simpleClassName + "." + stackTrace[i].getMethodName();
+                break;
+              }
+            }
+            log.info(
+                "【Gemini API (JSON)】呼び出し元: {}, モデル: {}, 入力: {} 文字, 出力: {} 文字",
+                callerInfo,
+                this.completionModel,
+                (prompt != null ? prompt.length() : 0),
+                (resultText != null ? resultText.length() : 0));
+
+            return new GptAnswer(resultText, Gemini.class);
+          }
+        }
+
+        return new GptAnswer(null, Gemini.class);
+      }
+    } finally {
+      connection.disconnect();
     }
   }
 }
