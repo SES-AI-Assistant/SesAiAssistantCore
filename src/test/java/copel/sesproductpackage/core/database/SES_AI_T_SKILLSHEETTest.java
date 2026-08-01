@@ -117,6 +117,9 @@ class SES_AI_T_SKILLSHEETTest {
   @Test
   void testEmbeddingAndCheck() throws Exception {
     SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET("test-tenant");
+    SkillSheet skillSheet = new SkillSheet("F1", "N1", "test content");
+    skillSheet.setFileContentSummary("test summary");
+    ss.setSkillSheet(skillSheet);
     Transformer trans = mock(Transformer.class);
     when(trans.embedding(anyString())).thenReturn(new float[] {0.1f});
 

@@ -1,5 +1,7 @@
 package copel.sesproductpackage.core.api.gpt;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -17,6 +19,10 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -45,6 +51,8 @@ public class OpenAI implements Transformer {
     String temp = Properties.get("OPEN_AI_COMPLETION_TEMPERATURE");
     COMPLETION_TEMPERATURE = (temp != null && !temp.isEmpty()) ? Float.valueOf(temp) : 0.7f;
   }
+
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   /** OpenAIのファイルアップロードAPIのエンドポイント. */
   private static final String FILE_UPLOAD_URL = Properties.get("OPEN_AI_FILE_UPLOAD_URL");
@@ -121,11 +129,9 @@ public class OpenAI implements Transformer {
     conn.setDoOutput(true);
 
     log.info("【OpenAI】{}文字のエンベディング処理を実行しました", inputString.length());
-    ObjectMapper objectMapper = new ObjectMapper();
-    ObjectNode rootNode = objectMapper.createObjectNode();
-    rootNode.put("input", inputString);
-    rootNode.put("model", EMBEDDING_MODEL);
-    String jsonBody = objectMapper.writeValueAsString(rootNode);
+    OpenAIEmbeddingRequest embeddingRequest =
+        new OpenAIEmbeddingRequest(inputString, EMBEDDING_MODEL);
+    String jsonBody = OBJECT_MAPPER.writeValueAsString(embeddingRequest);
     try (OutputStream os = conn.getOutputStream()) {
       byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
       os.write(input, 0, input.length);
@@ -135,12 +141,12 @@ public class OpenAI implements Transformer {
     checkResponseCode(conn, responseCode);
 
     String response = readResponse(conn);
-    JsonNode jsonResponse = objectMapper.readTree(response);
-    JsonNode embeddingArray = jsonResponse.get("data").get(0).get("embedding");
+    OpenAIEmbeddingResponse embeddingResponse =
+        OBJECT_MAPPER.readValue(response, OpenAIEmbeddingResponse.class);
 
-    float[] vectorValue = new float[embeddingArray.size()];
-    for (int i = 0; i < embeddingArray.size(); i++) {
-      vectorValue[i] = embeddingArray.get(i).floatValue();
+    float[] vectorValue = new float[embeddingResponse.getData().get(0).getEmbedding().size()];
+    for (int i = 0; i < embeddingResponse.getData().get(0).getEmbedding().size(); i++) {
+      vectorValue[i] = embeddingResponse.getData().get(0).getEmbedding().get(i).floatValue();
     }
 
     // API使用履歴テーブル（SES_AI_API_USAGE_HISTORY）に履歴を登録
@@ -184,15 +190,10 @@ public class OpenAI implements Transformer {
     conn.setRequestProperty("Authorization", "Bearer " + this.apiKey);
     conn.setDoOutput(true);
 
-    ObjectMapper objectMapper = new ObjectMapper();
-    ObjectNode rootNode = objectMapper.createObjectNode();
-    rootNode.put("model", this.completionModel);
-    rootNode.put("temperature", temperature);
-    ArrayNode messagesArray = rootNode.putArray("messages");
-    ObjectNode userMessage = messagesArray.addObject();
-    userMessage.put("role", "user");
-    userMessage.put("content", prompt);
-    String jsonBody = objectMapper.writeValueAsString(rootNode);
+    Message userMessage = new Message("user", prompt);
+    OpenAIChatCompletionRequest chatRequest =
+        new OpenAIChatCompletionRequest(this.completionModel, List.of(userMessage), temperature);
+    String jsonBody = OBJECT_MAPPER.writeValueAsString(chatRequest);
     try (OutputStream os = conn.getOutputStream()) {
       byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
       os.write(input, 0, input.length);
@@ -202,9 +203,14 @@ public class OpenAI implements Transformer {
     checkResponseCode(conn, responseCode);
 
     String response = readResponse(conn);
-    JsonNode jsonResponse = objectMapper.readTree(response);
-    JsonNode contentNode = jsonResponse.get("choices").get(0).get("message").get("content");
-    String resultText = contentNode == null || contentNode.isNull() ? null : contentNode.asText();
+    OpenAIChatCompletionResponse chatResponse =
+        OBJECT_MAPPER.readValue(response, OpenAIChatCompletionResponse.class);
+    String resultText =
+        (chatResponse.getChoices() != null
+                && !chatResponse.getChoices().isEmpty()
+                && chatResponse.getChoices().get(0).getMessage() != null)
+            ? chatResponse.getChoices().get(0).getMessage().getContent()
+            : null;
 
     // API使用履歴テーブル（SES_AI_API_USAGE_HISTORY）に履歴を登録
     SES_AI_API_USAGE_HISTORY sesAiApiUsageHistory = new SES_AI_API_USAGE_HISTORY();
@@ -414,5 +420,109 @@ public class OpenAI implements Transformer {
       conn.disconnect();
     }
     return response.toString();
+  }
+
+  @Data
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public static class OpenAIEmbeddingRequest {
+    private String input;
+
+    private String model;
+  }
+
+  @Data
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public static class EmbeddingData {
+    private List<Double> embedding;
+
+    private Integer index;
+
+    private String object;
+  }
+
+  @Data
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public static class OpenAIUsageMetadata {
+    @JsonProperty("prompt_tokens")
+    private Integer promptTokens;
+
+    @JsonProperty("completion_tokens")
+    private Integer completionTokens;
+
+    @JsonProperty("total_tokens")
+    private Integer totalTokens;
+  }
+
+  @Data
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public static class OpenAIEmbeddingResponse {
+    private List<EmbeddingData> data;
+
+    private String model;
+
+    private String object;
+
+    private OpenAIUsageMetadata usage;
+  }
+
+  @Data
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public static class Message {
+    private String role;
+
+    private String content;
+  }
+
+  @Data
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public static class OpenAIChatCompletionRequest {
+    private String model;
+
+    private List<Message> messages;
+
+    private Float temperature;
+  }
+
+  @Data
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public static class Choice {
+    private Integer index;
+
+    private Message message;
+
+    @JsonProperty("finish_reason")
+    private String finishReason;
+  }
+
+  @Data
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public static class OpenAIChatCompletionResponse {
+    private String id;
+
+    private String object;
+
+    private Long created;
+
+    private String model;
+
+    private List<Choice> choices;
+
+    private OpenAIUsageMetadata usage;
   }
 }
