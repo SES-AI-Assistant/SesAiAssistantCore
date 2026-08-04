@@ -49,9 +49,9 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
   private static final String UPDATE_SQL =
       "UPDATE SES_AI_WEBAPP_M_USER SET user_id = ?, user_name = ?, role_cd = ?, plan_cd = ?, register_date = ?, register_user = ? WHERE user_id = ? AND tenant_id = ?";
 
-  /** UPDATE文（tenant_id条件なし、システム管理者用）. */
+  /** UPDATE文（tenant_id絞込み条件なし、システム管理者用）. */
   private static final String UPDATE_WITHOUT_TENANT_ID_SQL =
-      "UPDATE SES_AI_WEBAPP_M_USER SET user_id = ?, user_name = ?, role_cd = ?, plan_cd = ?, register_date = ?, register_user = ? WHERE user_id = ?";
+      "UPDATE SES_AI_WEBAPP_M_USER SET user_id = ?, user_name = ?, role_cd = ?, plan_cd = ?, register_date = ?, register_user = ?, tenant_id = ? WHERE user_id = ?";
 
   /** DELETE文. */
   private static final String DELETE_SQL =
@@ -210,7 +210,8 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
   }
 
   /**
-   * ユーザーをユーザーID で更新します（テナントID条件なし、システム管理者用）.
+   * ユーザーをユーザーID で更新します（テナントID絞り込み条件なし、システム管理者用）.
+   * テナントIDで絞込みはしないが、更新対象にはテナントIDは含まれることに注意.
    *
    * @param connection DBコネクション
    * @return 更新に成功した場合 true、失敗した場合 false
@@ -230,7 +231,8 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
           stmt.setString(4, this.plan == null ? null : this.plan.getCode());
           stmt.setTimestamp(5, this.registerDate == null ? null : this.registerDate.toTimestamp());
           stmt.setString(6, this.registerUser);
-          stmt.setString(7, this.userId);
+          stmt.setString(7, this.tenantId);
+          stmt.setString(8, this.userId);
         },
         "SES_AI_WEBAPP_M_USER.updateByPkWithoutTenantId");
   }
