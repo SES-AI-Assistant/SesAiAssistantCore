@@ -262,4 +262,41 @@ class SES_AI_WEBAPP_M_USERTest {
 
     assertEquals(2, lot.size());
   }
+
+  @Test
+  void testDeleteByPkWithoutTenantIdFilter() throws SQLException {
+    Connection connection = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    when(connection.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeUpdate()).thenReturn(1);
+
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
+    user.setUserId("U1");
+
+    assertTrue(user.deleteByPkWithoutTenantIdFilter(connection));
+  }
+
+  @Test
+  void testDeleteByPkWithoutTenantIdFilterNullHandling() throws SQLException {
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
+    Connection connection = mock(Connection.class);
+
+    assertFalse(user.deleteByPkWithoutTenantIdFilter(null));
+
+    user.setUserId(null);
+    assertFalse(user.deleteByPkWithoutTenantIdFilter(connection));
+  }
+
+  @Test
+  void testDeleteByPkWithoutTenantIdFilterFailure() throws SQLException {
+    Connection connection = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    when(connection.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeUpdate()).thenReturn(0);
+
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
+    user.setUserId("U1");
+
+    assertFalse(user.deleteByPkWithoutTenantIdFilter(connection));
+  }
 }

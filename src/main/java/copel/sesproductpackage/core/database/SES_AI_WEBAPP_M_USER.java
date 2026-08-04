@@ -57,6 +57,10 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
   private static final String DELETE_SQL =
       "DELETE FROM SES_AI_WEBAPP_M_USER WHERE user_id = ? AND tenant_id = ?";
 
+  /** DELETE文（tenant_id絞込み条件なし、システム管理者用）. */
+  private static final String DELETE_WITHOUT_TENANT_ID_SQL =
+      "DELETE FROM SES_AI_WEBAPP_M_USER WHERE user_id = ?";
+
   /** 【PK】 ユーザーID* / user_id */
   @Column(required = true, primary = true, physicalName = "user_id", logicalName = "ユーザーID")
   private String userId;
@@ -210,8 +214,7 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
   }
 
   /**
-   * ユーザーをユーザーID で更新します（テナントID絞り込み条件なし、システム管理者用）.
-   * テナントIDで絞込みはしないが、更新対象にはテナントIDは含まれることに注意.
+   * ユーザーをユーザーID で更新します（テナントID絞り込み条件なし、システム管理者用）. テナントIDで絞込みはしないが、更新対象にはテナントIDは含まれることに注意.
    *
    * @param connection DBコネクション
    * @return 更新に成功した場合 true、失敗した場合 false
@@ -250,5 +253,23 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
           stmt.setString(2, this.tenantId);
         },
         "SES_AI_WEBAPP_M_USER.deleteByPk");
+  }
+
+  /**
+   * ユーザーをユーザーIDで削除します（テナントID絞り込み条件なし、システム管理者用）.
+   *
+   * @param connection DBコネクション
+   * @return 削除に成功した場合 true、失敗した場合 false
+   * @throws SQLException SQL実行エラー
+   */
+  public boolean deleteByPkWithoutTenantIdFilter(Connection connection) throws SQLException {
+    if (this.userId == null) {
+      return false;
+    }
+    return executeDeleteByPkWithoutTenantFilter(
+        connection,
+        DELETE_WITHOUT_TENANT_ID_SQL,
+        (stmt) -> stmt.setString(1, this.userId),
+        "SES_AI_WEBAPP_M_USER.deleteByPkWithoutTenantIdFilter");
   }
 }
