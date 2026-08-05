@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+  <settings>
+    <!-- アンダースコア区切りのDB カラム名を camelCase の Java プロパティに自動マッピング -->
+    <setting name="mapUnderscoreToCamelCase" value="true"/>
+    <!-- ログ出力実装を SLF4J に設定 -->
+    <setting name="logImpl" value="SLF4J"/>
+  </settings>
+
+  <!-- カスタムTypeHandlerの登録 -->
+  <typeHandlers>
+    <!-- OriginalDateTime型：timestamp ↔ OriginalDateTime -->
+    <typeHandler
+      handler="copel.sesproductpackage.core.database.typehandler.OriginalDateTimeTypeHandler"
+      javaType="copel.sesproductpackage.core.unit.OriginalDateTime" />
+
+    <!-- Money型：NUMERIC(10,2) ↔ Money （Phase 2以降で使用） -->
+    <typeHandler
+      handler="copel.sesproductpackage.core.database.typehandler.MoneyTypeHandler"
+      javaType="copel.sesproductpackage.core.unit.Money" />
+
+    <!-- Vector型：vector(1536) ↔ Vector （Phase 2以降で使用） -->
+    <typeHandler
+      handler="copel.sesproductpackage.core.database.typehandler.VectorTypeHandler"
+      javaType="copel.sesproductpackage.core.unit.Vector" />
+  </typeHandlers>
+
+  <!-- Mapper XMLファイルの登録 -->
+  <mappers>
+    <!-- マスタテーブル Mapper (Phase 1) -->
+    <mapper resource="mybatis/mapper/TenantMapper.xml" />
+    <mapper resource="mybatis/mapper/GroupMapper.xml" />
+    <mapper resource="mybatis/mapper/SenderMapper.xml" />
+    <mapper resource="mybatis/mapper/UserMapper.xml" />
+    <mapper resource="mybatis/mapper/NotificationMapper.xml" />
+  </mappers>
+</configuration>

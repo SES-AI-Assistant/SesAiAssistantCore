@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="copel.sesproductpackage.core.database.mapper.UserMapper">
+
+  <!-- ResultMap: DB カラム → Java プロパティの対応 -->
+  <resultMap id="UserMap" type="copel.sesproductpackage.core.database.SES_AI_WEBAPP_M_USER">
+    <id column="user_id" property="userId" />
+    <result column="user_name" property="userName" />
+    <result column="role_cd" property="role" typeHandler="org.apache.ibatis.type.EnumTypeHandler" />
+    <result column="plan_cd" property="plan" typeHandler="org.apache.ibatis.type.EnumTypeHandler" />
+    <result column="tenant_id" property="tenantId" />
+    <result column="register_date" property="registerDate" typeHandler="copel.sesproductpackage.core.database.typehandler.OriginalDateTimeTypeHandler" />
+    <result column="register_user" property="registerUser" />
+  </resultMap>
+
+  <!-- INSERT: Webアプリユーザーを登録 -->
+  <insert id="insertUser" parameterType="copel.sesproductpackage.core.database.SES_AI_WEBAPP_M_USER">
+    INSERT INTO SES_AI_WEBAPP_M_USER
+        (user_id, user_name, role_cd, plan_cd, tenant_id, register_date, register_user)
+    VALUES
+        (#{userId}, #{userName}, #{role, typeHandler=org.apache.ibatis.type.EnumTypeHandler}, #{plan, typeHandler=org.apache.ibatis.type.EnumTypeHandler}, #{tenantId},
+         #{registerDate, typeHandler=copel.sesproductpackage.core.database.typehandler.OriginalDateTimeTypeHandler},
+         #{registerUser})
+  </insert>
+
+  <!-- SELECT-by-PK: Webアプリユーザーを取得（テナントID フィルタ付き） -->
+  <select id="selectUserByPk" parameterType="map" resultMap="UserMap">
+    SELECT
+        user_id, user_name, role_cd, plan_cd, tenant_id, register_date, register_user
+    FROM SES_AI_WEBAPP_M_USER
+    WHERE user_id = #{userId}
+      AND tenant_id = #{tenantId}
+  </select>
+
+  <!-- SELECT-by-PK（テナントID フィルタなし）: システム管理者用 -->
+  <select id="selectUserByPkWithoutTenantId" parameterType="string" resultMap="UserMap">
+    SELECT
+        user_id, user_name, role_cd, plan_cd, tenant_id, register_date, register_user
+    FROM SES_AI_WEBAPP_M_USER
+    WHERE user_id = #{userId}
+  </select>
+
+  <!-- UPDATE-by-PK: Webアプリユーザーを更新（テナントID フィルタ付き） -->
+  <update id="updateUserByPk" parameterType="copel.sesproductpackage.core.database.SES_AI_WEBAPP_M_USER">
+    UPDATE SES_AI_WEBAPP_M_USER
+    SET
+        user_name = #{userName},
+        role_cd = #{role, typeHandler=org.apache.ibatis.type.EnumTypeHandler},
+        plan_cd = #{plan, typeHandler=org.apache.ibatis.type.EnumTypeHandler},
+        register_date = #{registerDate, typeHandler=copel.sesproductpackage.core.database.typehandler.OriginalDateTimeTypeHandler},
+        register_user = #{registerUser}
+    WHERE user_id = #{userId}
+      AND tenant_id = #{tenantId}
+  </update>
+
+  <!-- UPDATE-by-PK（テナントID フィルタなし）: システム管理者用 -->
+  <update id="updateUserByPkWithoutTenantId" parameterType="copel.sesproductpackage.core.database.SES_AI_WEBAPP_M_USER">
+    UPDATE SES_AI_WEBAPP_M_USER
+    SET
+        user_name = #{userName},
+        role_cd = #{role, typeHandler=org.apache.ibatis.type.EnumTypeHandler},
+        plan_cd = #{plan, typeHandler=org.apache.ibatis.type.EnumTypeHandler},
+        tenant_id = #{tenantId},
+        register_date = #{registerDate, typeHandler=copel.sesproductpackage.core.database.typehandler.OriginalDateTimeTypeHandler},
+        register_user = #{registerUser}
+    WHERE user_id = #{userId}
+  </update>
+
+  <!-- DELETE-by-PK: Webアプリユーザーを削除（テナントID フィルタ付き） -->
+  <delete id="deleteUserByPk" parameterType="map">
+    DELETE FROM SES_AI_WEBAPP_M_USER
+    WHERE user_id = #{userId}
+      AND tenant_id = #{tenantId}
+  </delete>
+
+  <!-- DELETE-by-PK（テナントID フィルタなし）: システム管理者用 -->
+  <delete id="deleteUserByPkWithoutTenantId" parameterType="string">
+    DELETE FROM SES_AI_WEBAPP_M_USER
+    WHERE user_id = #{userId}
+  </delete>
+
+</mapper>

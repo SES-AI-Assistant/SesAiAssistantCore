@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="copel.sesproductpackage.core.database.mapper.GroupMapper">
+
+  <!-- ResultMap: DB カラム → Java プロパティの対応 -->
+  <resultMap id="GroupMap" type="copel.sesproductpackage.core.database.SES_AI_M_GROUP">
+    <id column="from_group" property="fromGroup" />
+    <result column="group_name" property="groupName" />
+    <result column="tenant_id" property="tenantId" />
+    <result column="register_date" property="registerDate" typeHandler="copel.sesproductpackage.core.database.typehandler.OriginalDateTimeTypeHandler" />
+    <result column="register_user" property="registerUser" />
+  </resultMap>
+
+  <!-- INSERT: 送信元グループを登録 -->
+  <insert id="insertGroup" parameterType="copel.sesproductpackage.core.database.SES_AI_M_GROUP">
+    INSERT INTO SES_AI_M_GROUP
+        (from_group, group_name, tenant_id, register_date, register_user)
+    VALUES
+        (#{fromGroup}, #{groupName}, #{tenantId},
+         #{registerDate, typeHandler=copel.sesproductpackage.core.database.typehandler.OriginalDateTimeTypeHandler},
+         #{registerUser})
+  </insert>
+
+  <!-- SELECT-by-PK: 送信元グループを取得（テナントID フィルタ付き） -->
+  <select id="selectGroupByPk" parameterType="map" resultMap="GroupMap">
+    SELECT
+        from_group, group_name, tenant_id, register_date, register_user
+    FROM SES_AI_M_GROUP
+    WHERE from_group = #{fromGroup}
+      AND tenant_id = #{tenantId}
+  </select>
+
+  <!-- UPDATE-by-PK: 送信元グループを更新（テナントID フィルタ付き） -->
+  <update id="updateGroupByPk" parameterType="copel.sesproductpackage.core.database.SES_AI_M_GROUP">
+    UPDATE SES_AI_M_GROUP
+    SET
+        group_name = #{groupName}
+    WHERE from_group = #{fromGroup}
+      AND tenant_id = #{tenantId}
+  </update>
+
+  <!-- DELETE-by-PK: 送信元グループを削除（テナントID フィルタ付き） -->
+  <delete id="deleteGroupByPk" parameterType="map">
+    DELETE FROM SES_AI_M_GROUP
+    WHERE from_group = #{fromGroup}
+      AND tenant_id = #{tenantId}
+  </delete>
+
+</mapper>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="copel.sesproductpackage.core.database.mapper.SenderMapper">
+
+  <!-- ResultMap: DB カラム → Java プロパティの対応 -->
+  <resultMap id="SenderMap" type="copel.sesproductpackage.core.database.SES_AI_M_SENDER">
+    <id column="from_id" property="fromId" />
+    <result column="from_name" property="fromName" />
+    <result column="tenant_id" property="tenantId" />
+    <result column="register_date" property="registerDate" typeHandler="copel.sesproductpackage.core.database.typehandler.OriginalDateTimeTypeHandler" />
+    <result column="register_user" property="registerUser" />
+  </resultMap>
+
+  <!-- INSERT: 送信者を登録 -->
+  <insert id="insertSender" parameterType="copel.sesproductpackage.core.database.SES_AI_M_SENDER">
+    INSERT INTO SES_AI_M_SENDER
+        (from_id, from_name, tenant_id, register_date, register_user)
+    VALUES
+        (#{fromId}, #{fromName}, #{tenantId},
+         #{registerDate, typeHandler=copel.sesproductpackage.core.database.typehandler.OriginalDateTimeTypeHandler},
+         #{registerUser})
+  </insert>
+
+  <!-- SELECT-by-PK: 送信者を取得（テナントID フィルタ付き） -->
+  <select id="selectSenderByPk" parameterType="map" resultMap="SenderMap">
+    SELECT
+        from_id, from_name, tenant_id, register_date, register_user
+    FROM SES_AI_M_SENDER
+    WHERE from_id = #{fromId}
+      AND tenant_id = #{tenantId}
+  </select>
+
+  <!-- UPDATE-by-PK: 送信者を更新（テナントID フィルタ付き） -->
+  <update id="updateSenderByPk" parameterType="copel.sesproductpackage.core.database.SES_AI_M_SENDER">
+    UPDATE SES_AI_M_SENDER
+    SET
+        from_name = #{fromName}
+    WHERE from_id = #{fromId}
+      AND tenant_id = #{tenantId}
+  </update>
+
+  <!-- DELETE-by-PK: 送信者を削除（テナントID フィルタ付き） -->
+  <delete id="deleteSenderByPk" parameterType="map">
+    DELETE FROM SES_AI_M_SENDER
+    WHERE from_id = #{fromId}
+      AND tenant_id = #{tenantId}
+  </delete>
+
+  <!-- EXISTS: 送信者の存在確認（テナントID フィルタ付き） -->
+  <select id="checkSenderExists" parameterType="map" resultType="boolean">
+    SELECT EXISTS (
+        SELECT 1 FROM SES_AI_M_SENDER
+        WHERE from_id = #{fromId}
+          AND tenant_id = #{tenantId}
+    )
+  </select>
+
+</mapper>

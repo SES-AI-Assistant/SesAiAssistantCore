@@ -139,11 +139,19 @@
       <version>1.18.30</version>
     </dependency>
 
-    <!-- PostgreSQL JDBC ドライバ -->
+    <!-- MyBatis Spring Boot Starter -->
+    <dependency>
+      <groupId>org.mybatis.spring.boot</groupId>
+      <artifactId>mybatis-spring-boot-starter</artifactId>
+      <version>3.0.3</version>
+    </dependency>
+
+    <!-- PostgreSQL JDBC ドライバ （mybatis-spring-boot-starter に含まれるため、明示的な指定は不要だが念のため留める） -->
+    <!-- 42.7.0にはセキュリティ更新が含まれている -->
     <dependency>
         <groupId>org.postgresql</groupId>
         <artifactId>postgresql</artifactId>
-        <version>42.7.5</version>
+        <version>42.7.0</version>
     </dependency>
 
     <!-- JUnit 5 -->

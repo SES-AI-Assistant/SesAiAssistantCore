@@ -66,6 +66,7 @@ public class SES_AI_M_TENANT extends EntityBase {
     if (this.tenantId == null) {
       return;
     }
+    // テナントレス検索（マスタテーブル）で該当レコードをこのEntityに読み込む
     executeSelectByPkWithoutTenantFilter(
         connection,
         SELECT_SQL,

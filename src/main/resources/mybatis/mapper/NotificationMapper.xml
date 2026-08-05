@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="copel.sesproductpackage.core.database.mapper.NotificationMapper">
+
+  <!-- ResultMap: DB カラム → Java プロパティの対応 -->
+  <resultMap id="NotificationMap" type="copel.sesproductpackage.core.database.SES_AI_WEBAPP_M_NOTIFICATION">
+    <id column="notification_id" property="notificationId" />
+    <result column="user_id" property="userId" />
+    <result column="device_type" property="deviceType" />
+    <result column="device_name" property="deviceName" />
+    <result column="push_notification_endpoint" property="pushNotificationEndpoint" />
+    <result column="p256dh" property="p256dh" />
+    <result column="auth" property="auth" />
+    <result column="enabled" property="enabled" />
+    <result column="notify_all_match" property="notifyAllMatch" />
+    <result column="tenant_id" property="tenantId" />
+    <result column="register_date" property="registerDate" typeHandler="copel.sesproductpackage.core.database.typehandler.OriginalDateTimeTypeHandler" />
+    <result column="register_user" property="registerUser" />
+  </resultMap>
+
+  <!-- INSERT: プッシュ通知デバイス登録を追加 -->
+  <insert id="insertNotification" parameterType="copel.sesproductpackage.core.database.SES_AI_WEBAPP_M_NOTIFICATION">
+    INSERT INTO SES_AI_WEBAPP_M_NOTIFICATION
+        (notification_id, user_id, device_type, device_name,
+         push_notification_endpoint, p256dh, auth, enabled, notify_all_match,
+         tenant_id, register_date, register_user)
+    VALUES
+        (#{notificationId}, #{userId}, #{deviceType}, #{deviceName},
+         #{pushNotificationEndpoint}, #{p256dh}, #{auth}, #{enabled}, #{notifyAllMatch},
+         #{tenantId},
+         #{registerDate, typeHandler=copel.sesproductpackage.core.database.typehandler.OriginalDateTimeTypeHandler},
+         #{registerUser})
+  </insert>
+
+  <!-- SELECT-by-PK: プッシュ通知デバイス登録を取得（テナントID フィルタ付き） -->
+  <select id="selectNotificationByPk" parameterType="map" resultMap="NotificationMap">
+    SELECT
+        notification_id, user_id, device_type, device_name,
+        push_notification_endpoint, p256dh, auth, enabled, notify_all_match,
+        tenant_id, register_date, register_user
+    FROM SES_AI_WEBAPP_M_NOTIFICATION
+    WHERE notification_id = #{notificationId}
+      AND tenant_id = #{tenantId}
+  </select>
+
+  <!-- UPDATE-by-PK: プッシュ通知デバイス登録を更新（テナントID フィルタ付き） -->
+  <update id="updateNotificationByPk" parameterType="copel.sesproductpackage.core.database.SES_AI_WEBAPP_M_NOTIFICATION">
+    UPDATE SES_AI_WEBAPP_M_NOTIFICATION
+    SET
+        user_id = #{userId},
+        device_type = #{deviceType},
+        device_name = #{deviceName},
+        push_notification_endpoint = #{pushNotificationEndpoint},
+        p256dh = #{p256dh},
+        auth = #{auth},
+        enabled = #{enabled},
+        notify_all_match = #{notifyAllMatch},
+        register_date = #{registerDate, typeHandler=copel.sesproductpackage.core.database.typehandler.OriginalDateTimeTypeHandler},
+        register_user = #{registerUser}
+    WHERE notification_id = #{notificationId}
+      AND tenant_id = #{tenantId}
+  </update>
+
+  <!-- DELETE-by-PK: プッシュ通知デバイス登録を削除（テナントID フィルタ付き） -->
+  <delete id="deleteNotificationByPk" parameterType="map">
+    DELETE FROM SES_AI_WEBAPP_M_NOTIFICATION
+    WHERE notification_id = #{notificationId}
+      AND tenant_id = #{tenantId}
+  </delete>
+
+</mapper>

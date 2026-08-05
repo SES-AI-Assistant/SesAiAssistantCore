@@ -20,6 +20,13 @@ import org.slf4j.LoggerFactory;
 public abstract class EntityBase implements Comparable<EntityBase> {
   private static final Logger log = LoggerFactory.getLogger(EntityBase.class);
 
+  /**
+   * SqlSessionFactory を ThreadLocal で管理します。 Entity から DAO を呼び出す際に使用されます。 {@code
+   * setSqlSessionFactory()} で設定し、{@code getSqlSessionFactory()} で取得します。
+   */
+  private static final ThreadLocal<org.apache.ibatis.session.SqlSessionFactory>
+      sqlSessionFactoryHolder = new ThreadLocal<>();
+
   /** 登録日時 / register_date */
   @Column(required = true, physicalName = "register_date", logicalName = "登録日時")
   protected OriginalDateTime registerDate;
@@ -81,6 +88,41 @@ public abstract class EntityBase implements Comparable<EntityBase> {
     } else {
       return this.registerDate.compareTo(o.getRegisterDate());
     }
+  }
+
+  // ========================
+  // SqlSessionFactory アクセッサ（DAO 呼び出し用）
+  // ========================
+
+  /**
+   * SqlSessionFactory を ThreadLocal に設定します。
+   *
+   * <p>Entity から DAO を呼び出す際、事前にこのメソッドで SqlSessionFactory を設定してください。
+   *
+   * @param factory SqlSessionFactory インスタンス
+   */
+  public static void setSqlSessionFactory(org.apache.ibatis.session.SqlSessionFactory factory) {
+    sqlSessionFactoryHolder.set(factory);
+  }
+
+  /**
+   * ThreadLocal に設定された SqlSessionFactory を取得します。
+   *
+   * <p>Entity から DAO を呼び出す際に使用されます。 未設定の場合は null が返ります。
+   *
+   * @return SqlSessionFactory インスタンス、または null
+   */
+  public static org.apache.ibatis.session.SqlSessionFactory getSqlSessionFactory() {
+    return sqlSessionFactoryHolder.get();
+  }
+
+  /**
+   * ThreadLocal の SqlSessionFactory をクリアします。
+   *
+   * <p>リクエスト完了後、メモリリーク防止のため呼び出してください。
+   */
+  public static void clearSqlSessionFactory() {
+    sqlSessionFactoryHolder.remove();
   }
 
   // ========================

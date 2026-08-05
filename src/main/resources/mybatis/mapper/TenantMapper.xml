@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="copel.sesproductpackage.core.database.mapper.TenantMapper">
+
+  <!-- ResultMap: DB カラム → Java プロパティの対応 -->
+  <resultMap id="TenantMap" type="copel.sesproductpackage.core.database.SES_AI_M_TENANT">
+    <id column="tenant_id" property="tenantId" />
+    <result column="tenant_name" property="tenantName" />
+    <result column="tenant_status_cd" property="tenantStatusCd" />
+    <result column="register_date" property="registerDate" typeHandler="copel.sesproductpackage.core.database.typehandler.OriginalDateTimeTypeHandler" />
+    <result column="register_user" property="registerUser" />
+  </resultMap>
+
+  <!-- INSERT: テナント情報を登録 -->
+  <insert id="insertTenant" parameterType="copel.sesproductpackage.core.database.SES_AI_M_TENANT">
+    INSERT INTO SES_AI_M_TENANT
+        (tenant_id, tenant_name, tenant_status_cd, register_date, register_user)
+    VALUES
+        (#{tenantId}, #{tenantName}, #{tenantStatusCd},
+         #{registerDate, typeHandler=copel.sesproductpackage.core.database.typehandler.OriginalDateTimeTypeHandler},
+         #{registerUser})
+  </insert>
+
+  <!-- SELECT-by-PK: テナントID を指定して取得（マスタテーブル） -->
+  <select id="selectTenantByPk" parameterType="string" resultMap="TenantMap">
+    SELECT
+        tenant_id, tenant_name, tenant_status_cd, register_date, register_user
+    FROM SES_AI_M_TENANT
+    WHERE tenant_id = #{tenantId}
+  </select>
+
+  <!-- UPDATE-by-PK: テナント情報を更新 -->
+  <update id="updateTenantByPk" parameterType="copel.sesproductpackage.core.database.SES_AI_M_TENANT">
+    UPDATE SES_AI_M_TENANT
+    SET
+        tenant_name = #{tenantName},
+        tenant_status_cd = #{tenantStatusCd}
+    WHERE tenant_id = #{tenantId}
+  </update>
+
+  <!-- DELETE-by-PK: テナント情報を削除 -->
+  <delete id="deleteTenantByPk" parameterType="string">
+    DELETE FROM SES_AI_M_TENANT
+    WHERE tenant_id = #{tenantId}
+  </delete>
+
+</mapper>
