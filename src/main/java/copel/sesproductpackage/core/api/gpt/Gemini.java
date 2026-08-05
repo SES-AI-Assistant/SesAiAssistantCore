@@ -1,6 +1,5 @@
 package copel.sesproductpackage.core.api.gpt;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -96,8 +95,7 @@ public class Gemini implements Transformer {
 
     // リクエストボディの作成
     Part part = new Part(inputString);
-    Content content = new Content();
-    content.setParts(List.of(part));
+    Content content = new Content(List.of(part));
     GeminiEmbeddingRequest request = new GeminiEmbeddingRequest(content);
     String requestBody = OBJECT_MAPPER.writeValueAsString(request);
 
@@ -205,8 +203,7 @@ public class Gemini implements Transformer {
 
     // リクエストボディの作成
     Part part = new Part(prompt);
-    Content content = new Content();
-    content.setParts(List.of(part));
+    Content content = new Content(List.of(part));
     GeminiGenerateRequest request = new GeminiGenerateRequest(List.of(content), null);
     String requestBody = OBJECT_MAPPER.writeValueAsString(request);
 
@@ -364,8 +361,7 @@ public class Gemini implements Transformer {
   private GptAnswer generateJsonInternal(final String prompt) throws IOException, RuntimeException {
     // リクエストボディの作成
     Part part = new Part(prompt);
-    Content content = new Content();
-    content.setParts(List.of(part));
+    Content content = new Content(List.of(part));
     GenerationConfig config = new GenerationConfig("application/json");
     GeminiGenerateRequest request = new GeminiGenerateRequest(List.of(content), config);
     String requestBody = OBJECT_MAPPER.writeValueAsString(request);
@@ -501,11 +497,10 @@ public class Gemini implements Transformer {
 
   @Data
   @NoArgsConstructor
+  @AllArgsConstructor
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  @JsonIgnoreProperties(ignoreUnknown = true)
   public static class Content {
     private List<Part> parts;
-    private String role;
   }
 
   @Data
@@ -566,16 +561,10 @@ public class Gemini implements Transformer {
 
   @Data
   @NoArgsConstructor
+  @AllArgsConstructor
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  @JsonIgnoreProperties(ignoreUnknown = true)
   public static class Candidate {
     private Content content;
-
-    @JsonProperty("finishReason")
-    private String finishReason;
-
-    @JsonProperty("safetyRatings")
-    private List<Object> safetyRatings;
   }
 
   @Data
