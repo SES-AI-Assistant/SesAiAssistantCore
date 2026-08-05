@@ -5,7 +5,6 @@ import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import org.junit.jupiter.api.BeforeEach;
