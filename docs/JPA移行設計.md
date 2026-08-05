@@ -73,26 +73,20 @@
 │ (JPA @Entity アノテーション)          │
 │                                     │
 │  public int insert(...) {           │
-│    // 内部: JPA Repository.save()   │
-│    // Connection は使用されない      │
+│    // 内部: EntityManager で直接    │
+│    // persist/merge を呼び出す      │
 │  }                                  │
-└──────────────┬──────────────────────┘
-               │
-               ▼
-┌─────────────────────────────────────┐
-│   Repository<T> インターフェース      │
-│ (Spring Data JPA: 自動実装)          │
-│                                     │
-│ - save(T entity)                    │
-│ - findById(ID id)                   │
-│ - update(T entity)                  │
-│ - delete(T entity)                  │
 └──────────────┬──────────────────────┘
                │
                ▼
 ┌─────────────────────────────────────┐
 │   EntityManager (JPA API)            │
 │ (Hibernate による実装)                │
+│                                     │
+│ - persist(entity)                   │
+│ - merge(entity)                     │
+│ - find(id)                          │
+│ - remove(entity)                    │
 └──────────────┬──────────────────────┘
                │
                ▼
@@ -117,9 +111,9 @@
    - 内部実装だけ JPA に変更
    - Connection パラメータは使用されない（互換性のため保持）
 
-2. **Repository による CRUD 自動化**
-   - Spring Data JPA により find/save/update/delete は自動生成
-   - Custom Query が必要な場合は @Query で JPQL を記載
+2. **EntityManager による直接 CRUD 操作**
+   - Entity メソッド内で EntityManager を直接使用し persist/merge/find/remove を呼び出す
+   - Repository パターンは不使用
 
 3. **Hibernate Filters による透過的テナント隔離**
    - Entity に @FilterDef / @Filter アノテーションを付加
@@ -168,9 +162,9 @@ public class SES_AI_M_TENANT extends EntityBase {
     @Override
     public int insert(Connection connection) throws SQLException {
         // 内部実装を JPA に変更
-        // 依存注入された Repository を使用
-        TenantRepository repository = getTenantRepository(); // DIコンテナから取得
-        SES_AI_M_TENANT saved = repository.save(this);
+        // 依存注入された EntityManager を使用
+        EntityManager entityManager = getEntityManager(); // DIコンテナから取得
+        entityManager.persist(this);
         return 1; // 成功時
     }
     
@@ -194,21 +188,26 @@ public class SES_AI_T_PERSON extends EntityBase {
 }
 ```
 
-**Repository で Filter を有効化**:
+**Entity メソッド内で Filter を有効化**:
 ```java
-@Repository
-public class PersonRepositoryImpl {
-    
-    @Autowired
-    private EntityManager entityManager;
-    
-    public SES_AI_T_PERSON findByPersonId(String personId, String tenantId) {
-        // Filter を有効化
+@Override
+public void selectByPk(Connection connection) throws SQLException {
+    try {
+        EntityManager entityManager = getEntityManager();
         Session session = entityManager.unwrap(Session.class);
-        session.enableFilter("tenantFilter").setParameter("tenantId", tenantId);
+        
+        // Filter を有効化
+        session.enableFilter("tenantFilter").setParameter("tenantId", this.tenantId);
         
         // クエリ実行（自動で WHERE tenant_id = 'xxx' が追加される）
-        return entityManager.find(SES_AI_T_PERSON.class, personId);
+        SES_AI_T_PERSON result = entityManager.find(SES_AI_T_PERSON.class, this.personId);
+        if (result != null) {
+            // フィールド値を this にコピー
+            this.personName = result.getPersonName();
+            // ...
+        }
+    } catch (Exception e) {
+        throw new SQLException("Select failed", e);
     }
 }
 ```
@@ -291,62 +290,6 @@ classDiagram
     EntityBase <|-- SES_AI_M_SENDER
     EntityBase <|-- SES_AI_WEBAPP_M_USER
     EntityBase <|-- SES_AI_WEBAPP_M_NOTIFICATION
-```
-
----
-
-## 5. Repository 設計
-
-### 5.1. Repository インターフェース
-
-```java
-/**
- * テナント情報マスタの Repository.
- * @author Copel Co., Ltd.
- */
-@Repository
-public interface TenantRepository extends JpaRepository<SES_AI_M_TENANT, String> {
-    // 基本CRUD (JpaRepository から自動実装)
-    // - save(SES_AI_M_TENANT entity)
-    // - findById(String id)
-    // - findAll()
-    // - delete(SES_AI_M_TENANT entity)
-    // - deleteById(String id)
-}
-```
-
-### 5.2. Repository の使用例
-
-```java
-// Entity.insert() の内部
-@Override
-public int insert(Connection connection) throws SQLException {
-    try {
-        SES_AI_M_TENANT saved = tenantRepository.save(this);
-        return 1;
-    } catch (Exception e) {
-        log.error("Insert failed: {}", e.getMessage());
-        throw new SQLException(e);
-    }
-}
-
-// Entity.selectByPk() の内部
-@Override
-public void selectByPk(Connection connection) throws SQLException {
-    try {
-        Optional<SES_AI_M_TENANT> result = tenantRepository.findById(this.tenantId);
-        if (result.isPresent()) {
-            SES_AI_M_TENANT entity = result.get();
-            this.tenantName = entity.getTenantName();
-            this.tenantStatusCd = entity.getTenantStatusCd();
-            this.registerDate = entity.getRegisterDate();
-            this.registerUser = entity.getRegisterUser();
-        }
-    } catch (Exception e) {
-        log.error("Select failed: {}", e.getMessage());
-        throw new SQLException(e);
-    }
-}
 ```
 
 ---
@@ -483,109 +426,67 @@ public class VectorUserType implements UserType {
 
 ---
 
-## 7. pom.xml 依存性設定
+## 5. pom.xml 依存性設定
 
-### 7.1. 追加すべき依存性
+### 5.1. 必要な依存性
 
 ```xml
-<!-- Spring Data JPA -->
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-data-jpa</artifactId>
-    <version>3.1.5</version>
-</dependency>
-
 <!-- Hibernate ORM -->
 <dependency>
     <groupId>org.hibernate.orm</groupId>
     <artifactId>hibernate-core</artifactId>
-    <version>6.2.13</version>
+    <version>6.4.4.Final</version>
 </dependency>
 
-<!-- Spring ORM（Spring Hibernate 統合） -->
+<!-- PostgreSQL JDBC ドライバ -->
 <dependency>
-    <groupId>org.springframework</groupId>
-    <artifactId>spring-orm</artifactId>
-    <version>6.0.12</version>
+    <groupId>org.postgresql</groupId>
+    <artifactId>postgresql</artifactId>
+    <version>42.7.5</version>
 </dependency>
-
-<!-- Jakarta Persistence API -->
-<dependency>
-    <groupId>jakarta.persistence</groupId>
-    <artifactId>jakarta.persistence-api</artifactId>
-    <version>3.1.0</version>
-</dependency>
-
-<!-- PostgreSQL Dialect for Hibernate -->
-<!-- (PostgreSQL JDBC ドライバは既に依存にあるため不要) -->
 ```
 
-### 7.2. 既存依存性との確認
+### 5.2. 削除した依存性
+
+以下の依存性は削除：
+
+- `spring-boot-starter-data-jpa`: Repository パターンは不使用
+
+### 5.3. 既存依存性との確認
 
 以下の依存性は既に pom.xml に含まれているため、バージョン競合がないか確認：
 
 - `postgresql`: 42.7.5 （JDBC ドライバ）
 - `lombok`: 1.18.30
-- `spring-boot-*`: （Spring Boot 使用時）
+- `hibernate-core`: 6.4.4.Final
 
 ---
 
-## 8. application.yml / application.properties 設定
+## 6. application.yml 設定
 
-### 8.1. JPA/Hibernate設定例（YAML形式）
+### 6.1. JPA/Hibernate設定例（YAML形式）
 
 ```yaml
-# データソース設定
 spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQL15Dialect
   datasource:
-    url: jdbc:postgresql://localhost:5432/ses_ai
+    url: jdbc:postgresql://localhost:5432/ses_ai_assistant
     username: postgres
     password: password
     driver-class-name: org.postgresql.Driver
-  
-  # JPA/Hibernate設定
-  jpa:
-    database-platform: org.hibernate.dialect.PostgreSQL15Dialect
-    hibernate:
-      ddl-auto: validate  # スキーマ自動生成・検証 (開発:create-drop, 本番:validate)
-    properties:
-      hibernate:
-        # SQL出力設定（開発環境）
-        show_sql: false
-        format_sql: true
-        use_sql_comments: true
-        # コネクションプール設定
-        connection:
-          provider_class: org.hibernate.engine.jdbc.connections.internal.DatasourceConnectionProviderImpl
-        # Filters設定（テナント隔離）
-        enable_lazy_load_no_trans: true
-        # PostgreSQL Vector型対応
-        dialect: org.hibernate.dialect.PostgreSQL15Dialect
-    open-in-view: false  # LazyInitializationException回避
-```
-
-### 8.2. Properties形式（参考）
-
-```properties
-# Datasource
-spring.datasource.url=jdbc:postgresql://localhost:5432/ses_ai
-spring.datasource.username=postgres
-spring.datasource.password=password
-spring.datasource.driver-class-name=org.postgresql.Driver
-
-# JPA/Hibernate
-spring.jpa.database-platform=org.hibernate.dialect.PostgreSQL15Dialect
-spring.jpa.hibernate.ddl-auto=validate
-spring.jpa.show-sql=false
-spring.jpa.properties.hibernate.format_sql=true
-spring.jpa.properties.hibernate.use_sql_comments=true
 ```
 
 ---
 
-## 9. Hibernate Filters による透過的テナント隔離
+## 7. Hibernate Filters による透過的テナント隔離
 
-### 9.1. Entity定義（@FilterDef / @Filter）
+### 7.1. Entity定義（@FilterDef / @Filter）
 
 **Phase 1対象外のEntity例（テナントフィルタが不要なケース）**:
 ```java
@@ -611,56 +512,40 @@ public class SES_AI_M_GROUP extends EntityBase {
 }
 ```
 
-### 9.2. ApplicationContext/Config での Filter 設定
+### 7.2. Entity メソッド内で Filter を有効化
 
 ```java
-@Configuration
-@EnableTransactionManagement
-public class HibernateFilterConfig {
-    
-    @Bean
-    public HibernatePropertiesCustomizer hibernatePropertiesCustomizer() {
-        return hibernateProperties -> {
-            // Filters を有効化
-            hibernateProperties.put("hibernate.enable_lazy_load_no_trans", "true");
-        };
-    }
-}
-```
-
-### 9.3. Repository で Filter を有効化
-
-```java
-@Repository
-public class GroupRepositoryImpl implements CustomGroupRepository {
-    
-    @Autowired
-    private EntityManager entityManager;
-    
-    @Override
-    public Optional<SES_AI_M_GROUP> findByFromGroupWithTenant(String fromGroup, String tenantId) {
+@Override
+public void selectByPk(Connection connection) throws SQLException {
+    try {
+        EntityManager entityManager = getEntityManager();
         Session session = entityManager.unwrap(Session.class);
         
         // Filter を有効化
-        session.enableFilter("tenantFilter").setParameter("tenantId", tenantId);
+        session.enableFilter("tenantFilter").setParameter("tenantId", this.tenantId);
         
         try {
-            return Optional.ofNullable(
-                entityManager.find(SES_AI_M_GROUP.class, fromGroup)
-            );
+            SES_AI_M_GROUP result = entityManager.find(SES_AI_M_GROUP.class, this.fromGroup);
+            if (result != null) {
+                // フィールド値を this にコピー
+                this.groupName = result.getGroupName();
+                // ...
+            }
         } finally {
             // Filter を無効化（重要）
             session.disableFilter("tenantFilter");
         }
+    } catch (Exception e) {
+        throw new SQLException("Select failed", e);
     }
 }
 ```
 
 ---
 
-## 10. Unit値オブジェクト の JPA マッピング
+## 8. Unit値オブジェクト の JPA マッピング
 
-### 10.1. OriginalDateTime 型
+### 8.1. OriginalDateTime 型
 
 **現在の実装**:
 ```java
@@ -703,7 +588,7 @@ public class SES_AI_M_TENANT extends EntityBase {
 }
 ```
 
-### 10.2. Money 型（必要な場合）
+### 8.2. Money 型（必要な場合）
 
 ```java
 @Converter(autoApply = true)
@@ -721,7 +606,7 @@ public class MoneyConverter implements AttributeConverter<Money, BigDecimal> {
 }
 ```
 
-### 10.3. Role / Plan Enum 型
+### 8.3. Role / Plan Enum 型
 
 ```java
 @Entity
@@ -740,16 +625,17 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
 
 ---
 
-## 11. エラーハンドリング戦略
+## 9. エラーハンドリング戦略
 
-### 11.1. JPA 例外のハンドリング
+### 9.1. JPA 例外のハンドリング
 
 **DataIntegrityViolationException** (一意制約違反など)
 ```java
 try {
-    tenantRepository.save(tenant);
-} catch (DataIntegrityViolationException e) {
-    log.error("Unique constraint violation: {}", e.getMessage());
+    EntityManager entityManager = getEntityManager();
+    entityManager.persist(tenant);
+} catch (PersistenceException e) {
+    log.error("Persist failed: {}", e.getMessage());
     throw new SQLException("レコードが既に存在します", e);
 }
 ```
@@ -758,14 +644,15 @@ try {
 ```java
 public void selectByPk(Connection connection) throws SQLException {
     try {
-        Optional<SES_AI_M_TENANT> result = tenantRepository.findById(this.tenantId);
-        if (result.isEmpty()) {
+        EntityManager entityManager = getEntityManager();
+        SES_AI_M_TENANT result = entityManager.find(SES_AI_M_TENANT.class, this.tenantId);
+        if (result == null) {
             log.warn("Tenant not found: {}", this.tenantId);
             // 呼び出し側が this のフィールドが未設定であることで検知
             return;
         }
         // 結果を this にセット
-        SES_AI_M_TENANT entity = result.get();
+        this.tenantName = result.getTenantName();
         // ...
     } catch (Exception e) {
         throw new SQLException("Select failed", e);
@@ -773,21 +660,7 @@ public void selectByPk(Connection connection) throws SQLException {
 }
 ```
 
-**トランザクション例外**
-```java
-@Transactional(rollbackFor = Exception.class)
-public int insert(Connection connection) throws SQLException {
-    try {
-        SES_AI_M_TENANT saved = tenantRepository.save(this);
-        return 1;
-    } catch (TransactionSystemException e) {
-        log.error("Transaction failed: {}", e.getMessage());
-        throw new SQLException("トランザクションエラー", e);
-    }
-}
-```
-
-### 11.2. Connection パラメータのハンドリング
+### 9.2. Connection パラメータのハンドリング
 
 Entity メソッドは Connection パラメータを受け取るが、JPA では使用しない。
 
@@ -795,9 +668,10 @@ Entity メソッドは Connection パラメータを受け取るが、JPA では
 @Override
 public int insert(Connection connection) throws SQLException {
     // connection パラメータは使用しない（null チェック不要）
-    // 内部的に EntityManager / Session を使用
+    // 内部的に EntityManager を使用
     try {
-        tenantRepository.save(this);
+        EntityManager entityManager = getEntityManager();
+        entityManager.persist(this);
         return 1;
     } catch (Exception e) {
         throw new SQLException("Insert failed", e);
@@ -807,20 +681,42 @@ public int insert(Connection connection) throws SQLException {
 
 ---
 
-## 12. トランザクション管理
+## 10. トランザクション管理
 
-### 12.1. @Transactional アノテーション
+### 10.1. EntityManager でのトランザクション制御
+
+```java
+@Override
+public int insert(Connection connection) throws SQLException {
+    try {
+        EntityManager entityManager = getEntityManager();
+        EntityTransaction transaction = entityManager.getTransaction();
+        
+        transaction.begin();
+        try {
+            entityManager.persist(this);
+            transaction.commit();
+            return 1;
+        } catch (Exception e) {
+            if (transaction.isActive()) {
+                transaction.rollback();
+            }
+            throw new SQLException("Insert failed", e);
+        }
+    } catch (Exception e) {
+        throw new SQLException("Insert failed", e);
+    }
+}
+```
+
+### 10.2. Spring トランザクション管理
+
+Spring を使用する場合は @Transactional を活用：
 
 ```java
 @Service
-@Transactional(
-    rollbackFor = {SQLException.class, Exception.class},
-    propagation = Propagation.REQUIRED
-)
+@Transactional(rollbackFor = {SQLException.class, Exception.class})
 public class TenantService {
-    
-    @Autowired
-    private TenantRepository tenantRepository;
     
     public void registerTenant(SES_AI_M_TENANT tenant) throws SQLException {
         // 自動トランザクション管理
@@ -829,40 +725,11 @@ public class TenantService {
 }
 ```
 
-### 12.2. 明示的なトランザクション制御
-
-```java
-@Service
-public class GroupService {
-    
-    @Autowired
-    private PlatformTransactionManager transactionManager;
-    
-    @Autowired
-    private GroupRepository groupRepository;
-    
-    public void bulkInsert(List<SES_AI_M_GROUP> groups) {
-        TransactionTemplate template = new TransactionTemplate(transactionManager);
-        template.execute(status -> {
-            try {
-                for (SES_AI_M_GROUP group : groups) {
-                    group.insert(null);
-                }
-                return null;
-            } catch (SQLException e) {
-                status.setRollbackOnly();
-                throw new RuntimeException(e);
-            }
-        });
-    }
-}
-```
-
 ---
 
-## 13. Phase 別移行計画
+## 11. Phase 別移行計画
 
-### 13.1. Phase 1: マスタテーブル（本設計書の対象）
+### 11.1. Phase 1: マスタテーブル（本設計書の対象）
 
 **対象Entity**:
 - `SES_AI_M_TENANT`
@@ -873,16 +740,15 @@ public class GroupService {
 
 **実装内容**:
 - @Entity, @Table, @Column アノテーション追加
-- Spring Data JPA Repository 作成
-- Entity メソッド (insert/selectByPk等) の内部実装を JPA に変更
-- pom.xml に Spring Data JPA / Hibernate 依存性追加
+- Entity メソッド (insert/selectByPk等) の内部実装を JPA に変更（EntityManager を直接使用）
+- pom.xml に Hibernate 依存性を保持
 - application.yml に JPA/Hibernate 設定追加
 
 **テスト範囲**:
-- Unit Test: Repository CRUD 動作確認
+- Unit Test: EntityManager CRUD 動作確認
 - IT1 Test: Entity メソッドのシグネチャ互換性確認
 
-### 13.2. Phase 2: トランザクションテーブル（将来）
+### 11.2. Phase 2: トランザクションテーブル（将来）
 
 **対象Entity**:
 - `SES_AI_T_JOB`
@@ -893,10 +759,10 @@ public class GroupService {
 
 **実装内容**:
 - ベクトル検索対応 (Vector型 マッピング)
-- 複雑クエリ対応 (@Query, Native SQL)
+- 複雑クエリ対応 (Native SQL)
 - Pagination 実装
 
-### 13.3. Phase 3: 複雑クエリ最適化（将来）
+### 11.3. Phase 3: 複雑クエリ最適化（将来）
 
 **実装内容**:
 - Native SQL Query への移行
@@ -905,27 +771,27 @@ public class GroupService {
 
 ---
 
-## 14. チェックリスト（実装時）
+## 12. チェックリスト（実装時）
 
-- [ ] pom.xml に Spring Data JPA / Hibernate 依存性を追加
+- [ ] pom.xml から spring-boot-starter-data-jpa を削除
+- [ ] pom.xml に Hibernate 依存性があることを確認
 - [ ] application.yml に JPA/Hibernate 設定を追加
 - [ ] Phase 1 対象の Entity に @Entity, @Table, @Column, @Converter アノテーション追加
-- [ ] Repository インターフェース (extends JpaRepository) を作成
-- [ ] Entity メソッド (insert/selectByPk等) の内部実装を JPA に変更
+- [ ] Entity メソッド (insert/selectByPk等) の内部実装を JPA に変更（EntityManager を直接使用）
 - [ ] AttributeConverter (OriginalDateTime等) を実装
-- [ ] Unit Test で CRUD 動作を確認
+- [ ] Unit Test で EntityManager CRUD 動作を確認
 - [ ] IT1 Test で Entity メソッドのシグネチャ互換性を確認
 - [ ] Hibernate Filters の設定と動作確認
 - [ ] Connection null チェック を削除
 - [ ] SQL文 (INSERT_SQL 等) が削除されていることを確認
+- [ ] Repository ディレクトリが削除されていることを確認
 
 ---
 
-## 15. 参考資料
+## 13. 参考資料
 
-- [Spring Data JPA 公式ドキュメント](https://spring.io/projects/spring-data-jpa)
-- [Hibernate ORM 6.2 User Guide](https://docs.jboss.org/hibernate/orm/6.2/userguide/html_single/Hibernate_User_Guide.html)
-- [PostgreSQL Dialect for Hibernate](https://docs.jboss.org/hibernate/orm/6.2/userguide/html_single/Hibernate_User_Guide.html#database-dialect)
+- [Hibernate ORM 6.4 User Guide](https://docs.jboss.org/hibernate/orm/6.4/userguide/html_single/Hibernate_User_Guide.html)
+- [PostgreSQL Dialect for Hibernate](https://docs.jboss.org/hibernate/orm/6.4/userguide/html_single/Hibernate_User_Guide.html#database-dialect)
 - [PostgreSQL 15 Vector型](https://pgvector.readthedocs.io/)
 
 ---

@@ -19,11 +19,12 @@
 
 **成果物**:
 - Entity クラス (JPA アノテーション追加)
-- Repository インターフェース (Spring Data JPA)
 - AttributeConverter (Unit値オブジェクト対応)
-- pom.xml 更新
+- pom.xml 更新（spring-boot-starter-data-jpa は削除）
 - application.yml 設定追加
 - Unit Test / IT1 Test
+
+**アーキテクチャ**: EntityManager を Entity メソッド内で直接使用（Repository パターン不使用）
 
 ---
 
@@ -89,11 +90,9 @@ public class SES_AI_M_TENANT extends EntityBase {
 
   @Override
   public int insert(Connection connection) throws SQLException {
-    // 内部実装を JPA に変更
-    // (DIコンテナから Repository を取得する実装は別途必要)
     try {
-      // entityManager.persist(this); または
-      // tenantRepository.save(this);
+      EntityManager entityManager = getEntityManager();
+      entityManager.persist(this);
       return 1;
     } catch (Exception e) {
       throw new SQLException("Insert failed", e);
@@ -106,12 +105,13 @@ public class SES_AI_M_TENANT extends EntityBase {
       return;
     }
     try {
-      // Optional<SES_AI_M_TENANT> result = tenantRepository.findById(this.tenantId);
-      // if (result.isPresent()) {
-      //   SES_AI_M_TENANT entity = result.get();
-      //   this.tenantName = entity.getTenantName();
-      //   // ...
-      // }
+      EntityManager entityManager = getEntityManager();
+      SES_AI_M_TENANT result = entityManager.find(SES_AI_M_TENANT.class, this.tenantId);
+      if (result != null) {
+        this.tenantName = result.getTenantName();
+        this.registerDate = result.getRegisterDate();
+        this.registerUser = result.getRegisterUser();
+      }
     } catch (Exception e) {
       throw new SQLException("Select failed", e);
     }
@@ -121,24 +121,6 @@ public class SES_AI_M_TENANT extends EntityBase {
 }
 ```
 
-#### Repository インターフェース
-
-```java
-/**
- * テナント情報マスタの Repository.
- *
- * @author Copel Co., Ltd.
- */
-@Repository
-public interface TenantRepository extends JpaRepository<SES_AI_M_TENANT, String> {
-  // 基本CRUD は自動実装
-  // - save(SES_AI_M_TENANT entity): INSERT / UPDATE
-  // - findById(String tenantId): SELECT by PK
-  // - findAll(): SELECT all
-  // - delete(SES_AI_M_TENANT entity): DELETE
-  // - deleteById(String tenantId): DELETE by PK
-}
-```
 
 #### マッピング確認表
 
@@ -202,7 +184,8 @@ public class SES_AI_M_GROUP extends EntityBase {
   @Override
   public int insert(Connection connection) throws SQLException {
     try {
-      groupRepository.save(this);
+      EntityManager entityManager = getEntityManager();
+      entityManager.persist(this);
       return 1;
     } catch (Exception e) {
       throw new SQLException("Insert failed", e);
@@ -215,39 +198,26 @@ public class SES_AI_M_GROUP extends EntityBase {
       return;
     }
     try {
-      // Hibernate Filter を有効化してから検索
-      // Session session = entityManager.unwrap(Session.class);
-      // session.enableFilter("tenantFilter").setParameter("tenantId", this.tenantId);
-      // Optional<SES_AI_M_GROUP> result = groupRepository.findById(this.fromGroup);
+      EntityManager entityManager = getEntityManager();
+      Session session = entityManager.unwrap(Session.class);
+      session.enableFilter("tenantFilter").setParameter("tenantId", this.tenantId);
+      
+      try {
+        SES_AI_M_GROUP result = entityManager.find(SES_AI_M_GROUP.class, this.fromGroup);
+        if (result != null) {
+          this.groupName = result.getGroupName();
+          this.registerDate = result.getRegisterDate();
+          this.registerUser = result.getRegisterUser();
+        }
+      } finally {
+        session.disableFilter("tenantFilter");
+      }
     } catch (Exception e) {
       throw new SQLException("Select failed", e);
     }
   }
 
   // 同様に updateByPk(), deleteByPk() を実装
-}
-```
-
-#### Repository インターフェース
-
-```java
-/**
- * 送信元グループマスタの Repository.
- *
- * @author Copel Co., Ltd.
- */
-@Repository
-public interface GroupRepository extends JpaRepository<SES_AI_M_GROUP, String> {
-  
-  /**
-   * fromGroup と tenantId でレコードを検索します.
-   * （Hibernate Filter により自動で tenant_id 条件が追加される）
-   *
-   * @param fromGroup 送信元グループ
-   * @param tenantId テナントID
-   * @return 検索結果
-   */
-  Optional<SES_AI_M_GROUP> findByFromGroupAndTenantId(String fromGroup, String tenantId);
 }
 ```
 
@@ -313,7 +283,8 @@ public class SES_AI_M_SENDER extends EntityBase {
   @Override
   public int insert(Connection connection) throws SQLException {
     try {
-      senderRepository.save(this);
+      EntityManager entityManager = getEntityManager();
+      entityManager.persist(this);
       return 1;
     } catch (Exception e) {
       throw new SQLException("Insert failed", e);
@@ -322,21 +293,23 @@ public class SES_AI_M_SENDER extends EntityBase {
 
   @Override
   public void selectByPk(Connection connection) throws SQLException {
-    // 実装省略（selectByPkWithTenant() 内で実装）
+    // 実装省略
   }
 
   @Override
   public boolean updateByPk(Connection connection) throws SQLException {
     // 実装省略
+    return false;
   }
 
   @Override
   public boolean deleteByPk(Connection connection) throws SQLException {
     // 実装省略
+    return false;
   }
 
   /**
-   * 送信者マスタに該当IDの送信者が存在するかを判定します（Entity メソッド互換性保持）.
+   * 送信者マスタに該当IDの送信者が存在するかを判定します.
    *
    * @param connection DB接続
    * @return 存在する場合 true
@@ -344,41 +317,13 @@ public class SES_AI_M_SENDER extends EntityBase {
    */
   public boolean isExist(Connection connection) throws SQLException {
     try {
-      return senderRepository.existsById(this.fromId);
+      EntityManager entityManager = getEntityManager();
+      SES_AI_M_SENDER result = entityManager.find(SES_AI_M_SENDER.class, this.fromId);
+      return result != null;
     } catch (Exception e) {
       throw new SQLException("Exists check failed", e);
     }
   }
-}
-```
-
-#### Repository インターフェース
-
-```java
-/**
- * 送信者マスタの Repository.
- *
- * @author Copel Co., Ltd.
- */
-@Repository
-public interface SenderRepository extends JpaRepository<SES_AI_M_SENDER, String> {
-  
-  /**
-   * 送信者IDとテナントIDで送信者を検索.
-   *
-   * @param fromId 送信者ID
-   * @param tenantId テナントID
-   * @return 検索結果
-   */
-  Optional<SES_AI_M_SENDER> findByFromIdAndTenantId(String fromId, String tenantId);
-  
-  /**
-   * 送信者IDの存在確認.
-   *
-   * @param fromId 送信者ID
-   * @return 存在する場合 true
-   */
-  boolean existsById(String fromId);
 }
 ```
 
@@ -459,7 +404,8 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
   @Override
   public int insert(Connection connection) throws SQLException {
     try {
-      userRepository.save(this);
+      EntityManager entityManager = getEntityManager();
+      entityManager.persist(this);
       return 1;
     } catch (Exception e) {
       throw new SQLException("Insert failed", e);
@@ -472,10 +418,22 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
       return;
     }
     try {
-      // Filter を有効化して selectByPk
-      // Session session = entityManager.unwrap(Session.class);
-      // session.enableFilter("tenantFilter").setParameter("tenantId", this.tenantId);
-      // Optional<SES_AI_WEBAPP_M_USER> result = userRepository.findById(this.userId);
+      EntityManager entityManager = getEntityManager();
+      Session session = entityManager.unwrap(Session.class);
+      session.enableFilter("tenantFilter").setParameter("tenantId", this.tenantId);
+      
+      try {
+        SES_AI_WEBAPP_M_USER result = entityManager.find(SES_AI_WEBAPP_M_USER.class, this.userId);
+        if (result != null) {
+          this.userName = result.getUserName();
+          this.role = result.getRole();
+          this.plan = result.getPlan();
+          this.registerDate = result.getRegisterDate();
+          this.registerUser = result.getRegisterUser();
+        }
+      } finally {
+        session.disableFilter("tenantFilter");
+      }
     } catch (Exception e) {
       throw new SQLException("Select failed", e);
     }
@@ -483,7 +441,6 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
 
   /**
    * ユーザーをユーザーID で取得（テナントID条件なし、システム管理者用）.
-   * シグネチャ互換性のため削除しない.
    *
    * @param connection DBコネクション
    * @throws SQLException SQL実行エラー
@@ -493,8 +450,15 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
       return;
     }
     try {
-      // Filter を無効化して検索
-      // Optional<SES_AI_WEBAPP_M_USER> result = userRepository.findById(this.userId);
+      EntityManager entityManager = getEntityManager();
+      SES_AI_WEBAPP_M_USER result = entityManager.find(SES_AI_WEBAPP_M_USER.class, this.userId);
+      if (result != null) {
+        this.userName = result.getUserName();
+        this.role = result.getRole();
+        this.plan = result.getPlan();
+        this.registerDate = result.getRegisterDate();
+        this.registerUser = result.getRegisterUser();
+      }
     } catch (Exception e) {
       throw new SQLException("Select failed", e);
     }
@@ -537,36 +501,6 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
       return false;
     }
   }
-}
-```
-
-#### Repository インターフェース
-
-```java
-/**
- * Webアプリユーザーマスタの Repository.
- *
- * @author Copel Co., Ltd.
- */
-@Repository
-public interface UserRepository extends JpaRepository<SES_AI_WEBAPP_M_USER, String> {
-  
-  /**
-   * ユーザーIDとテナントIDでユーザーを検索.
-   *
-   * @param userId ユーザーID
-   * @param tenantId テナントID
-   * @return 検索結果
-   */
-  Optional<SES_AI_WEBAPP_M_USER> findByUserIdAndTenantId(String userId, String tenantId);
-  
-  /**
-   * ユーザーIDのみで検索（テナント条件なし、システム管理者用）.
-   *
-   * @param userId ユーザーID
-   * @return 検索結果
-   */
-  Optional<SES_AI_WEBAPP_M_USER> findByUserIdWithoutTenantFilter(String userId);
 }
 ```
 
@@ -662,7 +596,8 @@ public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
   @Override
   public int insert(Connection connection) throws SQLException {
     try {
-      notificationRepository.save(this);
+      EntityManager entityManager = getEntityManager();
+      entityManager.persist(this);
       return 1;
     } catch (Exception e) {
       throw new SQLException("Insert failed", e);
@@ -675,7 +610,18 @@ public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
       return;
     }
     try {
-      // notificationRepository.findById(this.notificationId);
+      EntityManager entityManager = getEntityManager();
+      SES_AI_WEBAPP_M_NOTIFICATION result = entityManager.find(SES_AI_WEBAPP_M_NOTIFICATION.class, this.notificationId);
+      if (result != null) {
+        this.userId = result.getUserId();
+        this.deviceType = result.getDeviceType();
+        this.deviceName = result.getDeviceName();
+        this.pushNotificationEndpoint = result.getPushNotificationEndpoint();
+        this.enabled = result.getEnabled();
+        this.notifyAllMatch = result.getNotifyAllMatch();
+        this.registerDate = result.getRegisterDate();
+        this.registerUser = result.getRegisterUser();
+      }
     } catch (Exception e) {
       throw new SQLException("Select failed", e);
     }
@@ -687,7 +633,8 @@ public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
       return false;
     }
     try {
-      notificationRepository.save(this);
+      EntityManager entityManager = getEntityManager();
+      entityManager.merge(this);
       return true;
     } catch (Exception e) {
       throw new SQLException("Update failed", e);
@@ -700,34 +647,17 @@ public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
       return false;
     }
     try {
-      notificationRepository.deleteById(this.notificationId);
-      return true;
+      EntityManager entityManager = getEntityManager();
+      SES_AI_WEBAPP_M_NOTIFICATION result = entityManager.find(SES_AI_WEBAPP_M_NOTIFICATION.class, this.notificationId);
+      if (result != null) {
+        entityManager.remove(result);
+        return true;
+      }
+      return false;
     } catch (Exception e) {
       throw new SQLException("Delete failed", e);
     }
   }
-}
-```
-
-#### Repository インターフェース
-
-```java
-/**
- * プッシュ通知デバイスマスタの Repository.
- *
- * @author Copel Co., Ltd.
- */
-@Repository
-public interface NotificationRepository extends JpaRepository<SES_AI_WEBAPP_M_NOTIFICATION, String> {
-  
-  /**
-   * ユーザーIDで通知デバイスを検索.
-   *
-   * @param userId ユーザーID
-   * @param tenantId テナントID
-   * @return 通知デバイスリスト
-   */
-  List<SES_AI_WEBAPP_M_NOTIFICATION> findByUserIdAndTenantId(String userId, String tenantId);
 }
 ```
 
@@ -801,179 +731,71 @@ public LocalDateTime toLocalDateTime() {
 
 ## 4. pom.xml 修正案
 
-### 4.1. 追加する依存性
+### 4.1. 削除する依存性
+
+spring-boot-starter-data-jpa を削除：
 
 ```xml
-<!-- Spring Data JPA -->
+<!-- 削除対象 -->
 <dependency>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-data-jpa</artifactId>
-    <version>3.1.5</version>
 </dependency>
+```
 
+### 4.2. 保持する依存性
+
+以下は既に pom.xml に含まれており、保持：
+
+```xml
 <!-- Hibernate ORM -->
 <dependency>
     <groupId>org.hibernate.orm</groupId>
     <artifactId>hibernate-core</artifactId>
-    <version>6.2.13</version>
+    <version>6.4.4.Final</version>
 </dependency>
 
-<!-- Spring ORM -->
+<!-- PostgreSQL JDBC -->
 <dependency>
-    <groupId>org.springframework</groupId>
-    <artifactId>spring-orm</artifactId>
-    <version>6.0.12</version>
+    <groupId>org.postgresql</groupId>
+    <artifactId>postgresql</artifactId>
+    <version>42.7.5</version>
 </dependency>
-
-<!-- Jakarta Persistence API -->
-<dependency>
-    <groupId>jakarta.persistence</groupId>
-    <artifactId>jakarta.persistence-api</artifactId>
-    <version>3.1.0</version>
-</dependency>
-```
-
-### 4.2. 修正後の dependencies セクション（全体）
-
-```xml
-<dependencies>
-    <!-- AWS SDK for S3 -->
-    <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>s3</artifactId>
-    </dependency>
-
-    <!-- ... 既存依存性 ... -->
-
-    <!-- Spring Data JPA (新規) -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-data-jpa</artifactId>
-        <version>3.1.5</version>
-    </dependency>
-
-    <!-- Hibernate ORM (新規) -->
-    <dependency>
-        <groupId>org.hibernate.orm</groupId>
-        <artifactId>hibernate-core</artifactId>
-        <version>6.2.13</version>
-    </dependency>
-
-    <!-- Spring ORM (新規) -->
-    <dependency>
-        <groupId>org.springframework</groupId>
-        <artifactId>spring-orm</artifactId>
-        <version>6.0.12</version>
-    </dependency>
-
-    <!-- Jakarta Persistence API (新規) -->
-    <dependency>
-        <groupId>jakarta.persistence</groupId>
-        <artifactId>jakarta.persistence-api</artifactId>
-        <version>3.1.0</version>
-    </dependency>
-
-    <!-- PostgreSQL JDBC (既存・確認用) -->
-    <dependency>
-        <groupId>org.postgresql</groupId>
-        <artifactId>postgresql</artifactId>
-        <version>42.7.5</version>
-    </dependency>
-
-    <!-- JUnit 5 (既存・確認用) -->
-    <dependency>
-        <groupId>org.junit.jupiter</groupId>
-        <artifactId>junit-jupiter-api</artifactId>
-        <version>5.9.3</version>
-        <scope>test</scope>
-    </dependency>
-
-    <!-- ... テスト関連依存性 ... -->
-</dependencies>
 ```
 
 ---
 
 ## 5. application.yml 設定案
 
-### 5.1. 最小限の設定
+### 5.1. 簡潔な設定
 
 ```yaml
 spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/ses_ai
-    username: postgres
-    password: password
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
-  
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQL15Dialect
-    hibernate:
-      ddl-auto: validate  # 開発:create-drop, 本番:validate
-    properties:
-      hibernate:
-        show_sql: false
-        format_sql: true
-        use_sql_comments: true
-    open-in-view: false
-```
-
-### 5.2. 詳細設定（開発環境用）
-
-```yaml
-spring:
-  application:
-    name: SesAiAssistantCore
-  
-  datasource:
-    url: jdbc:postgresql://localhost:5432/ses_ai
-    username: postgres
-    password: password
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
-  
-  jpa:
-    database-platform: org.hibernate.dialect.PostgreSQL15Dialect
     hibernate:
       ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
-        format_sql: true
-        use_sql_comments: true
-        jdbc:
-          batch_size: 20
-          fetch_size: 50
-        order_inserts: true
-        order_updates: true
-        enable_lazy_load_no_trans: true
-    open-in-view: false
-
-logging:
-  level:
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+        dialect: org.hibernate.dialect.PostgreSQL15Dialect
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ses_ai_assistant
+    username: postgres
+    password: password
+    driver-class-name: org.postgresql.Driver
 ```
 
 ---
 
 ## 6. ファイル配置構成
 
-Phase 1 実装完了時の ディレクトリ構成（新規ファイル）:
+Phase 1 実装完了時の ディレクトリ構成（修正ファイル）:
 
 ```
 SesAiAssistantCore/
 ├── docs/
-│   ├── JPA移行設計.md
-│   └── Phase1_マスタテーブルJPA実装計画.md (本ファイル)
+│   ├── JPA移行設計.md (修正)
+│   └── Phase1_マスタテーブルJPA実装計画.md (本ファイル、修正)
 │
 ├── src/main/java/copel/sesproductpackage/core/
 │   ├── database/
@@ -984,19 +806,13 @@ SesAiAssistantCore/
 │   │   ├── SES_AI_WEBAPP_M_NOTIFICATION.java (修正)
 │   │   ├── base/
 │   │   │   └── EntityBase.java (修正なし)
-│   │   └── repository/ (新規ディレクトリ)
-│   │       ├── TenantRepository.java (新規)
-│   │       ├── GroupRepository.java (新規)
-│   │       ├── SenderRepository.java (新規)
-│   │       ├── UserRepository.java (新規)
-│   │       └── NotificationRepository.java (新規)
+│   │   └── repository/ (削除)
 │   │
 │   └── converter/ (新規ディレクトリ)
 │       └── OriginalDateTimeConverter.java (新規)
 │
 ├── src/main/resources/
-│   ├── application.yml (修正 JPA設定追加)
-│   └── application-dev.yml (オプション)
+│   └── application.yml (修正 JPA設定追加)
 │
 ├── src/test/java/copel/sesproductpackage/core/
 │   ├── database/
@@ -1009,8 +825,11 @@ SesAiAssistantCore/
 │   └── converter/
 │       └── OriginalDateTimeConverterTest.java (新規)
 │
-└── pom.xml (修正 依存性追加)
+└── pom.xml (修正 spring-boot-starter-data-jpa削除)
 ```
+
+**削除ファイル**:
+- `src/main/java/copel/sesproductpackage/core/database/repository/` ディレクトリ全体
 
 ---
 
@@ -1048,43 +867,39 @@ SesAiAssistantCore/
 - [ ] SES_AI_WEBAPP_M_NOTIFICATION に @Entity, @Table アノテーション追加
 - [ ] 既存の SQL文 (INSERT_SQL, SELECT_SQL 等) が削除されたことを確認
 
-### Phase 1B: Repository インターフェース作成
-
-- [ ] TenantRepository を作成 (extends JpaRepository)
-- [ ] GroupRepository を作成
-- [ ] SenderRepository を作成
-- [ ] UserRepository を作成
-- [ ] NotificationRepository を作成
-- [ ] 各 Repository に必要な Custom Query (@Query) メソッドを追加
-
-### Phase 1C: AttributeConverter 実装
+### Phase 1B: AttributeConverter 実装
 
 - [ ] OriginalDateTimeConverter を実装
 - [ ] OriginalDateTime クラスに toLocalDateTime() メソッドを追加
 
-### Phase 1D: pom.xml / application.yml 更新
+### Phase 1C: pom.xml / application.yml 更新
 
-- [ ] pom.xml に Spring Data JPA 依存性を追加
-- [ ] pom.xml に Hibernate ORM 依存性を追加
+- [ ] pom.xml から spring-boot-starter-data-jpa を削除
+- [ ] pom.xml に Hibernate ORM が含まれていることを確認
 - [ ] application.yml に JPA/Hibernate 設定を追加
 - [ ] PostgreSQL Dialect を確認
 
-### Phase 1E: Entity メソッド実装
+### Phase 1D: Entity メソッド実装
 
-- [ ] insert() メソッドの内部実装を JPA に変更（Repository.save() 呼び出し）
-- [ ] selectByPk() メソッドの内部実装を JPA に変更（Repository.findById() 呼び出し）
-- [ ] updateByPk() メソッドの内部実装を JPA に変更
-- [ ] deleteByPk() メソッドの内部実装を JPA に変更
+- [ ] insert() メソッドの内部実装を JPA に変更（EntityManager.persist() 呼び出し）
+- [ ] selectByPk() メソッドの内部実装を JPA に変更（EntityManager.find() 呼び出し）
+- [ ] updateByPk() メソッドの内部実装を JPA に変更（EntityManager.merge() 呼び出し）
+- [ ] deleteByPk() メソッドの内部実装を JPA に変更（EntityManager.remove() 呼び出し）
 - [ ] 各メソッドで Connection パラメータが使用されないことを確認
 - [ ] 例外処理が SQLException に統一されていることを確認
+- [ ] テナントフィルタが必要な Entity では Hibernate Filter を有効化
 
-### Phase 1F: テスト実装
+### Phase 1E: テスト実装
 
-- [ ] Unit Test で Repository CRUD を確認
+- [ ] Unit Test で EntityManager CRUD を確認
 - [ ] IT1 Test で Entity メソッドのシグネチャ互換性を確認
 - [ ] Hibernate Filter の テナント隔離 動作を確認
 - [ ] mvn clean install で全テスト PASS を確認
 - [ ] JaCoCo カバレッジ 100% を確認
+
+### Phase 1F: Repository ディレクトリ削除
+
+- [ ] src/main/java/copel/sesproductpackage/core/database/repository/ を削除
 
 ---
 
@@ -1119,7 +934,8 @@ Entity メソッドのシグネチャ（引数・戻り値）は **絶対に変�
 public int insert(Connection connection) throws SQLException {
     // connection は使用しない（null を渡されることもある）
     try {
-        repository.save(this);
+        EntityManager entityManager = getEntityManager();
+        entityManager.persist(this);
         return 1;
     } catch (Exception e) {
         throw new SQLException("Insert failed", e);
@@ -1127,7 +943,20 @@ public int insert(Connection connection) throws SQLException {
 }
 ```
 
-### 9.4. トランザクション管理
+### 9.4. EntityManager の取得
+
+Entity メソッド内で EntityManager を取得する方法：
+
+```java
+// DIコンテナから取得（推奨）
+EntityManager entityManager = getEntityManager();
+
+// または Spring のコンテキストから取得
+ApplicationContext context = SpringContextHolder.getContext();
+EntityManager entityManager = context.getBean(EntityManager.class);
+```
+
+### 9.5. トランザクション管理
 
 Entity メソッドは @Transactional を持たない。呼び出し側で @Transactional を設定:
 
@@ -1148,12 +977,13 @@ public class TenantService {
 実装完了時に以下を確認:
 
 - [ ] 5つの Entity に @Entity アノテーション有
-- [ ] 5つの Repository インターフェース有
 - [ ] AttributeConverter (OriginalDateTime) 実装済み
-- [ ] pom.xml に Spring Data JPA 依存性追加
+- [ ] pom.xml から spring-boot-starter-data-jpa が削除
+- [ ] pom.xml に Hibernate 依存性確認
 - [ ] application.yml に JPA/Hibernate 設定有
-- [ ] Entity メソッド内部が JPA 実装に変更済み
-- [ ] Unit Test で Repository CRUD PASS
+- [ ] Entity メソッド内部が EntityManager 直接呼び出しに変更済み
+- [ ] repository/ ディレクトリが削除済み
+- [ ] Unit Test で EntityManager CRUD PASS
 - [ ] IT1 Test で Entity メソッド互換性 PASS
 - [ ] mvn clean install で全ビルド PASS
 - [ ] JaCoCo カバレッジ 100% 達成

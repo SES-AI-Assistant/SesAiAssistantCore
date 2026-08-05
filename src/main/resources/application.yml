@@ -6,10 +6,6 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQL15Dialect
-        jdbc:
-          batch_size: 20
-        order_inserts: true
-        order_updates: true
   datasource:
     url: jdbc:postgresql://localhost:5432/ses_ai_assistant
     username: postgres
