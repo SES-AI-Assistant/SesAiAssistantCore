@@ -537,6 +537,7 @@ public class Gemini implements Transformer {
   @NoArgsConstructor
   @AllArgsConstructor
   @JsonInclude(JsonInclude.Include.NON_NULL)
+  @JsonIgnoreProperties(ignoreUnknown = true)
   public static class GeminiEmbeddingResponse {
     private Embedding embedding;
 
@@ -582,6 +583,7 @@ public class Gemini implements Transformer {
   @NoArgsConstructor
   @AllArgsConstructor
   @JsonInclude(JsonInclude.Include.NON_NULL)
+  @JsonIgnoreProperties(ignoreUnknown = true)
   public static class GeminiGenerateResponse {
     private List<Candidate> candidates;
   }
