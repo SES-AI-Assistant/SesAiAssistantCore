@@ -203,33 +203,4 @@ class OpenAITest extends HttpTestBase {
     e = assertThrows(RuntimeException.class, () -> api.generate("hi"));
     assertTrue(e.getMessage().contains("500"));
   }
-
-  @Test
-  void testFineTuningSuccess() throws Exception {
-    String uploadResponse = "{\"id\":\"file-123\"}";
-    when(sharedMockConn.getResponseCode()).thenReturn(200, 200);
-    when(sharedMockConn.getInputStream())
-        .thenReturn(
-            new ByteArrayInputStream(uploadResponse.getBytes()),
-            new ByteArrayInputStream("{}".getBytes()));
-    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
-
-    OpenAI api = new OpenAI("key");
-    api.fineTuning("data");
-    verify(sharedMockConn, atLeastOnce()).getOutputStream();
-  }
-
-  @Test
-  void testFineTuning_ErrorOnJobStart() throws Exception {
-    String uploadResponse = "{\"id\":\"file-123\"}";
-    // 1回目: upload OK, 2回目: fine-tune job start NG
-    when(sharedMockConn.getResponseCode()).thenReturn(200, 500);
-    when(sharedMockConn.getInputStream())
-        .thenReturn(new ByteArrayInputStream(uploadResponse.getBytes()));
-    when(sharedMockConn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
-
-    OpenAI api = new OpenAI("key");
-    RuntimeException e = assertThrows(RuntimeException.class, () -> api.fineTuning("data"));
-    assertTrue(e.getMessage().contains("Fine-tuning job start HTTP 500"));
-  }
 }

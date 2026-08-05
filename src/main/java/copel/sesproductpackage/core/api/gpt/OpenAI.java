@@ -1,11 +1,9 @@
 package copel.sesproductpackage.core.api.gpt;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY;
 import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.ApiType;
 import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.Provider;
@@ -42,7 +40,7 @@ public class OpenAI implements Transformer {
   private static final String COMPLETION_API_URL = Properties.get("OPEN_AI_COMPLETION_API_URL");
 
   /** OpenAIの質問応答を処理するモデル名のデフォルト値. */
-  private static final String COMPLETION_MODEL_DEFAULT = OpenAIModel.GPT_3_5_TURBO.getModelName();
+  private static final String COMPLETION_MODEL_DEFAULT = "gpt-4o-mini";
 
   /** OpenAIの質問応答を処理する際のtemperatureパラメータのデフォルト値. */
   private static final Float COMPLETION_TEMPERATURE;
@@ -130,7 +128,7 @@ public class OpenAI implements Transformer {
 
     log.info("【OpenAI】{}文字のエンベディング処理を実行しました", inputString.length());
     OpenAIEmbeddingRequest embeddingRequest =
-        new OpenAIEmbeddingRequest(inputString, EMBEDDING_MODEL);
+        new OpenAIEmbeddingRequest(inputString, EMBEDDING_MODEL, "float", "SesAiAssitantCore");
     String jsonBody = OBJECT_MAPPER.writeValueAsString(embeddingRequest);
     try (OutputStream os = conn.getOutputStream()) {
       byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
@@ -192,7 +190,8 @@ public class OpenAI implements Transformer {
 
     Message userMessage = new Message("user", prompt);
     OpenAIChatCompletionRequest chatRequest =
-        new OpenAIChatCompletionRequest(this.completionModel, List.of(userMessage), temperature);
+        new OpenAIChatCompletionRequest(
+            this.completionModel, List.of(userMessage), temperature, null);
     String jsonBody = OBJECT_MAPPER.writeValueAsString(chatRequest);
     try (OutputStream os = conn.getOutputStream()) {
       byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
@@ -234,77 +233,11 @@ public class OpenAI implements Transformer {
    *
    * @param trainingData ファインチューニング用データ（文字列形式）
    * @throws IOException
+   * @deprecated 現在のシステムでは使用されていません。将来的な実装に備えて保持されています。
    */
+  @Deprecated
   public void fineTuning(final String trainingData) throws IOException {
-    // 1. JSONLフォーマットに変換（各行をObjectMapperで構築）
-    ObjectMapper objectMapper = new ObjectMapper();
-    ObjectNode systemMsg = objectMapper.createObjectNode();
-    ArrayNode systemMessages = systemMsg.putArray("messages");
-    ObjectNode systemPart = systemMessages.addObject();
-    systemPart.put("role", "system");
-    systemPart.put("content", "ファインチューニングデータ");
-
-    ObjectNode userMsg = objectMapper.createObjectNode();
-    ArrayNode userMessages = userMsg.putArray("messages");
-    ObjectNode userPart = userMessages.addObject();
-    userPart.put("role", "user");
-    userPart.put("content", trainingData);
-    ObjectNode assistantPart = userMessages.addObject();
-    assistantPart.put("role", "assistant");
-    assistantPart.put("content", "OK");
-
-    String jsonlData =
-        objectMapper.writeValueAsString(systemMsg)
-            + "\n"
-            + objectMapper.writeValueAsString(userMsg);
-
-    // 2. OpenAI にデータをアップロード
-    URL fileUrl = new URL(FILE_UPLOAD_URL);
-    HttpURLConnection fileConn = (HttpURLConnection) fileUrl.openConnection();
-    fileConn.setRequestMethod("POST");
-    fileConn.setRequestProperty("Authorization", "Bearer " + this.apiKey);
-    fileConn.setRequestProperty("Content-Type", "application/json");
-    fileConn.setDoOutput(true);
-
-    ObjectNode fileRootNode = objectMapper.createObjectNode();
-    fileRootNode.put("purpose", "fine-tune");
-    fileRootNode.put("file", jsonlData);
-    String jsonBody = objectMapper.writeValueAsString(fileRootNode);
-    try (OutputStream os = fileConn.getOutputStream()) {
-      byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
-      os.write(input, 0, input.length);
-    }
-
-    int fileResponseCode = fileConn.getResponseCode();
-    checkResponseCode(fileConn, fileResponseCode);
-
-    String fileResponse = readResponse(fileConn);
-    JsonNode fileJson = objectMapper.readTree(fileResponse);
-    String fileId = fileJson.get("id").asText();
-
-    // 3. ファインチューニングジョブを開始
-    URL fineTuneUrl = new URL(FINE_TUNE_URL);
-    HttpURLConnection fineTuneConn = (HttpURLConnection) fineTuneUrl.openConnection();
-    fineTuneConn.setRequestMethod("POST");
-    fineTuneConn.setRequestProperty("Authorization", "Bearer " + this.apiKey);
-    fineTuneConn.setRequestProperty("Content-Type", "application/json");
-    fineTuneConn.setDoOutput(true);
-
-    ObjectNode fineTuneRootNode = objectMapper.createObjectNode();
-    fineTuneRootNode.put("training_file", fileId);
-    fineTuneRootNode.put("model", this.completionModel);
-    String fineTuneBody = objectMapper.writeValueAsString(fineTuneRootNode);
-    try (OutputStream os = fineTuneConn.getOutputStream()) {
-      os.write(fineTuneBody.getBytes(StandardCharsets.UTF_8));
-    }
-
-    int responseCode = fineTuneConn.getResponseCode();
-    if (responseCode != 200) {
-      String errBody = readErrorResponseBody(fineTuneConn);
-      fineTuneConn.disconnect();
-      throw new RuntimeException(
-          formatOpenAiHttpError("Fine-tuning job start HTTP " + responseCode, errBody));
-    }
+    throw new UnsupportedOperationException("fineTuning は現在のシステムではサポートされていません");
   }
 
   /** OpenAI API エラー時のレスポンス本文（JSON）を読み取ります。成功時は {@code null} です。 */
@@ -430,12 +363,18 @@ public class OpenAI implements Transformer {
     private String input;
 
     private String model;
+
+    @JsonProperty("encoding_format")
+    private String encodingFormat;
+
+    private String user;
   }
 
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
   @JsonInclude(JsonInclude.Include.NON_NULL)
+  @JsonIgnoreProperties(ignoreUnknown = true)
   public static class EmbeddingData {
     private List<Double> embedding;
 
@@ -463,6 +402,7 @@ public class OpenAI implements Transformer {
   @NoArgsConstructor
   @AllArgsConstructor
   @JsonInclude(JsonInclude.Include.NON_NULL)
+  @JsonIgnoreProperties(ignoreUnknown = true)
   public static class OpenAIEmbeddingResponse {
     private List<EmbeddingData> data;
 
@@ -493,12 +433,16 @@ public class OpenAI implements Transformer {
     private List<Message> messages;
 
     private Float temperature;
+
+    @JsonProperty("max_completion_tokens")
+    private Integer maxCompletionTokens;
   }
 
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
   @JsonInclude(JsonInclude.Include.NON_NULL)
+  @JsonIgnoreProperties(ignoreUnknown = true)
   public static class Choice {
     private Integer index;
 
@@ -512,6 +456,7 @@ public class OpenAI implements Transformer {
   @NoArgsConstructor
   @AllArgsConstructor
   @JsonInclude(JsonInclude.Include.NON_NULL)
+  @JsonIgnoreProperties(ignoreUnknown = true)
   public static class OpenAIChatCompletionResponse {
     private String id;
 
