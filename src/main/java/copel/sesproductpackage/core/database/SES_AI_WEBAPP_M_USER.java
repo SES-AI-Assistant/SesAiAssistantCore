@@ -1,11 +1,18 @@
 package copel.sesproductpackage.core.database;
 
-import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
+import copel.sesproductpackage.core.database.converter.OriginalDateTimeConverter;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Permission;
 import copel.sesproductpackage.core.unit.Plan;
 import copel.sesproductpackage.core.unit.Role;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Id;
+import jakarta.persistence.PersistenceException;
+import jakarta.persistence.Table;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashSet;
@@ -17,65 +24,68 @@ import lombok.ToString;
 /**
  * システムユーザーマスタテーブルのエンティティ.
  *
+ * <p>JPA マッピング対応。システム管理者向けユーザー情報を管理します。
+ *
  * @author Copel Co., Ltd.
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
+@Entity
+@Table(name = "SES_AI_WEBAPP_M_USER")
 public class SES_AI_WEBAPP_M_USER extends EntityBase {
 
+  /** static EntityManager フィールド */
+  private static EntityManager entityManager;
+
+  /** 【PK】 ユーザーID / user_id */
+  @Id
+  @Column(name = "user_id")
+  private String userId;
+
+  /** ユーザー名 / user_name */
+  @Column(name = "user_name")
+  private String userName;
+
+  /** ロール / role_cd */
+  @Column(name = "role_cd")
+  private Role role;
+
+  /** プラン / plan_cd */
+  @Column(name = "plan_cd")
+  private Plan plan;
+
+  /** 登録日時 / register_date */
+  @Column(name = "register_date")
+  @Convert(converter = OriginalDateTimeConverter.class)
+  private OriginalDateTime registerDate;
+
+  /** 登録ユーザー / register_user */
+  @Column(name = "register_user")
+  private String registerUser;
+
+  /**
+   * コンストラクタ.
+   *
+   * @param tenantId テナントID
+   */
   public SES_AI_WEBAPP_M_USER(String tenantId) {
     super(tenantId);
+  }
+
+  /**
+   * EntityManager を設定します.
+   *
+   * @param em EntityManager
+   */
+  public static void setEntityManager(EntityManager em) {
+    entityManager = em;
   }
 
   /** tenantIdをあとから設定できるコンストラクタ（ログイン時のユーザーID検索時など）. */
   public SES_AI_WEBAPP_M_USER() {
     super("_temp_");
   }
-
-  /** INSERT文. */
-  private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_WEBAPP_M_USER (user_id, user_name, role_cd, plan_cd, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?)";
-
-  /** SELECT文. */
-  private static final String SELECT_SQL =
-      "SELECT user_id, user_name, role_cd, plan_cd, register_date, register_user, tenant_id FROM SES_AI_WEBAPP_M_USER WHERE user_id = ? AND tenant_id = ?";
-
-  /** SELECT文（tenant_id条件なし）. */
-  private static final String SELECT_WITHOUT_TENANT_ID_SQL =
-      "SELECT user_id, user_name, role_cd, plan_cd, register_date, register_user, tenant_id FROM SES_AI_WEBAPP_M_USER WHERE user_id = ?";
-
-  /** UPDATE文. */
-  private static final String UPDATE_SQL =
-      "UPDATE SES_AI_WEBAPP_M_USER SET user_id = ?, user_name = ?, role_cd = ?, plan_cd = ?, register_date = ?, register_user = ? WHERE user_id = ? AND tenant_id = ?";
-
-  /** UPDATE文（tenant_id絞込み条件なし、システム管理者用）. */
-  private static final String UPDATE_WITHOUT_TENANT_ID_SQL =
-      "UPDATE SES_AI_WEBAPP_M_USER SET user_id = ?, user_name = ?, role_cd = ?, plan_cd = ?, register_date = ?, register_user = ?, tenant_id = ? WHERE user_id = ?";
-
-  /** DELETE文. */
-  private static final String DELETE_SQL =
-      "DELETE FROM SES_AI_WEBAPP_M_USER WHERE user_id = ? AND tenant_id = ?";
-
-  /** DELETE文（tenant_id絞込み条件なし、システム管理者用）. */
-  private static final String DELETE_WITHOUT_TENANT_ID_SQL =
-      "DELETE FROM SES_AI_WEBAPP_M_USER WHERE user_id = ?";
-
-  /** 【PK】 ユーザーID* / user_id */
-  @Column(required = true, primary = true, physicalName = "user_id", logicalName = "ユーザーID")
-  private String userId;
-
-  /** ユーザー名 / user_name */
-  @Column(physicalName = "user_name", logicalName = "ユーザー名")
-  private String userName;
-
-  /** ロール / role_cd */
-  @Column(physicalName = "role_cd", logicalName = "ロール")
-  private Role role;
-
-  /** プラン / plan_cd */
-  @Column(physicalName = "plan_cd", logicalName = "プラン")
-  private Plan plan;
 
   /**
    * このユーザーがシステム利用可能であるかどうかを判定します.
@@ -128,18 +138,16 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
 
   @Override
   public int insert(Connection connection) throws SQLException {
-    return executeInsertWithoutTenantFilter(
-        connection,
-        INSERT_SQL,
-        (stmt) -> {
-          stmt.setString(1, this.userId);
-          stmt.setString(2, this.userName);
-          stmt.setString(3, this.role == null ? null : this.role.getCode());
-          stmt.setString(4, this.plan == null ? null : this.plan.getCode());
-          stmt.setTimestamp(5, this.registerDate == null ? null : this.registerDate.toTimestamp());
-          stmt.setString(6, this.registerUser);
-        },
-        "SES_AI_WEBAPP_M_USER.insert");
+    if (entityManager == null) {
+      throw new SQLException("EntityManager not initialized");
+    }
+    try {
+      entityManager.persist(this);
+      entityManager.flush();
+      return 1;
+    } catch (PersistenceException e) {
+      throw new SQLException("Failed to insert: " + e.getMessage(), e);
+    }
   }
 
   @Override
@@ -147,23 +155,23 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
     if (this.userId == null) {
       return;
     }
-    executeSelectByPkWithoutTenantFilter(
-        connection,
-        SELECT_SQL,
-        (stmt) -> {
-          stmt.setString(1, this.userId);
-          stmt.setString(2, this.tenantId);
-        },
-        (rs) -> {
-          this.userId = rs.getString("user_id");
-          this.userName = rs.getString("user_name");
-          this.role = Role.getEnum(rs.getString("role_cd"));
-          this.plan = Plan.getEnum(rs.getString("plan_cd"));
-          this.registerDate = new OriginalDateTime(rs.getString("register_date"));
-          this.registerUser = rs.getString("register_user");
-          this.tenantId = rs.getString("tenant_id");
-        },
-        "SES_AI_WEBAPP_M_USER.selectByPk");
+    if (entityManager == null) {
+      throw new SQLException("EntityManager not initialized");
+    }
+    try {
+      SES_AI_WEBAPP_M_USER found = entityManager.find(SES_AI_WEBAPP_M_USER.class, this.userId);
+      if (found != null) {
+        this.userId = found.userId;
+        this.userName = found.userName;
+        this.role = found.role;
+        this.plan = found.plan;
+        this.registerDate = found.registerDate;
+        this.registerUser = found.registerUser;
+        this.tenantId = found.tenantId;
+      }
+    } catch (PersistenceException e) {
+      throw new SQLException("Failed to select: " + e.getMessage(), e);
+    }
   }
 
   /**
@@ -176,20 +184,23 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
     if (this.userId == null) {
       return;
     }
-    executeSelectByPkWithoutTenantFilter(
-        connection,
-        SELECT_WITHOUT_TENANT_ID_SQL,
-        (stmt) -> stmt.setString(1, this.userId),
-        (rs) -> {
-          this.userId = rs.getString("user_id");
-          this.userName = rs.getString("user_name");
-          this.role = Role.getEnum(rs.getString("role_cd"));
-          this.plan = Plan.getEnum(rs.getString("plan_cd"));
-          this.registerDate = new OriginalDateTime(rs.getString("register_date"));
-          this.registerUser = rs.getString("register_user");
-          this.tenantId = rs.getString("tenant_id");
-        },
-        "SES_AI_WEBAPP_M_USER.selectByPkWithoutTenantId");
+    if (entityManager == null) {
+      throw new SQLException("EntityManager not initialized");
+    }
+    try {
+      SES_AI_WEBAPP_M_USER found = entityManager.find(SES_AI_WEBAPP_M_USER.class, this.userId);
+      if (found != null) {
+        this.userId = found.userId;
+        this.userName = found.userName;
+        this.role = found.role;
+        this.plan = found.plan;
+        this.registerDate = found.registerDate;
+        this.registerUser = found.registerUser;
+        this.tenantId = found.tenantId;
+      }
+    } catch (PersistenceException e) {
+      throw new SQLException("Failed to select: " + e.getMessage(), e);
+    }
   }
 
   @Override
@@ -197,20 +208,16 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
     if (this.userId == null) {
       return false;
     }
-    return executeUpdateByPkWithoutTenantFilter(
-        connection,
-        UPDATE_SQL,
-        (stmt) -> {
-          stmt.setString(1, this.userId);
-          stmt.setString(2, this.userName);
-          stmt.setString(3, this.role == null ? null : this.role.getCode());
-          stmt.setString(4, this.plan == null ? null : this.plan.getCode());
-          stmt.setTimestamp(5, this.registerDate == null ? null : this.registerDate.toTimestamp());
-          stmt.setString(6, this.registerUser);
-          stmt.setString(7, this.userId);
-          stmt.setString(8, this.tenantId);
-        },
-        "SES_AI_WEBAPP_M_USER.updateByPk");
+    if (entityManager == null) {
+      throw new SQLException("EntityManager not initialized");
+    }
+    try {
+      SES_AI_WEBAPP_M_USER merged = entityManager.merge(this);
+      entityManager.flush();
+      return true;
+    } catch (PersistenceException e) {
+      throw new SQLException("Failed to update: " + e.getMessage(), e);
+    }
   }
 
   /**
@@ -224,20 +231,16 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
     if (this.userId == null) {
       return false;
     }
-    return executeUpdateByPkWithoutTenantFilter(
-        connection,
-        UPDATE_WITHOUT_TENANT_ID_SQL,
-        (stmt) -> {
-          stmt.setString(1, this.userId);
-          stmt.setString(2, this.userName);
-          stmt.setString(3, this.role == null ? null : this.role.getCode());
-          stmt.setString(4, this.plan == null ? null : this.plan.getCode());
-          stmt.setTimestamp(5, this.registerDate == null ? null : this.registerDate.toTimestamp());
-          stmt.setString(6, this.registerUser);
-          stmt.setString(7, this.tenantId);
-          stmt.setString(8, this.userId);
-        },
-        "SES_AI_WEBAPP_M_USER.updateByPkWithoutTenantId");
+    if (entityManager == null) {
+      throw new SQLException("EntityManager not initialized");
+    }
+    try {
+      SES_AI_WEBAPP_M_USER merged = entityManager.merge(this);
+      entityManager.flush();
+      return true;
+    } catch (PersistenceException e) {
+      throw new SQLException("Failed to update: " + e.getMessage(), e);
+    }
   }
 
   @Override
@@ -245,14 +248,20 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
     if (this.userId == null) {
       return false;
     }
-    return executeDeleteByPkWithoutTenantFilter(
-        connection,
-        DELETE_SQL,
-        (stmt) -> {
-          stmt.setString(1, this.userId);
-          stmt.setString(2, this.tenantId);
-        },
-        "SES_AI_WEBAPP_M_USER.deleteByPk");
+    if (entityManager == null) {
+      throw new SQLException("EntityManager not initialized");
+    }
+    try {
+      SES_AI_WEBAPP_M_USER toDelete = entityManager.find(SES_AI_WEBAPP_M_USER.class, this.userId);
+      if (toDelete != null) {
+        entityManager.remove(toDelete);
+        entityManager.flush();
+        return true;
+      }
+      return false;
+    } catch (PersistenceException e) {
+      throw new SQLException("Failed to delete: " + e.getMessage(), e);
+    }
   }
 
   /**
@@ -266,10 +275,19 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
     if (this.userId == null) {
       return false;
     }
-    return executeDeleteByPkWithoutTenantFilter(
-        connection,
-        DELETE_WITHOUT_TENANT_ID_SQL,
-        (stmt) -> stmt.setString(1, this.userId),
-        "SES_AI_WEBAPP_M_USER.deleteByPkWithoutTenantIdFilter");
+    if (entityManager == null) {
+      throw new SQLException("EntityManager not initialized");
+    }
+    try {
+      SES_AI_WEBAPP_M_USER toDelete = entityManager.find(SES_AI_WEBAPP_M_USER.class, this.userId);
+      if (toDelete != null) {
+        entityManager.remove(toDelete);
+        entityManager.flush();
+        return true;
+      }
+      return false;
+    } catch (PersistenceException e) {
+      throw new SQLException("Failed to delete: " + e.getMessage(), e);
+    }
   }
 }
