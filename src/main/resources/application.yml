@@ -1,0 +1,13 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQL15Dialect
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ses_ai_assistant
+    username: postgres
+    password: password
+    driver-class-name: org.postgresql.Driver
