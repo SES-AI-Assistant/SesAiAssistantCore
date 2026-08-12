@@ -187,6 +187,13 @@
       <version>1.2.1</version>
       <scope>test</scope>
     </dependency>
+
+    <!-- Google GenAI SDK -->
+    <dependency>
+      <groupId>com.google.genai</groupId>
+      <artifactId>google-genai</artifactId>
+      <version>1.65.0</version>
+    </dependency>
   </dependencies>
 
   <build>
