@@ -1,8 +1,19 @@
 package copel.sesproductpackage.core.api.gpt;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.genai.types.GenerateContentResponse;
+
+import copel.sesproductpackage.core.api.gpt.schema.JsonSchemaProvider;
+import copel.sesproductpackage.core.api.gpt.schema.Schema;
+import copel.sesproductpackage.core.api.gpt.schema.SchemaGenerator;
 
 /**
  * GeminiクラスのテストケースをSDKベースで実装.
@@ -10,7 +21,6 @@ import org.junit.jupiter.api.Test;
  * @author Copel Co., Ltd.
  */
 class GeminiTest {
-
   @Test
   void testConstructor_Default() {
     Gemini gemini = new Gemini("testkey");
@@ -119,5 +129,81 @@ class GeminiTest {
     Gemini gemini1 = new Gemini("key1");
     Gemini gemini2 = new Gemini("key2");
     assertNotEquals(gemini1, gemini2);
+  }
+
+  @Test
+  void testStructuredGenerate_NullPrompt() {
+    Gemini gemini = new Gemini("key");
+    assertThrows(
+        RuntimeException.class, () -> gemini.generate(null, TestPersonResponse.class));
+  }
+
+  @Test
+  void testStructuredGenerate_BlankPrompt() {
+    Gemini gemini = new Gemini("key");
+    assertThrows(
+        RuntimeException.class, () -> gemini.generate("  ", TestPersonResponse.class));
+  }
+
+  @Test
+  void testStructuredGenerate_NullResponseType() throws Exception {
+    Gemini gemini = new Gemini("key");
+    assertThrows(RuntimeException.class, () -> gemini.generate("test", null));
+  }
+
+  @Test
+  void testStructuredGenerate_ValidResponse() throws Exception {
+    Gemini gemini = new Gemini("testkey");
+
+    String jsonResponse = "{\"name\": \"田中太郎\", \"age\": 30}";
+
+    try (MockedStatic<?> mockClient = mockStatic(com.google.genai.Client.class)) {
+      GenerateContentResponse mockResponse = mock(GenerateContentResponse.class);
+      when(mockResponse.text()).thenReturn(jsonResponse);
+
+      assertNotNull(jsonResponse);
+      ObjectMapper mapper = new ObjectMapper();
+      TestPersonResponse result = mapper.readValue(jsonResponse, TestPersonResponse.class);
+
+      assertEquals("田中太郎", result.getName());
+      assertEquals(30, result.getAge());
+    }
+  }
+
+  /** テスト用のレスポンス型. JsonSchemaProviderを実装し、人物情報を保持します. */
+  static class TestPersonResponse implements JsonSchemaProvider {
+    @Schema(description = "人物の名前", required = true)
+    private String name;
+
+    @Schema(description = "人物の年齢", required = true)
+    private int age;
+
+    TestPersonResponse() {}
+
+    TestPersonResponse(String name, int age) {
+      this.name = name;
+      this.age = age;
+    }
+
+    public String getName() {
+      return this.name;
+    }
+
+    public int getAge() {
+      return this.age;
+    }
+
+    public void setName(String name) {
+      this.name = name;
+    }
+
+    public void setAge(int age) {
+      this.age = age;
+    }
+
+    @Override
+    public Map<String, Object> getJsonSchema() {
+      return SchemaGenerator.generate(this.getClass());
+    }
   }
 }
