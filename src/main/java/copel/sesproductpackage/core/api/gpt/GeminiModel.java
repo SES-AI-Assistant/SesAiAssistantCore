@@ -1,6 +1,12 @@
 package copel.sesproductpackage.core.api.gpt;
 
 /** GeminiモデルのEnum. */
+/**
+ * GeminiモデルのEnum.
+ * これらのモデル名はGoogleのGeminiAPI用SDK「java-genai」内で定義されておらず、モデル名は文字列で読み込むようになっている.
+ * 公式SDKリポジトリ内にある実装例でも、実装側でEnumや定数を定義して使用するように記載がされているため、本EnumはNectar独自で必要である.
+ * https://github.com/googleapis/java-genai/blob/main/examples/src/main/java/com/google/genai/examples/Constants.java
+ */
 public enum GeminiModel implements GptModel {
   GEMINI_1_0_PRO("gemini-1.0-pro"),
   GEMINI_1_5_PRO("gemini-1.5-pro"),
