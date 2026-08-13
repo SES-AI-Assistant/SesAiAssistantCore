@@ -5,6 +5,10 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -97,6 +101,24 @@ public final class SchemaGenerator {
     }
   }
 
+  /**
+   * 指定されたクラスからJSON Schemaを生成し、整形されたJSON文字列として返します.
+   * 
+   * @param clazz JSON Schema生成対象のクラス
+   * @returnインデント整形されたJSON文字列
+   */
+  public static String displaySchemaJson(final Class<?> clazz) {
+    Map<String, Object> schema = generate(clazz);
+    try {
+      return new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(schema);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Failed to format schema to JSON: " + e.getMessage(), e);
+    }
+  }
+
+  // ============================================================================
+  // private関数
+  // ============================================================================
   /**
    * フィールド名を取得します.
    *

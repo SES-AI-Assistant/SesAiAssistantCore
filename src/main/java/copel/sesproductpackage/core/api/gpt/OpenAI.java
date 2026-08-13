@@ -1,14 +1,5 @@
 package copel.sesproductpackage.core.api.gpt;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY;
-import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.ApiType;
-import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.Provider;
-import copel.sesproductpackage.core.unit.OriginalDateTime;
-import copel.sesproductpackage.core.util.Properties;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,6 +9,17 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY;
+import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.ApiType;
+import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.Provider;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.util.Properties;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -51,12 +53,6 @@ public class OpenAI implements Transformer {
   }
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-  /** OpenAIのファイルアップロードAPIのエンドポイント. */
-  private static final String FILE_UPLOAD_URL = Properties.get("OPEN_AI_FILE_UPLOAD_URL");
-
-  /** OpenAIのファインチューニングAPIのエンドポイント. */
-  private static final String FINE_TUNE_URL = Properties.get("OPEN_AI_FINE_TUNE_URL");
 
   /** OpenAIのAPIキー. */
   private final String apiKey;
