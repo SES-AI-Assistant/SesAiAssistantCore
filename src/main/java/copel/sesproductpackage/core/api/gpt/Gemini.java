@@ -6,7 +6,7 @@ import com.google.genai.types.ContentEmbedding;
 import com.google.genai.types.EmbedContentResponse;
 import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.GenerateContentResponse;
-import copel.sesproductpackage.core.api.gpt.schema.JsonSchemaProvider;
+import copel.sesproductpackage.core.api.gpt.schema.SchemaGenerator;
 import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.io.IOException;
@@ -155,7 +155,7 @@ public class Gemini implements Transformer {
   }
 
   @Override
-  public <T extends JsonSchemaProvider> T generate(final String prompt, final Class<T> responseType)
+  public <T> T generate(final String prompt, final Class<T> responseType)
       throws IOException, RuntimeException {
     if (prompt == null || prompt.isBlank()) {
       throw new RuntimeException("Prompt must not be blank");
@@ -165,8 +165,7 @@ public class Gemini implements Transformer {
     }
 
     try {
-      T schemaInstance = responseType.getDeclaredConstructor().newInstance();
-      Map<String, Object> jsonSchema = schemaInstance.getJsonSchema();
+      Map<String, Object> jsonSchema = SchemaGenerator.generate(responseType);
 
       if (jsonSchema == null || jsonSchema.isEmpty()) {
         throw new RuntimeException("JSON schema must not be null or empty");

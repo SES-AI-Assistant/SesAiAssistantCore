@@ -5,10 +5,7 @@ import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.genai.types.GenerateContentResponse;
-import copel.sesproductpackage.core.api.gpt.schema.JsonSchemaProvider;
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
-import copel.sesproductpackage.core.api.gpt.schema.SchemaGenerator;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -165,8 +162,8 @@ class GeminiTest {
     }
   }
 
-  /** テスト用のレスポンス型. JsonSchemaProviderを実装し、人物情報を保持します. */
-  static class TestPersonResponse implements JsonSchemaProvider {
+  /** テスト用のレスポンス型. 人物情報を保持します. */
+  static class TestPersonResponse {
     @Schema(description = "人物の名前", required = true)
     private String name;
 
@@ -194,11 +191,6 @@ class GeminiTest {
 
     public void setAge(int age) {
       this.age = age;
-    }
-
-    @Override
-    public Map<String, Object> getJsonSchema() {
-      return SchemaGenerator.generate(this.getClass());
     }
   }
 }
