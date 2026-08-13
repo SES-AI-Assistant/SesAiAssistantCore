@@ -3,17 +3,14 @@ package copel.sesproductpackage.core.api.gpt;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import java.util.Map;
-
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.genai.types.GenerateContentResponse;
-
 import copel.sesproductpackage.core.api.gpt.schema.JsonSchemaProvider;
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.api.gpt.schema.SchemaGenerator;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 /**
  * GeminiクラスのテストケースをSDKベースで実装.
@@ -134,15 +131,13 @@ class GeminiTest {
   @Test
   void testStructuredGenerate_NullPrompt() {
     Gemini gemini = new Gemini("key");
-    assertThrows(
-        RuntimeException.class, () -> gemini.generate(null, TestPersonResponse.class));
+    assertThrows(RuntimeException.class, () -> gemini.generate(null, TestPersonResponse.class));
   }
 
   @Test
   void testStructuredGenerate_BlankPrompt() {
     Gemini gemini = new Gemini("key");
-    assertThrows(
-        RuntimeException.class, () -> gemini.generate("  ", TestPersonResponse.class));
+    assertThrows(RuntimeException.class, () -> gemini.generate("  ", TestPersonResponse.class));
   }
 
   @Test

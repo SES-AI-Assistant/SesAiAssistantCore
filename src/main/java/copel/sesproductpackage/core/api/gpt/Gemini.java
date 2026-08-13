@@ -155,8 +155,8 @@ public class Gemini implements Transformer {
   }
 
   @Override
-  public <T extends JsonSchemaProvider> T generate(
-      final String prompt, final Class<T> responseType) throws IOException, RuntimeException {
+  public <T extends JsonSchemaProvider> T generate(final String prompt, final Class<T> responseType)
+      throws IOException, RuntimeException {
     if (prompt == null || prompt.isBlank()) {
       throw new RuntimeException("Prompt must not be blank");
     }

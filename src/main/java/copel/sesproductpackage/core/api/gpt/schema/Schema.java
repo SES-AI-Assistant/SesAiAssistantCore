@@ -84,4 +84,112 @@ public @interface Schema {
    * @return 配列要素の型。デフォルトはObject.class（type指定なし）
    */
   Class<?> itemType() default Object.class;
+
+  /**
+   * 最小文字数（文字列型用）.
+   *
+   * <p>JSON Schemaの"minLength"プロパティにマッピングされます。
+   *
+   * @return 最小文字数。デフォルトは-1（未指定）
+   */
+  int minLength() default -1;
+
+  /**
+   * 最大文字数（文字列型用）.
+   *
+   * <p>JSON Schemaの"maxLength"プロパティにマッピングされます。
+   *
+   * @return 最大文字数。デフォルトは-1（未指定）
+   */
+  int maxLength() default -1;
+
+  /**
+   * 正規表現パターン（文字列型用）.
+   *
+   * <p>JSON Schemaの"pattern"プロパティにマッピングされます。
+   *
+   * @return 正規表現パターン。デフォルトは空文字列（未指定）
+   */
+  String pattern() default "";
+
+  /**
+   * フォーマット（文字列型用）.
+   *
+   * <p>JSON Schemaの"format"プロパティにマッピングされます。 例：date、time、email、uri等。
+   *
+   * @return フォーマット。デフォルトは空文字列（未指定）
+   */
+  String format() default "";
+
+  /**
+   * 最小値より大きい（数値型用、排他的最小値）.
+   *
+   * <p>JSON Schemaの"exclusiveMinimum"プロパティにマッピングされます。
+   *
+   * @return 最小値。デフォルトはLong.MIN_VALUEで未指定を表す
+   */
+  long gt() default Long.MIN_VALUE;
+
+  /**
+   * 最大値より小さい（数値型用、排他的最大値）.
+   *
+   * <p>JSON Schemaの"exclusiveMaximum"プロパティにマッピングされます。
+   *
+   * @return 最大値。デフォルトはLong.MAX_VALUEで未指定を表す
+   */
+  long lt() default Long.MAX_VALUE;
+
+  /**
+   * 最小桁数（数値型用）.
+   *
+   * <p>JSON Schemaの拡張プロパティとして"minDigits"にマッピングされます。
+   *
+   * @return 最小桁数。デフォルトは-1（未指定）
+   */
+  int minDigits() default -1;
+
+  /**
+   * 最大桁数（数値型用）.
+   *
+   * <p>JSON Schemaの拡張プロパティとして"maxDigits"にマッピングされます。
+   *
+   * @return 最大桁数。デフォルトは-1（未指定）
+   */
+  int maxDigits() default -1;
+
+  /**
+   * 配列の最小要素数.
+   *
+   * <p>JSON Schemaの"minItems"プロパティにマッピングされます。
+   *
+   * @return 最小要素数。デフォルトは-1（未指定）
+   */
+  int minItems() default -1;
+
+  /**
+   * 配列の最大要素数.
+   *
+   * <p>JSON Schemaの"maxItems"プロパティにマッピングされます。
+   *
+   * @return 最大要素数。デフォルトは-1（未指定）
+   */
+  int maxItems() default -1;
+
+  /**
+   * デフォルト値.
+   *
+   * <p>JSON Schemaの"default"プロパティにマッピングされます。 文字列表現で指定します。
+   *
+   * @return デフォルト値。デフォルトは空文字列（未指定）
+   */
+  String defaultValue() default "";
+
+  /**
+   * データ例.
+   *
+   * <p>JSON Schemaの"example"プロパティにマッピングされます。 文字列表現で指定します。
+   *
+   * @return データ例。デフォルトは空文字列（未指定）
+   */
+  String example() default "";
 }

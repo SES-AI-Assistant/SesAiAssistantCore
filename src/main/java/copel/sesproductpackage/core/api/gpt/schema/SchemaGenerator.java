@@ -1,14 +1,12 @@
 package copel.sesproductpackage.core.api.gpt.schema;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -103,7 +101,7 @@ public final class SchemaGenerator {
 
   /**
    * 指定されたクラスからJSON Schemaを生成し、整形されたJSON文字列として返します.
-   * 
+   *
    * @param clazz JSON Schema生成対象のクラス
    * @returnインデント整形されたJSON文字列
    */
@@ -190,6 +188,27 @@ public final class SchemaGenerator {
     }
 
     fieldSchema.put("items", itemsSchema);
+
+    if (schema != null) {
+      addArrayConstraints(fieldSchema, schema);
+      addCommonConstraints(fieldSchema, schema);
+    }
+  }
+
+  /**
+   * 配列型の制約を追加します.
+   *
+   * @param fieldSchema スキーマMap
+   * @param schema @Schemaアノテーション
+   */
+  private static void addArrayConstraints(
+      final Map<String, Object> fieldSchema, final Schema schema) {
+    if (schema.minItems() >= 0) {
+      fieldSchema.put("minItems", schema.minItems());
+    }
+    if (schema.maxItems() >= 0) {
+      fieldSchema.put("maxItems", schema.maxItems());
+    }
   }
 
   /**
@@ -251,6 +270,72 @@ public final class SchemaGenerator {
     }
 
     fieldSchema.put("type", jsonType);
+
+    if (schema != null) {
+      addStringConstraints(fieldSchema, schema);
+      addNumericConstraints(fieldSchema, schema);
+      addCommonConstraints(fieldSchema, schema);
+    }
+  }
+
+  /**
+   * 文字列型の制約を追加します.
+   *
+   * @param fieldSchema スキーマMap
+   * @param schema @Schemaアノテーション
+   */
+  private static void addStringConstraints(
+      final Map<String, Object> fieldSchema, final Schema schema) {
+    if (schema.minLength() >= 0) {
+      fieldSchema.put("minLength", schema.minLength());
+    }
+    if (schema.maxLength() >= 0) {
+      fieldSchema.put("maxLength", schema.maxLength());
+    }
+    if (!schema.pattern().isEmpty()) {
+      fieldSchema.put("pattern", schema.pattern());
+    }
+    if (!schema.format().isEmpty()) {
+      fieldSchema.put("format", schema.format());
+    }
+  }
+
+  /**
+   * 数値型の制約を追加します.
+   *
+   * @param fieldSchema スキーマMap
+   * @param schema @Schemaアノテーション
+   */
+  private static void addNumericConstraints(
+      final Map<String, Object> fieldSchema, final Schema schema) {
+    if (schema.gt() != Long.MIN_VALUE) {
+      fieldSchema.put("exclusiveMinimum", schema.gt());
+    }
+    if (schema.lt() != Long.MAX_VALUE) {
+      fieldSchema.put("exclusiveMaximum", schema.lt());
+    }
+    if (schema.minDigits() >= 0) {
+      fieldSchema.put("minDigits", schema.minDigits());
+    }
+    if (schema.maxDigits() >= 0) {
+      fieldSchema.put("maxDigits", schema.maxDigits());
+    }
+  }
+
+  /**
+   * 共通の制約を追加します（デフォルト値、例など）.
+   *
+   * @param fieldSchema スキーマMap
+   * @param schema @Schemaアノテーション
+   */
+  private static void addCommonConstraints(
+      final Map<String, Object> fieldSchema, final Schema schema) {
+    if (!schema.defaultValue().isEmpty()) {
+      fieldSchema.put("default", schema.defaultValue());
+    }
+    if (!schema.example().isEmpty()) {
+      fieldSchema.put("example", schema.example());
+    }
   }
 
   /**

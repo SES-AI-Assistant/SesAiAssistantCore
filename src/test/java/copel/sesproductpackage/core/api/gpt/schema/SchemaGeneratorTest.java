@@ -231,4 +231,135 @@ class SchemaGeneratorTest {
     @Schema(description = "ユーザー一覧", itemType = UserInfo.class)
     public List<UserInfo> users;
   }
+
+  @Test
+  void testGenerate_StringConstraints() {
+    Map<String, Object> schema = SchemaGenerator.generate(ResponseWithStringConstraints.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> usernameSchema = (Map<String, Object>) properties.get("username");
+
+    assertEquals("string", usernameSchema.get("type"));
+    assertEquals(3, usernameSchema.get("minLength"));
+    assertEquals(20, usernameSchema.get("maxLength"));
+  }
+
+  @Test
+  void testGenerate_PatternConstraint() {
+    Map<String, Object> schema = SchemaGenerator.generate(ResponseWithStringConstraints.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> emailSchema = (Map<String, Object>) properties.get("email");
+
+    assertEquals("string", emailSchema.get("type"));
+    assertEquals("email", emailSchema.get("format"));
+  }
+
+  @Test
+  void testGenerate_NumericConstraints() {
+    Map<String, Object> schema = SchemaGenerator.generate(ResponseWithNumericConstraints.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> ageSchema = (Map<String, Object>) properties.get("age");
+
+    assertEquals("integer", ageSchema.get("type"));
+    assertEquals(0L, ageSchema.get("exclusiveMinimum"));
+    assertEquals(150L, ageSchema.get("exclusiveMaximum"));
+  }
+
+  @Test
+  void testGenerate_DigitConstraints() {
+    Map<String, Object> schema = SchemaGenerator.generate(ResponseWithNumericConstraints.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> priceSchema = (Map<String, Object>) properties.get("price");
+
+    assertEquals("number", priceSchema.get("type"));
+    assertEquals(5, priceSchema.get("maxDigits"));
+    assertEquals(2, priceSchema.get("minDigits"));
+  }
+
+  @Test
+  void testGenerate_ArrayConstraints() {
+    Map<String, Object> schema = SchemaGenerator.generate(ResponseWithArrayConstraints.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> tagsSchema = (Map<String, Object>) properties.get("tags");
+
+    assertEquals("array", tagsSchema.get("type"));
+    assertEquals(1, tagsSchema.get("minItems"));
+    assertEquals(10, tagsSchema.get("maxItems"));
+  }
+
+  @Test
+  void testGenerate_DefaultValue() {
+    Map<String, Object> schema = SchemaGenerator.generate(ResponseWithDefaultValue.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> statusSchema = (Map<String, Object>) properties.get("status");
+
+    assertEquals("string", statusSchema.get("type"));
+    assertEquals("active", statusSchema.get("default"));
+  }
+
+  @Test
+  void testGenerate_Example() {
+    Map<String, Object> schema = SchemaGenerator.generate(ResponseWithExample.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> phoneSchema = (Map<String, Object>) properties.get("phone");
+
+    assertEquals("string", phoneSchema.get("type"));
+    assertEquals("090-1234-5678", phoneSchema.get("example"));
+  }
+
+  /** テスト用の文字列制約を含むレスポンス. */
+  static class ResponseWithStringConstraints {
+    @Schema(description = "ユーザー名", required = true, minLength = 3, maxLength = 20)
+    public String username;
+
+    @Schema(description = "メールアドレス", format = "email")
+    public String email;
+  }
+
+  /** テスト用の数値制約を含むレスポンス. */
+  static class ResponseWithNumericConstraints {
+    @Schema(description = "年齢", gt = 0, lt = 150)
+    public int age;
+
+    @Schema(description = "価格", minDigits = 2, maxDigits = 5)
+    public double price;
+  }
+
+  /** テスト用の配列制約を含むレスポンス. */
+  static class ResponseWithArrayConstraints {
+    @Schema(description = "タグ一覧", itemType = String.class, minItems = 1, maxItems = 10)
+    public List<String> tags;
+  }
+
+  /** テスト用のデフォルト値を含むレスポンス. */
+  static class ResponseWithDefaultValue {
+    @Schema(description = "ステータス", defaultValue = "active")
+    public String status;
+  }
+
+  /** テスト用の例を含むレスポンス. */
+  static class ResponseWithExample {
+    @Schema(description = "電話番号", example = "090-1234-5678")
+    public String phone;
+  }
 }
