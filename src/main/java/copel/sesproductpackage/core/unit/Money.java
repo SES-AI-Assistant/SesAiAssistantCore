@@ -25,7 +25,6 @@ public class Money implements Comparable<Money> {
   // ================================================
   // コンストラクタ
   // ================================================
-
   /** 空の Money インスタンス（値が未設定）. */
   private Money() {
     this.value = null;
@@ -66,6 +65,9 @@ public class Money implements Comparable<Money> {
   // ================================================
   // 出力メソッド
   // ================================================
+  public static Money empty() {
+    return new Money();
+  }
 
   /** DB保存用：円単位の BigDecimal（NULL可能）. */
   public BigDecimal getValue() {
