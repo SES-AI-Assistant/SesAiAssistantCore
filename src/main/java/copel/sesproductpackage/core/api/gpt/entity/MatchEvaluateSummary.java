@@ -244,14 +244,14 @@ public class MatchEvaluateSummary {
   @AllArgsConstructor
   public static class PlaceEvaluateResult {
     @Schema(
-      description = "案件場所から要員の場所まで在来線1時間以内で通勤できるかどうか。案件側がフルリモートである場合は一律FullyMetとする。",
+      description = "案件場所から要員の場所まで在来線1時間以内で通勤できるかどうか。案件側がフルリモートである場合、または案件や要員どちらかの場所が不明な場合は一律FullyMetとする。",
       itemType = EvaluateType.class,
       required = true,
       example = "FullyMet"
     )
     private EvaluateType result;
     @Schema(
-      description = "この評価項目結果に対するコメント",
+      description = "評価項目結果に対するコメント",
       maxLength = 30,
       example = "案件場所は品川、要員場所は蒲田駅で電車30分程度で可能範囲内"
     )
@@ -263,7 +263,7 @@ public class MatchEvaluateSummary {
   @AllArgsConstructor
   public static class OfficeEvaluateResult {
     @Schema(
-      description = "案件の求める出社要件を要員の出社許容条件が満たしているかどうか",
+      description = "案件の求める出社要件を要員の出社許容条件が満たしているかどうか。案件または要員側に希望や要件が未記載の場合は一律FullyMetとする。",
       itemType = EvaluateType.class,
       required = true,
       example = "FullyMet"
