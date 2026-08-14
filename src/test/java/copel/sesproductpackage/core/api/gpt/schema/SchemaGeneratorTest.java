@@ -362,4 +362,51 @@ class SchemaGeneratorTest {
     @Schema(description = "電話番号", example = "090-1234-5678")
     public String phone;
   }
+
+  @Test
+  void testGenerate_SchemaIgnore() {
+    Map<String, Object> schema = SchemaGenerator.generate(ResponseWithSchemaIgnore.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    assertTrue(properties.containsKey("name"));
+    assertFalse(properties.containsKey("internalId"));
+  }
+
+  @Test
+  void testGenerate_SchemaIgnoreInNestedObject() {
+    Map<String, Object> schema = SchemaGenerator.generate(ResponseWithIgnoredNested.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> userSchema = (Map<String, Object>) properties.get("user");
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> nestedProps = (Map<String, Object>) userSchema.get("properties");
+    assertTrue(nestedProps.containsKey("name"));
+    assertFalse(nestedProps.containsKey("internalId"));
+  }
+
+  /** テスト用の@SchemaIgnoreを含むレスポンス. */
+  static class ResponseWithSchemaIgnore {
+    @Schema(description = "ユーザー名", required = true)
+    public String name;
+
+    @SchemaIgnore public String internalId;
+  }
+
+  /** テスト用のネストされたオブジェクトに@SchemaIgnoreを含むレスポンス. */
+  static class ResponseWithIgnoredNested {
+    @Schema(description = "ユーザー情報")
+    public UserInfoWithIgnore user;
+  }
+
+  /** テスト用のユーザー情報クラス（@SchemaIgnore付き）. */
+  static class UserInfoWithIgnore {
+    @Schema(description = "ユーザー名")
+    public String name;
+
+    @SchemaIgnore public String internalId;
+  }
 }

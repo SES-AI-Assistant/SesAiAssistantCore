@@ -415,15 +415,16 @@ public final class SchemaGenerator {
   }
 
   /**
-   * staticフィールドまたは特殊フィールドかどうかを判定します.
+   * staticフィールドまたは特殊フィールド、あるいは@SchemaIgnoreが付与されているかどうかを判定します.
    *
    * @param field リフレクションフィールド
-   * @return staticまたは特殊フィールドの場合true
+   * @return staticまたは特殊フィールド、または@SchemaIgnore付きの場合true
    */
   private static boolean isStaticOrSpecial(final Field field) {
     int modifiers = field.getModifiers();
     return java.lang.reflect.Modifier.isStatic(modifiers)
         || java.lang.reflect.Modifier.isTransient(modifiers)
-        || field.getName().startsWith("$");
+        || field.getName().startsWith("$")
+        || field.getAnnotation(SchemaIgnore.class) != null;
   }
 }
