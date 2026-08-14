@@ -21,6 +21,29 @@ import java.lang.annotation.Target;
  *   private int age;
  * }
  * }</pre>
+ * <pre>{@code
+ * public class Sample {
+ *     @Schema(
+ *         description = "全属性を設定したサンプルフィールド",
+ *         required = true,
+ *         type = "integer",
+ *         itemType = String.class,
+ *         minLength = 1,
+ *         maxLength = 10,
+ *         pattern = "^[0-9]+$",
+ *         format = "int32",
+ *         gt = 0,
+ *         lt = 100,
+ *         minDigits = 1,
+ *         maxDigits = 3,
+ *         minItems = 1,
+ *         maxItems = 5,
+ *         defaultValue = "50",
+ *         example = "10"
+ *     )
+ *     private int sampleField;
+ * }
+ * }</pre>
  *
  * @author Copel Co., Ltd.
  */
