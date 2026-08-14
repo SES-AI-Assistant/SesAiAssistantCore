@@ -1,18 +1,20 @@
 package copel.sesproductpackage.core.api.gpt;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import com.google.genai.Client;
 import com.google.genai.types.ContentEmbedding;
 import com.google.genai.types.EmbedContentResponse;
 import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.GenerateContentResponse;
+
 import copel.sesproductpackage.core.api.gpt.schema.SchemaGenerator;
 import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -187,8 +189,7 @@ public class Gemini implements Transformer {
           throw new RuntimeException("API returned empty response");
         }
 
-        ObjectMapper mapper = new ObjectMapper();
-        T result = mapper.readValue(resultJson, responseType);
+        T result = ObjectMapperFactory.OBJECT_MAPPER.readValue(resultJson, responseType);
 
         recordApiUsage(prompt.length(), resultJson.length());
 

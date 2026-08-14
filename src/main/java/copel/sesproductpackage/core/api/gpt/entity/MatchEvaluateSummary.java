@@ -9,7 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * マッチ評価結果エンティティ.
+ * AIによるマッチ評価結果エンティティ.
  *
  * @author Copel Co., Ltd.
  *
@@ -21,7 +21,7 @@ public class MatchEvaluateSummary {
   @Schema(
     description = "要員と案件のマッチ度（%）",
     required = true,
-    gt = 0,
+    gt = -1,
     lt = 100,
     example = "85"
   )
@@ -72,6 +72,9 @@ public class MatchEvaluateSummary {
   )
   private List<OtherEvaluateResult> otherList;
 
+  // ================================================
+  // メソッド
+  // ================================================
   /**
    * 評価結果を元に、マッチするかどうかを返却する.
    *
@@ -193,7 +196,7 @@ public class MatchEvaluateSummary {
   }
 
   // ================================================
-  // 内部クラス
+  // 各フィールド用のクラス
   // ================================================
   @Data
   @NoArgsConstructor

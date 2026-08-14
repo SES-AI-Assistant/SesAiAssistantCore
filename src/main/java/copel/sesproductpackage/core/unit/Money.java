@@ -5,14 +5,22 @@ import java.math.RoundingMode;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import copel.sesproductpackage.core.api.gpt.schema.Schema;
+
 /**
  * 金額を表す値オブジェクト. 内部は「円」単位で保持し、画面出力時や比較処理に対応する。
  *
  * @author Copel Co., Ltd.
  */
 public class Money implements Comparable<Money> {
-
-  private BigDecimal valueInYen;
+  @Schema(
+    description = "金額",
+    required = true,
+    type = "integer",
+    itemType = BigDecimal.class,
+    example = "800000"
+  )
+  private BigDecimal value;
 
   // ================================================
   // コンストラクタ
@@ -20,7 +28,7 @@ public class Money implements Comparable<Money> {
 
   /** 空の Money インスタンス（値が未設定）. */
   private Money() {
-    this.valueInYen = null;
+    this.value = null;
   }
 
   /**
@@ -29,7 +37,7 @@ public class Money implements Comparable<Money> {
    * @param valueInYen 円単位の金額
    */
   public Money(BigDecimal valueInYen) {
-    this.valueInYen = valueInYen;
+    this.value = valueInYen;
   }
 
   /**
@@ -38,88 +46,7 @@ public class Money implements Comparable<Money> {
    * @param valueInYen 円単位の金額
    */
   public Money(long valueInYen) {
-    this.valueInYen = new BigDecimal(valueInYen);
-  }
-
-  // ================================================
-  // ファクトリメソッド（抽出処理）
-  // ================================================
-
-  /**
-   * content_summary から案件の単価を抽出（MAX値を取得）.
-   *
-   * <p>抽出ルール：
-   *
-   * <ul>
-   *   <li>「■単価：」以降の数字を抽出
-   *   <li>範囲がある場合は MAX 値を採用（100-130万 → 130万）
-   *   <li>「スキル見合い」「精算確認中」など定量値なしは empty を返す
-   *   <li>括弧内のコメントは無視
-   *   <li>小数点は切り捨て
-   * </ul>
-   *
-   * @param contentSummary AI生成の要約文
-   * @return 抽出成功時は Money、失敗時は empty Money
-   */
-  public static Money extractJobUnitPrice(String contentSummary) {
-    if (contentSummary == null || contentSummary.isEmpty()) {
-      return empty();
-    }
-
-    String unitPriceSection = extractUnitPriceSection(contentSummary);
-    if (unitPriceSection == null) {
-      return empty();
-    }
-
-    BigDecimal maxPrice = extractMaxPrice(unitPriceSection);
-    if (maxPrice == null) {
-      return empty();
-    }
-
-    return new Money(maxPrice);
-  }
-
-  /**
-   * content_summary から要員の単価を抽出（MIN値を取得）.
-   *
-   * <p>抽出ルール：
-   *
-   * <ul>
-   *   <li>「■単価：」以降の数字を抽出
-   *   <li>範囲がある場合は MIN 値を採用（100-120万 → 100万）
-   *   <li>「スキル見合い」など定量値なしは empty を返す
-   *   <li>括弧内のコメントは無視
-   *   <li>小数点は切り捨て
-   * </ul>
-   *
-   * @param contentSummary AI生成の要約文
-   * @return 抽出成功時は Money、失敗時は empty Money
-   */
-  public static Money extractPersonUnitPrice(String contentSummary) {
-    if (contentSummary == null || contentSummary.isEmpty()) {
-      return empty();
-    }
-
-    String unitPriceSection = extractUnitPriceSection(contentSummary);
-    if (unitPriceSection == null) {
-      return empty();
-    }
-
-    BigDecimal minPrice = extractMinPrice(unitPriceSection);
-    if (minPrice == null) {
-      return empty();
-    }
-
-    return new Money(minPrice);
-  }
-
-  /**
-   * 空の Money インスタンスを返す（抽出失敗時）.
-   *
-   * @return empty な Money
-   */
-  public static Money empty() {
-    return new Money();
+    this.value = new BigDecimal(valueInYen);
   }
 
   // ================================================
@@ -128,12 +55,12 @@ public class Money implements Comparable<Money> {
 
   /** 値が設定されていないか（抽出失敗時）. */
   public boolean isEmpty() {
-    return valueInYen == null;
+    return value == null;
   }
 
   /** 値が設定されているか. */
   public boolean hasValue() {
-    return valueInYen != null;
+    return value != null;
   }
 
   // ================================================
@@ -142,7 +69,7 @@ public class Money implements Comparable<Money> {
 
   /** DB保存用：円単位の BigDecimal（NULL可能）. */
   public BigDecimal getValue() {
-    return valueInYen;
+    return value;
   }
 
   /**
@@ -154,7 +81,7 @@ public class Money implements Comparable<Money> {
     if (isEmpty()) {
       return null;
     }
-    BigDecimal manValue = valueInYen.divide(new BigDecimal("10000"), 2, RoundingMode.FLOOR);
+    BigDecimal manValue = value.divide(new BigDecimal("10000"), 2, RoundingMode.FLOOR);
     return manValue.stripTrailingZeros().toPlainString() + "万円";
   }
 
@@ -167,7 +94,7 @@ public class Money implements Comparable<Money> {
     if (isEmpty()) {
       return null;
     }
-    BigDecimal manValue = valueInYen.divide(new BigDecimal("10000"), 2, RoundingMode.FLOOR);
+    BigDecimal manValue = value.divide(new BigDecimal("10000"), 2, RoundingMode.FLOOR);
     return manValue.stripTrailingZeros().toPlainString();
   }
 
@@ -177,7 +104,7 @@ public class Money implements Comparable<Money> {
    * @return 円単位の long 値、empty の場合は 0L
    */
   public long toYenValue() {
-    return isEmpty() ? 0L : valueInYen.longValue();
+    return isEmpty() ? 0L : value.longValue();
   }
 
   // ================================================
@@ -195,7 +122,7 @@ public class Money implements Comparable<Money> {
     if (other.isEmpty()) {
       return 1;
     }
-    return this.valueInYen.compareTo(other.valueInYen);
+    return this.value.compareTo(other.value);
   }
 
   /** 金額が等しいか. */
@@ -211,12 +138,12 @@ public class Money implements Comparable<Money> {
     if (this.isEmpty() || other.isEmpty()) {
       return false;
     }
-    return this.valueInYen.equals(other.valueInYen);
+    return this.value.equals(other.value);
   }
 
   @Override
   public int hashCode() {
-    return isEmpty() ? 0 : valueInYen.hashCode();
+    return isEmpty() ? 0 : value.hashCode();
   }
 
   @Override

@@ -1,15 +1,9 @@
 package copel.sesproductpackage.core.unit;
 
-import copel.sesproductpackage.core.api.gpt.GptAnswer;
-import copel.sesproductpackage.core.api.gpt.Transformer;
-import copel.sesproductpackage.core.util.Properties;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import lombok.AccessLevel;
-import lombok.Data;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
+
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -23,6 +17,14 @@ import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
+
+import copel.sesproductpackage.core.api.gpt.Transformer;
+import copel.sesproductpackage.core.api.gpt.entity.SkillsheetInfoSummary;
+import copel.sesproductpackage.core.util.Properties;
+import lombok.AccessLevel;
+import lombok.Data;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.regions.Region;
 
 /**
@@ -33,10 +35,6 @@ import software.amazon.awssdk.regions.Region;
 @Slf4j
 @Data
 public class SkillSheet {
-  /** 要約用プロンプト. */
-  private static final String SKILLSHEET_SUMMARIZE_PROMPT =
-      Properties.get("SKILLSHEET_SUMMARIZE_PROMPT");
-
   /** DBへ保存するスキルシートのraw_contentの最大長. */
   private static final int SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH =
       Properties.getInt("SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH");
@@ -189,14 +187,10 @@ public class SkillSheet {
    */
   public void generateSummary(final Transformer transformer) throws IOException, RuntimeException {
     if (this.fileContent != null) {
-      StringBuilder stringBuilder = new StringBuilder();
-      stringBuilder.append(SKILLSHEET_SUMMARIZE_PROMPT);
-      stringBuilder.append(this.fileContent.replaceAll("[\\p{C}\"]", "")); // 制御文字とダブルクォーテーションを削除
-      GptAnswer answer = transformer.generate(stringBuilder.toString());
-      this.fileContentSummary = answer.getAnswer();
-      // 1000文字制限を超えないように調整
-      this.fileContentSummary =
-          this.fileContentSummary.substring(0, Math.min(1000, this.fileContentSummary.length()));
+      SkillsheetInfoSummary generated = transformer.generate(
+          this.fileContent.replaceAll("[\\p{C}\"]", ""), // 制御文字とダブルクォーテーションを削除
+          SkillsheetInfoSummary.class);
+      this.fileContentSummary = generated.toSummaryText();
     } else {
       throw new IOException("ファイルの中身が空のため、要約の作成を中止します。");
     }
