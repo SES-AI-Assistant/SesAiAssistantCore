@@ -25,6 +25,6 @@ import java.lang.annotation.Target;
  *
  * @author Copel Co., Ltd.
  */
-@Target(ElementType.FIELD)
+@Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface SchemaIgnore {}

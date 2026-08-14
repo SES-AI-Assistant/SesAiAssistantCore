@@ -2,6 +2,7 @@ package copel.sesproductpackage.core.unit;
 
 import lombok.Data;
 
+// TODO：構造化出力対応により削除予定
 /**
  * マッチング評価と最終判定結果を保持するクラス.
  *
