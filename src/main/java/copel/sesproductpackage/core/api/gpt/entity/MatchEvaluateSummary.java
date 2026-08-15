@@ -207,11 +207,6 @@ public class MatchEvaluateSummary {
     return resultText;
   }
 
-  @Override
-  public String toString() {
-    return OriginalStringUtils.toJson(this);
-  }
-
   // ================================================
   // 各フィールド用のクラス
   // ================================================

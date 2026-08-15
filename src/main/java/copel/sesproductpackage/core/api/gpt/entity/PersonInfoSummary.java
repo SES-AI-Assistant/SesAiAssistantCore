@@ -3,7 +3,6 @@ package copel.sesproductpackage.core.api.gpt.entity;
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.Money;
-import copel.sesproductpackage.core.util.OriginalStringUtils;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -166,11 +165,6 @@ public class PersonInfoSummary {
     return resultText;
   }
 
-  @Override
-  public String toString() {
-    return OriginalStringUtils.toJson(this);
-  }
-
   // ================================================
   // フィールド用のクラス
   // ================================================
@@ -179,6 +173,7 @@ public class PersonInfoSummary {
   @AllArgsConstructor
   public static class Experience {
     @Schema(
+        title = "スキル",
         description = "経験、スキル、観点など",
         maxLength = 30,
         required = true,
@@ -186,6 +181,7 @@ public class PersonInfoSummary {
     private String perspective;
 
     @Schema(
+        title = "経験年数",
         description =
             "経験年数や期間（例: 「3年」）。本文中に明確な年数や期間の記載がない場合は、推測せず必ずnullにすること。（「不明」「未記載」「なし」などの文字列は絶対に設定しないこと）",
         maxLength = 30,

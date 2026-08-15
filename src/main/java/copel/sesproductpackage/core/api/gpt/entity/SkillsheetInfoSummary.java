@@ -1,8 +1,8 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
-import copel.sesproductpackage.core.api.gpt.schema.Schema;
-import copel.sesproductpackage.core.util.OriginalStringUtils;
 import java.util.List;
+
+import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,13 +17,19 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SkillsheetInfoSummary {
   @Schema(
+      title = "スキル一覧",
       description = "スキル、経験のリスト。各プロジェクトで使用されたスキルについて、各プロジェクトの期間（開始年月～終了年月）から月数を算出し、スキル毎に合算したもの。",
       itemType = Experience.class,
       minItems = 1,
       maxItems = 20)
   private List<Experience> experiences = null;
 
-  @Schema(description = "直近のPJ経験", itemType = ProjectExperience.class, minItems = 1, maxItems = 10)
+  @Schema(
+      title = "PJ経験一覧",
+      description = "直近のPJ経験",
+      itemType = ProjectExperience.class,
+      minItems = 1,
+      maxItems = 10)
   private List<ProjectExperience> projectExperiences = null;
 
   // ================================================
@@ -66,11 +72,6 @@ public class SkillsheetInfoSummary {
     return resultText;
   }
 
-  @Override
-  public String toString() {
-    return OriginalStringUtils.toJson(this);
-  }
-
   // ================================================
   // フィールド用のクラス
   // ================================================
@@ -79,6 +80,7 @@ public class SkillsheetInfoSummary {
   @AllArgsConstructor
   public static class Experience {
     @Schema(
+        title = "要求項目",
         description = "経験、スキル、観点など",
         maxLength = 30,
         required = true,
@@ -86,6 +88,7 @@ public class SkillsheetInfoSummary {
     private String perspective;
 
     @Schema(
+        title = "要求期間",
         description =
             "各プロジェクトで使用されたスキルについて、各プロジェクトの期間（開始年月～終了年月）から月数を算出し、スキル毎に合算した経験年数や期間（例: 「3年」）。本文中に明確な年数や期間の記載がない場合は、推測せず必ず「null」にすること。",
         maxLength = 30,
@@ -98,6 +101,7 @@ public class SkillsheetInfoSummary {
   @AllArgsConstructor
   public static class ProjectExperience {
     @Schema(
+        title = "開始年月",
         description = "プロジェクト開始年月（「YYYY年M月」形式）。「8月」のように月しか記載がない場合は適切な年を補完すること。",
         required = true,
         pattern = "^[0-9]{4}年([1-9]|1[0-2])月$",
@@ -105,6 +109,7 @@ public class SkillsheetInfoSummary {
     private String startMonth;
 
     @Schema(
+        title = "終了年月",
         description = "プロジェクト終了年月（「YYYY年M月」形式）。「8月」のように月しか記載がない場合は適切な年を補完すること。",
         required = true,
         pattern = "^[0-9]{4}年([1-9]|1[0-2])月$",
@@ -112,6 +117,7 @@ public class SkillsheetInfoSummary {
     private String endMonth;
 
     @Schema(
+        title = "内容",
         description = "プロジェクト内容",
         maxLength = 50,
         required = true,
