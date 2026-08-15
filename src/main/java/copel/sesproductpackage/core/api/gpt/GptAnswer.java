@@ -1,11 +1,13 @@
 package copel.sesproductpackage.core.api.gpt;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -31,7 +33,6 @@ public class GptAnswer {
    */
   public GptAnswer(final String answer, Class<?> transformerClass) {
     this.answer = answer != null ? answer.trim() : null;
-    log.info("【{}】Competion APIで{}文字の生成を実行しました", transformerClass.getSimpleName(), this.length());
   }
 
   /**
