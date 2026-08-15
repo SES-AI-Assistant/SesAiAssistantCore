@@ -37,6 +37,7 @@ public class ContentParseSchema {
     title = "情報リスト",
     description =
       "本文から案件情報、要員情報、その他の情報を抽出しリスト形式で取得する。それぞれの情報に種別を付与し分類する。",
+    required = true,
     itemType = InfoSchema.class)
   private List<InfoSchema> informations = null;
 

@@ -1,5 +1,7 @@
 package copel.sesproductpackage.core.unit;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 /**
  * リクエスト種別
  *
@@ -28,6 +30,7 @@ public enum RequestType {
    * @param code コード値
    * @return RequestType
    */
+  @JsonCreator
   public static RequestType getEnum(final String code) {
     if (code == null) {
       return null;
