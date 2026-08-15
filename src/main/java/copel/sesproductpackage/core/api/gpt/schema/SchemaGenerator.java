@@ -1,12 +1,14 @@
 package copel.sesproductpackage.core.api.gpt.schema;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+
+import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -110,7 +112,7 @@ public final class SchemaGenerator {
   public static String displaySchemaJson(final Class<?> clazz) {
     Map<String, Object> schema = generate(clazz);
     try {
-      return new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(schema);
+      return ObjectMapperFactory.OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(schema);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Failed to format schema to JSON: " + e.getMessage(), e);
     }

@@ -1,14 +1,5 @@
 package copel.sesproductpackage.core.api.gpt;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY;
-import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.ApiType;
-import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.Provider;
-import copel.sesproductpackage.core.unit.OriginalDateTime;
-import copel.sesproductpackage.core.util.Properties;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,6 +9,17 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY;
+import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.ApiType;
+import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.Provider;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.util.ObjectMapperFactory;
+import copel.sesproductpackage.core.util.Properties;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -49,8 +51,6 @@ public class OpenAI implements Transformer {
     String temp = Properties.get("OPEN_AI_COMPLETION_TEMPERATURE");
     COMPLETION_TEMPERATURE = (temp != null && !temp.isEmpty()) ? Float.valueOf(temp) : 0.7f;
   }
-
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   /** OpenAIのAPIキー. */
   private final String apiKey;
@@ -123,7 +123,7 @@ public class OpenAI implements Transformer {
     log.info("【OpenAI】{}文字のエンベディング処理を実行しました", inputString.length());
     OpenAIEmbeddingRequest embeddingRequest =
         new OpenAIEmbeddingRequest(inputString, EMBEDDING_MODEL, "float", "SesAiAssitantCore");
-    String jsonBody = OBJECT_MAPPER.writeValueAsString(embeddingRequest);
+    String jsonBody = ObjectMapperFactory.OBJECT_MAPPER.writeValueAsString(embeddingRequest);
     try (OutputStream os = conn.getOutputStream()) {
       byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
       os.write(input, 0, input.length);
@@ -134,7 +134,7 @@ public class OpenAI implements Transformer {
 
     String response = readResponse(conn);
     OpenAIEmbeddingResponse embeddingResponse =
-        OBJECT_MAPPER.readValue(response, OpenAIEmbeddingResponse.class);
+        ObjectMapperFactory.OBJECT_MAPPER.readValue(response, OpenAIEmbeddingResponse.class);
 
     float[] vectorValue = new float[embeddingResponse.getData().get(0).getEmbedding().size()];
     for (int i = 0; i < embeddingResponse.getData().get(0).getEmbedding().size(); i++) {
@@ -186,7 +186,7 @@ public class OpenAI implements Transformer {
     OpenAIChatCompletionRequest chatRequest =
         new OpenAIChatCompletionRequest(
             this.completionModel, List.of(userMessage), temperature, null);
-    String jsonBody = OBJECT_MAPPER.writeValueAsString(chatRequest);
+    String jsonBody = ObjectMapperFactory.OBJECT_MAPPER.writeValueAsString(chatRequest);
     try (OutputStream os = conn.getOutputStream()) {
       byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
       os.write(input, 0, input.length);
@@ -197,7 +197,7 @@ public class OpenAI implements Transformer {
 
     String response = readResponse(conn);
     OpenAIChatCompletionResponse chatResponse =
-        OBJECT_MAPPER.readValue(response, OpenAIChatCompletionResponse.class);
+        ObjectMapperFactory.OBJECT_MAPPER.readValue(response, OpenAIChatCompletionResponse.class);
     String resultText =
         (chatResponse.getChoices() != null
                 && !chatResponse.getChoices().isEmpty()
