@@ -364,7 +364,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
 
     try (PreparedStatement stmt = conn.prepareStatement(filteredSql)) {
       paramBinder.bind(stmt);
-      setTenantIdParameter(stmt, 5, tenantId); // UPDATE の場合、通常は SET値が第1-4、PK が第5
+      setTenantIdParameter(stmt, countParameterPlaceholders(baseSql) + 1, tenantId);
 
       return stmt.executeUpdate() > 0;
     }
