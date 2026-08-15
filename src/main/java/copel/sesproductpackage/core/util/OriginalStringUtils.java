@@ -15,11 +15,11 @@ public class OriginalStringUtils {
    * @return JSON文字列
    */
   public static String toJson(Object obj) {
-      try {
-        return ObjectMapperFactory.OBJECT_MAPPER.writeValueAsString(obj);
+    try {
+      return ObjectMapperFactory.OBJECT_MAPPER.writeValueAsString(obj);
     } catch (JsonProcessingException e) {
-        e.printStackTrace();
-        return null;
+      e.printStackTrace();
+      return null;
     }
   }
 
@@ -30,11 +30,13 @@ public class OriginalStringUtils {
    * @return JSON文字列
    */
   public static String toFormatJson(Object obj) {
-      try {
-        return ObjectMapperFactory.OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
+    try {
+      return ObjectMapperFactory.OBJECT_MAPPER
+          .writerWithDefaultPrettyPrinter()
+          .writeValueAsString(obj);
     } catch (JsonProcessingException e) {
-        e.printStackTrace();
-        return null;
+      e.printStackTrace();
+      return null;
     }
   }
 

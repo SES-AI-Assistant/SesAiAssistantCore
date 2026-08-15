@@ -21,6 +21,7 @@ import java.lang.annotation.Target;
  *   private int age;
  * }
  * }</pre>
+ *
  * <pre>{@code
  * public class Sample {
  *     @Schema(
@@ -215,4 +216,13 @@ public @interface Schema {
    * @return データ例。デフォルトは空文字列（未指定）
    */
   String example() default "";
+
+  /**
+   * フィールドのタイトル.
+   *
+   * <p>JSON Schemaの"title"プロパティにマッピングされます。
+   *
+   * @return フィールドのタイトル。デフォルトは空文字列（未指定）
+   */
+  String title() default "";
 }

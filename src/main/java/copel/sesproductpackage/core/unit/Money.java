@@ -1,11 +1,10 @@
 package copel.sesproductpackage.core.unit;
 
+import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import copel.sesproductpackage.core.api.gpt.schema.Schema;
 
 /**
  * 金額を表す値オブジェクト. 内部は「円」単位で保持し、画面出力時や比較処理に対応する。
@@ -14,12 +13,11 @@ import copel.sesproductpackage.core.api.gpt.schema.Schema;
  */
 public class Money implements Comparable<Money> {
   @Schema(
-    description = "金額",
-    required = true,
-    type = "integer",
-    itemType = BigDecimal.class,
-    example = "800000"
-  )
+      description = "金額",
+      required = true,
+      type = "integer",
+      itemType = BigDecimal.class,
+      example = "800000")
   private BigDecimal value;
 
   // ================================================

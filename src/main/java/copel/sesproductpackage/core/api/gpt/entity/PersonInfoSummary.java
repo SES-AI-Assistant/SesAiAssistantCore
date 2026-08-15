@@ -1,11 +1,10 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
-import java.util.List;
-
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,100 +13,87 @@ import lombok.NoArgsConstructor;
  * AIによる要員要約結果エンティティ.
  *
  * @author Copel Co., Ltd.
- *
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class PersonInfoSummary {
   @Schema(
-    description = "このメール・文章を送信・執筆した営業担当者や紹介元の名前。「紹介されている要員本人（name）」の名前やイニシャルを設定してはならない。文章内に差出人の名前・会社名が記載されていない場合は必ずnullにすること。",
-    maxLength = 30,
-    example = "株式会社ABC 田中"
-  )
+      title = "送信者名",
+      description =
+          "このメール・文章を送信・執筆した営業担当者や紹介元の名前。「紹介されている要員本人（name）」の名前やイニシャルを設定してはならない。文章内に差出人の名前・会社名が記載されていない場合は必ずnullにすること。",
+      maxLength = 30,
+      example = "株式会社ABC 田中")
   private String senderName = null;
+
   @Schema(
-    description = "紹介されている要員本人の名前またはイニシャル",
-    maxLength = 10,
-    required = true,
-    example = "T.T"
-  )
+      title = "氏名",
+      description = "紹介されている要員本人の名前またはイニシャル",
+      maxLength = 10,
+      required = true,
+      example = "T.T")
   private String name;
-  @Schema(
-    description = "年齢（不明な場合は-1）",
-    gt=17,
-    lt=100,
-    example = "35"
-  )
+
+  @Schema(title = "年齢", description = "紹介されている要員本人の年齢。不明な場合は-1", gt = 17, lt = 100, example = "35")
   private int age = -1;
+
   @Schema(
-    description = "性別",
-    itemType = Gender.class,
-    required = true,
-    example = "Man"
-  )
+      title = "性別",
+      description = "紹介されている要員本人の性別",
+      itemType = Gender.class,
+      required = true,
+      example = "Man")
   private Gender gender;
+
   @Schema(
-    description = "国籍（未記載の場合は「日本」とする）",
-    maxLength = 10,
-    required = true,
-    example = "日本"
-  )
+      title = "国籍",
+      description = "紹介されている要員本人の国籍。未記載の場合は「日本」とする）",
+      maxLength = 10,
+      required = true,
+      example = "日本")
   private String nationality = "日本";
-  @Schema(
-    description = "稼働開始可能月",
-    required = true,
-    gt=0,
-    lt=13,
-    example = "6"
-  )
+
+  @Schema(title = "開始", description = "稼働開始が可能な月", required = true, gt = 0, lt = 13, example = "6")
   private int startMonth;
+
   @Schema(
-    description = "単価（円）",
-    required = true,
-    itemType = Money.class
-  )
+      title = "単価（円）",
+      description = "希望する単価。幅がある場合は最小値を設定。",
+      required = true,
+      itemType = Money.class)
   private Money price;
-  @Schema(
-    description = "要員の在住地域や最寄駅名など",
-    example = "品川"
-  )
+
+  @Schema(title = "場所", description = "要員の在住地域や最寄駅名など", example = "品川")
   private String place = null;
+
   @Schema(
-    description = "1週間あたり出社可能な頻度。フルリモート希望の場合は「0」、常駐可能や未記載の場合は「5」とする。週1～2など幅がある場合は最も多い数（この場合は「2」）を記入する。",
-    required = true,
-    gt=-1,
-    lt=6,
-    example = "1"
-  )
+      title = "出社可能頻度",
+      description =
+          "1週間あたり出社可能な頻度。フルリモート希望の場合は「0」、常駐可能や未記載の場合は「5」とする。週1～2など幅がある場合は最も多い数（この場合は「2」）を記入する。",
+      required = true,
+      gt = -1,
+      lt = 6,
+      example = "1")
   private int officeAvailability;
-  @Schema(
-    description = "商流や所属。不明な場合は「未記載」とする。",
-    required = true,
-    example = "1社先正社員"
-  )
+
+  @Schema(title = "所属", description = "商流や所属。不明な場合は「未記載」とする。", required = true, example = "1社先正社員")
   private String organization = "未記載";
-  @Schema(
-    description = "経歴のリスト",
-    itemType = Experience.class
-  )
+
+  @Schema(title = "経歴", description = "箇条書き形式の経歴のリスト", itemType = Experience.class)
   private List<Experience> experiences = null;
-  @Schema(
-    description = "要員都合のNG条件のリスト",
-    itemType = String.class
-  )
+
+  @Schema(title = "NG条件", description = "要員都合のNG条件のリスト", itemType = String.class)
   private List<String> ngRequirements = null;
-  @Schema(
-    description = "その他、備考などの事項",
-    itemType = String.class
-  )
+
+  @Schema(title = "その他", description = "その他、備考などの事項", itemType = String.class)
   private List<String> otherRequirements = null;
+
   @Schema(
-    description = "経歴書やスキルシートのURL。未記載の場合は設定しない。",
-    format = "uri",
-    pattern = "^https?://.+",
-    example = "https://www.google.com"
-  )
+      title = "URL",
+      description = "経歴書やスキルシートのURL。未記載の場合は設定しない。",
+      format = "uri",
+      pattern = "^https?://.+",
+      example = "https://www.google.com")
   private String url = null;
 
   // ================================================
@@ -152,9 +138,10 @@ public class PersonInfoSummary {
     if (this.experiences != null && !this.experiences.isEmpty()) {
       sb.append("■経歴\n");
       for (Experience experience : this.experiences) {
-        sb.append("・").append(experience.getPerspective())
-          .append(experience.getDuration() != null ? ": " + experience.getDuration() : "")
-          .append("\n");
+        sb.append("・")
+            .append(experience.getPerspective())
+            .append(experience.getDuration() != null ? ": " + experience.getDuration() : "")
+            .append("\n");
       }
     }
     // 10. NG条件
@@ -174,14 +161,14 @@ public class PersonInfoSummary {
     // 1000文字を超える場合は安全にカット（DB制約対策）
     String resultText = sb.toString().trim();
     if (resultText.length() > 1000) {
-        return resultText.substring(0, 1000);
+      return resultText.substring(0, 1000);
     }
     return resultText;
   }
 
   @Override
   public String toString() {
-      return OriginalStringUtils.toJson(this);
+    return OriginalStringUtils.toJson(this);
   }
 
   // ================================================
@@ -192,17 +179,17 @@ public class PersonInfoSummary {
   @AllArgsConstructor
   public static class Experience {
     @Schema(
-      description = "経験、スキル、観点など",
-      maxLength = 30,
-      required = true,
-      example = "SpringBootによるWEBアプリ開発"
-    )
+        description = "経験、スキル、観点など",
+        maxLength = 30,
+        required = true,
+        example = "SpringBootによるWEBアプリ開発")
     private String perspective;
+
     @Schema(
-      description = "経験年数や期間（例: 「3年」）。本文中に明確な年数や期間の記載がない場合は、推測せず必ずnullにすること。（「不明」「未記載」「なし」などの文字列は絶対に設定しないこと）",
-      maxLength = 30,
-      example = "3年"
-    )
+        description =
+            "経験年数や期間（例: 「3年」）。本文中に明確な年数や期間の記載がない場合は、推測せず必ずnullにすること。（「不明」「未記載」「なし」などの文字列は絶対に設定しないこと）",
+        maxLength = 30,
+        example = "3年")
     private String duration = null;
   }
 }

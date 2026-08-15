@@ -1,9 +1,15 @@
 package copel.sesproductpackage.core.unit;
 
+import copel.sesproductpackage.core.api.gpt.Transformer;
+import copel.sesproductpackage.core.api.gpt.entity.SkillsheetInfoSummary;
+import copel.sesproductpackage.core.util.Properties;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-
+import lombok.AccessLevel;
+import lombok.Data;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -17,14 +23,6 @@ import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
-
-import copel.sesproductpackage.core.api.gpt.Transformer;
-import copel.sesproductpackage.core.api.gpt.entity.SkillsheetInfoSummary;
-import copel.sesproductpackage.core.util.Properties;
-import lombok.AccessLevel;
-import lombok.Data;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.regions.Region;
 
 /**
@@ -187,9 +185,10 @@ public class SkillSheet {
    */
   public void generateSummary(final Transformer transformer) throws IOException, RuntimeException {
     if (this.fileContent != null) {
-      SkillsheetInfoSummary generated = transformer.generate(
-          this.fileContent.replaceAll("[\\p{C}\"]", ""), // 制御文字とダブルクォーテーションを削除
-          SkillsheetInfoSummary.class);
+      SkillsheetInfoSummary generated =
+          transformer.generate(
+              this.fileContent.replaceAll("[\\p{C}\"]", ""), // 制御文字とダブルクォーテーションを削除
+              SkillsheetInfoSummary.class);
       this.fileContentSummary = generated.toSummaryText();
     } else {
       throw new IOException("ファイルの中身が空のため、要約の作成を中止します。");

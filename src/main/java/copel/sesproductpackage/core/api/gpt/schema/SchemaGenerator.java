@@ -142,9 +142,9 @@ public final class SchemaGenerator {
     if (fieldType == List.class || fieldType.isArray()) {
       handleArrayType(fieldSchema, field, schema);
     } else if (fieldType.isEnum()) {
-      handleEnumType(fieldSchema, fieldType);
+      handleEnumType(fieldSchema, fieldType, schema);
     } else if (isComplexType(fieldType)) {
-      handleNestedObjectType(fieldSchema, fieldType);
+      handleNestedObjectType(fieldSchema, fieldType, schema);
     } else {
       handleSimpleType(fieldSchema, fieldType, schema);
     }
@@ -216,10 +216,14 @@ public final class SchemaGenerator {
    *
    * @param fieldSchema 生成対象のスキーマMap
    * @param enumType Enum型クラス
+   * @param schema @Schemaアノテーション（nullableあり）
    */
   private static void handleEnumType(
-      final Map<String, Object> fieldSchema, final Class<?> enumType) {
+      final Map<String, Object> fieldSchema, final Class<?> enumType, final Schema schema) {
     populateEnumSchema(fieldSchema, enumType);
+    if (schema != null) {
+      addCommonConstraints(fieldSchema, schema);
+    }
   }
 
   /**
@@ -244,13 +248,17 @@ public final class SchemaGenerator {
    *
    * @param fieldSchema 生成対象のスキーマMap
    * @param objectType オブジェクト型クラス
+   * @param schema @Schemaアノテーション（nullableあり）
    */
   private static void handleNestedObjectType(
-      final Map<String, Object> fieldSchema, final Class<?> objectType) {
+      final Map<String, Object> fieldSchema, final Class<?> objectType, final Schema schema) {
     fieldSchema.put("type", "object");
     Map<String, Object> nestedProps = generateObjectProperties(objectType);
     if (!nestedProps.isEmpty()) {
       fieldSchema.put("properties", nestedProps);
+    }
+    if (schema != null) {
+      addCommonConstraints(fieldSchema, schema);
     }
   }
 
@@ -335,6 +343,9 @@ public final class SchemaGenerator {
     }
     if (!schema.example().isEmpty()) {
       fieldSchema.put("example", schema.example());
+    }
+    if (!schema.title().isEmpty()) {
+      fieldSchema.put("title", schema.title());
     }
   }
 

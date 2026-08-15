@@ -10,14 +10,15 @@ import java.util.List;
 /** メッセージ本文を保持し、案件紹介文・要員紹介文・その他の分類を行うクラス. 分類は生成AI（Transformer）を用いて行う。一定文字数未満の本文はAIを呼ばず「その他」とする。 */
 public class Content {
 
-  /** 分類結果が未実施の場合のデフォルト最低文字数. */
-  private static final int DEFAULT_MIN_LENGTH_FOR_CLASSIFICATION = 200;
+  /** 分類結果が未実施の場合の最低文字数. */
+  private static final int CONTENT_MIN_LENGTH_FOR_CLASSIFICATION =
+      Properties.getInt("CONTENT_MIN_LENGTH_FOR_CLASSIFICATION") == 0
+          ? 200
+          : Properties.getInt("CONTENT_MIN_LENGTH_FOR_CLASSIFICATION");
 
-  /** 案件・要員・その他を判定するためのプロンプトのプロパティキー. */
-  private static final String PROP_CONTENT_CLASSIFICATION_PROMPT = "CONTENT_CLASSIFICATION_PROMPT";
-
-  /** 分類を行う最低文字数のプロパティキー. この文字数未満はAIを呼ばず「その他」とする. */
-  private static final String PROP_CONTENT_MIN_LENGTH = "CONTENT_MIN_LENGTH_FOR_CLASSIFICATION";
+  /** テキストがSES案件・要員・両方・その他のどれに分類されるかを判定する */
+  private static final String CONTENT_CLASSIFICATION_PROMPT =
+      Properties.get("CONTENT_CLASSIFICATION_PROMPT");
 
   /** 文章が複数要員であるかどうかを判定し分割するプロンプト. */
   private static final String PROP_MULTI_PERSON_PROMPT = "MULTIPLE_PERSONNEL_JUDGMENT_PROMPT";
@@ -97,25 +98,15 @@ public class Content {
       this.classificationResult = ContentType.OTHER;
       return;
     }
-    int minLength = DEFAULT_MIN_LENGTH_FOR_CLASSIFICATION;
-    String minLenProp = Properties.get(PROP_CONTENT_MIN_LENGTH);
-    if (minLenProp != null && !minLenProp.trim().isEmpty()) {
-      try {
-        minLength = Integer.parseInt(minLenProp.trim());
-      } catch (NumberFormatException e) {
-        minLength = DEFAULT_MIN_LENGTH_FOR_CLASSIFICATION;
-      }
-    }
-    if (this.rawContent.length() < minLength) {
+    if (this.rawContent.length() < CONTENT_MIN_LENGTH_FOR_CLASSIFICATION) {
       this.classificationResult = ContentType.OTHER;
       return;
     }
-    String promptTemplate = Properties.get(PROP_CONTENT_CLASSIFICATION_PROMPT);
-    if (promptTemplate == null || promptTemplate.isEmpty()) {
+    if (CONTENT_CLASSIFICATION_PROMPT == null || CONTENT_CLASSIFICATION_PROMPT.isEmpty()) {
       this.classificationResult = ContentType.OTHER;
       return;
     }
-    String prompt = promptTemplate + this.rawContent;
+    String prompt = CONTENT_CLASSIFICATION_PROMPT + this.rawContent;
     GptAnswer answer = transformer.generate(prompt);
     String answerText =
         answer != null && answer.getAnswer() != null ? answer.getAnswer().trim() : "";
