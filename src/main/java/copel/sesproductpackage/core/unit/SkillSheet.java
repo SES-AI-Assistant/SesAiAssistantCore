@@ -1,7 +1,7 @@
 package copel.sesproductpackage.core.unit;
 
 import copel.sesproductpackage.core.api.gpt.Transformer;
-import copel.sesproductpackage.core.api.gpt.entity.SkillsheetInfoSummary;
+import copel.sesproductpackage.core.api.gpt.entity.SkillsheetInfoSchema;
 import copel.sesproductpackage.core.util.Properties;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -185,10 +185,10 @@ public class SkillSheet {
    */
   public void generateSummary(final Transformer transformer) throws IOException, RuntimeException {
     if (this.fileContent != null) {
-      SkillsheetInfoSummary generated =
+      SkillsheetInfoSchema generated =
           transformer.generate(
               this.fileContent.replaceAll("[\\p{C}\"]", ""), // 制御文字とダブルクォーテーションを削除
-              SkillsheetInfoSummary.class);
+              SkillsheetInfoSchema.class);
       this.fileContentSummary = generated.toSummaryText();
     } else {
       throw new IOException("ファイルの中身が空のため、要約の作成を中止します。");

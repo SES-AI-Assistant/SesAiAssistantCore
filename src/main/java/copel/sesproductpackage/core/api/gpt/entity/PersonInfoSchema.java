@@ -1,9 +1,10 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
+import java.util.List;
+
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.Money;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,15 +17,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PersonInfoSummary {
-  @Schema(
-      title = "送信者名",
-      description =
-          "このメール・文章を送信・執筆した営業担当者や紹介元の名前。「紹介されている要員本人（name）」の名前やイニシャルを設定してはならない。文章内に差出人の名前・会社名が記載されていない場合は必ずnullにすること。",
-      maxLength = 30,
-      example = "株式会社ABC 田中")
-  private String senderName = null;
-
+public class PersonInfoSchema {
   @Schema(
       title = "氏名",
       description = "紹介されている要員本人の名前またはイニシャル",

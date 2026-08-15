@@ -1,8 +1,9 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
+import java.util.List;
+
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.unit.Money;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,14 +16,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class JobInfoSummary {
-  @Schema(
-      title = "送信者名",
-      description = "この文章の筆者や送信者の名前。読み取れない場合は「null」とする。",
-      maxLength = 30,
-      example = "株式会社ABC 田中")
-  private String senderName = null;
-
+public class JobInfoSchema {
   @Schema(
       title = "案件名",
       description = "案件名の記載がない場合は内容から簡潔な案件名を考えて記載してください",
@@ -64,7 +58,7 @@ public class JobInfoSummary {
 
   @Schema(
       title = "単価（円）",
-      description = "案件の単価。幅がある場合は最大値を設定。スキル見合いの場合は999万円とする。",
+      description = "案件の単価/月。幅がある場合は最大値を設定。時給や日給が設定されている場合は1ヵ月(160h)に換算する。スキル見合いの場合は999万円とする。",
       required = true,
       itemType = Money.class)
   private Money price;

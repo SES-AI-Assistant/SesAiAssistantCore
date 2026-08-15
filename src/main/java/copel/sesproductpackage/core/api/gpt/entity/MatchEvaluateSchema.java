@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class MatchEvaluateSummary {
+public class MatchEvaluateSchema {
   @Schema(
       title = "マッチ度（%）",
       description = "要員と案件のマッチ度合いを示した数値。",

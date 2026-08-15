@@ -79,10 +79,12 @@ public final class SchemaGenerator {
         String fieldName = getFieldName(field);
         Map<String, Object> fieldSchema = generateFieldSchema(field, schemaAnnotation);
 
-        properties.put(fieldName, fieldSchema);
+        if (fieldSchema != null) {
+          properties.put(fieldName, fieldSchema);
 
-        if (schemaAnnotation != null && schemaAnnotation.required()) {
-          required.add(fieldName);
+          if (schemaAnnotation != null && schemaAnnotation.required()) {
+            required.add(fieldName);
+          }
         }
       }
 
@@ -137,6 +139,11 @@ public final class SchemaGenerator {
   private static Map<String, Object> generateFieldSchema(final Field field, final Schema schema) {
     Map<String, Object> fieldSchema = new LinkedHashMap<>();
 
+    ConditionalSchema conditionalSchema = field.getAnnotation(ConditionalSchema.class);
+    if (conditionalSchema != null) {
+      return handleConditionalSchema(fieldSchema, conditionalSchema, schema);
+    }
+
     Class<?> fieldType = field.getType();
 
     if (fieldType == List.class || fieldType.isArray()) {
@@ -148,6 +155,78 @@ public final class SchemaGenerator {
     } else {
       handleSimpleType(fieldSchema, fieldType, schema);
     }
+
+    if (schema != null && !schema.description().isEmpty()) {
+      fieldSchema.put("description", schema.description());
+    }
+
+    return fieldSchema;
+  }
+
+  /**
+   * 条件付きスキーマ（anyOf）を処理します.
+   *
+   * <p>@ConditionalSchemaで指定された複数のケースから、anyOf構造を生成します。 excludeOn が指定されているすべてのケースの場合、null
+   * を返してフィールド全体を除外します。
+   *
+   * @param fieldSchema 生成対象のスキーマMap
+   * @param conditionalSchema @ConditionalSchemaアノテーション
+   * @param schema @Schemaアノテーション（nullableあり）
+   * @return すべてのケースが excludeOn を持つ場合は null、それ以外は fieldSchema
+   */
+  private static Map<String, Object> handleConditionalSchema(
+      final Map<String, Object> fieldSchema,
+      final ConditionalSchema conditionalSchema,
+      final Schema schema) {
+    ConditionalCase[] cases = conditionalSchema.value();
+
+    boolean allExcluded = true;
+    for (ConditionalCase conditionalCase : cases) {
+      if (conditionalCase.excludeOn().isEmpty()) {
+        allExcluded = false;
+        break;
+      }
+    }
+
+    if (allExcluded && cases.length > 0) {
+      log.debug(
+          "All conditional cases have excludeOn specified. Field will be excluded from schema.");
+      return null;
+    }
+
+    List<Map<String, Object>> anyOfSchemas = new ArrayList<>();
+
+    for (ConditionalCase conditionalCase : cases) {
+      Map<String, Object> caseSchema = new LinkedHashMap<>();
+
+      Class<?> schemaClass = conditionalCase.schema();
+      caseSchema.put("type", "object");
+
+      String title = conditionalCase.title();
+      if (title.isEmpty()) {
+        title = schemaClass.getSimpleName();
+      }
+      caseSchema.put("title", title);
+
+      String description = conditionalCase.description();
+      if (!description.isEmpty()) {
+        caseSchema.put("description", description);
+      }
+
+      Map<String, Object> properties = generateObjectProperties(schemaClass);
+      if (!properties.isEmpty()) {
+        caseSchema.put("properties", properties);
+      }
+
+      List<String> required = extractRequiredFields(schemaClass);
+      if (!required.isEmpty()) {
+        caseSchema.put("required", required);
+      }
+
+      anyOfSchemas.add(caseSchema);
+    }
+
+    fieldSchema.put("anyOf", anyOfSchemas);
 
     if (schema != null && !schema.description().isEmpty()) {
       fieldSchema.put("description", schema.description());
@@ -367,10 +446,38 @@ public final class SchemaGenerator {
       Schema schemaAnnotation = field.getAnnotation(Schema.class);
       String fieldName = getFieldName(field);
       Map<String, Object> fieldSchema = generateFieldSchema(field, schemaAnnotation);
-      properties.put(fieldName, fieldSchema);
+      if (fieldSchema != null) {
+        properties.put(fieldName, fieldSchema);
+      }
     }
 
     return properties;
+  }
+
+  /**
+   * クラスから必須フィールド一覧を抽出します.
+   *
+   * <p>@Schemaアノテーションの"required=true"が設定されたフィールド名を収集します。
+   *
+   * @param clazz 対象クラス
+   * @return 必須フィールド名のリスト
+   */
+  private static List<String> extractRequiredFields(final Class<?> clazz) {
+    List<String> required = new ArrayList<>();
+    Field[] fields = clazz.getDeclaredFields();
+
+    for (Field field : fields) {
+      if (isStaticOrSpecial(field)) {
+        continue;
+      }
+
+      Schema schemaAnnotation = field.getAnnotation(Schema.class);
+      if (schemaAnnotation != null && schemaAnnotation.required()) {
+        required.add(getFieldName(field));
+      }
+    }
+
+    return required;
   }
 
   /**
