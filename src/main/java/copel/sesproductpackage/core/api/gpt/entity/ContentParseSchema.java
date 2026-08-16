@@ -1,5 +1,7 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import copel.sesproductpackage.core.api.gpt.schema.ConditionalCase;
 import copel.sesproductpackage.core.api.gpt.schema.ConditionalSchema;
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
@@ -52,6 +54,14 @@ public class ContentParseSchema {
         required = true)
     private InformationType type = InformationType.Unknown;
 
+    @JsonTypeInfo(
+        use = JsonTypeInfo.Id.NAME,
+        include = JsonTypeInfo.As.PROPERTY,
+        property = "type")
+    @JsonSubTypes({
+      @JsonSubTypes.Type(value = PersonInfoSchema.class, name = "PERSON"),
+      @JsonSubTypes.Type(value = JobInfoSchema.class, name = "JOB")
+    })
     @ConditionalSchema({
       @ConditionalCase(enumValue = "PERSON", title = "要員情報", schema = PersonInfoSchema.class),
       @ConditionalCase(enumValue = "JOB", title = "案件情報", schema = JobInfoSchema.class)
