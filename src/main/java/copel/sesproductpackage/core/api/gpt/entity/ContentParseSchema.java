@@ -57,6 +57,7 @@ public class ContentParseSchema {
     @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
         property = "type",
+        include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
         defaultImpl = Object.class,
         visible = true)
     @JsonSubTypes({
