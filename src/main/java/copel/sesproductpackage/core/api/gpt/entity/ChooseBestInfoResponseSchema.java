@@ -1,9 +1,10 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
+import java.util.List;
+
 import copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateSchema.EvaluateType;
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.api.gpt.schema.SchemaIgnore;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -43,7 +44,9 @@ public class ChooseBestInfoResponseSchema {
         .filter(CandidateEvaluationResult::isPersonMonthsEvaluateResult)
         // 2. 必須スキル評価が FullyMet の要素のみに絞り込み
         .filter(r -> EvaluateType.FullyMet.equals(r.getMustSkillEvaluateResult()))
-        // 3. マッチ度の降順（大きい順）でソートして先頭を取得
+        // 3. マッチ度（matchScore）が90点以上である要素のみに絞り込み
+        .filter(r -> r.getMatchScore() >= 90)
+        // 4. マッチ度の最大値（同点の場合は任意で1つ）を取得
         .max(CandidateEvaluationResult::compareTo)
         .orElse(null);
   }
@@ -82,6 +85,7 @@ public class ChooseBestInfoResponseSchema {
     @Schema(
         title = "単価評価結果",
         description = "案件単価 >= 要員単価であればtrue、それ以外はfalse。案件側がスキル見合いである場合は一律true",
+        defaultValue = "false",
         required = true)
     private boolean priceEvaluateResult;
 
@@ -89,12 +93,13 @@ public class ChooseBestInfoResponseSchema {
         title = "場所評価結果",
         description =
             "案件場所から要員の場所まで在来線1時間以内で通勤できるかどうか。案件側がフルリモートである場合、または案件や要員どちらかの場所が不明な場合は一律trueとする。",
-        defaultValue = "true")
+        defaultValue = "false")
     private boolean placeEvaluateResult;
 
     @Schema(
         title = "出社要件評価結果",
-        description = "案件の求める出社要件を要員の出社許容条件が満たしているかどうか。案件または要員側に希望や要件が未記載の場合は一律trueとする。",
+        description = "要員がフルリモート希望かつ、案件がフルリモートである場合はtrue。要員が常駐可能かつ、案件が常駐である場合はtrue。要員の出社許容日数/週 >= 案件の求める出社日数/週である場合はtrue。案件または要員側に出社・フルリモート希望や要件が未記載の場合はtrueとする。それ以外は全てfalse。",
+        defaultValue = "false",
         required = true)
     private boolean officeEvaluateResult;
 

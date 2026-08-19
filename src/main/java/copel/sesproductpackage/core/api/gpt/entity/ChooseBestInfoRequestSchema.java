@@ -1,8 +1,11 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
+import java.util.List;
+
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import java.util.List;
+
+import copel.sesproductpackage.core.api.gpt.entity.ContentParseSchema.InformationType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -29,6 +32,9 @@ public class ChooseBestInfoRequestSchema {
   @AllArgsConstructor
   @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
   public static class ResourceInformation {
+    /** 案件か要員か種別を示す識別子 */
+    private InformationType type;
+
     /** 識別ID（案件ID または 要員ID） */
     private String id;
 
