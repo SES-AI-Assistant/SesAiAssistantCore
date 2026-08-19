@@ -1,8 +1,9 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
+import java.util.List;
+
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,13 +18,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class MatchEvaluateSchema {
   @Schema(
-      title = "マッチ度（%）",
-      description = "要員と案件のマッチ度合いを示した数値。",
+      title = "マッチ度（点）",
+      description = "要員と案件のマッチ度合いを示した数値",
       required = true,
       gt = -1,
       lt = 100,
       example = "85")
-  private int matchPercentage;
+  private int matchScore;
 
   @Schema(
       title = "必須スキル評価",
@@ -123,7 +124,7 @@ public class MatchEvaluateSchema {
   public String toEvaluiationText() {
     StringBuilder sb = new StringBuilder();
     // 1. マッチ度
-    sb.append("マッチ度：").append(this.matchPercentage).append("%\n");
+    sb.append("マッチ度：").append(this.matchScore).append("点\n");
     // 2. 必須項目
     if (this.mustList != null && !this.mustList.isEmpty()) {
       sb.append("■必須\n");
