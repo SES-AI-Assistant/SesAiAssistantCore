@@ -1,9 +1,10 @@
-package copel.sesproductpackage.core.api.aws;
+package copel.sesproductpackage.core.internal;
 
 import com.amazonaws.regions.Regions;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import copel.sesproductpackage.core.api.SesAiAssistantWebAppNotifierRequestEntity;
+
+import copel.sesproductpackage.core.api.aws.SQSEntityBase;
+import copel.sesproductpackage.core.util.ObjectMapperFactory;
 
 /**
  * Web Push 通知 SQS 送信エンティティ. SesAiAssistantWebAppNotifier Lambda をトリガーする SQS へメッセージを送信する.
@@ -11,9 +12,6 @@ import copel.sesproductpackage.core.api.SesAiAssistantWebAppNotifierRequestEntit
  * @author Copel Co., Ltd.
  */
 public class SesAiAssistantWebAppNotifierSqsEntity extends SQSEntityBase {
-
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
   private final SesAiAssistantWebAppNotifierRequestEntity request;
 
   /**
@@ -30,6 +28,6 @@ public class SesAiAssistantWebAppNotifierSqsEntity extends SQSEntityBase {
 
   @Override
   protected String getMessageBody() throws JsonProcessingException {
-    return OBJECT_MAPPER.writeValueAsString(this.request);
+    return ObjectMapperFactory.OBJECT_MAPPER.writeValueAsString(this.request);
   }
 }

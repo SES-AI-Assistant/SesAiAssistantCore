@@ -1,4 +1,4 @@
-package copel.sesproductpackage.core.api;
+package copel.sesproductpackage.core.internal;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
