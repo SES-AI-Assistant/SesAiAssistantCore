@@ -1,15 +1,11 @@
 package copel.sesproductpackage.core.internal;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-
 import com.amazonaws.regions.Regions;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-
 import copel.sesproductpackage.core.api.aws.SQSEntityBase;
 import copel.sesproductpackage.core.database.SES_AI_T_JOB;
 import copel.sesproductpackage.core.database.SES_AI_T_PERSON;
@@ -17,9 +13,9 @@ import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
 import copel.sesproductpackage.core.util.Properties;
 import copel.sesproductpackage.core.util.SsmParameterKey;
-import lombok.AllArgsConstructor;
+import java.sql.Connection;
+import java.sql.SQLException;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /**
  * AwsLambdaSesInfoMatcherに付帯するSQSへのリクエストEntityクラス.

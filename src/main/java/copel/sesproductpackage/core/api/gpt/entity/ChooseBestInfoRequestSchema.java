@@ -1,11 +1,9 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
-import java.util.List;
-
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-
 import copel.sesproductpackage.core.api.gpt.entity.ContentParseSchema.InformationType;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

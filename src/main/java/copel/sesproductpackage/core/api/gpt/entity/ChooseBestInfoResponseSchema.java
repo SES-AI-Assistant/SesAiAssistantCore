@@ -1,10 +1,9 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
-import java.util.List;
-
 import copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateSchema.EvaluateType;
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.api.gpt.schema.SchemaIgnore;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -96,7 +95,8 @@ public class ChooseBestInfoResponseSchema {
 
     @Schema(
         title = "出社要件評価結果",
-        description = "要員がフルリモート希望かつ、案件がフルリモートである場合はtrue。要員が常駐可能かつ、案件が常駐である場合はtrue。要員の出社許容日数/週 >= 案件の求める出社日数/週である場合はtrue。案件または要員側に出社・フルリモート希望や要件が未記載の場合はtrueとする。それ以外は全てfalse。",
+        description =
+            "要員がフルリモート希望かつ、案件がフルリモートである場合はtrue。要員が常駐可能かつ、案件が常駐である場合はtrue。要員の出社許容日数/週 >= 案件の求める出社日数/週である場合はtrue。案件または要員側に出社・フルリモート希望や要件が未記載の場合はtrueとする。それ以外は全てfalse。",
         defaultValue = "false",
         required = true)
     private boolean officeEvaluateResult;
