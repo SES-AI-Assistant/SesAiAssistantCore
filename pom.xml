@@ -83,6 +83,18 @@
       <artifactId>dynamodb-enhanced</artifactId>
     </dependency>
 
+    <!-- AWS Lambda Runtime -->
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-lambda-java-core</artifactId>
+      <version>1.2.3</version>
+    </dependency>
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-lambda-java-events</artifactId>
+      <version>3.13.0</version>
+    </dependency>
+
     <!-- Apache POI -->
     <dependency>
         <groupId>org.apache.poi</groupId>
