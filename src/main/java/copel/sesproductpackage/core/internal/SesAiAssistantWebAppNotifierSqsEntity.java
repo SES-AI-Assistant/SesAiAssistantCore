@@ -2,7 +2,6 @@ package copel.sesproductpackage.core.internal;
 
 import com.amazonaws.regions.Regions;
 import com.fasterxml.jackson.core.JsonProcessingException;
-
 import copel.sesproductpackage.core.api.aws.SQSEntityBase;
 import copel.sesproductpackage.core.util.ObjectMapperFactory;
 

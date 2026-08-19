@@ -12,10 +12,6 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
-
-import copel.sesproductpackage.core.internal.SesAiAssistantWebAppNotifierRequestEntity;
-import copel.sesproductpackage.core.internal.SesAiAssistantWebAppNotifierSqsEntity;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

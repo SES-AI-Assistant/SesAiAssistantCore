@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 
 import com.amazonaws.regions.Regions;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
@@ -13,7 +15,11 @@ import copel.sesproductpackage.core.database.SES_AI_T_JOB;
 import copel.sesproductpackage.core.database.SES_AI_T_PERSON;
 import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
+import copel.sesproductpackage.core.util.Properties;
+import copel.sesproductpackage.core.util.SsmParameterKey;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * AwsLambdaSesInfoMatcherに付帯するSQSへのリクエストEntityクラス.
@@ -24,28 +30,59 @@ import lombok.Data;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class SesInfoMatcherRequestSqsEntity extends SQSEntityBase {
   /** 案件ID. */
+  @JsonProperty("job_id")
   private String jobId;
 
   /** 要員ID. */
+  @JsonProperty("person_id")
   private String personId;
 
   /** 案件内容. */
+  @JsonProperty("job_content")
   private String jobContent;
 
   /** 要員内容. */
+  @JsonProperty("person_content")
   private String personContent;
 
   /** テナントID. */
+  @JsonProperty("tenant_id")
   private String tenantId;
 
   /**
    * コンストラクタ.
    *
    * @param region リージョン
-   * @param queueUrl SQSのURL
    */
-  public SesInfoMatcherRequestSqsEntity(Regions region, String queueUrl) {
-    super(region, queueUrl);
+  public SesInfoMatcherRequestSqsEntity(Regions region) {
+    super(region, Properties.get(SsmParameterKey.MATCHER_QUEUE_URL.getKey()));
+  }
+
+  /**
+   * JSONからのデシリアライゼーション用ファクトリメソッド. Jacksonがこのメソッドを使用してSQSメッセージボディをデシリアライズします.
+   *
+   * @param tenantId テナントID
+   * @param jobId 案件ID
+   * @param personId 要員ID
+   * @param jobContent 案件内容
+   * @param personContent 要員内容
+   * @return SesInfoMatcherRequestSqsEntityインスタンス
+   */
+  @JsonCreator
+  public static SesInfoMatcherRequestSqsEntity fromJson(
+      @JsonProperty("tenant_id") final String tenantId,
+      @JsonProperty("job_id") final String jobId,
+      @JsonProperty("person_id") final String personId,
+      @JsonProperty("job_content") final String jobContent,
+      @JsonProperty("person_content") final String personContent) {
+    SesInfoMatcherRequestSqsEntity entity =
+        new SesInfoMatcherRequestSqsEntity(Regions.AP_NORTHEAST_1);
+    entity.setTenantId(tenantId);
+    entity.setJobId(jobId);
+    entity.setPersonId(personId);
+    entity.setJobContent(jobContent);
+    entity.setPersonContent(personContent);
+    return entity;
   }
 
   @Override

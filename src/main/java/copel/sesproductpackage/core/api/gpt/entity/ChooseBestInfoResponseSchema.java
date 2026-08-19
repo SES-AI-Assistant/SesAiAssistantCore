@@ -1,10 +1,9 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
-import java.util.List;
-
 import copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateSchema.EvaluateType;
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.api.gpt.schema.SchemaIgnore;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -53,11 +52,7 @@ public class ChooseBestInfoResponseSchema {
   @NoArgsConstructor
   @AllArgsConstructor
   public static class CandidateEvaluationResult implements Comparable<CandidateEvaluationResult> {
-    @Schema(
-        title = "識別ID",
-        description = "当該情報の案件IDまたは要員ID",
-        maxLength = 10,
-        minLength = 10)
+    @Schema(title = "識別ID", description = "当該情報の案件IDまたは要員ID", maxLength = 10, minLength = 10)
     private String id = null;
 
     @Schema(
@@ -92,7 +87,8 @@ public class ChooseBestInfoResponseSchema {
 
     @Schema(
         title = "場所評価結果",
-        description = "案件場所から要員の場所まで在来線1時間以内で通勤できるかどうか。案件側がフルリモートである場合、または案件や要員どちらかの場所が不明な場合は一律trueとする。",
+        description =
+            "案件場所から要員の場所まで在来線1時間以内で通勤できるかどうか。案件側がフルリモートである場合、または案件や要員どちらかの場所が不明な場合は一律trueとする。",
         defaultValue = "true")
     private boolean placeEvaluateResult;
 
