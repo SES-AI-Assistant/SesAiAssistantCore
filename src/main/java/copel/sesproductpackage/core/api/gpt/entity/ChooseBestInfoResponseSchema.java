@@ -37,16 +37,14 @@ public class ChooseBestInfoResponseSchema {
       return null;
     }
     return this.candidateResults.stream()
-        // 1. 各評価フラグがすべて true である要素のみに絞り込み
+        // 各評価フラグがすべて true である要素のみに絞り込み
         .filter(CandidateEvaluationResult::isPriceEvaluateResult)
         .filter(CandidateEvaluationResult::isPlaceEvaluateResult)
         .filter(CandidateEvaluationResult::isOfficeEvaluateResult)
         .filter(CandidateEvaluationResult::isPersonMonthsEvaluateResult)
-        // 2. 必須スキル評価が FullyMet の要素のみに絞り込み
+        // 必須スキル評価が FullyMet の要素のみに絞り込み
         .filter(r -> EvaluateType.FullyMet.equals(r.getMustSkillEvaluateResult()))
-        // 3. マッチ度（matchScore）が90点以上である要素のみに絞り込み
-        .filter(r -> r.getMatchScore() >= 90)
-        // 4. マッチ度の最大値（同点の場合は任意で1つ）を取得
+        // マッチ度の最大値（同点の場合は任意で1つ）を取得
         .max(CandidateEvaluationResult::compareTo)
         .orElse(null);
   }
