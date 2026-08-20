@@ -1,8 +1,9 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
+import java.util.List;
+
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,7 +16,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class MatchEvaluateSchema {
+public class MatchEvaluateResponseSchema {
   @Schema(
       title = "マッチ度（点）",
       description = "要員と案件のマッチ度合いを示した数値",
@@ -131,7 +132,7 @@ public class MatchEvaluateSchema {
         sb.append("・")
             .append(must.getPerspective())
             .append("：")
-            .append(must.getResult() != null ? must.getResult().getIcon() : "-")
+            .append(must.getResult() != null ? (must.getResult().getIcon() + "(" + must.getComment() + ")") : "-")
             .append("\n");
       }
     }
@@ -142,7 +143,7 @@ public class MatchEvaluateSchema {
         sb.append("・")
             .append(want.getPerspective())
             .append("：")
-            .append(want.getResult() != null ? want.getResult().getIcon() : "-")
+            .append(want.getResult() != null ? (want.getResult().getIcon() + "(" + want.getComment() + ")") : "-")
             .append("\n");
       }
     }

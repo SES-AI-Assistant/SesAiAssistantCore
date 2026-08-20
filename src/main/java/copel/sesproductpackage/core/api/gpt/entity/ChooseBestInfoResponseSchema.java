@@ -1,6 +1,6 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
-import copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateSchema.EvaluateType;
+import copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateResponseSchema.EvaluateType;
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.api.gpt.schema.SchemaIgnore;
 import java.util.List;
