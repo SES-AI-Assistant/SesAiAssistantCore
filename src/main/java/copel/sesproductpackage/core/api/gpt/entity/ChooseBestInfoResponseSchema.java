@@ -42,6 +42,7 @@ public class ChooseBestInfoResponseSchema {
         .filter(CandidateEvaluationResult::isPlaceEvaluateResult)
         .filter(CandidateEvaluationResult::isOfficeEvaluateResult)
         .filter(CandidateEvaluationResult::isPersonMonthsEvaluateResult)
+        .filter(CandidateEvaluationResult::isOtherConstraintsResult)
         // 必須スキル評価が FullyMet の要素のみに絞り込み
         .filter(r -> EvaluateType.FullyMet.equals(r.getMustSkillEvaluateResult()))
         // マッチ度の最大値（同点の場合は任意で1つ）を取得
@@ -66,6 +67,7 @@ public class ChooseBestInfoResponseSchema {
         .filter(CandidateEvaluationResult::isPlaceEvaluateResult)
         .filter(CandidateEvaluationResult::isOfficeEvaluateResult)
         .filter(CandidateEvaluationResult::isPersonMonthsEvaluateResult)
+        .filter(CandidateEvaluationResult::isOtherConstraintsResult)
         // 必須スキル評価が FullyMet の要素のみに絞り込み
         .filter(r -> EvaluateType.FullyMet.equals(r.getMustSkillEvaluateResult()))
         // マッチ度の降順（大きい順）にソート
@@ -132,6 +134,12 @@ public class ChooseBestInfoResponseSchema {
         defaultValue = "true")
     private boolean personMonthsEvaluateResult = true;
 
+    @Schema(
+        title = "制約条件評価結果",
+        description = "他項目で評価している単価や出社要件を除いたその他の制約条件の評価結果。要員が希望する制約条件を案件が1つ以上違反している場合はfalse。案件が希望する制約条件を要員が1つ以上違反している場合はfalse。それ以外はtrue。例えば年齢制限や商流制限などを評価する。",
+        defaultValue = "true")
+    private boolean otherConstraintsResult = true;
+
     @SchemaIgnore
     @Override
     public int compareTo(CandidateEvaluationResult o) {
@@ -171,6 +179,10 @@ public class ChooseBestInfoResponseSchema {
       // 6. 出社
       sb.append("■出社: ")
         .append(this.officeEvaluateResult ? "○" : "×")
+        .append("\n");
+      // 7. その他
+      sb.append("■その他制約事項: ")
+        .append(this.officeEvaluateResult ? "満たす" : "満たさない")
         .append("\n");
       return sb.toString();
     }
