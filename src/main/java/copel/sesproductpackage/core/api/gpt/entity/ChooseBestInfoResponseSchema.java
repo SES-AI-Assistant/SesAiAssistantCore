@@ -1,9 +1,10 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
+import java.util.List;
+
 import copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateResponseSchema.EvaluateType;
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.api.gpt.schema.SchemaIgnore;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -46,6 +47,30 @@ public class ChooseBestInfoResponseSchema {
         // マッチ度の最大値（同点の場合は任意で1つ）を取得
         .max(CandidateEvaluationResult::compareTo)
         .orElse(null);
+  }
+
+  /**
+   * 評価結果を元に、条件を満たす全候補をマッチ度の降順（大きい順）で返却する.
+   *
+   * @return 条件を満たすCandidateEvaluationResultのリスト（該当なしの場合は空リスト）
+   */
+  @SchemaIgnore
+  public List<CandidateEvaluationResult> getFilteredSortedResults() {
+    // 必須オブジェクトの存在チェック
+    if (this.candidateResults == null) {
+      return List.of();
+    }
+    return this.candidateResults.stream()
+        // 各評価フラグがすべて true である要素のみに絞り込み
+        .filter(CandidateEvaluationResult::isPriceEvaluateResult)
+        .filter(CandidateEvaluationResult::isPlaceEvaluateResult)
+        .filter(CandidateEvaluationResult::isOfficeEvaluateResult)
+        .filter(CandidateEvaluationResult::isPersonMonthsEvaluateResult)
+        // 必須スキル評価が FullyMet の要素のみに絞り込み
+        .filter(r -> EvaluateType.FullyMet.equals(r.getMustSkillEvaluateResult()))
+        // マッチ度の降順（大きい順）にソート
+        .sorted(java.util.Comparator.reverseOrder())
+        .toList();
   }
 
   @Data
@@ -115,6 +140,39 @@ public class ChooseBestInfoResponseSchema {
       }
       // matchScore の降順（大きい順）
       return Integer.compare(this.matchScore, o.matchScore);
+    }
+
+    /**
+     * 評価結果をまとめた文章を返却する.
+     *
+     * @return 評価文
+     */
+    @SchemaIgnore
+    public String toEvaluiationText() {
+      StringBuilder sb = new StringBuilder();
+      // 1. マッチ度
+      sb.append("マッチ度: ").append(this.matchScore).append("点\n");
+      // 2. 必須スキル
+      sb.append("■必須スキル: ")
+        .append(this.mustSkillEvaluateResult != null ? this.mustSkillEvaluateResult.getIcon() : "-")
+        .append("\n");
+      // 3. 尚可スキル
+      sb.append("■尚可スキル: ")
+        .append(this.wantSkillEvaluateResult != null ? this.wantSkillEvaluateResult.getIcon() : "-")
+        .append("\n");
+      // 4. 単価
+      sb.append("■単価: ")
+        .append(this.priceEvaluateResult ? "○" : "×")
+        .append("\n");
+      // 5. 場所
+      sb.append("■場所: ")
+        .append(this.placeEvaluateResult ? "○" : "×")
+        .append("\n");
+      // 6. 出社
+      sb.append("■出社: ")
+        .append(this.officeEvaluateResult ? "○" : "×")
+        .append("\n");
+      return sb.toString();
     }
   }
 }
