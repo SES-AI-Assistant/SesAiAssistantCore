@@ -1,21 +1,19 @@
 package copel.sesproductpackage.core.internal;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
 
 class SesAiAssistantWebAppNotifierSqsEntityTest {
 
@@ -45,7 +43,7 @@ class SesAiAssistantWebAppNotifierSqsEntityTest {
         new SesAiAssistantWebAppNotifierRequestEntity(
             "user1", "test title", "test body", "/icon.png", "/badge.png", "test-tag", "/");
     SesAiAssistantWebAppNotifierSqsEntity entity =
-        new SesAiAssistantWebAppNotifierSqsEntity("http://sqs/test", request);
+        new SesAiAssistantWebAppNotifierSqsEntity(request);
 
     String json = entity.getMessageBody();
     assertTrue(json.contains("\"user_id\":\"user1\""));
@@ -63,7 +61,7 @@ class SesAiAssistantWebAppNotifierSqsEntityTest {
         new SesAiAssistantWebAppNotifierRequestEntity(
             "user1", "title", "body", "/icon.png", "/badge.png", "tag", "/");
     SesAiAssistantWebAppNotifierSqsEntity entity =
-        new SesAiAssistantWebAppNotifierSqsEntity("http://sqs/test", request);
+        new SesAiAssistantWebAppNotifierSqsEntity(request);
 
     SendMessageResult mockRes = new SendMessageResult().withMessageId("msg123");
     when(mockSqs.sendMessage(any(SendMessageRequest.class))).thenReturn(mockRes);
