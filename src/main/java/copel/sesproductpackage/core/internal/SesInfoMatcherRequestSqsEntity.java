@@ -48,9 +48,6 @@ public class SesInfoMatcherRequestSqsEntity extends SQSEntityBase {
   @JsonProperty("tenant_id")
   private String tenantId;
 
-  /** デフォルトコンストラクタ. */
-  public SesInfoMatcherRequestSqsEntity() {}
-
   /**
    * コンストラクタ.
    *

@@ -17,10 +17,16 @@ import copel.sesproductpackage.core.util.AwsEndpointUtil;
  */
 public abstract class SQSEntityBase {
   /** キューイング対象のSQSのURL. */
-  private final String queueUrl;
+  private String queueUrl;
 
   /** SQSクライアント. */
-  private final AmazonSQS sqsClient;
+  private AmazonSQS sqsClient;
+
+  /** デフォルトコンストラクタ（JSON デシリアライズ用）. */
+  public SQSEntityBase() {
+    this.sqsClient = null;
+    this.queueUrl = null;
+  }
 
   /**
    * コンストラクタ.

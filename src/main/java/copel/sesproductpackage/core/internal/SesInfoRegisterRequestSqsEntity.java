@@ -65,9 +65,6 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
   private static final int CONTENT_MIN_LENGTH_FOR_CLASSIFICATION =
       Properties.getInt("CONTENT_MIN_LENGTH_FOR_CLASSIFICATION");
 
-  /** デフォルトコンストラクタ. */
-  public SesInfoRegisterRequestSqsEntity() {}
-
   /**
    * SQS送信用コンストラクタ.
    *
