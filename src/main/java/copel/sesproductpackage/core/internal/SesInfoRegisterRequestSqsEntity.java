@@ -12,8 +12,8 @@ import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import copel.sesproductpackage.core.util.Properties;
 import copel.sesproductpackage.core.util.SsmParameterKey;
 import java.io.IOException;
-import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 /**
@@ -22,8 +22,8 @@ import lombok.NoArgsConstructor;
  * @author Copel Co., Ltd.
  */
 @Data
+@EqualsAndHashCode(callSuper = false)
 @NoArgsConstructor
-@AllArgsConstructor
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
   /** リクエスト種別 */

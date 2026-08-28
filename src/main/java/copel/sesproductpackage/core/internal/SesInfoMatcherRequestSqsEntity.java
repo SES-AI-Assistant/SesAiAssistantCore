@@ -16,6 +16,8 @@ import copel.sesproductpackage.core.util.SsmParameterKey;
 import java.sql.Connection;
 import java.sql.SQLException;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
 /**
  * AwsLambdaSesInfoMatcherに付帯するSQSへのリクエストEntityクラス.
@@ -23,6 +25,8 @@ import lombok.Data;
  * @author Copel Co., Ltd.
  */
 @Data
+@EqualsAndHashCode(callSuper = false)
+@NoArgsConstructor
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class SesInfoMatcherRequestSqsEntity extends SQSEntityBase {
   /** 案件ID. */
