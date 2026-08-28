@@ -23,7 +23,6 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
-@NoArgsConstructor
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
   /** リクエスト種別 */
@@ -65,6 +64,9 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
   /** 登録対象となる最小文字数. */
   private static final int CONTENT_MIN_LENGTH_FOR_CLASSIFICATION =
       Properties.getInt("CONTENT_MIN_LENGTH_FOR_CLASSIFICATION");
+
+  /** デフォルトコンストラクタ. */
+  public SesInfoRegisterRequestSqsEntity() {}
 
   /**
    * SQS送信用コンストラクタ.

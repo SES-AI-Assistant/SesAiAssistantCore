@@ -26,7 +26,6 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
-@NoArgsConstructor
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class SesInfoMatcherRequestSqsEntity extends SQSEntityBase {
   /** 案件ID. */
@@ -48,6 +47,9 @@ public class SesInfoMatcherRequestSqsEntity extends SQSEntityBase {
   /** テナントID. */
   @JsonProperty("tenant_id")
   private String tenantId;
+
+  /** デフォルトコンストラクタ. */
+  public SesInfoMatcherRequestSqsEntity() {}
 
   /**
    * コンストラクタ.
