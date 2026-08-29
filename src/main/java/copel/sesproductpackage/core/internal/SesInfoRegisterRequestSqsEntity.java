@@ -66,12 +66,35 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
       Properties.getInt("CONTENT_MIN_LENGTH_FOR_CLASSIFICATION");
 
   /**
-   * SQS送信用コンストラクタ.
+   * SQS送信用コンストラクタ（キューURLを自動取得）.
    *
    * @param region リージョン
    */
   public SesInfoRegisterRequestSqsEntity(Regions region) {
     super(region, Properties.get(SsmParameterKey.REGISTER_QUEUE_URL.getKey()));
+  }
+
+  /**
+   * SQS送信用コンストラクタ（キューURLを指定）.
+   *
+   * @param region リージョン
+   * @param queueUrl SQSのURL
+   */
+  public SesInfoRegisterRequestSqsEntity(Regions region, String queueUrl) {
+    super(region, queueUrl);
+  }
+
+  /**
+   * このSQSの入力のrawContentに文字列を追加します.
+   *
+   * @param content 追加する内容
+   */
+  public void addRawContent(final String content) {
+    if (this.rawContent == null) {
+      this.rawContent = content;
+    } else {
+      this.rawContent += content;
+    }
   }
 
   @Override
