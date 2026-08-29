@@ -1,8 +1,15 @@
 package copel.sesproductpackage.core.database;
 
-import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
+import copel.sesproductpackage.core.database.converter.OriginalDateTimeConverter;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Id;
+import jakarta.persistence.PersistenceException;
+import jakarta.persistence.Table;
 import java.sql.Connection;
 import java.sql.SQLException;
 import lombok.Data;
@@ -12,53 +19,68 @@ import lombok.ToString;
 /**
  * 送信元グループマスタテーブルのエンティティ.
  *
+ * <p>JPA マッピング対応。テナント隔離はアプリケーションレベルで実装します。
+ *
  * @author Copel Co., Ltd.
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
+@Entity
+@Table(name = "SES_AI_M_GROUP")
 public class SES_AI_M_GROUP extends EntityBase {
 
+  /** static EntityManager フィールド */
+  private static EntityManager entityManager;
+
+  /** 【PK】 送信元グループ / from_group */
+  @Id
+  @Column(name = "from_group")
+  private String fromGroup;
+
+  /** 送信元グループ名 / group_name */
+  @Column(name = "group_name")
+  private String groupName;
+
+  /** 登録日時 / register_date */
+  @Column(name = "register_date")
+  @Convert(converter = OriginalDateTimeConverter.class)
+  private OriginalDateTime registerDate;
+
+  /** 登録ユーザー / register_user */
+  @Column(name = "register_user")
+  private String registerUser;
+
+  /**
+   * EntityManager を設定します.
+   *
+   * @param em EntityManager
+   */
+  public static void setEntityManager(EntityManager em) {
+    entityManager = em;
+  }
+
+  /**
+   * コンストラクタ.
+   *
+   * @param tenantId テナントID
+   */
   public SES_AI_M_GROUP(String tenantId) {
     super(tenantId);
   }
 
-  /** INSERT文. */
-  private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_M_GROUP (from_group, group_name, register_date, register_user) VALUES (?, ?, ?, ?)";
-
-  /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
-  private static final String SELECT_SQL =
-      "SELECT from_group, group_name, register_date, register_user FROM SES_AI_M_GROUP WHERE from_group = ?";
-
-  /** UPDATE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
-  private static final String UPDATE_SQL =
-      "UPDATE SES_AI_M_GROUP SET group_name = ?, register_date = ?, register_user = ? WHERE from_group = ?";
-
-  /** DELETE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
-  private static final String DELETE_SQL = "DELETE FROM SES_AI_M_GROUP WHERE from_group = ?";
-
-  /** 【PK】 送信元グループ* / from_group */
-  @Column(required = true, primary = true, physicalName = "from_group", logicalName = "送信元グループ")
-  private String fromGroup;
-
-  /** 送信元グループ名 / group_name */
-  @Column(physicalName = "group_name", logicalName = "送信元グループ名")
-  private String groupName;
-
   @Override
   public int insert(Connection connection) throws SQLException {
-    return executeInsert(
-        connection,
-        INSERT_SQL,
-        this.tenantId,
-        (stmt) -> {
-          stmt.setString(1, this.fromGroup);
-          stmt.setString(2, this.groupName);
-          stmt.setTimestamp(3, this.registerDate == null ? null : this.registerDate.toTimestamp());
-          stmt.setString(4, this.registerUser);
-        },
-        "SES_AI_M_GROUP.insert");
+    if (entityManager == null) {
+      throw new SQLException("EntityManager not initialized");
+    }
+    try {
+      entityManager.persist(this);
+      entityManager.flush();
+      return 1;
+    } catch (PersistenceException e) {
+      throw new SQLException("Failed to insert: " + e.getMessage(), e);
+    }
   }
 
   @Override
@@ -66,18 +88,20 @@ public class SES_AI_M_GROUP extends EntityBase {
     if (this.fromGroup == null) {
       return;
     }
-    executeSelectByPk(
-        connection,
-        SELECT_SQL,
-        this.tenantId,
-        (stmt) -> stmt.setString(1, this.fromGroup),
-        (rs) -> {
-          this.fromGroup = rs.getString("from_group");
-          this.groupName = rs.getString("group_name");
-          this.registerDate = new OriginalDateTime(rs.getString("register_date"));
-          this.registerUser = rs.getString("register_user");
-        },
-        "SES_AI_M_GROUP.selectByPk");
+    if (entityManager == null) {
+      throw new SQLException("EntityManager not initialized");
+    }
+    try {
+      SES_AI_M_GROUP found = entityManager.find(SES_AI_M_GROUP.class, this.fromGroup);
+      if (found != null) {
+        this.fromGroup = found.fromGroup;
+        this.groupName = found.groupName;
+        this.registerDate = found.registerDate;
+        this.registerUser = found.registerUser;
+      }
+    } catch (PersistenceException e) {
+      throw new SQLException("Failed to select: " + e.getMessage(), e);
+    }
   }
 
   @Override
@@ -85,17 +109,16 @@ public class SES_AI_M_GROUP extends EntityBase {
     if (this.fromGroup == null) {
       return false;
     }
-    return executeUpdateByPk(
-        connection,
-        UPDATE_SQL,
-        this.tenantId,
-        (stmt) -> {
-          stmt.setString(1, this.groupName);
-          stmt.setTimestamp(2, this.registerDate == null ? null : this.registerDate.toTimestamp());
-          stmt.setString(3, this.registerUser);
-          stmt.setString(4, this.fromGroup);
-        },
-        "SES_AI_M_GROUP.updateByPk");
+    if (entityManager == null) {
+      throw new SQLException("EntityManager not initialized");
+    }
+    try {
+      SES_AI_M_GROUP merged = entityManager.merge(this);
+      entityManager.flush();
+      return true;
+    } catch (PersistenceException e) {
+      throw new SQLException("Failed to update: " + e.getMessage(), e);
+    }
   }
 
   @Override
@@ -103,11 +126,19 @@ public class SES_AI_M_GROUP extends EntityBase {
     if (this.fromGroup == null) {
       return false;
     }
-    return executeDeleteByPk(
-        connection,
-        DELETE_SQL,
-        this.tenantId,
-        (stmt) -> stmt.setString(1, this.fromGroup),
-        "SES_AI_M_GROUP.deleteByPk");
+    if (entityManager == null) {
+      throw new SQLException("EntityManager not initialized");
+    }
+    try {
+      SES_AI_M_GROUP toDelete = entityManager.find(SES_AI_M_GROUP.class, this.fromGroup);
+      if (toDelete != null) {
+        entityManager.remove(toDelete);
+        entityManager.flush();
+        return true;
+      }
+      return false;
+    } catch (PersistenceException e) {
+      throw new SQLException("Failed to delete: " + e.getMessage(), e);
+    }
   }
 }

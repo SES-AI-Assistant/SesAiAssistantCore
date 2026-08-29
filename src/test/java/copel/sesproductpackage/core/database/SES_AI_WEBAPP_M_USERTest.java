@@ -7,13 +7,27 @@ import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Permission;
 import copel.sesproductpackage.core.unit.Plan;
 import copel.sesproductpackage.core.unit.Role;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import jakarta.persistence.EntityManager;
 import java.sql.SQLException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+/**
+ * SES_AI_WEBAPP_M_USER のテストクラス.
+ *
+ * <p>JPA ベースの CRUD 操作とビジネスロジックをモックして検証します。
+ *
+ * @author Copel Co., Ltd.
+ */
 class SES_AI_WEBAPP_M_USERTest {
+
+  private EntityManager entityManager;
+
+  @BeforeEach
+  void setUp() {
+    entityManager = mock(EntityManager.class);
+    SES_AI_WEBAPP_M_USER.setEntityManager(entityManager);
+  }
 
   @Test
   void testAuth() {
@@ -62,241 +76,195 @@ class SES_AI_WEBAPP_M_USERTest {
   }
 
   @Test
-  void testNullScenarios() throws SQLException {
-    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
-    Connection connection = mock(Connection.class);
-
-    assertEquals(0, user.insert(null));
-
-    user.selectByPk(null);
-    user.setUserId(null);
-    user.selectByPk(connection);
-
-    assertFalse(user.updateByPk(null));
-    user.setUserId(null);
-    assertFalse(user.updateByPk(connection));
-
-    assertFalse(user.deleteByPk(null));
-    user.setUserId(null);
-    assertFalse(user.deleteByPk(connection));
-
-    user.setRole(null);
-    user.setPlan(null);
-    user.setTenantId("default");
-    user.setRegisterDate(null);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    user.setUserId("U1");
-    user.insert(connection);
-    user.updateByPk(connection);
-
-    assertNotNull(user.toString());
-    assertNotNull(user.hashCode());
-    assertTrue(user.equals(user));
-    assertFalse(user.equals(null));
-    assertFalse(user.equals(new Object()));
-  }
-
-  @Test
-  void testResultSetBranches() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-
+  void testInsertSuccess() throws SQLException {
     SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
     user.setUserId("U1");
-    user.setTenantId("default");
-
-    when(rs.next()).thenReturn(false);
-    user.selectByPk(connection);
-
-    reset(rs);
-    when(rs.next()).thenReturn(true);
-    when(rs.getString("role_cd")).thenReturn(null);
-    user.selectByPk(connection);
-    assertNull(user.getRole());
-  }
-
-  @Test
-  void testUSER() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeUpdate()).thenReturn(1);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true, false);
-
-    when(rs.getString("user_id")).thenReturn("U1");
-    when(rs.getString("user_name")).thenReturn("Name1");
-    when(rs.getString("role_cd")).thenReturn("10");
-    when(rs.getString("plan_cd")).thenReturn("P1");
-    when(rs.getString("register_date")).thenReturn("2026-01-01 00:00:00");
-    when(rs.getString("register_user")).thenReturn("admin");
-
-    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
-    user.setUserId("U1");
-    user.setTenantId("default");
-    user.setUserName("Name1");
+    user.setUserName("Test User");
     user.setRole(Role.システムユーザー);
+    user.setPlan(Plan.PREMIUM);
     user.setRegisterDate(new OriginalDateTime());
+    user.setRegisterUser("admin");
 
-    assertEquals(1, user.insert(connection));
-    assertTrue(user.updateByPk(connection));
-
-    SES_AI_WEBAPP_M_USER target = new SES_AI_WEBAPP_M_USER("test-tenant");
-    target.setUserId("U1");
-    target.setTenantId("default");
-    target.selectByPk(connection);
-
-    assertEquals("U1", target.getUserId());
-    assertEquals("Name1", target.getUserName());
-    assertEquals(Role.システムユーザー, target.getRole());
-
-    assertTrue(user.deleteByPk(connection));
-    assertNotNull(user.toString());
-    assertNotNull(user.getPermissions());
+    int result = user.insert(null);
+    assertEquals(1, result);
+    verify(entityManager, times(1)).persist(user);
+    verify(entityManager, times(1)).flush();
   }
 
   @Test
-  void testUSERLot() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true, false);
-    when(rs.getString("role_cd")).thenReturn("99");
-    when(rs.getString("plan_cd")).thenReturn("P1");
-    when(rs.getString("tenant_id")).thenReturn("test-tenant");
-
-    SES_AI_WEBAPP_M_USERLot lot = new SES_AI_WEBAPP_M_USERLot();
-    lot.selectAll(connection, "test-tenant");
-
+  void testInsertWithoutEntityManager() throws SQLException {
+    SES_AI_WEBAPP_M_USER.setEntityManager(null);
     SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
     user.setUserId("U1");
-    user.setTenantId("default");
-    lot.add(user);
-    assertNotNull(lot.toString());
 
-    when(ps.executeUpdate()).thenReturn(0);
-    assertFalse(user.updateByPk(connection));
-    assertFalse(user.deleteByPk(connection));
+    assertThrows(SQLException.class, () -> user.insert(null));
   }
 
   @Test
-  void testSelectByPkWithoutTenantId() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true, false);
+  void testSelectByPkSuccess() throws SQLException {
+    SES_AI_WEBAPP_M_USER found = new SES_AI_WEBAPP_M_USER("test-tenant");
+    found.setUserId("U1");
+    found.setUserName("Test User");
+    found.setRole(Role.システムユーザー);
+    found.setPlan(Plan.PREMIUM);
+    found.setRegisterDate(new OriginalDateTime("2026-06-04 10:00:00"));
+    found.setRegisterUser("admin");
+    found.setTenantId("test-tenant");
 
-    when(rs.getString("user_id")).thenReturn("U1");
-    when(rs.getString("user_name")).thenReturn("Name1");
-    when(rs.getString("role_cd")).thenReturn("10");
-    when(rs.getString("plan_cd")).thenReturn("P1");
-    when(rs.getString("register_date")).thenReturn("2026-01-01 00:00:00");
-    when(rs.getString("register_user")).thenReturn("admin");
-    when(rs.getString("tenant_id")).thenReturn("test-tenant");
+    when(entityManager.find(SES_AI_WEBAPP_M_USER.class, "U1")).thenReturn(found);
 
     SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
     user.setUserId("U1");
-    user.selectByPkWithoutTenantId(connection);
+    user.selectByPk(null);
 
     assertEquals("U1", user.getUserId());
-    assertEquals("Name1", user.getUserName());
+    assertEquals("Test User", user.getUserName());
     assertEquals(Role.システムユーザー, user.getRole());
+  }
+
+  @Test
+  void testSelectByPkWithNullId() throws SQLException {
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
+    user.setUserId(null);
+
+    user.selectByPk(null);
+
+    verify(entityManager, never()).find(any(), any());
+  }
+
+  @Test
+  void testSelectByPkWithoutTenantIdSuccess() throws SQLException {
+    SES_AI_WEBAPP_M_USER found = new SES_AI_WEBAPP_M_USER("test-tenant");
+    found.setUserId("U1");
+    found.setUserName("Test User");
+    found.setRole(Role.システムユーザー);
+    found.setPlan(Plan.PREMIUM);
+    found.setRegisterDate(new OriginalDateTime("2026-06-04 10:00:00"));
+    found.setRegisterUser("admin");
+    found.setTenantId("test-tenant");
+
+    when(entityManager.find(SES_AI_WEBAPP_M_USER.class, "U1")).thenReturn(found);
+
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
+    user.setUserId("U1");
+    user.selectByPkWithoutTenantId(null);
+
+    assertEquals("U1", user.getUserId());
+    assertEquals("Test User", user.getUserName());
     assertEquals("test-tenant", user.getTenantId());
   }
 
   @Test
-  void testSelectByPkWithoutTenantIdNullHandling() throws SQLException {
+  void testSelectByPkWithoutTenantIdWithNullId() throws SQLException {
     SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
-    Connection connection = mock(Connection.class);
+    user.setUserId(null);
 
     user.selectByPkWithoutTenantId(null);
 
+    verify(entityManager, never()).find(any(), any());
+  }
+
+  @Test
+  void testUpdateByPkSuccess() throws SQLException {
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
+    user.setUserId("U1");
+    user.setUserName("Updated User");
+    user.setRole(Role.システム管理者);
+
+    when(entityManager.merge(any(SES_AI_WEBAPP_M_USER.class))).thenReturn(user);
+
+    assertTrue(user.updateByPk(null));
+    verify(entityManager, times(1)).merge(user);
+    verify(entityManager, times(1)).flush();
+  }
+
+  @Test
+  void testUpdateByPkWithNullId() throws SQLException {
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
     user.setUserId(null);
-    user.selectByPkWithoutTenantId(connection);
+
+    assertFalse(user.updateByPk(null));
+    verify(entityManager, never()).merge(any());
   }
 
   @Test
-  void testSelectByPkWithoutTenantIdEmptyResult() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(false);
-
+  void testUpdateByPkWithoutTenantIdSuccess() throws SQLException {
     SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
     user.setUserId("U1");
-    user.selectByPkWithoutTenantId(connection);
+    user.setUserName("Updated User");
+    user.setTenantId("test-tenant");
 
-    assertEquals("U1", user.getUserId());
-    assertNull(user.getUserName());
+    when(entityManager.merge(any(SES_AI_WEBAPP_M_USER.class))).thenReturn(user);
+
+    assertTrue(user.updateByPkWithoutTenantId(null));
+    verify(entityManager, times(1)).merge(user);
+    verify(entityManager, times(1)).flush();
   }
 
   @Test
-  void testUSERLotSelectAllWithoutTenantId() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true, true, false);
-    when(rs.getString("user_id")).thenReturn("U1", "U2");
-    when(rs.getString("user_name")).thenReturn("Name1", "Name2");
-    when(rs.getString("role_cd")).thenReturn("10", "20");
-    when(rs.getString("plan_cd")).thenReturn("P1", "P2");
-    when(rs.getString("register_date")).thenReturn("2026-01-01 00:00:00", "2026-01-02 00:00:00");
-    when(rs.getString("register_user")).thenReturn("admin", "user");
-    when(rs.getString("tenant_id")).thenReturn("tenant-a", "tenant-b");
+  void testUpdateByPkWithoutTenantIdWithNullId() throws SQLException {
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
+    user.setUserId(null);
 
-    SES_AI_WEBAPP_M_USERLot lot = new SES_AI_WEBAPP_M_USERLot();
-    lot.selectAllWithoutTenantId(connection);
-
-    assertEquals(2, lot.size());
+    assertFalse(user.updateByPkWithoutTenantId(null));
+    verify(entityManager, never()).merge(any());
   }
 
   @Test
-  void testDeleteByPkWithoutTenantIdFilter() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeUpdate()).thenReturn(1);
+  void testDeleteByPkSuccess() throws SQLException {
+    SES_AI_WEBAPP_M_USER found = new SES_AI_WEBAPP_M_USER("test-tenant");
+    found.setUserId("U1");
+
+    when(entityManager.find(SES_AI_WEBAPP_M_USER.class, "U1")).thenReturn(found);
 
     SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
     user.setUserId("U1");
 
-    assertTrue(user.deleteByPkWithoutTenantIdFilter(connection));
+    assertTrue(user.deleteByPk(null));
+    verify(entityManager, times(1)).remove(found);
+    verify(entityManager, times(1)).flush();
   }
 
   @Test
-  void testDeleteByPkWithoutTenantIdFilterNullHandling() throws SQLException {
+  void testDeleteByPkWithNullId() throws SQLException {
     SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
-    Connection connection = mock(Connection.class);
+    user.setUserId(null);
+
+    assertFalse(user.deleteByPk(null));
+    verify(entityManager, never()).remove(any());
+  }
+
+  @Test
+  void testDeleteByPkWithoutTenantIdFilterSuccess() throws SQLException {
+    SES_AI_WEBAPP_M_USER found = new SES_AI_WEBAPP_M_USER("test-tenant");
+    found.setUserId("U1");
+
+    when(entityManager.find(SES_AI_WEBAPP_M_USER.class, "U1")).thenReturn(found);
+
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
+    user.setUserId("U1");
+
+    assertTrue(user.deleteByPkWithoutTenantIdFilter(null));
+    verify(entityManager, times(1)).remove(found);
+    verify(entityManager, times(1)).flush();
+  }
+
+  @Test
+  void testDeleteByPkWithoutTenantIdFilterWithNullId() throws SQLException {
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
+    user.setUserId(null);
 
     assertFalse(user.deleteByPkWithoutTenantIdFilter(null));
-
-    user.setUserId(null);
-    assertFalse(user.deleteByPkWithoutTenantIdFilter(connection));
+    verify(entityManager, never()).remove(any());
   }
 
   @Test
-  void testDeleteByPkWithoutTenantIdFilterFailure() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeUpdate()).thenReturn(0);
-
+  void testToString() {
     SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
     user.setUserId("U1");
+    user.setUserName("Test User");
 
-    assertFalse(user.deleteByPkWithoutTenantIdFilter(connection));
+    assertNotNull(user.toString());
+    assertTrue(user.toString().contains("U1"));
   }
 }

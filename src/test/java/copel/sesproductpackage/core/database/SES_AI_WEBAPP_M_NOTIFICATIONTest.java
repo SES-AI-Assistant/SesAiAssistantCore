@@ -4,39 +4,37 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import jakarta.persistence.EntityManager;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class SES_AI_WEBAPP_M_NOTIFICATIONTest {
+
+  private EntityManager entityManager;
+
+  @BeforeEach
+  void setUp() {
+    entityManager = mock(EntityManager.class);
+    SES_AI_WEBAPP_M_NOTIFICATION.setEntityManager(entityManager);
+  }
 
   @Test
   void testNullScenarios() throws SQLException {
     SES_AI_WEBAPP_M_NOTIFICATION notification = new SES_AI_WEBAPP_M_NOTIFICATION("test-tenant");
     Connection connection = mock(Connection.class);
 
-    assertEquals(0, notification.insert(null));
-
-    notification.selectByPk(null);
     notification.setNotificationId(null);
     notification.selectByPk(connection);
 
-    assertFalse(notification.updateByPk(null));
+    assertFalse(notification.updateByPk(connection));
     notification.setNotificationId(null);
     assertFalse(notification.updateByPk(connection));
 
-    assertFalse(notification.deleteByPk(null));
+    assertFalse(notification.deleteByPk(connection));
     notification.setNotificationId(null);
     assertFalse(notification.deleteByPk(connection));
-
-    notification.setRegisterDate(null);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    notification.setNotificationId("N1");
-    notification.insert(connection);
-    notification.updateByPk(connection);
 
     assertNotNull(notification.toString());
     assertNotNull(notification.hashCode());
@@ -46,45 +44,20 @@ class SES_AI_WEBAPP_M_NOTIFICATIONTest {
   }
 
   @Test
-  void testResultSetBranches() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-
-    SES_AI_WEBAPP_M_NOTIFICATION notification = new SES_AI_WEBAPP_M_NOTIFICATION("test-tenant");
-    notification.setNotificationId("N1");
-
-    when(rs.next()).thenReturn(false);
-    notification.selectByPk(connection);
-
-    reset(rs);
-    when(rs.next()).thenReturn(true);
-    when(rs.getString("register_date")).thenReturn(null);
-    notification.selectByPk(connection);
-  }
-
-  @Test
   void testNotification() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeUpdate()).thenReturn(1);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true, false);
+    SES_AI_WEBAPP_M_NOTIFICATION found = new SES_AI_WEBAPP_M_NOTIFICATION("test-tenant");
+    found.setNotificationId("N1");
+    found.setUserId("U1");
+    found.setDeviceType("WEB_PUSH");
+    found.setDeviceName("Chrome on Windows");
+    found.setPushNotificationEndpoint("https://example.com/push/xyz");
+    found.setP256dh("base64_p256dh_key");
+    found.setAuth("base64_auth_token");
+    found.setEnabled(true);
+    found.setRegisterDate(new OriginalDateTime("2026-04-22 00:00:00"));
+    found.setRegisterUser("admin");
 
-    when(rs.getString("notification_id")).thenReturn("N1");
-    when(rs.getString("user_id")).thenReturn("U1");
-    when(rs.getString("device_type")).thenReturn("WEB_PUSH");
-    when(rs.getString("device_name")).thenReturn("Chrome on Windows");
-    when(rs.getString("push_notification_endpoint")).thenReturn("https://example.com/push/xyz");
-    when(rs.getString("p256dh")).thenReturn("base64_p256dh_key");
-    when(rs.getString("auth")).thenReturn("base64_auth_token");
-    when(rs.getBoolean("enabled")).thenReturn(true);
-    when(rs.getString("register_date")).thenReturn("2026-04-22 00:00:00");
-    when(rs.getString("register_user")).thenReturn("admin");
+    when(entityManager.find(SES_AI_WEBAPP_M_NOTIFICATION.class, "N1")).thenReturn(found);
 
     SES_AI_WEBAPP_M_NOTIFICATION notification = new SES_AI_WEBAPP_M_NOTIFICATION("test-tenant");
     notification.setNotificationId("N1");
@@ -98,12 +71,16 @@ class SES_AI_WEBAPP_M_NOTIFICATIONTest {
     notification.setRegisterDate(new OriginalDateTime());
     notification.setRegisterUser("admin");
 
-    assertEquals(1, notification.insert(connection));
-    assertTrue(notification.updateByPk(connection));
+    assertEquals(1, notification.insert(null));
+    verify(entityManager, times(1)).persist(notification);
+    verify(entityManager, times(1)).flush();
+
+    assertTrue(notification.updateByPk(null));
+    verify(entityManager, times(1)).merge(notification);
 
     SES_AI_WEBAPP_M_NOTIFICATION target = new SES_AI_WEBAPP_M_NOTIFICATION("test-tenant");
     target.setNotificationId("N1");
-    target.selectByPk(connection);
+    target.selectByPk(null);
 
     assertEquals("N1", target.getNotificationId());
     assertEquals("U1", target.getUserId());
@@ -114,30 +91,33 @@ class SES_AI_WEBAPP_M_NOTIFICATIONTest {
     assertEquals("base64_auth_token", target.getAuth());
     assertTrue(target.getEnabled());
 
-    assertTrue(notification.deleteByPk(connection));
+    assertTrue(notification.deleteByPk(null));
+    verify(entityManager, times(1)).remove(found);
     assertNotNull(notification.toString());
   }
 
   @Test
   void testNotificationLot() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true, false);
-    when(rs.getString("tenant_id")).thenReturn("test-tenant");
-
-    SES_AI_WEBAPP_M_NOTIFICATIONLot lot = new SES_AI_WEBAPP_M_NOTIFICATIONLot();
-    lot.selectAll(connection, "test-tenant");
-
     SES_AI_WEBAPP_M_NOTIFICATION notification = new SES_AI_WEBAPP_M_NOTIFICATION("test-tenant");
     notification.setNotificationId("N1");
+
+    SES_AI_WEBAPP_M_NOTIFICATIONLot lot = new SES_AI_WEBAPP_M_NOTIFICATIONLot();
     lot.add(notification);
     assertNotNull(lot.toString());
+  }
 
-    when(ps.executeUpdate()).thenReturn(0);
-    assertFalse(notification.updateByPk(connection));
-    assertFalse(notification.deleteByPk(connection));
+  @Test
+  void testResultSetBranches() throws SQLException {
+    SES_AI_WEBAPP_M_NOTIFICATION notification = new SES_AI_WEBAPP_M_NOTIFICATION("test-tenant");
+    notification.setNotificationId("N1");
+
+    when(entityManager.find(SES_AI_WEBAPP_M_NOTIFICATION.class, "N1")).thenReturn(null);
+    notification.selectByPk(null);
+
+    SES_AI_WEBAPP_M_NOTIFICATION found = new SES_AI_WEBAPP_M_NOTIFICATION("test-tenant");
+    found.setNotificationId("N1");
+    found.setRegisterDate(null);
+    when(entityManager.find(SES_AI_WEBAPP_M_NOTIFICATION.class, "N1")).thenReturn(found);
+    notification.selectByPk(null);
   }
 }

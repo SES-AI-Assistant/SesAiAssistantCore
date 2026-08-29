@@ -1,6 +1,9 @@
 package copel.sesproductpackage.core.database.base;
 
+import copel.sesproductpackage.core.database.converter.OriginalDateTimeConverter;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -14,23 +17,26 @@ import org.slf4j.LoggerFactory;
 /**
  * エンティティの基底クラス.
  *
+ * <p>JPA と JDBC の両方に対応。すべての Entity クラスの基底。
+ *
  * @author Copel Co., Ltd.
  */
 @Data
 public abstract class EntityBase implements Comparable<EntityBase> {
   private static final Logger log = LoggerFactory.getLogger(EntityBase.class);
 
+  /** テナントID / tenant_id - JPA @Id による主キー（子クラスで オーバーライド） */
+  @Column(name = "tenant_id")
+  protected String tenantId;
+
   /** 登録日時 / register_date */
-  @Column(required = true, physicalName = "register_date", logicalName = "登録日時")
+  @Column(name = "register_date")
+  @Convert(converter = OriginalDateTimeConverter.class)
   protected OriginalDateTime registerDate;
 
   /** 登録ユーザー / register_user */
-  @Column(required = true, physicalName = "register_user", logicalName = "登録ユーザー")
+  @Column(name = "register_user")
   protected String registerUser;
-
-  /** テナントID / tenant_id */
-  @Column(physicalName = "tenant_id", logicalName = "テナントID")
-  protected String tenantId;
 
   protected EntityBase(String tenantId) {
     if (tenantId == null || tenantId.trim().isEmpty()) {
