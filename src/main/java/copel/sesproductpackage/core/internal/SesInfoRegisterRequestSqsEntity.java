@@ -1,6 +1,7 @@
 package copel.sesproductpackage.core.internal;
 
 import com.amazonaws.regions.Regions;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
@@ -113,6 +114,7 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
    *
    * @return 正常データならtrue、異常データならfalse
    */
+  @JsonIgnore
   public boolean isValid() {
     if (this.infoTypeInvalid) {
       return false;
@@ -159,6 +161,7 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
    *
    * @return 画面指定の案件登録ルートなら true
    */
+  @JsonIgnore
   public boolean isDirectedJobRegistration() {
     return InformationType.JOB.name().equals(this.infoType)
         && RequestType.ScreenMessage.equals(this.requestType)
@@ -170,6 +173,7 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
    *
    * @return 画面指定の要員登録ルートなら true
    */
+  @JsonIgnore
   public boolean isDirectedCandidateRegistration() {
     if (!InformationType.PERSON.name().equals(this.infoType)) {
       return false;
@@ -188,6 +192,7 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
    *
    * @return スキルシートであればtrue、それ以外はfalse
    */
+  @JsonIgnore
   public boolean isスキルシート() {
     if (RequestType.LineFile.equals(this.requestType)
         || RequestType.EmailFile.equals(this.requestType)
