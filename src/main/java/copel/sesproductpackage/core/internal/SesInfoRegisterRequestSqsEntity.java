@@ -24,6 +24,7 @@ import lombok.NoArgsConstructor;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+@NoArgsConstructor
 public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
   /** リクエスト種別 */
   private RequestType requestType;
