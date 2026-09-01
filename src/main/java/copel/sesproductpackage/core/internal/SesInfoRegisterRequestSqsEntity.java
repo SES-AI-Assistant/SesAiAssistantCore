@@ -16,12 +16,14 @@ import java.io.IOException;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * SES情報登録Lambda（AwsLambdaSesInfoRegister）へのSQSメッセージリクエストEntity.
  *
  * @author Copel Co., Ltd.
  */
+@Slf4j
 @Data
 @EqualsAndHashCode(callSuper = false)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -117,42 +119,154 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
   @JsonIgnore
   public boolean isValid() {
     if (this.infoTypeInvalid) {
+      log.warn("info_typeが不正な値です");
       return false;
     }
     if (RequestType.LineMessage == this.requestType) {
-      return this.fromGroup != null
-          && this.fromId != null
-          && this.fromName != null
-          && this.rawContent != null
-          && this.rawContent.length() > CONTENT_MIN_LENGTH_FOR_CLASSIFICATION;
+      if (this.fromGroup == null) {
+        log.warn("LineMessage: fromGroupがnull");
+        return false;
+      }
+      if (this.fromId == null) {
+        log.warn("LineMessage: fromIdがnull");
+        return false;
+      }
+      if (this.fromName == null) {
+        log.warn("LineMessage: fromNameがnull");
+        return false;
+      }
+      if (this.rawContent == null) {
+        log.warn("LineMessage: rawContentがnull");
+        return false;
+      }
+      if (this.rawContent.length() <= CONTENT_MIN_LENGTH_FOR_CLASSIFICATION) {
+        log.warn("LineMessage: rawContentが短すぎます（現在：{}文字、最小：{}文字）",
+            this.rawContent.length(), CONTENT_MIN_LENGTH_FOR_CLASSIFICATION);
+        return false;
+      }
+      return true;
     } else if (RequestType.LineFile == this.requestType) {
-      return this.fromGroup != null
-          && this.fromId != null
-          && this.fromName != null
-          && this.fileName != null;
+      if (this.fromGroup == null) {
+        log.warn("LineFile: fromGroupがnull");
+        return false;
+      }
+      if (this.fromId == null) {
+        log.warn("LineFile: fromIdがnull");
+        return false;
+      }
+      if (this.fromName == null) {
+        log.warn("LineFile: fromNameがnull");
+        return false;
+      }
+      if (this.fileName == null) {
+        log.warn("LineFile: fileNameがnull");
+        return false;
+      }
+      return true;
     } else if (RequestType.EmailMessage == this.requestType) {
-      return this.fromGroup != null
-          && this.fromId != null
-          && this.rawContent != null
-          && this.rawContent.length() > CONTENT_MIN_LENGTH_FOR_CLASSIFICATION;
+      if (this.fromGroup == null) {
+        log.warn("EmailMessage: fromGroupがnull");
+        return false;
+      }
+      if (this.fromId == null) {
+        log.warn("EmailMessage: fromIdがnull");
+        return false;
+      }
+      if (this.rawContent == null) {
+        log.warn("EmailMessage: rawContentがnull");
+        return false;
+      }
+      if (this.rawContent.length() <= CONTENT_MIN_LENGTH_FOR_CLASSIFICATION) {
+        log.warn("EmailMessage: rawContentが短すぎます（現在：{}文字、最小：{}文字）",
+            this.rawContent.length(), CONTENT_MIN_LENGTH_FOR_CLASSIFICATION);
+        return false;
+      }
+      return true;
     } else if (RequestType.EmailFile == this.requestType) {
-      return this.fromGroup != null && this.fromId != null && this.fileName != null;
+      if (this.fromGroup == null) {
+        log.warn("EmailFile: fromGroupがnull");
+        return false;
+      }
+      if (this.fromId == null) {
+        log.warn("EmailFile: fromIdがnull");
+        return false;
+      }
+      if (this.fileName == null) {
+        log.warn("EmailFile: fileNameがnull");
+        return false;
+      }
+      return true;
     } else if (RequestType.OtherMessage == this.requestType) {
-      return this.fromGroup != null
-          && this.fromId != null
-          && this.fromName != null
-          && this.rawContent != null
-          && this.rawContent.length() > CONTENT_MIN_LENGTH_FOR_CLASSIFICATION;
+      if (this.fromGroup == null) {
+        log.warn("OtherMessage: fromGroupがnull");
+        return false;
+      }
+      if (this.fromId == null) {
+        log.warn("OtherMessage: fromIdがnull");
+        return false;
+      }
+      if (this.fromName == null) {
+        log.warn("OtherMessage: fromNameがnull");
+        return false;
+      }
+      if (this.rawContent == null) {
+        log.warn("OtherMessage: rawContentがnull");
+        return false;
+      }
+      if (this.rawContent.length() <= CONTENT_MIN_LENGTH_FOR_CLASSIFICATION) {
+        log.warn("OtherMessage: rawContentが短すぎます（現在：{}文字、最小：{}文字）",
+            this.rawContent.length(), CONTENT_MIN_LENGTH_FOR_CLASSIFICATION);
+        return false;
+      }
+      return true;
     } else if (RequestType.OtherFile == this.requestType) {
-      return this.fromGroup != null
-          && this.fromId != null
-          && this.fromName != null
-          && this.fileName != null;
+      if (this.fromGroup == null) {
+        log.warn("OtherFile: fromGroupがnull");
+        return false;
+      }
+      if (this.fromId == null) {
+        log.warn("OtherFile: fromIdがnull");
+        return false;
+      }
+      if (this.fromName == null) {
+        log.warn("OtherFile: fromNameがnull");
+        return false;
+      }
+      if (this.fileName == null) {
+        log.warn("OtherFile: fileNameがnull");
+        return false;
+      }
+      return true;
     } else if (RequestType.ScreenMessage == this.requestType) {
-      return this.fromGroup != null && this.fromId != null && this.rawContent != null;
+      if (this.fromGroup == null) {
+        log.warn("ScreenMessage: fromGroupがnull");
+        return false;
+      }
+      if (this.fromId == null) {
+        log.warn("ScreenMessage: fromIdがnull");
+        return false;
+      }
+      if (this.rawContent == null) {
+        log.warn("ScreenMessage: rawContentがnull");
+        return false;
+      }
+      return true;
     } else if (RequestType.ScreenFile == this.requestType) {
-      return this.fromGroup != null && this.fromId != null && this.fileName != null;
+      if (this.fromGroup == null) {
+        log.warn("ScreenFile: fromGroupがnull");
+        return false;
+      }
+      if (this.fromId == null) {
+        log.warn("ScreenFile: fromIdがnull");
+        return false;
+      }
+      if (this.fileName == null) {
+        log.warn("ScreenFile: fileNameがnull");
+        return false;
+      }
+      return true;
     }
+    log.warn("不正なrequestTypeです: {}", this.requestType);
     return false;
   }
 
