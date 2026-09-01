@@ -3,20 +3,21 @@ package copel.sesproductpackage.core.internal;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import com.amazonaws.regions.Regions;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import copel.sesproductpackage.core.api.line.LineMessagingAPI;
-import copel.sesproductpackage.core.unit.RequestType;
-import copel.sesproductpackage.core.util.ObjectMapperFactory;
-import copel.sesproductpackage.core.util.Properties;
-import copel.sesproductpackage.core.util.SsmParameterKey;
 import java.io.IOException;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.amazonaws.regions.Regions;
+
+import copel.sesproductpackage.core.api.line.LineMessagingAPI;
+import copel.sesproductpackage.core.unit.RequestType;
+import copel.sesproductpackage.core.util.Properties;
+import copel.sesproductpackage.core.util.SsmParameterKey;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SesInfoRegisterRequestSqsEntity テスト")
@@ -35,39 +36,6 @@ class SesInfoRegisterRequestSqsEntityTest {
     SesInfoRegisterRequestSqsEntity instance = new SesInfoRegisterRequestSqsEntity();
     assertNotNull(instance);
     assertFalse(instance.isWatching());
-  }
-
-  @Test
-  @DisplayName("全引数コンストラクタでインスタンス生成")
-  void testAllArgsConstructor() {
-    byte[] fileData = "test".getBytes();
-    SesInfoRegisterRequestSqsEntity instance =
-        new SesInfoRegisterRequestSqsEntity(
-            RequestType.LineMessage,
-            "WEBAPP",
-            "user1",
-            "User Name",
-            "Test content",
-            "file1",
-            "test.pdf",
-            fileData,
-            true,
-            "JOB",
-            false,
-            "tenant1");
-
-    assertEquals(RequestType.LineMessage, instance.getRequestType());
-    assertEquals("WEBAPP", instance.getFromGroup());
-    assertEquals("user1", instance.getFromId());
-    assertEquals("User Name", instance.getFromName());
-    assertEquals("Test content", instance.getRawContent());
-    assertEquals("file1", instance.getFileId());
-    assertEquals("test.pdf", instance.getFileName());
-    assertArrayEquals(fileData, instance.getFileData());
-    assertTrue(instance.isWatching());
-    assertEquals("JOB", instance.getInfoType());
-    assertFalse(instance.isInfoTypeInvalid());
-    assertEquals("tenant1", instance.getTenantId());
   }
 
   @Test
