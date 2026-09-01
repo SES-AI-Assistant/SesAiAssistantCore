@@ -8,21 +8,14 @@ import com.fasterxml.jackson.annotation.JsonCreator;
  * @author Copel Co., Ltd.
  */
 public enum RequestType {
-  LineMessage("11"),
-  LineFile("12"),
-  EmailMessage("21"),
-  EmailFile("22"),
-  ScreenMessage("31"),
-  ScreenFile("32"),
-  OtherMessage("01"),
-  OtherFile("02");
-
-  /** 種別コード値. */
-  private final String code;
-
-  RequestType(final String code) {
-    this.code = code;
-  }
+  LineMessage,
+  LineFile,
+  EmailMessage,
+  EmailFile,
+  ScreenMessage,
+  ScreenFile,
+  OtherMessage,
+  OtherFile;
 
   /**
    * 引数のcodeに対応するEnumを返却します.
@@ -65,12 +58,4 @@ public enum RequestType {
     }
   }
 
-  /**
-   * このオブジェクトがもつcodeを返却します.
-   *
-   * @return コード値
-   */
-  public String getCode() {
-    return this.code;
-  }
 }
