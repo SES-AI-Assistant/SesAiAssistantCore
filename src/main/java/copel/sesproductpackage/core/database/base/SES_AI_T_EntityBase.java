@@ -58,9 +58,14 @@ public abstract class SES_AI_T_EntityBase extends EntityBase {
    * @throws RuntimeException
    */
   public void embedding(final Transformer transformer) throws IOException, RuntimeException {
+    String contentSummary = this.getContentSummary();
+    if (contentSummary == null || contentSummary.isEmpty()) {
+      throw new RuntimeException("エンベディング対象の要約内容が空です。");
+    }
+
     this.vectorData = new Vector(transformer);
     // 元データではなく要約をエンベディングする
-    this.vectorData.setRawString(this.getContentSummary());
+    this.vectorData.setRawString(contentSummary);
     this.vectorData.embedding();
 
     if (this.vectorData.getValue() == null || this.vectorData.getValue().length == 0) {
