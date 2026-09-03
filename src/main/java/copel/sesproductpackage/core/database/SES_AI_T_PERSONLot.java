@@ -61,7 +61,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
 
   /** 期限切れ要員取得SQL後半（テナントIDあり）. */
   private static final String SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_SUFFIX =
-      " days') < NOW())) "
+      " days') < NOW()) OR (register_date IS NULL))) "
           + "  AND person_id NOT IN (SELECT DISTINCT person_id FROM SES_AI_T_MATCH) "
           + "ORDER BY register_date ASC "
           + "LIMIT ? OFFSET ?";
@@ -75,7 +75,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
 
   /** 期限切れ要員取得SQL後半（テナントIDなし、バッチ用）. */
   private static final String SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_WITHOUT_TENANT_SUFFIX =
-      " days') < NOW())) "
+      " days') < NOW()) OR (register_date IS NULL))) "
           + "  AND person_id NOT IN (SELECT DISTINCT person_id FROM SES_AI_T_MATCH) "
           + "ORDER BY register_date ASC "
           + "LIMIT ? OFFSET ?";

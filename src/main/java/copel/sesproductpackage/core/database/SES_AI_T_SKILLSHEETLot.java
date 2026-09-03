@@ -59,7 +59,7 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
 
   /** 期限切れスキルシート取得SQL後半（テナントIDあり）. */
   private static final String SELECT_EXPIRED_SKILLSHEETS_SUFFIX =
-      " days') < NOW())) " + "ORDER BY register_date ASC " + "LIMIT ? OFFSET ?";
+      " days') < NOW()) OR (register_date IS NULL))) " + "ORDER BY register_date ASC " + "LIMIT ? OFFSET ?";
 
   /** 期限切れスキルシート取得SQL前半（テナントIDなし、バッチ用）. */
   private static final String SELECT_EXPIRED_SKILLSHEETS_WITHOUT_TENANT_PREFIX =
@@ -70,7 +70,7 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
 
   /** 期限切れスキルシート取得SQL後半（テナントIDなし、バッチ用）. */
   private static final String SELECT_EXPIRED_SKILLSHEETS_WITHOUT_TENANT_SUFFIX =
-      " days') < NOW())) " + "ORDER BY register_date ASC " + "LIMIT ? OFFSET ?";
+      " days') < NOW()) OR (register_date IS NULL))) " + "ORDER BY register_date ASC " + "LIMIT ? OFFSET ?";
 
   /** 要員に紐づくスキルシート取得SQL（テナントIDあり）. */
   private static final String SELECT_BUNDLED_WITH_PERSON_SQL =
