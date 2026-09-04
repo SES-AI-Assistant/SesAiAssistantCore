@@ -51,28 +51,60 @@ public class ChooseBestInfoResponseSchema {
   }
 
   /**
+   * 評価結果を元に、フィルタリングルールに基づいて条件を満たす全候補をマッチ度の降順で返却する.
+   *
+   * @param rules フィルタリングルール。nullの場合はデフォルトのフィルタリングを実行
+   * @return 条件を満たすCandidateEvaluationResultのリスト（該当なしの場合は空リスト）
+   */
+  @SchemaIgnore
+  public List<CandidateEvaluationResult> getFilteredSortedResults(FilteringRules rules) {
+    if (this.candidateResults == null) {
+      return List.of();
+    }
+
+    if (rules == null) {
+      return getFilteredSortedResults();
+    }
+
+    return this.candidateResults.stream()
+        .filter(r -> r.isPriceEvaluateResult())
+        .filter(r -> r.isPlaceEvaluateResult())
+        .filter(r -> r.isPersonMonthsEvaluateResult())
+        // 出社要件（required=true の場合のみチェック）
+        .filter(r -> !rules.isOfficeRequired() || r.isOfficeEvaluateResult())
+        // その他制約条件（required=true の場合のみチェック）
+        .filter(r -> !rules.isOtherConstraintsRequired() || r.isOtherConstraintsResult())
+        // 必須スキル（level=null の場合は無視）
+        .filter(r -> {
+          if (rules.getMustSkillLevel() == null) {
+            return true;
+          }
+          EvaluateType result = r.getMustSkillEvaluateResult();
+          EvaluateType level = rules.getMustSkillLevel();
+          return result.ordinal() <= level.ordinal();
+        })
+        // 尚好スキル（level=null の場合は無視）
+        .filter(r -> {
+          if (rules.getWantSkillLevel() == null) {
+            return true;
+          }
+          EvaluateType result = r.getWantSkillEvaluateResult();
+          EvaluateType level = rules.getWantSkillLevel();
+          return result.ordinal() <= level.ordinal();
+        })
+        .sorted(java.util.Comparator.reverseOrder())
+        .toList();
+  }
+
+  /**
    * 評価結果を元に、条件を満たす全候補をマッチ度の降順（大きい順）で返却する.
+   * デフォルトのフィルタリングルール（全て必須）を使用します.
    *
    * @return 条件を満たすCandidateEvaluationResultのリスト（該当なしの場合は空リスト）
    */
   @SchemaIgnore
   public List<CandidateEvaluationResult> getFilteredSortedResults() {
-    // 必須オブジェクトの存在チェック
-    if (this.candidateResults == null) {
-      return List.of();
-    }
-    return this.candidateResults.stream()
-        // 各評価フラグがすべて true である要素のみに絞り込み
-        .filter(CandidateEvaluationResult::isPriceEvaluateResult)
-        .filter(CandidateEvaluationResult::isPlaceEvaluateResult)
-        .filter(CandidateEvaluationResult::isOfficeEvaluateResult)
-        .filter(CandidateEvaluationResult::isPersonMonthsEvaluateResult)
-        .filter(CandidateEvaluationResult::isOtherConstraintsResult)
-        // 必須スキル評価が FullyMet の要素のみに絞り込み
-        .filter(r -> EvaluateType.FullyMet.equals(r.getMustSkillEvaluateResult()))
-        // マッチ度の降順（大きい順）にソート
-        .sorted(java.util.Comparator.reverseOrder())
-        .toList();
+    return getFilteredSortedResults(FilteringRules.createDefault());
   }
 
   @Data
