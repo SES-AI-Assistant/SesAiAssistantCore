@@ -2,6 +2,7 @@ package copel.sesproductpackage.core.internal;
 
 import com.amazonaws.regions.Regions;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
@@ -54,7 +55,8 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
   private byte[] fileData;
 
   /** ウォッチ状態にするか. */
-  private boolean isWatching = false;
+  @JsonProperty("is_watching")
+  private boolean watching = false;
 
   /** 画面登録由来の種別（Web API の info_type と同一）。未指定時は null。値は JOB / PERSON のみ有効。 */
   private String infoType;
