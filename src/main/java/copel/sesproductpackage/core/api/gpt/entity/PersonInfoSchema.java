@@ -44,7 +44,7 @@ public class PersonInfoSchema {
       example = "日本")
   private String nationality = "日本";
 
-  @Schema(title = "開始", description = "稼働開始が可能な月", required = true, gt = 0, lt = 13, example = "6")
+  @Schema(title = "開始", description = "稼働開始が可能な月。『即日』を示す場合は-1を設定してください。それ以外は1～12の月を設定。", required = true, gt = -2, lt = 13, example = "6")
   private int startMonth;
 
   @Schema(
@@ -108,7 +108,11 @@ public class PersonInfoSchema {
     // 3. 国籍
     sb.append("■国籍: ").append(this.nationality).append("\n");
     // 4. 稼働開始可能月
-    sb.append("■開始: ").append(this.startMonth).append("月\n");
+    if (this.startMonth == -1) {
+      sb.append("■開始: 即日\n");
+    } else {
+      sb.append("■開始: ").append(this.startMonth).append("月\n");
+    }
     // 5. 単価
     sb.append("■単価: ").append(this.price).append("\n");
     // 6. 所属形態

@@ -49,7 +49,7 @@ public class JobInfoSchema {
       maxItems = 10)
   private List<Requirements> wantList = null;
 
-  @Schema(title = "開始月", description = "案件の開始月", required = true, gt = 0, lt = 13, example = "6")
+  @Schema(title = "開始月", description = "案件の開始月。『即日』を示す場合は-1を設定してください。それ以外は1～12の月を設定。", required = true, gt = -2, lt = 13, example = "6")
   private int startMonth;
 
   @Schema(title = "場所", description = "案件の場所、オフィスの最寄り駅など", example = "品川")
@@ -113,7 +113,11 @@ public class JobInfoSchema {
       }
     }
     // 5. 開始
-    sb.append("■開始: ").append(this.startMonth).append("月").append("\n");
+    if (this.startMonth == -1) {
+      sb.append("■開始: 即日\n");
+    } else {
+      sb.append("■開始: ").append(this.startMonth).append("月").append("\n");
+    }
     // 6. 単価
     sb.append("■単価: ").append(this.price).append("\n");
     // 7. 出社要件、場所
