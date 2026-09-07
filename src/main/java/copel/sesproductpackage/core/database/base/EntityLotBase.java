@@ -157,6 +157,17 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   }
 
   /**
+   * 指定された述語にマッチするエンティティをこのLotから削除します.
+   *
+   * @param filter 削除対象を決定する述語
+   * @return 要素が削除された場合は true、そうでない場合は false
+   * @author Copel Co., Ltd.
+   */
+  public boolean removeIf(java.util.function.Predicate<? super E> filter) {
+    return this.entityLot.removeIf(filter);
+  }
+
+  /**
    * 全レコード数を取得します.
    *
    * @return 全レコード数
