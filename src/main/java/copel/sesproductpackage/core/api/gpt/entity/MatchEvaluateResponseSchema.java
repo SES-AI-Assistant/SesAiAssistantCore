@@ -217,15 +217,15 @@ public class MatchEvaluateResponseSchema {
   public static class SkillEvaluateResult {
     @Schema(
         title = "評価項目",
-        description = "案件が求める評価項目",
+        description = "案件が求める評価項目。スキル評価は『記載された実務経験』のみを対象。",
         required = true,
         maxLength = 50,
-        example = "Javaの経験が5年以上であること")
+        example = "時系列データ分析")
     private String perspective;
 
     @Schema(
         title = "評価結果",
-        description = "案件が求める項目を要員が満たすかどうかを3段階で表現した評価結果",
+        description = "FullyMet=記載あり、PartiallyMet=関連スキルのみ、NotMet=記載なし",
         itemType = EvaluateType.class,
         required = true,
         example = "FullyMet")
@@ -233,9 +233,9 @@ public class MatchEvaluateResponseSchema {
 
     @Schema(
         title = "評価コメント",
-        description = "この評価項目結果に対するコメント",
+        description = "判定根拠",
         maxLength = 50,
-        example = "案件が求めるJava5年に対し要員はJava10年経験あり")
+        example = "スキルシートに『時系列データ分析』の記載がないためNotMet")
     private String comment;
   }
 
@@ -347,10 +347,10 @@ public class MatchEvaluateResponseSchema {
   }
 
   public static enum EvaluateType {
-    FullyMet, // 完全に満たす
-    PartiallyMet, // 一部満たす
-    NotMet, // 満たさない
-    Unknown; // 不明
+    FullyMet,      // 記載された実務経験あり
+    PartiallyMet,  // 関連スキルのみ（記載スキルと異なる）
+    NotMet,        // 記載なし
+    Unknown;       // 不明
 
     public String getIcon() {
       return switch (this) {
