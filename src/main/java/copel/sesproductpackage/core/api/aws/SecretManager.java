@@ -1,6 +1,7 @@
 package copel.sesproductpackage.core.api.aws;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import copel.sesproductpackage.core.util.Properties;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -60,7 +61,7 @@ public class SecretManager {
   }
 
   private static long getCacheTTL() {
-    String ttlStr = System.getenv("CACHE_TTL_MS");
+    String ttlStr = Properties.get("cache.ttl.ms");
     if (ttlStr != null && !ttlStr.isEmpty()) {
       try {
         return Long.parseLong(ttlStr.trim());
@@ -73,7 +74,7 @@ public class SecretManager {
 
   /**
    * シークレット情報を取得します.
-   * キャッシュが有効な場合はスキップします（TTL: 環境変数で設定、デフォルト1日）。
+   * キャッシュが有効な場合はスキップします（TTL: Properties で設定、デフォルト1日）。
    *
    * @throws Exception シークレット取得時のエラー
    */
