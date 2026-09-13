@@ -141,11 +141,6 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
         log.warn("LineMessage: rawContentがnull");
         return false;
       }
-      if (this.rawContent.length() <= CONTENT_MIN_LENGTH_FOR_CLASSIFICATION) {
-        log.warn("LineMessage: rawContentが短すぎます（現在：{}文字、最小：{}文字）",
-            this.rawContent.length(), CONTENT_MIN_LENGTH_FOR_CLASSIFICATION);
-        return false;
-      }
       return true;
     } else if (RequestType.LineFile == this.requestType) {
       if (this.fromGroup == null) {
@@ -178,11 +173,6 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
         log.warn("EmailMessage: rawContentがnull");
         return false;
       }
-      if (this.rawContent.length() <= CONTENT_MIN_LENGTH_FOR_CLASSIFICATION) {
-        log.warn("EmailMessage: rawContentが短すぎます（現在：{}文字、最小：{}文字）",
-            this.rawContent.length(), CONTENT_MIN_LENGTH_FOR_CLASSIFICATION);
-        return false;
-      }
       return true;
     } else if (RequestType.EmailFile == this.requestType) {
       if (this.fromGroup == null) {
@@ -213,11 +203,6 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
       }
       if (this.rawContent == null) {
         log.warn("OtherMessage: rawContentがnull");
-        return false;
-      }
-      if (this.rawContent.length() <= CONTENT_MIN_LENGTH_FOR_CLASSIFICATION) {
-        log.warn("OtherMessage: rawContentが短すぎます（現在：{}文字、最小：{}文字）",
-            this.rawContent.length(), CONTENT_MIN_LENGTH_FOR_CLASSIFICATION);
         return false;
       }
       return true;
@@ -270,6 +255,42 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
     }
     log.warn("不正なrequestTypeです: {}", this.requestType);
     return false;
+  }
+
+  /**
+   * このリクエストが処理対象であるかどうかを判定します（コンテンツ長チェック）.
+   *
+   * @return 処理対象ならtrue、処理対象外ならfalse
+   */
+  @JsonIgnore
+  public boolean isProcessingTarget() {
+    if (RequestType.LineMessage == this.requestType) {
+      if (this.rawContent.length() <= CONTENT_MIN_LENGTH_FOR_CLASSIFICATION) {
+        return false;
+      }
+      return true;
+    } else if (RequestType.LineFile == this.requestType) {
+      return true;
+    } else if (RequestType.EmailMessage == this.requestType) {
+      if (this.rawContent.length() <= CONTENT_MIN_LENGTH_FOR_CLASSIFICATION) {
+        return false;
+      }
+      return true;
+    } else if (RequestType.EmailFile == this.requestType) {
+      return true;
+    } else if (RequestType.OtherMessage == this.requestType) {
+      if (this.rawContent.length() <= CONTENT_MIN_LENGTH_FOR_CLASSIFICATION) {
+        return false;
+      }
+      return true;
+    } else if (RequestType.OtherFile == this.requestType) {
+      return true;
+    } else if (RequestType.ScreenMessage == this.requestType) {
+      return true;
+    } else if (RequestType.ScreenFile == this.requestType) {
+      return true;
+    }
+    return true;
   }
 
   /**

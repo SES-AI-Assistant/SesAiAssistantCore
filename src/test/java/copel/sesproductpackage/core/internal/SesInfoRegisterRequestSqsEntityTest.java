@@ -123,17 +123,6 @@ class SesInfoRegisterRequestSqsEntityTest {
     assertFalse(entity.isValid());
   }
 
-  @Test
-  @DisplayName("isValid() - LineMessage 異常系（rawContentが短い）")
-  void testIsValidLineMessageShortContent() {
-    entity.setRequestType(RequestType.LineMessage);
-    entity.setFromGroup("LINE");
-    entity.setFromId("user1");
-    entity.setFromName("User Name");
-    entity.setRawContent("short");
-
-    assertFalse(entity.isValid());
-  }
 
   @Test
   @DisplayName("isValid() - LineFile 正常系")
@@ -520,5 +509,99 @@ class SesInfoRegisterRequestSqsEntityTest {
     assertEquals("JOB", entity.getInfoType());
     assertTrue(entity.isInfoTypeInvalid());
     assertEquals("tenant1", entity.getTenantId());
+  }
+
+  @Test
+  @DisplayName("isProcessingTarget() - LineMessage 正常系（十分な長さ）")
+  void testIsProcessingTargetLineMessageSuccess() {
+    entity.setRequestType(RequestType.LineMessage);
+    entity.setRawContent("a".repeat(100));
+
+    assertTrue(entity.isProcessingTarget());
+  }
+
+  @Test
+  @DisplayName("isProcessingTarget() - LineMessage 処理対象外（短すぎる）")
+  void testIsProcessingTargetLineMessageShortContent() {
+    entity.setRequestType(RequestType.LineMessage);
+    entity.setRawContent("short");
+
+    assertFalse(entity.isProcessingTarget());
+  }
+
+  @Test
+  @DisplayName("isProcessingTarget() - LineFile 常に処理対象")
+  void testIsProcessingTargetLineFile() {
+    entity.setRequestType(RequestType.LineFile);
+
+    assertTrue(entity.isProcessingTarget());
+  }
+
+  @Test
+  @DisplayName("isProcessingTarget() - EmailMessage 正常系（十分な長さ）")
+  void testIsProcessingTargetEmailMessageSuccess() {
+    entity.setRequestType(RequestType.EmailMessage);
+    entity.setRawContent("a".repeat(100));
+
+    assertTrue(entity.isProcessingTarget());
+  }
+
+  @Test
+  @DisplayName("isProcessingTarget() - EmailMessage 処理対象外（短すぎる）")
+  void testIsProcessingTargetEmailMessageShortContent() {
+    entity.setRequestType(RequestType.EmailMessage);
+    entity.setRawContent("short");
+
+    assertFalse(entity.isProcessingTarget());
+  }
+
+  @Test
+  @DisplayName("isProcessingTarget() - EmailFile 常に処理対象")
+  void testIsProcessingTargetEmailFile() {
+    entity.setRequestType(RequestType.EmailFile);
+
+    assertTrue(entity.isProcessingTarget());
+  }
+
+  @Test
+  @DisplayName("isProcessingTarget() - OtherMessage 正常系（十分な長さ）")
+  void testIsProcessingTargetOtherMessageSuccess() {
+    entity.setRequestType(RequestType.OtherMessage);
+    entity.setRawContent("a".repeat(100));
+
+    assertTrue(entity.isProcessingTarget());
+  }
+
+  @Test
+  @DisplayName("isProcessingTarget() - OtherMessage 処理対象外（短すぎる）")
+  void testIsProcessingTargetOtherMessageShortContent() {
+    entity.setRequestType(RequestType.OtherMessage);
+    entity.setRawContent("short");
+
+    assertFalse(entity.isProcessingTarget());
+  }
+
+  @Test
+  @DisplayName("isProcessingTarget() - OtherFile 常に処理対象")
+  void testIsProcessingTargetOtherFile() {
+    entity.setRequestType(RequestType.OtherFile);
+
+    assertTrue(entity.isProcessingTarget());
+  }
+
+  @Test
+  @DisplayName("isProcessingTarget() - ScreenMessage 常に処理対象")
+  void testIsProcessingTargetScreenMessage() {
+    entity.setRequestType(RequestType.ScreenMessage);
+
+    assertTrue(entity.isProcessingTarget());
+  }
+
+  @Test
+  @DisplayName("isProcessingTarget() - ScreenFile 常に処理対象")
+  void testIsProcessingTargetScreenFile() {
+    entity.setRequestType(RequestType.ScreenFile);
+
+    assertTrue(entity.isProcessingTarget());
   }
 }
