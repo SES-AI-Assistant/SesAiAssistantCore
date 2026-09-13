@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
@@ -46,6 +47,15 @@ public class Properties {
   /** S3 バケット名（Parameter Store から動的に解決）. */
   private static String CONFIG_BUCKET;
 
+  /** Parameter Store キャッシュ最終更新時刻. */
+  private static long lastParameterStoreLoadTime = 0;
+
+  /** S3 キャッシュ最終更新時刻. */
+  private static long lastS3LoadTime = 0;
+
+  /** キャッシュ有効期限のデフォルト値（1日）. */
+  private static final long DEFAULT_CACHE_TTL_MS = 86400000;
+
   /* staticイニシャライザ. */
   static {
     try {
@@ -68,6 +78,18 @@ public class Properties {
     }
     String t = value.trim();
     return t.isEmpty() ? null : t;
+  }
+
+  private static long getCacheTTL() {
+    String ttlStr = properties.get("CACHE_TTL_MS");
+    if (ttlStr != null && !ttlStr.isEmpty()) {
+      try {
+        return Long.parseLong(ttlStr.trim());
+      } catch (NumberFormatException e) {
+        log.warn("キャッシュTTLの値が不正です: {}", ttlStr);
+      }
+    }
+    return DEFAULT_CACHE_TTL_MS;
   }
 
   private static String resolveConfigBucketName() {
@@ -164,10 +186,18 @@ public class Properties {
 
   /**
    * プロパティファイルをS3から読み込みます。
+   * キャッシュが有効な場合はスキップします（TTL: CACHE_TTL_MS プロパティで設定、デフォルト1日）。
    *
    * @param s3Client S3クライアント
    */
   static void load(S3Client s3Client) {
+    long now = System.currentTimeMillis();
+    long cacheTTL = getCacheTTL();
+    if (lastS3LoadTime > 0 && (now - lastS3LoadTime) < cacheTTL) {
+      log.debug("S3 プロパティファイル キャッシュが有効なため読み込みをスキップします。");
+      return;
+    }
+
     if (CONFIG_BUCKET == null) {
       log.warn("S3 バケット名が解決できなかったため、S3 からのプロパティファイル読み込みをスキップします");
       return;
@@ -190,6 +220,7 @@ public class Properties {
           }
         }
       }
+      lastS3LoadTime = now;
     } catch (IOException e) {
       log.info("バケット名：{} ファイル名：{}", CONFIG_BUCKET, CONFIG_OBJECT_KEY);
       log.error("環境変数の読み込みに失敗しました。{}", e.getMessage());
@@ -199,10 +230,18 @@ public class Properties {
   /**
    * Parameter Store からパラメータを読み込みます。/nectar/{env}/ 以下のパラメータを全て読み込みます。 キー名が S3 のプロパティと被った場合は
    * Parameter Store の値を優先します。
+   * キャッシュが有効な場合はスキップします（TTL: CACHE_TTL_MS プロパティで設定、デフォルト1日）。
    *
    * @param ssmClient SSM クライアント
    */
   static void loadFromParameterStore(SsmClient ssmClient) {
+    long now = System.currentTimeMillis();
+    long cacheTTL = getCacheTTL();
+    if (lastParameterStoreLoadTime > 0 && (now - lastParameterStoreLoadTime) < cacheTTL) {
+      log.debug("Parameter Store キャッシュが有効なため読み込みをスキップします。");
+      return;
+    }
+
     try {
       String parameterPath = String.format("/nectar/%s/", ENVIRONMENT);
       GetParametersByPathRequest request =
@@ -237,6 +276,7 @@ public class Properties {
         }
       }
 
+      lastParameterStoreLoadTime = now;
       log.info("Parameter Store から {} 件のパラメータを読み込みました。", properties.size());
     } catch (Exception e) {
       log.warn("Parameter Store からのパラメータ読み込みに失敗しました。{}", e.getMessage());

@@ -1,8 +1,10 @@
 package copel.sesproductpackage.core.api.aws;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import copel.sesproductpackage.core.util.Properties;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -24,6 +26,15 @@ public class SecretManager {
 
   /** シークレット ARN. */
   private final String secretArn;
+
+  /** グローバルキャッシュ（ARN ごとのシークレット値）. */
+  private static final Map<String, Map<String, String>> globalCache = new ConcurrentHashMap<>();
+
+  /** グローバルキャッシュの最終更新時刻（ARN ごと）. */
+  private static final Map<String, Long> globalCacheTime = new ConcurrentHashMap<>();
+
+  /** キャッシュ有効期限のデフォルト値（1日）. */
+  private static final long DEFAULT_CACHE_TTL_MS = 86400000;
 
   /**
    * コンストラクタ.
@@ -49,12 +60,38 @@ public class SecretManager {
     this(secretArn, Region.AP_NORTHEAST_1);
   }
 
+  private static long getCacheTTL() {
+    String ttlStr = Properties.get("CACHE_TTL_MS");
+    if (ttlStr != null && !ttlStr.isEmpty()) {
+      try {
+        return Long.parseLong(ttlStr.trim());
+      } catch (NumberFormatException e) {
+        log.warn("キャッシュTTLの値が不正です: {}", ttlStr);
+      }
+    }
+    return DEFAULT_CACHE_TTL_MS;
+  }
+
   /**
    * シークレット情報を取得します.
+   * キャッシュが有効な場合はスキップします（TTL: CACHE_TTL_MS プロパティで設定、デフォルト1日）。
    *
    * @throws Exception シークレット取得時のエラー
    */
   public void load() throws Exception {
+    long now = System.currentTimeMillis();
+    long cacheTTL = getCacheTTL();
+    Long lastLoadTime = globalCacheTime.get(this.secretArn);
+
+    if (lastLoadTime != null && (now - lastLoadTime) < cacheTTL) {
+      Map<String, String> cachedValues = globalCache.get(this.secretArn);
+      if (cachedValues != null) {
+        this.secretValues.putAll(cachedValues);
+        log.debug("【SesAiAssitantCore】シークレットキャッシュを使用しました: {}", this.secretArn);
+        return;
+      }
+    }
+
     try {
       GetSecretValueResponse response = this.client.getSecretValue(r -> r.secretId(this.secretArn));
       String secretValue = response.secretString();
@@ -67,6 +104,9 @@ public class SecretManager {
         for (Map.Entry<String, Object> entry : secretMap.entrySet()) {
           this.secretValues.put(entry.getKey(), String.valueOf(entry.getValue()));
         }
+
+        globalCache.put(this.secretArn, new HashMap<>(this.secretValues));
+        globalCacheTime.put(this.secretArn, now);
 
         log.info("【SesAiAssitantCore】シークレットを読み込みました: {}", this.secretArn);
       } else {
