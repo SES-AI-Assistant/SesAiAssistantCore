@@ -31,7 +31,7 @@
     <logger name="software.amazon.awssdk" level="ERROR"/>
 
     <!-- Root ログレベル設定 -->
-    <root level="INFO">
+    <root level="${LOGGING_LEVEL:-INFO}">
         <appender-ref ref="STDOUT"/>
     </root>
 
