@@ -3,6 +3,7 @@ package copel.sesproductpackage.core.api.aws;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -24,6 +25,15 @@ public class SecretManager {
 
   /** シークレット ARN. */
   private final String secretArn;
+
+  /** グローバルキャッシュ（ARN ごとのシークレット値）. */
+  private static final Map<String, Map<String, String>> globalCache = new ConcurrentHashMap<>();
+
+  /** グローバルキャッシュの最終更新時刻（ARN ごと）. */
+  private static final Map<String, Long> globalCacheTime = new ConcurrentHashMap<>();
+
+  /** キャッシュ有効期限（1時間）. */
+  private static final long CACHE_TTL_MS = 3600000;
 
   /**
    * コンストラクタ.
@@ -51,10 +61,23 @@ public class SecretManager {
 
   /**
    * シークレット情報を取得します.
+   * キャッシュが有効な場合はスキップします（TTL: 1時間）。
    *
    * @throws Exception シークレット取得時のエラー
    */
   public void load() throws Exception {
+    long now = System.currentTimeMillis();
+    Long lastLoadTime = globalCacheTime.get(this.secretArn);
+
+    if (lastLoadTime != null && (now - lastLoadTime) < CACHE_TTL_MS) {
+      Map<String, String> cachedValues = globalCache.get(this.secretArn);
+      if (cachedValues != null) {
+        this.secretValues.putAll(cachedValues);
+        log.debug("【SesAiAssitantCore】シークレットキャッシュを使用しました: {}", this.secretArn);
+        return;
+      }
+    }
+
     try {
       GetSecretValueResponse response = this.client.getSecretValue(r -> r.secretId(this.secretArn));
       String secretValue = response.secretString();
@@ -67,6 +90,9 @@ public class SecretManager {
         for (Map.Entry<String, Object> entry : secretMap.entrySet()) {
           this.secretValues.put(entry.getKey(), String.valueOf(entry.getValue()));
         }
+
+        globalCache.put(this.secretArn, new HashMap<>(this.secretValues));
+        globalCacheTime.put(this.secretArn, now);
 
         log.info("【SesAiAssitantCore】シークレットを読み込みました: {}", this.secretArn);
       } else {
