@@ -53,8 +53,8 @@ public class Properties {
   /** S3 キャッシュ最終更新時刻. */
   private static long lastS3LoadTime = 0;
 
-  /** キャッシュ有効期限（1時間）. */
-  private static final long CACHE_TTL_MS = 3600000;
+  /** キャッシュ有効期限のデフォルト値（1日）. */
+  private static final long DEFAULT_CACHE_TTL_MS = 86400000;
 
   /* staticイニシャライザ. */
   static {
@@ -78,6 +78,18 @@ public class Properties {
     }
     String t = value.trim();
     return t.isEmpty() ? null : t;
+  }
+
+  private static long getCacheTTL() {
+    String ttlStr = properties.get("cache.ttl.ms");
+    if (ttlStr != null && !ttlStr.isEmpty()) {
+      try {
+        return Long.parseLong(ttlStr.trim());
+      } catch (NumberFormatException e) {
+        log.warn("キャッシュTTLの値が不正です: {}", ttlStr);
+      }
+    }
+    return DEFAULT_CACHE_TTL_MS;
   }
 
   private static String resolveConfigBucketName() {
@@ -174,13 +186,14 @@ public class Properties {
 
   /**
    * プロパティファイルをS3から読み込みます。
-   * キャッシュが有効な場合はスキップします（TTL: 1時間）。
+   * キャッシュが有効な場合はスキップします（TTL: プロパティで設定、デフォルト1日）。
    *
    * @param s3Client S3クライアント
    */
   static void load(S3Client s3Client) {
     long now = System.currentTimeMillis();
-    if (lastS3LoadTime > 0 && (now - lastS3LoadTime) < CACHE_TTL_MS) {
+    long cacheTTL = getCacheTTL();
+    if (lastS3LoadTime > 0 && (now - lastS3LoadTime) < cacheTTL) {
       log.debug("S3 プロパティファイル キャッシュが有効なため読み込みをスキップします。");
       return;
     }
@@ -217,13 +230,14 @@ public class Properties {
   /**
    * Parameter Store からパラメータを読み込みます。/nectar/{env}/ 以下のパラメータを全て読み込みます。 キー名が S3 のプロパティと被った場合は
    * Parameter Store の値を優先します。
-   * キャッシュが有効な場合はスキップします（TTL: 1時間）。
+   * キャッシュが有効な場合はスキップします（TTL: プロパティで設定、デフォルト1日）。
    *
    * @param ssmClient SSM クライアント
    */
   static void loadFromParameterStore(SsmClient ssmClient) {
     long now = System.currentTimeMillis();
-    if (lastParameterStoreLoadTime > 0 && (now - lastParameterStoreLoadTime) < CACHE_TTL_MS) {
+    long cacheTTL = getCacheTTL();
+    if (lastParameterStoreLoadTime > 0 && (now - lastParameterStoreLoadTime) < cacheTTL) {
       log.debug("Parameter Store キャッシュが有効なため読み込みをスキップします。");
       return;
     }

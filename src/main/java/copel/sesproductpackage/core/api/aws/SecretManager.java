@@ -32,8 +32,8 @@ public class SecretManager {
   /** グローバルキャッシュの最終更新時刻（ARN ごと）. */
   private static final Map<String, Long> globalCacheTime = new ConcurrentHashMap<>();
 
-  /** キャッシュ有効期限（1時間）. */
-  private static final long CACHE_TTL_MS = 3600000;
+  /** キャッシュ有効期限のデフォルト値（1日）. */
+  private static final long DEFAULT_CACHE_TTL_MS = 86400000;
 
   /**
    * コンストラクタ.
@@ -59,17 +59,30 @@ public class SecretManager {
     this(secretArn, Region.AP_NORTHEAST_1);
   }
 
+  private static long getCacheTTL() {
+    String ttlStr = System.getenv("CACHE_TTL_MS");
+    if (ttlStr != null && !ttlStr.isEmpty()) {
+      try {
+        return Long.parseLong(ttlStr.trim());
+      } catch (NumberFormatException e) {
+        log.warn("キャッシュTTLの値が不正です: {}", ttlStr);
+      }
+    }
+    return DEFAULT_CACHE_TTL_MS;
+  }
+
   /**
    * シークレット情報を取得します.
-   * キャッシュが有効な場合はスキップします（TTL: 1時間）。
+   * キャッシュが有効な場合はスキップします（TTL: 環境変数で設定、デフォルト1日）。
    *
    * @throws Exception シークレット取得時のエラー
    */
   public void load() throws Exception {
     long now = System.currentTimeMillis();
+    long cacheTTL = getCacheTTL();
     Long lastLoadTime = globalCacheTime.get(this.secretArn);
 
-    if (lastLoadTime != null && (now - lastLoadTime) < CACHE_TTL_MS) {
+    if (lastLoadTime != null && (now - lastLoadTime) < cacheTTL) {
       Map<String, String> cachedValues = globalCache.get(this.secretArn);
       if (cachedValues != null) {
         this.secretValues.putAll(cachedValues);
