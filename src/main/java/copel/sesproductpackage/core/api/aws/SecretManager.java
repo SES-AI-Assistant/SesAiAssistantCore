@@ -61,7 +61,7 @@ public class SecretManager {
   }
 
   private static long getCacheTTL() {
-    String ttlStr = Properties.get("cache.ttl.ms");
+    String ttlStr = Properties.get("CACHE_TTL_MS");
     if (ttlStr != null && !ttlStr.isEmpty()) {
       try {
         return Long.parseLong(ttlStr.trim());
@@ -74,7 +74,7 @@ public class SecretManager {
 
   /**
    * シークレット情報を取得します.
-   * キャッシュが有効な場合はスキップします（TTL: Properties で設定、デフォルト1日）。
+   * キャッシュが有効な場合はスキップします（TTL: CACHE_TTL_MS プロパティで設定、デフォルト1日）。
    *
    * @throws Exception シークレット取得時のエラー
    */

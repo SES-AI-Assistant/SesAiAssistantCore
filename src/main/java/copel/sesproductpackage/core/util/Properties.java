@@ -81,7 +81,7 @@ public class Properties {
   }
 
   private static long getCacheTTL() {
-    String ttlStr = properties.get("cache.ttl.ms");
+    String ttlStr = properties.get("CACHE_TTL_MS");
     if (ttlStr != null && !ttlStr.isEmpty()) {
       try {
         return Long.parseLong(ttlStr.trim());
@@ -186,7 +186,7 @@ public class Properties {
 
   /**
    * プロパティファイルをS3から読み込みます。
-   * キャッシュが有効な場合はスキップします（TTL: プロパティで設定、デフォルト1日）。
+   * キャッシュが有効な場合はスキップします（TTL: CACHE_TTL_MS プロパティで設定、デフォルト1日）。
    *
    * @param s3Client S3クライアント
    */
@@ -230,7 +230,7 @@ public class Properties {
   /**
    * Parameter Store からパラメータを読み込みます。/nectar/{env}/ 以下のパラメータを全て読み込みます。 キー名が S3 のプロパティと被った場合は
    * Parameter Store の値を優先します。
-   * キャッシュが有効な場合はスキップします（TTL: プロパティで設定、デフォルト1日）。
+   * キャッシュが有効な場合はスキップします（TTL: CACHE_TTL_MS プロパティで設定、デフォルト1日）。
    *
    * @param ssmClient SSM クライアント
    */
