@@ -68,10 +68,9 @@ public class ChooseBestInfoResponseSchema {
 
     return this.candidateResults.stream()
         .filter(r -> r.isPriceEvaluateResult())
-        .filter(r -> r.isPlaceEvaluateResult())
         .filter(r -> r.isPersonMonthsEvaluateResult())
-        // 出社要件（required=true の場合のみチェック）
-        .filter(r -> !rules.isOfficeRequired() || r.isOfficeEvaluateResult())
+        // 出社要件（required=true の場合のみ、出社要件と場所をチェック）
+        .filter(r -> !rules.isOfficeRequired() || r.isOfficeEvaluateResult() && r.isPlaceEvaluateResult())
         // その他制約条件（required=true の場合のみチェック）
         .filter(r -> !rules.isOtherConstraintsRequired() || r.isOtherConstraintsResult())
         // 必須スキル（level=null の場合は無視）
