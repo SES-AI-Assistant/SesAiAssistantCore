@@ -26,28 +26,39 @@ public class DBConnection {
   }
 
   private static void initializeDbConnectionCredentials() throws Exception {
-    // ParameterStoreからSecretManagerのARNを取得する
-    String secretArn = Properties.get(SsmParameterKey.RDS_DATABASE_SECRET_ARN.getKey());
+    // ① 環境変数をまず確認（Lambda環境変数から取得）
+    String host = System.getenv("DB_HOST");
+    String port = System.getenv("DB_PORT");
+    String username = System.getenv("DB_USERNAME");
+    String password = System.getenv("DB_PASSWORD");
+    String dbName = System.getenv("DB_NAME");
 
-    // SecretManagerからDB接続情報を取得する
-    SecretManager secretManager = new SecretManager(secretArn);
-    try {
-      secretManager.load();
-      log.info("SecretManagerからDB接続情報を取得しました");
+    // ② 環境変数がなければ Secrets Manager から取得（従来の流れ）
+    if (host == null || host.isEmpty()) {
+      log.info("環境変数が見つかりません。Secrets Manager から取得します");
 
-      String host = secretManager.get("host");
-      String port = secretManager.get("port");
-      String dbName = secretManager.get("dbname");
-      String username = secretManager.get("username");
-      String pwd = secretManager.get("password");
+      String secretArn = Properties.get(SsmParameterKey.RDS_DATABASE_SECRET_ARN.getKey());
+      SecretManager secretManager = new SecretManager(secretArn);
+      try {
+        secretManager.load();
+        log.info("SecretManagerからDB接続情報を取得しました");
 
-      url = String.format("jdbc:postgresql://%s:%s/%s", host, port, dbName);
-      userName = username;
-      password = pwd;
+        host = secretManager.get("host");
+        port = secretManager.get("port");
+        dbName = secretManager.get("dbname");
+        username = secretManager.get("username");
+        password = secretManager.get("password");
 
-    } finally {
-      secretManager.close();
+      } finally {
+        secretManager.close();
+      }
+    } else {
+      log.info("環境変数からDB接続情報を取得しました");
     }
+
+    url = String.format("jdbc:postgresql://%s:%s/%s", host, port, dbName);
+    userName = username;
+    DBConnection.password = password;
   }
 
   /**
