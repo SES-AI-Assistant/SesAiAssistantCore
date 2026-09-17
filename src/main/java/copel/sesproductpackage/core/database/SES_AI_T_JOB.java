@@ -2,6 +2,7 @@ package copel.sesproductpackage.core.database;
 
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
+import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.math.BigDecimal;
@@ -34,15 +35,15 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
   // ================================
   /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_JOB (job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, vector_data, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
+      "INSERT INTO SES_AI_T_JOB (job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, vector_data, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
-      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, vector_data, register_date, register_user, ttl FROM SES_AI_T_JOB WHERE job_id = ?";
+      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, vector_data, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl FROM SES_AI_T_JOB WHERE job_id = ?";
 
   /** UPDATE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_T_JOB SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, content_summary = ?, unit_price = ?, vector_data = ?::vector, ttl = ? WHERE job_id = ?";
+      "UPDATE SES_AI_T_JOB SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, content_summary = ?, unit_price = ?, vector_data = ?::vector, title = ?, overview = ?, must_skills = ?, want_skills = ?, start_date = ?, place = ?, area = ?, office_requirements = ?, other_requirements = ?, ttl = ? WHERE job_id = ?";
 
   /** 重複チェック用SQL. */
   private static final String CHECK_SQL =
@@ -73,6 +74,42 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
   /** 単価 / unit_price */
   @Column(physicalName = "unit_price", logicalName = "単価")
   private Money unitPrice;
+
+  /** 案件名 / title */
+  @Column(physicalName = "title", logicalName = "案件名")
+  private String title;
+
+  /** 案件概要 / overview */
+  @Column(physicalName = "overview", logicalName = "案件概要")
+  private String overview;
+
+  /** 必須スキル / must_skills */
+  @Column(physicalName = "must_skills", logicalName = "必須スキル")
+  private String mustSkills;
+
+  /** 尚可スキル / want_skills */
+  @Column(physicalName = "want_skills", logicalName = "尚可スキル")
+  private String wantSkills;
+
+  /** 開始日 / start_date */
+  @Column(physicalName = "start_date", logicalName = "開始日")
+  private OriginalDateTime startDate;
+
+  /** 場所 / place */
+  @Column(physicalName = "place", logicalName = "場所")
+  private String place;
+
+  /** 地域 / area */
+  @Column(physicalName = "area", logicalName = "地域")
+  private Area area;
+
+  /** 出社要求日数 / office_requirements */
+  @Column(physicalName = "office_requirements", logicalName = "出社要求日数")
+  private Integer officeRequirements;
+
+  /** その他条件 / other_requirements */
+  @Column(physicalName = "other_requirements", logicalName = "その他条件")
+  private String otherRequirements;
 
   // ================================
   // メソッド
@@ -143,6 +180,13 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
     return CHECK_SQL;
   }
 
+  /**
+   * この案件情報をデータベースに挿入します.
+   *
+   * @param connection DBコネクション
+   * @return 挿入に影響を受けた行数
+   * @throws SQLException DB操作エラー
+   */
   @Override
   public int insert(Connection connection) throws SQLException {
     // 案件IDを発行
@@ -161,13 +205,28 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
           stmt.setString(6, this.contentSummary);
           stmt.setObject(7, this.unitPrice == null ? null : this.unitPrice.getValue());
           stmt.setString(8, this.vectorData == null ? null : this.vectorData.toString());
-          stmt.setTimestamp(9, this.registerDate == null ? null : this.registerDate.toTimestamp());
-          stmt.setString(10, this.registerUser);
-          stmt.setTimestamp(11, this.ttl == null ? null : this.ttl.toTimestamp());
+          stmt.setString(9, this.title);
+          stmt.setString(10, this.overview);
+          stmt.setString(11, this.mustSkills);
+          stmt.setString(12, this.wantSkills);
+          stmt.setTimestamp(13, this.startDate == null ? null : this.startDate.toTimestamp());
+          stmt.setString(14, this.place);
+          stmt.setString(15, this.area == null ? null : this.area.toString());
+          stmt.setObject(16, this.officeRequirements);
+          stmt.setString(17, this.otherRequirements);
+          stmt.setTimestamp(18, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(19, this.registerUser);
+          stmt.setTimestamp(20, this.ttl == null ? null : this.ttl.toTimestamp());
         },
         "SES_AI_T_JOB.insert");
   }
 
+  /**
+   * 主キーに基づいて案件情報を検索します.
+   *
+   * @param connection DBコネクション
+   * @throws SQLException DB操作エラー
+   */
   @Override
   public void selectByPk(final Connection connection) throws SQLException {
     if (this.jobId == null) {
@@ -186,6 +245,16 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
           this.contentSummary = rs.getString("content_summary");
           BigDecimal unitPriceValue = rs.getBigDecimal("unit_price");
           this.unitPrice = unitPriceValue == null ? Money.empty() : new Money(unitPriceValue);
+          this.title = rs.getString("title");
+          this.overview = rs.getString("overview");
+          this.mustSkills = rs.getString("must_skills");
+          this.wantSkills = rs.getString("want_skills");
+          this.startDate = new OriginalDateTime(rs.getString("start_date"));
+          this.place = rs.getString("place");
+          String areaStr = rs.getString("area");
+          this.area = areaStr == null ? null : Area.valueOf(areaStr);
+          this.officeRequirements = rs.getObject("office_requirements") == null ? null : rs.getInt("office_requirements");
+          this.otherRequirements = rs.getString("other_requirements");
           this.registerDate = new OriginalDateTime(rs.getString("register_date"));
           this.registerUser = rs.getString("register_user");
           this.ttl = new OriginalDateTime(rs.getString("ttl"));
@@ -193,6 +262,13 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
         "SES_AI_T_JOB.selectByPk");
   }
 
+  /**
+   * 主キーに基づいて案件情報を更新します.
+   *
+   * @param connection DBコネクション
+   * @return 更新成功時はtrue、それ以外はfalse
+   * @throws SQLException DB操作エラー
+   */
   @Override
   public boolean updateByPk(Connection connection) throws SQLException {
     if (this.jobId == null) {
@@ -210,12 +286,28 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
           stmt.setString(5, this.contentSummary);
           stmt.setObject(6, this.unitPrice == null ? null : this.unitPrice.getValue());
           stmt.setString(7, this.vectorData == null ? null : this.vectorData.toString());
-          stmt.setTimestamp(8, this.ttl == null ? null : this.ttl.toTimestamp());
-          stmt.setString(9, this.jobId);
+          stmt.setString(8, this.title);
+          stmt.setString(9, this.overview);
+          stmt.setString(10, this.mustSkills);
+          stmt.setString(11, this.wantSkills);
+          stmt.setTimestamp(12, this.startDate == null ? null : this.startDate.toTimestamp());
+          stmt.setString(13, this.place);
+          stmt.setString(14, this.area == null ? null : this.area.toString());
+          stmt.setObject(15, this.officeRequirements);
+          stmt.setString(16, this.otherRequirements);
+          stmt.setTimestamp(17, this.ttl == null ? null : this.ttl.toTimestamp());
+          stmt.setString(18, this.jobId);
         },
         "SES_AI_T_JOB.updateByPk");
   }
 
+  /**
+   * 主キーに基づいて案件情報を削除します.
+   *
+   * @param connection DBコネクション
+   * @return 削除成功時はtrue、それ以外はfalse
+   * @throws SQLException DB操作エラー
+   */
   @Override
   public boolean deleteByPk(Connection connection) throws SQLException {
     if (this.jobId == null) {

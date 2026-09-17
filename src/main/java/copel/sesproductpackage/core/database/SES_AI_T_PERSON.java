@@ -2,6 +2,8 @@ package copel.sesproductpackage.core.database;
 
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
+import copel.sesproductpackage.core.unit.Area;
+import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
@@ -35,15 +37,15 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
   // ================================
   /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_PERSON (person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
+      "INSERT INTO SES_AI_T_PERSON (person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, url, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE person_id = ?";
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, url, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE person_id = ?";
 
   /** UPDATE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_T_PERSON SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, content_summary = ?, file_id = ?, unit_price = ?, vector_data = ?::vector, ttl = ? WHERE person_id = ?";
+      "UPDATE SES_AI_T_PERSON SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, content_summary = ?, file_id = ?, unit_price = ?, vector_data = ?::vector, name = ?, age = ?, gender = ?, nationality = ?, start_date = ?, place = ?, area = ?, office_availability = ?, organization = ?, experiences = ?, url = ?, ttl = ? WHERE person_id = ?";
 
   /** UPDATE文(file_idのみ). */
   private static final String UPDATE_FILE_ID_SQL =
@@ -87,6 +89,50 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
   @Column(physicalName = "unit_price", logicalName = "単価")
   private Money unitPrice;
 
+  /** 氏名 / name */
+  @Column(physicalName = "name", logicalName = "氏名")
+  private String name;
+
+  /** 年齢 / age */
+  @Column(physicalName = "age", logicalName = "年齢")
+  private Integer age;
+
+  /** 性別 / gender */
+  @Column(physicalName = "gender", logicalName = "性別")
+  private Gender gender;
+
+  /** 国籍 / nationality */
+  @Column(physicalName = "nationality", logicalName = "国籍")
+  private String nationality;
+
+  /** 開始日 / start_date */
+  @Column(physicalName = "start_date", logicalName = "開始日")
+  private OriginalDateTime startDate;
+
+  /** 場所 / place */
+  @Column(physicalName = "place", logicalName = "場所")
+  private String place;
+
+  /** 地域 / area */
+  @Column(physicalName = "area", logicalName = "地域")
+  private Area area;
+
+  /** 出社可能日数 / office_availability */
+  @Column(physicalName = "office_availability", logicalName = "出社可能日数")
+  private Integer officeAvailability;
+
+  /** 所属 / organization */
+  @Column(physicalName = "organization", logicalName = "所属")
+  private String organization;
+
+  /** 経歴 / experiences */
+  @Column(physicalName = "experiences", logicalName = "経歴")
+  private String experiences;
+
+  /** URL / url */
+  @Column(physicalName = "url", logicalName = "URL")
+  private String url;
+
   // ================================
   // メソッド
   // ================================
@@ -119,11 +165,12 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
     if (connection == null || this.personId == null || this.tenantId == null) {
       return false;
     }
-    PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_FILE_ID_SQL);
-    preparedStatement.setString(1, this.fileId);
-    preparedStatement.setString(2, this.personId);
-    preparedStatement.setString(3, this.tenantId);
-    return preparedStatement.executeUpdate() > 0;
+    try (PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_FILE_ID_SQL)) {
+      preparedStatement.setString(1, this.fileId);
+      preparedStatement.setString(2, this.personId);
+      preparedStatement.setString(3, this.tenantId);
+      return preparedStatement.executeUpdate() > 0;
+    }
   }
 
   /**
@@ -206,6 +253,13 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
     return CHECK_SQL;
   }
 
+  /**
+   * この要員情報をデータベースに挿入します.
+   *
+   * @param connection DBコネクション
+   * @return 挿入に影響を受けた行数
+   * @throws SQLException DB操作エラー
+   */
   @Override
   public int insert(final Connection connection) throws SQLException {
     // 要員IDを発行
@@ -225,13 +279,31 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
           stmt.setString(7, this.fileId);
           stmt.setObject(8, this.unitPrice == null ? null : this.unitPrice.getValue());
           stmt.setString(9, this.vectorData == null ? null : this.vectorData.toString());
-          stmt.setTimestamp(10, this.registerDate == null ? null : this.registerDate.toTimestamp());
-          stmt.setString(11, this.registerUser);
-          stmt.setTimestamp(12, this.ttl == null ? null : this.ttl.toTimestamp());
+          stmt.setString(10, this.name);
+          stmt.setObject(11, this.age);
+          stmt.setString(12, this.gender == null ? null : this.gender.toString());
+          stmt.setString(13, this.nationality);
+          stmt.setTimestamp(14, this.startDate == null ? null : this.startDate.toTimestamp());
+          stmt.setString(15, this.place);
+          stmt.setString(16, this.area == null ? null : this.area.toString());
+          stmt.setObject(17, this.officeAvailability);
+          stmt.setString(18, this.organization);
+          stmt.setString(19, this.experiences);
+          stmt.setString(20, this.url);
+          stmt.setTimestamp(21, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(22, this.registerUser);
+          stmt.setTimestamp(23, this.ttl == null ? null : this.ttl.toTimestamp());
         },
         "SES_AI_T_PERSON.insert");
   }
 
+  /**
+   * 主キーに基づいて要員情報を更新します.
+   *
+   * @param connection DBコネクション
+   * @return 更新成功時はtrue、それ以外はfalse
+   * @throws SQLException DB操作エラー
+   */
   @Override
   public boolean updateByPk(final Connection connection) throws SQLException {
     if (this.personId == null) {
@@ -250,12 +322,29 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
           stmt.setString(6, this.fileId);
           stmt.setObject(7, this.unitPrice == null ? null : this.unitPrice.getValue());
           stmt.setString(8, this.vectorData == null ? null : this.vectorData.toString());
-          stmt.setTimestamp(9, this.ttl == null ? null : this.ttl.toTimestamp());
-          stmt.setString(10, this.personId);
+          stmt.setString(9, this.name);
+          stmt.setObject(10, this.age);
+          stmt.setString(11, this.gender == null ? null : this.gender.toString());
+          stmt.setString(12, this.nationality);
+          stmt.setTimestamp(13, this.startDate == null ? null : this.startDate.toTimestamp());
+          stmt.setString(14, this.place);
+          stmt.setString(15, this.area == null ? null : this.area.toString());
+          stmt.setObject(16, this.officeAvailability);
+          stmt.setString(17, this.organization);
+          stmt.setString(18, this.experiences);
+          stmt.setString(19, this.url);
+          stmt.setTimestamp(20, this.ttl == null ? null : this.ttl.toTimestamp());
+          stmt.setString(21, this.personId);
         },
         "SES_AI_T_PERSON.updateByPk");
   }
 
+  /**
+   * 主キーに基づいて要員情報を検索します.
+   *
+   * @param connection DBコネクション
+   * @throws SQLException DB操作エラー
+   */
   @Override
   public void selectByPk(final Connection connection) throws SQLException {
     if (this.personId == null) {
@@ -275,6 +364,19 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
           this.fileId = rs.getString("file_id");
           BigDecimal unitPriceValue = rs.getBigDecimal("unit_price");
           this.unitPrice = unitPriceValue == null ? Money.empty() : new Money(unitPriceValue);
+          this.name = rs.getString("name");
+          this.age = rs.getObject("age") == null ? null : rs.getInt("age");
+          String genderStr = rs.getString("gender");
+          this.gender = genderStr == null ? null : Gender.valueOf(genderStr);
+          this.nationality = rs.getString("nationality");
+          this.startDate = new OriginalDateTime(rs.getString("start_date"));
+          this.place = rs.getString("place");
+          String areaStr = rs.getString("area");
+          this.area = areaStr == null ? null : Area.valueOf(areaStr);
+          this.officeAvailability = rs.getObject("office_availability") == null ? null : rs.getInt("office_availability");
+          this.organization = rs.getString("organization");
+          this.experiences = rs.getString("experiences");
+          this.url = rs.getString("url");
           this.registerDate = new OriginalDateTime(rs.getString("register_date"));
           this.registerUser = rs.getString("register_user");
           this.ttl = new OriginalDateTime(rs.getString("ttl"));
@@ -282,6 +384,13 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
         "SES_AI_T_PERSON.selectByPk");
   }
 
+  /**
+   * 主キーに基づいて要員情報を削除します.
+   *
+   * @param connection DBコネクション
+   * @return 削除成功時はtrue、それ以外はfalse
+   * @throws SQLException DB操作エラー
+   */
   @Override
   public boolean deleteByPk(Connection connection) throws SQLException {
     if (this.personId == null) {
