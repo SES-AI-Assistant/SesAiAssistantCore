@@ -1,8 +1,10 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
-import copel.sesproductpackage.core.api.gpt.schema.Schema;
-import copel.sesproductpackage.core.unit.Money;
 import java.util.List;
+
+import copel.sesproductpackage.core.api.gpt.schema.Schema;
+import copel.sesproductpackage.core.unit.Area;
+import copel.sesproductpackage.core.unit.Money;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -54,6 +56,9 @@ public class JobInfoSchema {
 
   @Schema(title = "場所", description = "案件の場所、オフィスの最寄り駅など", example = "品川")
   private String place;
+
+  @Schema(title = "地域", description = "案件の場所やオフィスの最寄駅が属する地域。判別が難しい場合や未記載の場合は関東_首都圏とする", example = "関東_首都圏")
+  private Area area = Area.関東_首都圏;
 
   @Schema(
       title = "単価（円）",
