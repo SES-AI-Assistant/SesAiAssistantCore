@@ -54,7 +54,7 @@ public class JobInfoSchema {
   @Schema(title = "開始月", description = "案件の開始月。『即日』を示す場合は-1を設定してください。それ以外は1～12の月を設定。", required = true, gt = -2, lt = 13, example = "6")
   private int startMonth;
 
-  @Schema(title = "場所", description = "案件の場所、オフィスの最寄り駅など", example = "品川")
+  @Schema(title = "場所", description = "案件の場所、オフィスの最寄り駅など", maxLength = 20, example = "品川")
   private String place;
 
   @Schema(title = "地域", description = "案件の場所やオフィスの最寄駅が属する地域。判別が難しい場合や未記載の場合は関東_首都圏とする", example = "関東_首都圏")

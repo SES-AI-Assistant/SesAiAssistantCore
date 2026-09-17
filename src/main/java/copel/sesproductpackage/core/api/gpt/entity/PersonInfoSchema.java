@@ -56,7 +56,7 @@ public class PersonInfoSchema {
       itemType = Money.class)
   private Money price;
 
-  @Schema(title = "場所", description = "要員の在住地域や最寄駅名など", example = "品川")
+  @Schema(title = "場所", description = "要員の在住地域や最寄駅名など", maxLength = 20, example = "品川")
   private String place = null;
 
   @Schema(title = "地域", description = "要員の在住地域や最寄駅が属する地域。判別が難しい場合や未記載の場合は関東_首都圏とする", example = "関東_首都圏")
@@ -72,13 +72,25 @@ public class PersonInfoSchema {
       example = "1")
   private int officeAvailability;
 
-  @Schema(title = "所属", description = "商流や所属。不明な場合は「未記載」とする。", required = true, example = "1社先正社員")
+  @Schema(title = "所属", description = "商流や所属。不明な場合は「未記載」とする。", required = true, maxLength = 20, example = "1社先正社員")
   private String organization = "未記載";
 
-  @Schema(title = "経歴", description = "箇条書き形式の経歴のリスト", itemType = Experience.class)
+  @Schema(
+	title = "経歴", 
+	description = "箇条書き形式の経歴のリスト", 
+	itemType = Experience.class,
+    required = true,
+    minItems = 1,
+    maxItems = 10)
   private List<Experience> experiences = null;
 
-  @Schema(title = "NG条件", description = "要員都合のNG条件のリスト", itemType = String.class)
+  @Schema(
+	title = "NG条件", 
+	description = "要員都合のNG条件のリスト", 
+	itemType = String.class,
+    required = true,
+    minItems = 1,
+    maxItems = 10)
   private List<String> ngRequirements = null;
 
   @Schema(title = "その他", description = "その他、備考などの事項", itemType = String.class)
@@ -87,6 +99,7 @@ public class PersonInfoSchema {
   @Schema(
       title = "URL",
       description = "経歴書やスキルシートのURL。未記載の場合は設定しない。",
+      maxLength = 300,
       format = "uri",
       pattern = "^https?://.+",
       example = "https://www.google.com")
