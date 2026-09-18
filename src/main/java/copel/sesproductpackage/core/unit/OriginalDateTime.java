@@ -379,4 +379,18 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
       this.dateTime = this.dateTime.minusMinutes(minutes);
     }
   }
+
+  /**
+   * 年と月から OriginalDateTime を生成します.
+   *
+   * @param year 年
+   * @param month 月（1～12、-1の場合は即日）
+   * @return OriginalDateTime
+   */
+  public static OriginalDateTime fromMonth(int year, int month) {
+    if (month == -1) {
+      return new OriginalDateTime();
+    }
+    return new OriginalDateTime(year, month, 1, 0, 0, 0);
+  }
 }

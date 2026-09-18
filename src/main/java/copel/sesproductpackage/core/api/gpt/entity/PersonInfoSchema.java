@@ -6,6 +6,7 @@ import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -46,8 +47,8 @@ public class PersonInfoSchema {
       example = "日本")
   private String nationality = "日本";
 
-  @Schema(title = "開始", description = "稼働開始が可能な月。『即日』を示す場合は-1を設定してください。それ以外は1～12の月を設定。", required = true, gt = -2, lt = 13, example = "6")
-  private int startMonth;
+  @Schema(title = "開始年月", description = "稼働開始が可能な年月。必ずyyyy/MM形式で設定してください。未記載の場合や即日、などの表現がされている場合は本日日付にして。", pattern = "^\\d{4}/(0?[1-9]|1[0-2])$", required = true, example = "2026/6")
+  private String startYearMonth;
 
   @Schema(
       title = "単価（円）",
@@ -126,10 +127,8 @@ public class PersonInfoSchema {
     // 3. 国籍
     sb.append("■国籍: ").append(this.nationality).append("\n");
     // 4. 稼働開始可能月
-    if (this.startMonth == -1) {
-      sb.append("■開始: 即日\n");
-    } else {
-      sb.append("■開始: ").append(this.startMonth).append("月\n");
+    if (this.startYearMonth != null) {
+      sb.append("■開始: ").append(this.startYearMonth.replace("/", "年")).append("月\n");
     }
     // 5. 単価
     sb.append("■単価: ").append(this.price).append("\n");
@@ -177,6 +176,53 @@ public class PersonInfoSchema {
       return resultText.substring(0, 1000);
     }
     return resultText;
+  }
+
+  /**
+   * 開始年月から OriginalDateTime を生成します.
+   *
+   * @return OriginalDateTime
+   */
+  public OriginalDateTime getStartDateAsOriginalDateTime() {
+    if (this.startYearMonth == null) {
+      OriginalDateTime now = new OriginalDateTime();
+      return OriginalDateTime.fromMonth(now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
+    }
+    String[] parts = this.startYearMonth.split("/");
+    if (parts.length == 2) {
+      try {
+        int year = Integer.parseInt(parts[0]);
+        int month = Integer.parseInt(parts[1]);
+        return OriginalDateTime.fromMonth(year, month);
+      } catch (NumberFormatException e) {
+        OriginalDateTime now = new OriginalDateTime();
+        return OriginalDateTime.fromMonth(now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
+      }
+    }
+    OriginalDateTime now = new OriginalDateTime();
+    return OriginalDateTime.fromMonth(now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
+  }
+
+  /**
+   * 経歴リストを改行区切りの文字列に変換します.
+   *
+   * @return 改行区切りの文字列、またはnull
+   */
+  public String getExperiencesAsString() {
+    if (this.experiences == null || this.experiences.isEmpty()) {
+      return null;
+    }
+    StringBuilder sb = new StringBuilder();
+    for (Experience exp : this.experiences) {
+      if (sb.length() > 0) {
+        sb.append("\n");
+      }
+      sb.append(exp.getPerspective());
+      if (exp.getDuration() != null) {
+        sb.append(": ").append(exp.getDuration());
+      }
+    }
+    return sb.toString();
   }
 
   // ================================================
