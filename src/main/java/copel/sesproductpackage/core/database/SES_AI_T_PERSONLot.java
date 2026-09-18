@@ -44,10 +44,6 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
   /** ベクトル検索のカウント用SQL. */
   private static final String COUNT_SQL_FOR_RETRIEVE = "SELECT COUNT(*) FROM SES_AI_T_PERSON";
 
-  /** 類似度閾値カウント用SQL. */
-  private static final String COUNT_SQL_FOR_RETRIEVE_WITH_THRESHOLD =
-      "SELECT COUNT(*) FROM SES_AI_T_PERSON WHERE 1 - (vector_data <=> ?::vector) >= ?";
-
   /** 類似度閾値ベクトル検索用SQL（ページング用・LIMIT/OFFSET除外）. */
   private static final String RETRIEVE_WITH_THRESHOLD_SQL_WITHOUT_LIMIT =
       "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, url, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_PERSON WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
