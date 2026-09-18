@@ -43,6 +43,14 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   private static final String RETRIEVE_WITH_THRESHOLD_SQL_WITHOUT_LIMIT =
       "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
 
+  /** ベクトル検索＋価格・開始日フィルタ用SQL（ページング用・LIMIT/OFFSET除外）. */
+  private static final String RETRIEVE_WITH_FILTER_2_VALUES_SQL_WITHOUT_LIMIT =
+      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date <= ? AND 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
+
+  /** ベクトル検索＋価格・開始日・オフィス要件・エリアフィルタ用SQL（ページング用・LIMIT/OFFSET除外）. */
+  private static final String RETRIEVE_WITH_FILTER_4_VALUES_SQL_WITHOUT_LIMIT =
+      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date <= ? AND office_requirements <= ? AND area = ? AND 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
+
   /** コンストラクタ. */
   public SES_AI_T_JOBLot() {
     super();
@@ -356,6 +364,163 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       i++;
     }
     return result.toString();
+  }
+
+  /**
+   * 価格と開始日でフィルタされたベクトル検索を実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param query 検索ベクトル
+   * @param price 最低価格（単価がこの値以上のもの）
+   * @param startDate 最遅開始日（開始日がこの日付以前のもの）
+   * @param limit 取得上限件数
+   * @throws SQLException
+   */
+  public void retrieveWithFilter(
+      Connection connection,
+      String tenantId,
+      Vector query,
+      Money price,
+      OriginalDateTime startDate,
+      int limit)
+      throws SQLException {
+    this.retrieveWithFilterPaged(connection, tenantId, query, price, startDate, 1, limit);
+  }
+
+  /**
+   * 価格と開始日でフィルタされたベクトル検索をページングで実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param query 検索ベクトル
+   * @param price 最低価格（単価がこの値以上のもの）
+   * @param startDate 最遅開始日（開始日がこの日付以前のもの）
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void retrieveWithFilterPaged(
+      Connection connection,
+      String tenantId,
+      Vector query,
+      Money price,
+      OriginalDateTime startDate,
+      int page,
+      int size)
+      throws SQLException {
+    if (connection == null || query == null) {
+      return;
+    }
+
+    executeVectorPagedQuery(
+        connection,
+        RETRIEVE_WITH_FILTER_2_VALUES_SQL_WITHOUT_LIMIT,
+        tenantId,
+        query.toString(),
+        0.0,
+        page,
+        size,
+        rs -> {
+          SES_AI_T_JOB entity = mapResultSet(rs);
+          try {
+            entity.setDistance(rs.getDouble("distance"));
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+          return entity;
+        },
+        (stmt, paramIndex, vectorValue, similarityThreshold) -> {
+          stmt.setString(paramIndex, vectorValue);
+          stmt.setBigDecimal(paramIndex + 1, price.getValue());
+          stmt.setTimestamp(paramIndex + 2, startDate.toTimestamp());
+          stmt.setString(paramIndex + 3, vectorValue);
+          return paramIndex + 4;
+        });
+  }
+
+  /**
+   * 価格・開始日・オフィス要件・エリアでフィルタされたベクトル検索を実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param query 検索ベクトル
+   * @param price 最低価格（単価がこの値以上のもの）
+   * @param startDate 最遅開始日（開始日がこの日付以前のもの）
+   * @param officeAvailability 最大オフィス要件（オフィス要件がこの値以下のもの）
+   * @param area 対象エリア（エリアがこの値と一致するもの）
+   * @param limit 取得上限件数
+   * @throws SQLException
+   */
+  public void retrieveWithFilter(
+      Connection connection,
+      String tenantId,
+      Vector query,
+      Money price,
+      OriginalDateTime startDate,
+      int officeAvailability,
+      Area area,
+      int limit)
+      throws SQLException {
+    this.retrieveWithFilterPaged(
+        connection, tenantId, query, price, startDate, officeAvailability, area, 1, limit);
+  }
+
+  /**
+   * 価格・開始日・オフィス要件・エリアでフィルタされたベクトル検索をページングで実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param query 検索ベクトル
+   * @param price 最低価格（単価がこの値以上のもの）
+   * @param startDate 最遅開始日（開始日がこの日付以前のもの）
+   * @param officeAvailability 最大オフィス要件（オフィス要件がこの値以下のもの）
+   * @param area 対象エリア（エリアがこの値と一致するもの）
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void retrieveWithFilterPaged(
+      Connection connection,
+      String tenantId,
+      Vector query,
+      Money price,
+      OriginalDateTime startDate,
+      int officeAvailability,
+      Area area,
+      int page,
+      int size)
+      throws SQLException {
+    if (connection == null || query == null || area == null) {
+      return;
+    }
+
+    executeVectorPagedQuery(
+        connection,
+        RETRIEVE_WITH_FILTER_4_VALUES_SQL_WITHOUT_LIMIT,
+        tenantId,
+        query.toString(),
+        0.0,
+        page,
+        size,
+        rs -> {
+          SES_AI_T_JOB entity = mapResultSet(rs);
+          try {
+            entity.setDistance(rs.getDouble("distance"));
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+          return entity;
+        },
+        (stmt, paramIndex, vectorValue, similarityThreshold) -> {
+          stmt.setString(paramIndex, vectorValue);
+          stmt.setBigDecimal(paramIndex + 1, price.getValue());
+          stmt.setTimestamp(paramIndex + 2, startDate.toTimestamp());
+          stmt.setInt(paramIndex + 3, officeAvailability);
+          stmt.setString(paramIndex + 4, area.name());
+          stmt.setString(paramIndex + 5, vectorValue);
+          return paramIndex + 6;
+        });
   }
 
   /**

@@ -4,8 +4,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.search.FulltextCondition;
+import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
+import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -216,5 +219,37 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
   void testSelectAll() throws SQLException {
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
     assertDoesNotThrow(() -> lot.selectAll(mockConnection, "test-tenant"));
+  }
+
+  @Test
+  void testRetrieveByPersonVectorWithFilter2Values() throws SQLException {
+    SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
+    Money price = new Money(new java.math.BigDecimal("100.00"));
+    OriginalDateTime startDate = new OriginalDateTime("2023-01-01 00:00:00");
+
+    assertDoesNotThrow(
+        () ->
+            lot.retrieveByPersonVectorWithFilter(
+                mockConnection, "test-tenant", mockVector, price, startDate, 0.5, 5));
+  }
+
+  @Test
+  void testRetrieveByPersonVectorWithFilter4Values() throws SQLException {
+    SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
+    Money price = new Money(new java.math.BigDecimal("100.00"));
+    OriginalDateTime startDate = new OriginalDateTime("2023-01-01 00:00:00");
+
+    assertDoesNotThrow(
+        () ->
+            lot.retrieveByPersonVectorWithFilter(
+                mockConnection,
+                "test-tenant",
+                mockVector,
+                price,
+                startDate,
+                3,
+                Area.KANTO,
+                0.5,
+                5));
   }
 }

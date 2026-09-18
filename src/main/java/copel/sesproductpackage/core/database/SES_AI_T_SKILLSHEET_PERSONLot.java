@@ -3,7 +3,10 @@ package copel.sesproductpackage.core.database;
 import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.search.FulltextCondition;
 import copel.sesproductpackage.core.search.FulltextConditionsWhereClause;
+import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.LogicalOperators;
+import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -56,6 +59,26 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, s.register_date, s.register_user, p.unit_price, COALESCE(s.from_group, p.from_group) AS from_group, COALESCE(s.from_id, p.from_id) AS from_id, COALESCE(s.from_name, p.from_name) AS from_name, s.vector_data <=> ?::vector AS distance, p.tenant_id "
           + "FROM SES_AI_T_SKILLSHEET s LEFT JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
           + "WHERE 1 - (s.vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
+
+  /** 要員ベクトル検索用COUNT_QUERY_PART（価格・開始日フィルタ付き）. */
+  private static final String COUNT_QUERY_PART_FOR_PERSON_VECTOR_WITH_FILTER_2_VALUES =
+      "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id WHERE p.unit_price <= ? AND p.start_date >= ? AND 1 - (p.vector_data <=> ?::vector) >= ?";
+
+  /** 要員ベクトル検索SQL（価格・開始日フィルタ付き）. */
+  private static final String RETRIEVE_BY_PERSON_VECTOR_WITH_FILTER_2_VALUES_SQL =
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.vector_data <=> ?::vector AS distance, p.tenant_id "
+          + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
+          + "WHERE p.unit_price <= ? AND p.start_date >= ? AND 1 - (p.vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
+
+  /** 要員ベクトル検索用COUNT_QUERY_PART（価格・開始日・オフィス可用性・エリアフィルタ付き）. */
+  private static final String COUNT_QUERY_PART_FOR_PERSON_VECTOR_WITH_FILTER_4_VALUES =
+      "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id WHERE p.unit_price <= ? AND p.start_date >= ? AND p.office_availability >= ? AND p.area = ? AND 1 - (p.vector_data <=> ?::vector) >= ?";
+
+  /** 要員ベクトル検索SQL（価格・開始日・オフィス可用性・エリアフィルタ付き）. */
+  private static final String RETRIEVE_BY_PERSON_VECTOR_WITH_FILTER_4_VALUES_SQL =
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.vector_data <=> ?::vector AS distance, p.tenant_id "
+          + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
+          + "WHERE p.unit_price <= ? AND p.start_date >= ? AND p.office_availability >= ? AND p.area = ? AND 1 - (p.vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
 
   private static final String SELECT_BY_PERSON_RAW_CONTENT_SQL =
       "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.tenant_id "
@@ -224,6 +247,149 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
         COUNT_QUERY_PART_FOR_PERSON_VECTOR);
   }
 
+  /**
+   * 要員のベクトルデータに対して価格と開始日でフィルタされたセマンティック検索を実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param query 検索ベクトル
+   * @param price 最大価格（単価がこの値以下のもの）
+   * @param startDate 最早開始日（開始日がこの日付以降のもの）
+   * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
+   * @param limit 取得上限件数
+   * @throws SQLException
+   */
+  public void retrieveByPersonVectorWithFilter(
+      final Connection connection,
+      final String tenantId,
+      final Vector query,
+      final Money price,
+      final OriginalDateTime startDate,
+      final double similarityThreshold,
+      final int limit)
+      throws SQLException {
+    this.retrieveByPersonVectorWithFilterPaged(
+        connection, tenantId, query, price, startDate, similarityThreshold, 1, limit);
+  }
+
+  /**
+   * 要員のベクトルデータに対して価格と開始日でフィルタされたセマンティック検索をページングで実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param query 検索ベクトル
+   * @param price 最大価格（単価がこの値以下のもの）
+   * @param startDate 最早開始日（開始日がこの日付以降のもの）
+   * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void retrieveByPersonVectorWithFilterPaged(
+      final Connection connection,
+      final String tenantId,
+      final Vector query,
+      final Money price,
+      final OriginalDateTime startDate,
+      final double similarityThreshold,
+      final int page,
+      final int size)
+      throws SQLException {
+    executeRetrieveWithFilterPaged(
+        connection,
+        tenantId,
+        RETRIEVE_BY_PERSON_VECTOR_WITH_FILTER_2_VALUES_SQL,
+        query,
+        price,
+        startDate,
+        null,
+        null,
+        similarityThreshold,
+        page,
+        size,
+        COUNT_QUERY_PART_FOR_PERSON_VECTOR_WITH_FILTER_2_VALUES);
+  }
+
+  /**
+   * 要員のベクトルデータに対して価格・開始日・オフィス可用性・エリアでフィルタされたセマンティック検索を実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param query 検索ベクトル
+   * @param price 最大価格（単価がこの値以下のもの）
+   * @param startDate 最早開始日（開始日がこの日付以降のもの）
+   * @param officeRequirements 最小オフィス可用性（オフィス可用性がこの値以上のもの）
+   * @param area 対象エリア（エリアがこの値と一致するもの）
+   * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
+   * @param limit 取得上限件数
+   * @throws SQLException
+   */
+  public void retrieveByPersonVectorWithFilter(
+      final Connection connection,
+      final String tenantId,
+      final Vector query,
+      final Money price,
+      final OriginalDateTime startDate,
+      final int officeRequirements,
+      final Area area,
+      final double similarityThreshold,
+      final int limit)
+      throws SQLException {
+    this.retrieveByPersonVectorWithFilterPaged(
+        connection,
+        tenantId,
+        query,
+        price,
+        startDate,
+        officeRequirements,
+        area,
+        similarityThreshold,
+        1,
+        limit);
+  }
+
+  /**
+   * 要員のベクトルデータに対して価格・開始日・オフィス可用性・エリアでフィルタされたセマンティック検索をページングで実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param query 検索ベクトル
+   * @param price 最大価格（単価がこの値以下のもの）
+   * @param startDate 最早開始日（開始日がこの日付以降のもの）
+   * @param officeRequirements 最小オフィス可用性（オフィス可用性がこの値以上のもの）
+   * @param area 対象エリア（エリアがこの値と一致するもの）
+   * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void retrieveByPersonVectorWithFilterPaged(
+      final Connection connection,
+      final String tenantId,
+      final Vector query,
+      final Money price,
+      final OriginalDateTime startDate,
+      final int officeRequirements,
+      final Area area,
+      final double similarityThreshold,
+      final int page,
+      final int size)
+      throws SQLException {
+    executeRetrieveWithFilterPaged(
+        connection,
+        tenantId,
+        RETRIEVE_BY_PERSON_VECTOR_WITH_FILTER_4_VALUES_SQL,
+        query,
+        price,
+        startDate,
+        officeRequirements,
+        area,
+        similarityThreshold,
+        page,
+        size,
+        COUNT_QUERY_PART_FOR_PERSON_VECTOR_WITH_FILTER_4_VALUES);
+  }
+
   private void executeRetrieve(
       final Connection connection,
       final String tenantId,
@@ -294,6 +460,91 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
               stmt.setInt(idx + 4, size);
               stmt.setInt(idx + 5, (page - 1) * size);
               return idx + 3;
+            });
+    this.entityLot = results;
+  }
+
+  private void executeRetrieveWithFilterPaged(
+      final Connection connection,
+      final String tenantId,
+      final String sql,
+      final Vector query,
+      final Money price,
+      final OriginalDateTime startDate,
+      final Integer officeRequirements,
+      final Area area,
+      final double similarityThreshold,
+      final int page,
+      final int size,
+      final String countQueryPart)
+      throws SQLException {
+    if (connection == null || query == null) {
+      return;
+    }
+
+    // (1) 全件数を取得 (countQueryPart があれば、tenant_id フィルターを適用)
+    if (countQueryPart != null) {
+      String countSql = COUNT_SQL_PREFIX + countQueryPart;
+      countSql = addTenantIdFilter(countSql, tenantId);
+      try (PreparedStatement preparedStatement = connection.prepareStatement(countSql)) {
+        int paramIndex = 1;
+        String vectorStr = query.toString();
+        preparedStatement.setBigDecimal(paramIndex++, price.getValue());
+        preparedStatement.setTimestamp(paramIndex++, startDate.toTimestamp());
+        if (officeRequirements != null && area != null) {
+          preparedStatement.setInt(paramIndex++, officeRequirements);
+          preparedStatement.setString(paramIndex++, area.name());
+        }
+        preparedStatement.setString(paramIndex++, vectorStr);
+        preparedStatement.setDouble(paramIndex++, similarityThreshold);
+        setTenantIdParameter(preparedStatement, paramIndex, tenantId);
+        try (ResultSet resultSet = preparedStatement.executeQuery()) {
+          if (resultSet.next()) {
+            this.totalCount = resultSet.getLong(1);
+          }
+        }
+      }
+    } else {
+      this.totalCount = size;
+    }
+
+    this.pageSize = size;
+    this.currentPageIndex = page;
+
+    if (this.totalCount == 0 && countQueryPart != null) {
+      return;
+    }
+
+    // (2) ページング実行（tenant_id フィルターを適用）
+    String pagedSql = sql + PAGED_SQL_OFFSET_SUFFIX;
+    List<SES_AI_T_SKILLSHEET_PERSON> results =
+        executeQuery(
+            connection,
+            pagedSql,
+            tenantId,
+            this::mapResultSet,
+            (stmt, paramIndex) -> {
+              int idx = paramIndex;
+              String vectorStr = query.toString();
+              stmt.setBigDecimal(idx, price.getValue());
+              stmt.setTimestamp(idx + 1, startDate.toTimestamp());
+              if (officeRequirements != null && area != null) {
+                stmt.setInt(idx + 2, officeRequirements);
+                stmt.setString(idx + 3, area.name());
+                stmt.setString(idx + 4, vectorStr);
+                stmt.setString(idx + 5, vectorStr);
+                stmt.setDouble(idx + 6, similarityThreshold);
+                stmt.setInt(idx + 8, size);
+                stmt.setInt(idx + 9, (page - 1) * size);
+                return idx + 7;
+              } else {
+                stmt.setString(idx + 2, vectorStr);
+                stmt.setString(idx + 3, vectorStr);
+                stmt.setDouble(idx + 4, similarityThreshold);
+                stmt.setInt(idx + 6, size);
+                stmt.setInt(idx + 7, (page - 1) * size);
+                return idx + 5;
+              }
             });
     this.entityLot = results;
   }

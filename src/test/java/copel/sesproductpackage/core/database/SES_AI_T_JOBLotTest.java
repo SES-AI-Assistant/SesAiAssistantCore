@@ -4,8 +4,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.search.FulltextCondition;
+import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
+import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -215,6 +218,39 @@ class SES_AI_T_JOBLotTest {
 
     SES_AI_T_JOBLot empty = new SES_AI_T_JOBLot();
     empty.searchByRawContentPaged(null, "test-tenant", conds, 1, 5);
+    assertTrue(empty.isEmpty());
+  }
+
+  @Test
+  void testRetrieveWithFilter2Values() throws Exception {
+    setupDefaultResultSet();
+    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+    Vector testVector = createTestVector();
+    Money price = new Money(new java.math.BigDecimal("100.00"));
+    OriginalDateTime startDate = new OriginalDateTime("2023-12-31 23:59:59");
+
+    lot.retrieveWithFilter(mockConn, "test-tenant", testVector, price, startDate, 5);
+    assertEquals(1, lot.size());
+
+    SES_AI_T_JOBLot empty = new SES_AI_T_JOBLot();
+    empty.retrieveWithFilter(null, "test-tenant", testVector, price, startDate, 5);
+    assertTrue(empty.isEmpty());
+  }
+
+  @Test
+  void testRetrieveWithFilter4Values() throws Exception {
+    setupDefaultResultSet();
+    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+    Vector testVector = createTestVector();
+    Money price = new Money(new java.math.BigDecimal("100.00"));
+    OriginalDateTime startDate = new OriginalDateTime("2023-12-31 23:59:59");
+
+    lot.retrieveWithFilter(
+        mockConn, "test-tenant", testVector, price, startDate, 3, Area.KANTO, 5);
+    assertEquals(1, lot.size());
+
+    SES_AI_T_JOBLot empty = new SES_AI_T_JOBLot();
+    empty.retrieveWithFilter(null, "test-tenant", testVector, price, startDate, 3, Area.KANTO, 5);
     assertTrue(empty.isEmpty());
   }
 }
