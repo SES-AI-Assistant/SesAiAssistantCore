@@ -1,15 +1,9 @@
 package copel.sesproductpackage.core.database;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import copel.sesproductpackage.core.search.FulltextCondition;
-import copel.sesproductpackage.core.unit.Area;
-import copel.sesproductpackage.core.unit.LogicalOperators;
-import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
-import copel.sesproductpackage.core.unit.Money;
-import copel.sesproductpackage.core.unit.OriginalDateTime;
-import copel.sesproductpackage.core.unit.Vector;
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -20,8 +14,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import copel.sesproductpackage.core.search.FulltextCondition;
+import copel.sesproductpackage.core.unit.Area;
+import copel.sesproductpackage.core.unit.LogicalOperators;
+import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
+import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.unit.Vector;
 
 class SES_AI_T_JOBLotTest {
 
@@ -246,11 +249,11 @@ class SES_AI_T_JOBLotTest {
     OriginalDateTime startDate = new OriginalDateTime("2023-12-31 23:59:59");
 
     lot.retrieveWithFilter(
-        mockConn, "test-tenant", testVector, price, startDate, 3, Area.KANTO, 5);
+        mockConn, "test-tenant", testVector, price, startDate, 3, Area.関東_首都圏, 5);
     assertEquals(1, lot.size());
 
     SES_AI_T_JOBLot empty = new SES_AI_T_JOBLot();
-    empty.retrieveWithFilter(null, "test-tenant", testVector, price, startDate, 3, Area.KANTO, 5);
+    empty.retrieveWithFilter(null, "test-tenant", testVector, price, startDate, 3, Area.関東_首都圏, 5);
     assertTrue(empty.isEmpty());
   }
 }

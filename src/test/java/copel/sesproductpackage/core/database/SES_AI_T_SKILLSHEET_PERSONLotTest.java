@@ -1,7 +1,18 @@
 package copel.sesproductpackage.core.database;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import copel.sesproductpackage.core.search.FulltextCondition;
 import copel.sesproductpackage.core.unit.Area;
@@ -10,14 +21,6 @@ import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 class SES_AI_T_SKILLSHEET_PERSONLotTest {
 
@@ -248,7 +251,7 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
                 price,
                 startDate,
                 3,
-                Area.KANTO,
+                Area.関東_首都圏,
                 0.5,
                 5));
   }
