@@ -583,7 +583,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
-  public void retrieveByPersonRawContentPaged(
+  public void searchByPersonRawContentPaged(
       final Connection connection,
       final String tenantId,
       final String query,
@@ -756,7 +756,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
-  public void retrieveByPersonRawContentPaged(
+  public void searchByPersonRawContentPaged(
       final Connection connection,
       final String tenantId,
       final List<FulltextCondition> conditions,
@@ -823,7 +823,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
-  public void retrieveBySkillSheetRawContentPaged(
+  public void searchBySkillSheetRawContentPaged(
       final Connection connection,
       final String tenantId,
       final String query,

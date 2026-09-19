@@ -96,11 +96,11 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
   void testRetrieveByPersonRawContent() throws SQLException {
     prepareMockResultSet(false);
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
-    lot.retrieveByPersonRawContent(mockConnection, "test-tenant", "keyword");
+    lot.searchByPersonRawContent(mockConnection, "test-tenant", "keyword");
     assertEquals(1, lot.size());
 
     when(mockResultSet.next()).thenReturn(true, false);
-    lot.retrieveByPersonRawContent(
+    lot.searchByPersonRawContent(
         mockConnection, "test-tenant", "k1", List.of(new LogicalOperators(論理演算子.AND, "k2")));
     assertEquals(1, lot.size());
   }
@@ -109,11 +109,11 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
   void testRetrieveBySkillSheetRawContent() throws SQLException {
     prepareMockResultSet(false);
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
-    lot.retrieveBySkillSheetRawContent(mockConnection, "test-tenant", "skill");
+    lot.searchBySkillSheetRawContent(mockConnection, "test-tenant", "skill");
     assertEquals(1, lot.size());
 
     when(mockResultSet.next()).thenReturn(true, false);
-    lot.retrieveBySkillSheetRawContent(
+    lot.searchBySkillSheetRawContent(
         mockConnection, "test-tenant", "s1", List.of(new LogicalOperators(論理演算子.OR, "s2")));
     assertEquals(1, lot.size());
   }
@@ -122,7 +122,7 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
   void testGetEntityMethods() throws SQLException {
     prepareMockResultSet(false);
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
-    lot.retrieveByPersonRawContent(mockConnection, "test-tenant", "keyword");
+    lot.searchByPersonRawContent(mockConnection, "test-tenant", "keyword");
 
     assertNotNull(lot.getEntityByPk("p1"));
     assertNotNull(lot.getEntityByFileId("f1"));
@@ -134,7 +134,7 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
   void testToSelectionTexts() throws SQLException {
     prepareMockResultSet(false);
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
-    lot.retrieveByPersonRawContent(mockConnection, "test-tenant", "keyword");
+    lot.searchByPersonRawContent(mockConnection, "test-tenant", "keyword");
     lot.get(0).setContentSummary("cs");
     lot.get(0).setFileContentSummary("fs");
 
