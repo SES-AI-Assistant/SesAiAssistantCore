@@ -669,6 +669,129 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   }
 
   /**
+   * 動的WHERE句とフィルタ条件を指定してページング検索を実行します.
+   *
+   * <p>価格・開始日などのフィルタ条件をWHERE句に追加した上でページング検索を実行します。
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param selectSqlPrefix SELECT句から WHERE 直後までのプリフィックス
+   * @param whereClauseWithoutWhere WHERE キーワードを除いた WHERE 句部分
+   * @param likeParams LIKE検索パラメータのリスト
+   * @param price 価格フィルタ（null可）
+   * @param startDate 開始日フィルタ（null可）
+   * @param integerFilter 整数フィルタ（null可）
+   * @param areaFilter エリアフィルタ（null可）
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  protected <T extends java.math.BigDecimal, U extends java.time.temporal.Temporal, V extends Enum<?>> void selectByDynamicWhereWithFilterPaged(
+      final Connection connection,
+      final String tenantId,
+      final String selectSqlPrefix,
+      final String whereClauseWithoutWhere,
+      final List<String> likeParams,
+      final Object price,
+      final Object startDate,
+      final Integer integerFilter,
+      final Enum<?> areaFilter,
+      final int page,
+      final int size)
+      throws SQLException {
+    this.entityLot = new ArrayList<>();
+    if (connection == null || selectSqlPrefix == null || whereClauseWithoutWhere == null) {
+      return;
+    }
+    if (likeParams == null || likeParams.isEmpty()) {
+      return;
+    }
+
+    // (1) 件数用 SQL 構築（tenantId フィルターなし）
+    final String fullSelect = selectSqlPrefix + whereClauseWithoutWhere;
+    final String countSql = toCountSql(fullSelect);
+
+    // tenant_id フィルターを追加して実行
+    final String filteredCountSql = addTenantIdFilter(countSql, tenantId);
+    try (PreparedStatement preparedStatement = connection.prepareStatement(filteredCountSql)) {
+      int paramIndex = 1;
+      // フィルタ条件をバインド（selectSqlPrefixに含まれている）
+      if (price != null) {
+        if (price instanceof java.math.BigDecimal) {
+          preparedStatement.setBigDecimal(paramIndex++, (java.math.BigDecimal) price);
+        }
+      }
+      if (startDate != null) {
+        if (startDate instanceof java.sql.Timestamp) {
+          preparedStatement.setTimestamp(paramIndex++, (java.sql.Timestamp) startDate);
+        }
+      }
+      if (integerFilter != null && areaFilter != null) {
+        preparedStatement.setInt(paramIndex++, integerFilter);
+        preparedStatement.setString(paramIndex++, areaFilter.name());
+      }
+      // LIKE検索パラメータをバインド
+      for (String p : likeParams) {
+        preparedStatement.setString(paramIndex++, p);
+      }
+      setTenantIdParameter(preparedStatement, paramIndex, tenantId);
+
+      logSql(filteredCountSql);
+
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        if (resultSet.next()) {
+          this.totalCount = resultSet.getLong(1);
+        }
+      }
+    }
+
+    this.pageSize = size;
+    this.currentPageIndex = page;
+
+    if (this.totalCount == 0) {
+      return;
+    }
+
+    // (2) ページング用 SQL（tenantId フィルターなし）
+    final String pagedSql = fullSelect + " LIMIT ? OFFSET ?";
+    final String filteredPagedSql = addTenantIdFilter(pagedSql, tenantId);
+
+    // executeQueryWithoutTenantFilter を使用（filteredPagedSql に既にテナントフィルターが含まれている）
+    List<E> results =
+        executeQueryWithoutTenantFilter(
+            connection,
+            filteredPagedSql,
+            this::mapResultSet,
+            (stmt, paramIndex) -> {
+              int idx = paramIndex;
+              // フィルタ条件をバインド（selectSqlPrefixに含まれている）
+              if (price != null) {
+                if (price instanceof java.math.BigDecimal) {
+                  stmt.setBigDecimal(idx++, (java.math.BigDecimal) price);
+                }
+              }
+              if (startDate != null) {
+                if (startDate instanceof java.sql.Timestamp) {
+                  stmt.setTimestamp(idx++, (java.sql.Timestamp) startDate);
+                }
+              }
+              if (integerFilter != null && areaFilter != null) {
+                stmt.setInt(idx++, integerFilter);
+                stmt.setString(idx++, areaFilter.name());
+              }
+              // LIKE検索パラメータをバインド
+              for (String p : likeParams) {
+                stmt.setString(idx++, p);
+              }
+              stmt.setString(idx++, tenantId);
+              stmt.setInt(idx++, size);
+              stmt.setInt(idx, (page - 1) * size);
+              return idx + 1;
+            });
+    this.entityLot.addAll(results);
+  }
+
+  /**
    * 条件を指定して件数を取得します.
    *
    * @param connection DBコネクション

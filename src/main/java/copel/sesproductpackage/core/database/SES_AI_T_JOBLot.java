@@ -51,6 +51,14 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   private static final String RETRIEVE_WITH_FILTER_4_VALUES_SQL_WITHOUT_LIMIT =
       "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date <= ? AND office_requirements <= ? AND area = ? AND 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
 
+  /** 全文検索＋価格・開始日フィルタ用SQL. */
+  private static final String SELECT_RAW_CONTENT_WITH_FILTER_2_VALUES_FOR_FULLTEXT =
+      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date <= ? AND raw_content LIKE ?";
+
+  /** 全文検索＋価格・開始日・オフィス要件・エリアフィルタ用SQL. */
+  private static final String SELECT_RAW_CONTENT_WITH_FILTER_4_VALUES_FOR_FULLTEXT =
+      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date <= ? AND office_requirements <= ? AND area = ? AND raw_content LIKE ?";
+
   /** コンストラクタ. */
   public SES_AI_T_JOBLot() {
     super();
@@ -301,6 +309,139 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       final int size)
       throws SQLException {
     this.searchByFieldPaged(connection, tenantId, "raw_content", firstLikeQuery, query, page, size);
+  }
+
+  /**
+   * raw_contentカラムで価格と開始日の条件を付けて全文検索を実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param query 検索文字列
+   * @param price 最低価格（単価がこの値以上のもの）
+   * @param startDate 最遅開始日（開始日がこの日付以前のもの）
+   * @throws SQLException
+   */
+  public void searchByRawContentWithFilter(
+      final Connection connection,
+      final String tenantId,
+      final String query,
+      final Money price,
+      final OriginalDateTime startDate)
+      throws SQLException {
+    this.searchByRawContentWithFilterPaged(connection, tenantId, query, price, startDate, 1, Integer.MAX_VALUE);
+  }
+
+  /**
+   * raw_contentカラムで価格と開始日の条件を付けてページング全文検索を実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param query 検索文字列
+   * @param price 最低価格（単価がこの値以上のもの）
+   * @param startDate 最遅開始日（開始日がこの日付以前のもの）
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void searchByRawContentWithFilterPaged(
+      final Connection connection,
+      final String tenantId,
+      final String query,
+      final Money price,
+      final OriginalDateTime startDate,
+      final int page,
+      final int size)
+      throws SQLException {
+    this.entityLot = new ArrayList<>();
+    if (connection == null || query == null) {
+      return;
+    }
+
+    List<SES_AI_T_JOB> results =
+        executeQuery(
+            connection,
+            SELECT_RAW_CONTENT_WITH_FILTER_2_VALUES_FOR_FULLTEXT,
+            tenantId,
+            this::mapResultSet,
+            (stmt, paramIndex) -> {
+              stmt.setBigDecimal(paramIndex, price.getValue());
+              stmt.setTimestamp(paramIndex + 1, startDate.toTimestamp());
+              stmt.setString(paramIndex + 2, "%" + query + "%");
+              return paramIndex + 3;
+            });
+    this.entityLot.addAll(results);
+  }
+
+  /**
+   * raw_contentカラムで価格・開始日・オフィス要件・エリアの条件を付けて全文検索を実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param query 検索文字列
+   * @param price 最低価格（単価がこの値以上のもの）
+   * @param startDate 最遅開始日（開始日がこの日付以前のもの）
+   * @param officeRequirements 最大オフィス要件（オフィス要件がこの値以下のもの）
+   * @param area 対象エリア（エリアがこの値と一致するもの）
+   * @throws SQLException
+   */
+  public void searchByRawContentWithFilter(
+      final Connection connection,
+      final String tenantId,
+      final String query,
+      final Money price,
+      final OriginalDateTime startDate,
+      final int officeRequirements,
+      final Area area)
+      throws SQLException {
+    this.searchByRawContentWithFilterPaged(
+        connection, tenantId, query, price, startDate, officeRequirements, area, 1, Integer.MAX_VALUE);
+  }
+
+  /**
+   * raw_contentカラムで価格・開始日・オフィス要件・エリアの条件を付けてページング全文検索を実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param query 検索文字列
+   * @param price 最低価格（単価がこの値以上のもの）
+   * @param startDate 最遅開始日（開始日がこの日付以前のもの）
+   * @param officeRequirements 最大オフィス要件（オフィス要件がこの値以下のもの）
+   * @param area 対象エリア（エリアがこの値と一致するもの）
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void searchByRawContentWithFilterPaged(
+      final Connection connection,
+      final String tenantId,
+      final String query,
+      final Money price,
+      final OriginalDateTime startDate,
+      final int officeRequirements,
+      final Area area,
+      final int page,
+      final int size)
+      throws SQLException {
+    this.entityLot = new ArrayList<>();
+    if (connection == null || query == null || area == null) {
+      return;
+    }
+
+    List<SES_AI_T_JOB> results =
+        executeQuery(
+            connection,
+            SELECT_RAW_CONTENT_WITH_FILTER_4_VALUES_FOR_FULLTEXT,
+            tenantId,
+            this::mapResultSet,
+            (stmt, paramIndex) -> {
+              stmt.setBigDecimal(paramIndex, price.getValue());
+              stmt.setTimestamp(paramIndex + 1, startDate.toTimestamp());
+              stmt.setInt(paramIndex + 2, officeRequirements);
+              stmt.setString(paramIndex + 3, area.name());
+              stmt.setString(paramIndex + 4, "%" + query + "%");
+              return paramIndex + 5;
+            });
+    this.entityLot.addAll(results);
   }
 
   /**

@@ -103,6 +103,16 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
           + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
           + "WHERE s.file_content LIKE ?";
 
+  /** 要員・スキルシート複合全文検索用プリフィックス（価格・開始日フィルタ付き）. */
+  private static final String SELECT_BY_PERSON_OR_SKILLSHEET_SUMMARY_WITH_FILTER_2_VALUES_PREFIX =
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.tenant_id "
+          + "FROM SES_AI_T_PERSON p LEFT JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id WHERE p.unit_price <= ? AND p.start_date >= ? AND ";
+
+  /** 要員・スキルシート複合全文検索用プリフィックス（価格・開始日・オフィス可用性・エリアフィルタ付き）. */
+  private static final String SELECT_BY_PERSON_OR_SKILLSHEET_SUMMARY_WITH_FILTER_4_VALUES_PREFIX =
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.tenant_id "
+          + "FROM SES_AI_T_PERSON p LEFT JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id WHERE p.unit_price <= ? AND p.start_date >= ? AND p.office_availability >= ? AND p.area = ? AND ";
+
   /** コンストラクタ. */
   public SES_AI_T_SKILLSHEET_PERSONLot() {
     super();
@@ -557,7 +567,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param query 検索キーワード
    * @throws SQLException
    */
-  public void retrieveByPersonRawContent(
+  public void searchByPersonRawContent(
       final Connection connection, final String tenantId, final String query) throws SQLException {
     this.selectByLikeQuery(
         connection, tenantId, SELECT_BY_PERSON_RAW_CONTENT_SQL, "p.raw_content", query, null);
@@ -657,6 +667,86 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
   }
 
   /**
+   * 要員・スキルシート複合全文検索を価格と開始日の条件付きで実行し、結果をこのLotに保持します（LEFT JOIN）.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param conditions 検索条件リスト
+   * @param price 最大価格（単価がこの値以下のもの）
+   * @param startDate 最早開始日（開始日がこの日付以降のもの）
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void searchByPersonOrSkillSheetSummaryWithFilter(
+      final Connection connection,
+      final String tenantId,
+      final List<FulltextCondition> conditions,
+      final Money price,
+      final OriginalDateTime startDate,
+      final int page,
+      final int size)
+      throws SQLException {
+    FulltextConditionsWhereClause.Built built =
+        FulltextConditionsWhereClause.buildForMultipleColumns(
+            "p.raw_content", java.util.List.of("s.file_content_summary"), conditions);
+    this.selectByDynamicWhereWithFilterPaged(
+        connection,
+        tenantId,
+        SELECT_BY_PERSON_OR_SKILLSHEET_SUMMARY_WITH_FILTER_2_VALUES_PREFIX,
+        built.getWhereClauseWithoutWhereKeyword(),
+        built.getLikeParams(),
+        price,
+        startDate,
+        null,
+        null,
+        page,
+        size);
+  }
+
+  /**
+   * 要員・スキルシート複合全文検索を価格・開始日・オフィス可用性・エリアの条件付きで実行し、結果をこのLotに保持します（LEFT JOIN）.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param conditions 検索条件リスト
+   * @param price 最大価格（単価がこの値以下のもの）
+   * @param startDate 最早開始日（開始日がこの日付以降のもの）
+   * @param officeRequirements 最小オフィス可用性（オフィス可用性がこの値以上のもの）
+   * @param area 対象エリア（エリアがこの値と一致するもの）
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  public void searchByPersonOrSkillSheetSummaryWithFilter(
+      final Connection connection,
+      final String tenantId,
+      final List<FulltextCondition> conditions,
+      final Money price,
+      final OriginalDateTime startDate,
+      final int officeRequirements,
+      final Area area,
+      final int page,
+      final int size)
+      throws SQLException {
+    FulltextConditionsWhereClause.Built built =
+        FulltextConditionsWhereClause.buildForMultipleColumns(
+            "p.raw_content", java.util.List.of("s.file_content_summary"), conditions);
+    this.selectByDynamicWhereWithFilterPaged(
+        connection,
+        tenantId,
+        SELECT_BY_PERSON_OR_SKILLSHEET_SUMMARY_WITH_FILTER_4_VALUES_PREFIX,
+        built.getWhereClauseWithoutWhereKeyword(),
+        built.getLikeParams(),
+        price,
+        startDate,
+        officeRequirements,
+        area,
+        page,
+        size);
+  }
+
+  /**
    * 要員の raw_content に対して複合条件（AND/OR/NOT）でページング検索を実行します（INNER JOIN）.
    *
    * @param connection DBコネクション
@@ -694,7 +784,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param query 追加の検索条件
    * @throws SQLException
    */
-  public void retrieveByPersonRawContent(
+  public void searchByPersonRawContent(
       final Connection connection,
       final String tenantId,
       final String firstLikeQuery,
@@ -717,7 +807,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param query 検索キーワード
    * @throws SQLException
    */
-  public void retrieveBySkillSheetRawContent(
+  public void searchBySkillSheetRawContent(
       final Connection connection, final String tenantId, final String query) throws SQLException {
     this.selectByLikeQuery(
         connection, tenantId, SELECT_BY_SKILLSHEET_RAW_CONTENT_SQL, "s.file_content", query, null);
@@ -760,7 +850,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param query 追加の検索条件
    * @throws SQLException
    */
-  public void retrieveBySkillSheetRawContent(
+  public void searchBySkillSheetRawContent(
       final Connection connection,
       final String tenantId,
       final String firstLikeQuery,
