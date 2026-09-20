@@ -29,15 +29,15 @@ public class SES_AI_T_MATCH extends EntityBase {
 
   /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_MATCH (matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_T_MATCH (matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, score, must_evaluation_text, want_evaluation_text, place_evaluation_text, office_evaluation_text, other_evaluation_text, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
-      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user FROM SES_AI_T_MATCH WHERE matching_id = ?";
+      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, score, must_evaluation_text, want_evaluation_text, place_evaluation_text, office_evaluation_text, other_evaluation_text, register_date, register_user FROM SES_AI_T_MATCH WHERE matching_id = ?";
 
   /** UPDATE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_T_MATCH SET user_id = ?, job_id = ?, person_id = ?, job_content = ?, person_content = ?, status_cd = ?, evaluation_text = ?, register_date = ?, register_user = ? WHERE matching_id = ?";
+      "UPDATE SES_AI_T_MATCH SET user_id = ?, job_id = ?, person_id = ?, job_content = ?, person_content = ?, status_cd = ?, evaluation_text = ?, score = ?, must_evaluation_text = ?, want_evaluation_text = ?, place_evaluation_text = ?, office_evaluation_text = ?, other_evaluation_text = ?, register_date = ?, register_user = ? WHERE matching_id = ?";
 
   /** DELETE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_T_MATCH WHERE matching_id = ?";
@@ -73,6 +73,30 @@ public class SES_AI_T_MATCH extends EntityBase {
   /** 評価文 / evaluation_text */
   @Column(physicalName = "evaluation_text", logicalName = "評価文")
   private String evaluationText;
+
+  /** 点数 / score */
+  @Column(physicalName = "score", logicalName = "点数")
+  private Integer score;
+
+  /** 必須スキル評価文 / must_evaluation_text */
+  @Column(physicalName = "must_evaluation_text", logicalName = "必須スキル評価文")
+  private String mustEvaluationText;
+
+  /** 尚可スキル評価文 / want_evaluation_text */
+  @Column(physicalName = "want_evaluation_text", logicalName = "尚可スキル評価文")
+  private String wantEvaluationText;
+
+  /** 場所評価文 / place_evaluation_text */
+  @Column(physicalName = "place_evaluation_text", logicalName = "場所評価文")
+  private String placeEvaluationText;
+
+  /** 出社要件評価文 / office_evaluation_text */
+  @Column(physicalName = "office_evaluation_text", logicalName = "出社要件評価文")
+  private String officeEvaluationText;
+
+  /** その他条件評価文 / other_evaluation_text */
+  @Column(physicalName = "other_evaluation_text", logicalName = "その他条件評価文")
+  private String otherEvaluationText;
 
   /**
    * このレコードがjob_idを持つかどうかを判定します.
@@ -110,8 +134,14 @@ public class SES_AI_T_MATCH extends EntityBase {
           stmt.setString(6, this.personContent);
           stmt.setString(7, this.status == null ? null : this.status.getCode());
           stmt.setString(8, this.evaluationText);
-          stmt.setTimestamp(9, new OriginalDateTime().toTimestamp());
-          stmt.setString(10, this.registerUser);
+          stmt.setObject(9, this.score);
+          stmt.setString(10, this.mustEvaluationText);
+          stmt.setString(11, this.wantEvaluationText);
+          stmt.setString(12, this.placeEvaluationText);
+          stmt.setString(13, this.officeEvaluationText);
+          stmt.setString(14, this.otherEvaluationText);
+          stmt.setTimestamp(15, new OriginalDateTime().toTimestamp());
+          stmt.setString(16, this.registerUser);
         },
         "SES_AI_T_MATCH.insert");
   }
@@ -134,6 +164,12 @@ public class SES_AI_T_MATCH extends EntityBase {
           this.personContent = rs.getString("person_content");
           this.status = MatchingStatus.getEnum(rs.getString("status_cd"));
           this.evaluationText = rs.getString("evaluation_text");
+          this.score = rs.getObject("score") != null ? rs.getInt("score") : null;
+          this.mustEvaluationText = rs.getString("must_evaluation_text");
+          this.wantEvaluationText = rs.getString("want_evaluation_text");
+          this.placeEvaluationText = rs.getString("place_evaluation_text");
+          this.officeEvaluationText = rs.getString("office_evaluation_text");
+          this.otherEvaluationText = rs.getString("other_evaluation_text");
           this.registerDate = new OriginalDateTime(rs.getString("register_date"));
           this.registerUser = rs.getString("register_user");
         },
@@ -157,9 +193,15 @@ public class SES_AI_T_MATCH extends EntityBase {
           stmt.setString(5, this.personContent);
           stmt.setString(6, this.status == null ? null : this.status.getCode());
           stmt.setString(7, this.evaluationText);
-          stmt.setTimestamp(8, this.registerDate == null ? null : this.registerDate.toTimestamp());
-          stmt.setString(9, this.registerUser);
-          stmt.setString(10, this.matchingId);
+          stmt.setObject(8, this.score);
+          stmt.setString(9, this.mustEvaluationText);
+          stmt.setString(10, this.wantEvaluationText);
+          stmt.setString(11, this.placeEvaluationText);
+          stmt.setString(12, this.officeEvaluationText);
+          stmt.setString(13, this.otherEvaluationText);
+          stmt.setTimestamp(14, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(15, this.registerUser);
+          stmt.setString(16, this.matchingId);
         },
         "SES_AI_T_MATCH.updateByPk");
   }

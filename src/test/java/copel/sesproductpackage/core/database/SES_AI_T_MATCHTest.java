@@ -37,6 +37,12 @@ class SES_AI_T_MATCHTest {
     match.setJobContent("job content");
     match.setPersonContent("person content");
     match.setStatus(MatchingStatus.提案中);
+    match.setScore(90);
+    match.setMustEvaluationText("must_eval");
+    match.setWantEvaluationText("want_eval");
+    match.setPlaceEvaluationText("place_eval");
+    match.setOfficeEvaluationText("office_eval");
+    match.setOtherEvaluationText("other_eval");
     match.setRegisterDate(new OriginalDateTime());
     match.setRegisterUser("admin");
 
@@ -62,6 +68,13 @@ class SES_AI_T_MATCHTest {
     match.selectByPk(conn);
     when(rs.next()).thenReturn(true);
     when(rs.getString("status_cd")).thenReturn("10");
+    when(rs.getObject("score")).thenReturn(90);
+    when(rs.getInt("score")).thenReturn(90);
+    when(rs.getString("must_evaluation_text")).thenReturn("must_eval");
+    when(rs.getString("want_evaluation_text")).thenReturn("want_eval");
+    when(rs.getString("place_evaluation_text")).thenReturn("place_eval");
+    when(rs.getString("office_evaluation_text")).thenReturn("office_eval");
+    when(rs.getString("other_evaluation_text")).thenReturn("other_eval");
     match.selectByPk(conn);
 
     when(ps.executeUpdate()).thenReturn(1);

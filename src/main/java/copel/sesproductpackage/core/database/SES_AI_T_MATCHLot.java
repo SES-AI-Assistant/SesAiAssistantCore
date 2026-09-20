@@ -17,11 +17,11 @@ import java.util.List;
 public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
   /** 全件SELECT文. */
   private static final String SELECT_ALL_SQL =
-      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user, tenant_id FROM SES_AI_T_MATCH ORDER BY register_date DESC";
+      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, score, must_evaluation_text, want_evaluation_text, place_evaluation_text, office_evaluation_text, other_evaluation_text, register_date, register_user, tenant_id FROM SES_AI_T_MATCH ORDER BY register_date DESC";
 
   /** SELECT文（WHERE句あり）. */
   private static final String SELECT_SQL =
-      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, register_date, register_user, tenant_id FROM SES_AI_T_MATCH WHERE ";
+      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, score, must_evaluation_text, want_evaluation_text, place_evaluation_text, office_evaluation_text, other_evaluation_text, register_date, register_user, tenant_id FROM SES_AI_T_MATCH WHERE ";
 
   @Override
   protected String getSelectAllSql() {
@@ -136,6 +136,12 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
     sesAiTMatch.setPersonContent(resultSet.getString("person_content"));
     sesAiTMatch.setStatus(MatchingStatus.getEnum(resultSet.getString("status_cd")));
     sesAiTMatch.setEvaluationText(resultSet.getString("evaluation_text"));
+    sesAiTMatch.setScore(resultSet.getObject("score") != null ? resultSet.getInt("score") : null);
+    sesAiTMatch.setMustEvaluationText(resultSet.getString("must_evaluation_text"));
+    sesAiTMatch.setWantEvaluationText(resultSet.getString("want_evaluation_text"));
+    sesAiTMatch.setPlaceEvaluationText(resultSet.getString("place_evaluation_text"));
+    sesAiTMatch.setOfficeEvaluationText(resultSet.getString("office_evaluation_text"));
+    sesAiTMatch.setOtherEvaluationText(resultSet.getString("other_evaluation_text"));
     sesAiTMatch.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
     sesAiTMatch.setRegisterUser(resultSet.getString("register_user"));
     return sesAiTMatch;

@@ -40,9 +40,13 @@ class SES_AI_T_MATCHLotTest {
     when(rs.getString("matching_id")).thenReturn("M1");
     when(rs.getString("tenant_id")).thenReturn("test-tenant");
     when(rs.getString("status_cd")).thenReturn("00");
-    when(rs.getString("tenant_id")).thenReturn("test-tenant");
     when(rs.getString("register_date")).thenReturn("2026-01-01 10:00:00");
-    when(rs.getString("tenant_id")).thenReturn("test-tenant");
+    when(rs.getObject("score")).thenReturn(null);
+    when(rs.getString("must_evaluation_text")).thenReturn(null);
+    when(rs.getString("want_evaluation_text")).thenReturn(null);
+    when(rs.getString("place_evaluation_text")).thenReturn(null);
+    when(rs.getString("office_evaluation_text")).thenReturn(null);
+    when(rs.getString("other_evaluation_text")).thenReturn(null);
 
     SES_AI_T_MATCHLot lot = new SES_AI_T_MATCHLot();
     lot.selectAll(connection, "test-tenant");
@@ -63,6 +67,12 @@ class SES_AI_T_MATCHLotTest {
     when(rs.getString("tenant_id")).thenReturn("test-tenant");
     when(rs.getString("status_cd")).thenReturn("00");
     when(rs.getString("register_date")).thenReturn("2026-01-01 10:00:00");
+    when(rs.getObject("score")).thenReturn(null);
+    when(rs.getString("must_evaluation_text")).thenReturn(null);
+    when(rs.getString("want_evaluation_text")).thenReturn(null);
+    when(rs.getString("place_evaluation_text")).thenReturn(null);
+    when(rs.getString("office_evaluation_text")).thenReturn(null);
+    when(rs.getString("other_evaluation_text")).thenReturn(null);
 
     SES_AI_T_MATCHLot lot = new SES_AI_T_MATCHLot();
     lot.selectAllWithoutTenantId(connection);
