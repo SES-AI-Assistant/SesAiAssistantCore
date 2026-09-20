@@ -18,15 +18,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class MatchEvaluateResponseSchema {
   @Schema(
-      title = "マッチ度（点）",
-      description = "要員と案件のマッチ度合いを示した数値",
-      required = true,
-      gt = -1,
-      lt = 100,
-      example = "85")
-  private int matchScore;
-
-  @Schema(
       title = "必須スキル評価",
       description = "案件の必須要求項目の評価結果リスト",
       itemType = SkillEvaluateResult.class,
@@ -117,6 +108,100 @@ public class MatchEvaluateResponseSchema {
   }
 
   /**
+   * 各項目の評価結果をもとに、決定論的なロジック演算によってマッチスコア（0〜100点）を算出する.
+   *
+   * <p><b>■ 配点構造（合計 100点満点）</b>
+   * <ul>
+   *   <li><b>必須スキル（mustList）：最大 40点</b>
+   *       <br>各要素の達成率（FullyMet=1.0, PartiallyMet=0.4, NotMet/Unknown=0.0）の平均 × 40点。
+   *       <br>※未設定（nullまたは空）の場合は満点（40点）扱い。</li>
+   *   <li><b>条件面評価：最大 30点</b>
+   *       <ul>
+   *         <li>単価（priceResult）：適合で 10点 / 不可で 0点</li>
+   *         <li>出社要件（officeResult）：FullyMet=10点 / PartiallyMet=4点 / NotMet=0点</li>
+   *         <li>場所（placeResult）：FullyMet=5点 / PartiallyMet=2点 / NotMet=0点（※null時は5点）</li>
+   *         <li>人月工数（personMonthsResult）：適合で 5点 / 不可で 0点（※null時は5点）</li>
+   *       </ul>
+   *   </li>
+   *   <li><b>尚可スキル（wantList）：最大 20点</b>
+   *       <br>各要素の達成率の平均 × 20点。
+   *       <br>※未設定（nullまたは空）の場合は満点（20点）扱い。</li>
+   *   <li><b>その他の評価（otherList）：最大 10点</b>
+   *       <br>各要素の達成率の平均 × 10点。
+   *       <br>※未設定（nullまたは空）の場合は満点（10点）扱い。</li>
+   * </ul>
+   *
+   * <p><b>■ 計算例</b>
+   * <pre>{@code
+   * 【前提条件】
+   * - isMatch() == true
+   * - 必須スキル(40点満点): 2件中 1件FullyMet(1.0), 1件PartiallyMet(0.4)
+   *     ⇒ 40 * ((1.0 + 0.4) / 2) = 28.0点
+   * - 条件面(30点満点): 単価OK(10点), 出社FullyMet(10点), 場所FullyMet(5点), 工数OK(5点)
+   *     ⇒ 10 + 10 + 5 + 5 = 30.0点
+   * - 尚可スキル(20点満点): 未設定(null/空)
+   *     ⇒ 20.0点（満点）
+   * - その他(10点満点): 未設定(null/空)
+   *     ⇒ 10.0点（満点）
+   *
+   * 【合計】 28.0 + 30.0 + 20.0 + 10.0 = 88点
+   * }</pre>
+   *
+   * @return 算出されたマッチスコア（0〜100点）
+   */
+  public int getMatchScore() {
+    // 1. 必須スキルスコア（最大 40点 / null・空は40点満点）
+    double mustScore = 40.0;
+    if (this.mustList != null && !this.mustList.isEmpty()) {
+      double sum = this.mustList.stream()
+          .mapToDouble(m -> m.getResult() != null ? m.getResult().getRate() : 0.0)
+          .sum();
+      mustScore = 40.0 * (sum / this.mustList.size());
+    }
+    // 2. 条件面スコア（最大 30点）
+    double conditionScore = 0.0;
+    // 単価 (10点)
+    if (this.priceResult != null && this.priceResult.isResult()) {
+      conditionScore += 10.0;
+    }
+    // 出社要件 (10点)
+    if (this.officeResult != null && this.officeResult.getResult() != null) {
+      conditionScore += 10.0 * this.officeResult.getResult().getRate();
+    }
+    // 場所 (5点)
+    if (this.placeResult == null) {
+      conditionScore += 5.0;
+    } else if (this.placeResult.getResult() != null) {
+      conditionScore += 5.0 * this.placeResult.getResult().getRate();
+    }
+    // 人月工数 (5点)
+    if (this.personMonthsResult == null || this.personMonthsResult.isResult()) {
+      conditionScore += 5.0;
+    }
+    // 3. 尚可スキルスコア（最大 20点 / null・空は20点満点）
+    double wantScore = 20.0;
+    if (this.wantList != null && !this.wantList.isEmpty()) {
+      double sum = this.wantList.stream()
+          .mapToDouble(w -> w.getResult() != null ? w.getResult().getRate() : 0.0)
+          .sum();
+      wantScore = 20.0 * (sum / this.wantList.size());
+    }
+    // 4. その他スコア（最大 10点 / null・空は10点満点）
+    double otherScore = 10.0;
+    if (this.otherList != null && !this.otherList.isEmpty()) {
+      double sum = this.otherList.stream()
+          .mapToDouble(o -> o.getResult() != null ? o.getResult().getRate() : 0.0)
+          .sum();
+      otherScore = 10.0 * (sum / this.otherList.size());
+    }
+    // 合計点の算出（四捨五入）
+    int totalScore = (int) Math.round(mustScore + conditionScore + wantScore + otherScore);
+    // 範囲の正規化 (0〜100)
+    totalScore = Math.max(0, Math.min(100, totalScore));
+    return totalScore;
+  }
+
+  /**
    * マッチング詳細テーブルの評価文カラムにセットする文字列に変換する. 最大2000文字.
    *
    * @return 評価文
@@ -124,7 +209,7 @@ public class MatchEvaluateResponseSchema {
   public String toEvaluiationText() {
     StringBuilder sb = new StringBuilder();
     // 1. マッチ度
-    sb.append("マッチ度：").append(this.matchScore).append("点\n");
+    sb.append("マッチ度：").append(this.getMatchScore()).append("点\n");
     // 2. 必須項目
     if (this.mustList != null && !this.mustList.isEmpty()) {
       sb.append("■必須\n");
@@ -358,6 +443,15 @@ public class MatchEvaluateResponseSchema {
         case PartiallyMet -> "〇";
         case NotMet -> "×";
         case Unknown -> "-";
+      };
+    }
+
+    public double getRate() {
+      return switch (this) {
+        case FullyMet -> 1.0;
+        case PartiallyMet -> 0.4;
+        case NotMet -> 0.0;
+        case Unknown -> 0.0;
       };
     }
   }
