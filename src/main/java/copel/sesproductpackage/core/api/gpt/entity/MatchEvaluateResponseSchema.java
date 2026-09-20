@@ -202,15 +202,12 @@ public class MatchEvaluateResponseSchema {
   }
 
   /**
-   * マッチング詳細テーブルの評価文カラムにセットする文字列に変換する. 最大2000文字.
+   * 必須スキルの評価結果をテキスト形式で取得する.
    *
-   * @return 評価文
+   * @return 必須スキル評価結果
    */
-  public String toEvaluiationText() {
+  public String getMustEvaluationText() {
     StringBuilder sb = new StringBuilder();
-    // 1. マッチ度
-    sb.append("マッチ度：").append(this.getMatchScore()).append("点\n");
-    // 2. 必須項目
     if (this.mustList != null && !this.mustList.isEmpty()) {
       sb.append("■必須\n");
       for (SkillEvaluateResult must : this.mustList) {
@@ -221,28 +218,36 @@ public class MatchEvaluateResponseSchema {
             .append("\n");
       }
     }
-    // 3. 尚可項目
+    return sb.toString();
+  }
+
+  /**
+   * 尚可スキルの評価結果をテキスト形式で取得する.
+   *
+   * @return 尚可スキル評価結果
+   */
+  public String getWantEvaluationText() {
+    StringBuilder sb = new StringBuilder();
     if (this.wantList != null && !this.wantList.isEmpty()) {
       sb.append("■尚可\n");
-      for (SkillEvaluateResult want : this.wantList) {
+      for (SkillEvaluateResult must : this.wantList) {
         sb.append("・")
-            .append(want.getPerspective())
+            .append(must.getPerspective())
             .append("：")
-            .append(want.getResult() != null ? (want.getResult().getIcon() + "(" + want.getComment() + ")") : "-")
+            .append(must.getResult() != null ? (must.getResult().getIcon() + "(" + must.getComment() + ")") : "-")
             .append("\n");
       }
     }
-    // 4. 出社要件
-    if (this.officeResult != null) {
-      String icon =
-          this.officeResult.getResult() != null ? this.officeResult.getResult().getIcon() : "-";
-      sb.append("■出社要件：").append(icon);
-      if (!OriginalStringUtils.isEmpty(this.officeResult.getComment())) {
-        sb.append("（").append(this.officeResult.getComment()).append("）");
-      }
-      sb.append("\n");
-    }
-    // 5. 場所
+    return sb.toString();
+  }
+
+  /**
+   * 場所の評価結果をテキスト形式で取得する.
+   *
+   * @return 場所の評価結果.
+   */
+  public String getPlaceEvaluationText() {
+    StringBuilder sb = new StringBuilder();
     if (this.placeResult != null) {
       String icon =
           this.placeResult.getResult() != null ? this.placeResult.getResult().getIcon() : "-";
@@ -254,26 +259,35 @@ public class MatchEvaluateResponseSchema {
       }
       sb.append("\n");
     }
-    // 6. 単価（必要に応じて出力）
-    if (this.priceResult != null && !OriginalStringUtils.isEmpty(this.priceResult.getComment())) {
-      String icon = this.priceResult.isResult() ? "○" : "×";
-      sb.append("■単価：")
-          .append(icon)
-          .append("（")
-          .append(this.priceResult.getComment())
-          .append("）\n");
+    return sb.toString();
+  }
+
+  /**
+   * 出社要件の評価結果をテキスト形式で取得する.
+   *
+   * @return 出社要件の評価結果.
+   */
+  public String getOfficeEvaluationText() {
+    StringBuilder sb = new StringBuilder();
+    if (this.officeResult != null) {
+      String icon =
+          this.officeResult.getResult() != null ? this.officeResult.getResult().getIcon() : "-";
+      sb.append("■出社要件：").append(icon);
+      if (!OriginalStringUtils.isEmpty(this.officeResult.getComment())) {
+        sb.append("（").append(this.officeResult.getComment()).append("）");
+      }
+      sb.append("\n");
     }
-    // 7. 人月工数（必要に応じて出力）
-    if (this.personMonthsResult != null
-        && !OriginalStringUtils.isEmpty(this.personMonthsResult.getComment())) {
-      String icon = this.personMonthsResult.isResult() ? "○" : "×";
-      sb.append("■人月工数：")
-          .append(icon)
-          .append("（")
-          .append(this.personMonthsResult.getComment())
-          .append("）\n");
-    }
-    // 8. その他
+    return sb.toString();
+  }
+
+  /**
+   * その他条件の評価結果をテキスト形式で取得する.
+   *
+   * @return その他条件の評価結果.
+   */
+  public String getOtherEvaluationText() {
+    StringBuilder sb = new StringBuilder();
     if (this.otherList != null && !this.otherList.isEmpty()) {
       sb.append("■その他：\n");
       for (OtherEvaluateResult other : this.otherList) {
@@ -285,6 +299,38 @@ public class MatchEvaluateResponseSchema {
         sb.append("\n");
       }
     }
+    return sb.toString();
+  }
+
+  /**
+   * マッチング詳細テーブルの評価文カラムにセットする文字列に変換する. 最大2000文字.
+   *
+   * @return 評価文
+   */
+  public String toEvaluiationText() {
+    StringBuilder sb = new StringBuilder();
+    // 1. マッチ度
+    sb.append("マッチ度：").append(this.getMatchScore()).append("点\n");
+    // 2. 必須項目
+    sb.append(this.getMustEvaluationText());
+    // 3. 尚可項目
+    sb.append(this.getWantEvaluationText());
+    // 4. 出社要件
+    sb.append(this.getOfficeEvaluationText());
+    // 5. 場所
+    sb.append(this.getPlaceEvaluationText());
+    // 6. 人月工数（必要に応じて出力）
+    if (this.personMonthsResult != null
+        && !OriginalStringUtils.isEmpty(this.personMonthsResult.getComment())) {
+      String icon = this.personMonthsResult.isResult() ? "○" : "×";
+      sb.append("■人月工数：")
+          .append(icon)
+          .append("（")
+          .append(this.personMonthsResult.getComment())
+          .append("）\n");
+    }
+    // 8. その他
+    sb.append(this.getOtherEvaluationText());
     // 2000文字を超える場合は安全にカット（DB制約対策）
     String resultText = sb.toString().trim();
     if (resultText.length() > 2000) {
