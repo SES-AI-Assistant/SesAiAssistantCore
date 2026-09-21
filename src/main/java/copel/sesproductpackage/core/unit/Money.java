@@ -273,4 +273,29 @@ public class Money implements Comparable<Money> {
       return null;
     }
   }
+
+  /**
+   * この金額を指定の数値で割った結果を返す.
+   *
+   * 金額を n 分の1 にする際に使用。例えば、万円単位への換算は divide(10000.0) で実現。
+   * 0で割った場合は ArithmeticException をスロー。
+   *
+   * @param divisor 除数
+   * @return 割った結果の金額
+   * @throws ArithmeticException divisor が 0 の場合
+   */
+  public Money divide(double divisor) {
+    if (divisor == 0) {
+      throw new ArithmeticException("0で割ることはできません");
+    }
+    if (this.isEmpty()) {
+      return Money.empty();
+    }
+    BigDecimal result = this.value.divide(
+        new BigDecimal(divisor),
+        this.value.scale(),
+        RoundingMode.HALF_UP
+    );
+    return new Money(result);
+  }
 }
