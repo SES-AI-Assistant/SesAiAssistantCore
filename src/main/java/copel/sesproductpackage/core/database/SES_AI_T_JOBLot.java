@@ -515,6 +515,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param query 検索ベクトル
    * @param price 最低価格（単価がこの値以上のもの）
    * @param startDate 最遅開始日（開始日がこの日付以前のもの）
+   * @param similarityThreshold 類似度閾値(0.0～1.0)
    * @param limit 取得上限件数
    * @throws SQLException
    */
@@ -524,9 +525,10 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       Vector query,
       Money price,
       OriginalDateTime startDate,
+      double similarityThreshold,
       int limit)
       throws SQLException {
-    this.retrieveWithFilterPaged(connection, tenantId, query, price, startDate, 1, limit);
+    this.retrieveWithFilterPaged(connection, tenantId, query, price, startDate, similarityThreshold, 1, limit);
   }
 
   /**
@@ -537,6 +539,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param query 検索ベクトル
    * @param price 最低価格（単価がこの値以上のもの）
    * @param startDate 最遅開始日（開始日がこの日付以前のもの）
+   * @param similarityThreshold 類似度閾値(0.0～1.0)
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
    * @throws SQLException
@@ -547,6 +550,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       Vector query,
       Money price,
       OriginalDateTime startDate,
+      double similarityThreshold,
       int page,
       int size)
       throws SQLException {
@@ -559,7 +563,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
         RETRIEVE_WITH_FILTER_2_VALUES_SQL_WITHOUT_LIMIT,
         tenantId,
         query.toString(),
-        0.0,
+        similarityThreshold,
         page,
         size,
         rs -> {
@@ -571,7 +575,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
           }
           return entity;
         },
-        (stmt, paramIndex, vectorValue, similarityThreshold) -> {
+        (stmt, paramIndex, vectorValue, similarityThreshold2) -> {
           stmt.setString(paramIndex, vectorValue);
           stmt.setBigDecimal(paramIndex + 1, price.getValue());
           stmt.setTimestamp(paramIndex + 2, startDate.toTimestamp());
@@ -590,6 +594,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param startDate 最遅開始日（開始日がこの日付以前のもの）
    * @param officeAvailability 最大オフィス要件（オフィス要件がこの値以下のもの）
    * @param area 対象エリア（エリアがこの値と一致するもの）
+   * @param similarityThreshold 類似度閾値(0.0～1.0)
    * @param limit 取得上限件数
    * @throws SQLException
    */
@@ -601,10 +606,11 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       OriginalDateTime startDate,
       int officeAvailability,
       Area area,
+      double similarityThreshold,
       int limit)
       throws SQLException {
     this.retrieveWithFilterPaged(
-        connection, tenantId, query, price, startDate, officeAvailability, area, 1, limit);
+        connection, tenantId, query, price, startDate, officeAvailability, area, similarityThreshold, 1, limit);
   }
 
   /**
@@ -617,6 +623,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param startDate 最遅開始日（開始日がこの日付以前のもの）
    * @param officeAvailability 最大オフィス要件（オフィス要件がこの値以下のもの）
    * @param area 対象エリア（エリアがこの値と一致するもの）
+   * @param similarityThreshold 類似度閾値(0.0～1.0)
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
    * @throws SQLException
@@ -629,6 +636,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       OriginalDateTime startDate,
       int officeAvailability,
       Area area,
+      double similarityThreshold,
       int page,
       int size)
       throws SQLException {
@@ -641,7 +649,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
         RETRIEVE_WITH_FILTER_4_VALUES_SQL_WITHOUT_LIMIT,
         tenantId,
         query.toString(),
-        0.0,
+        similarityThreshold,
         page,
         size,
         rs -> {
@@ -653,7 +661,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
           }
           return entity;
         },
-        (stmt, paramIndex, vectorValue, similarityThreshold) -> {
+        (stmt, paramIndex, vectorValue, similarityThreshold2) -> {
           stmt.setString(paramIndex, vectorValue);
           stmt.setBigDecimal(paramIndex + 1, price.getValue());
           stmt.setTimestamp(paramIndex + 2, startDate.toTimestamp());

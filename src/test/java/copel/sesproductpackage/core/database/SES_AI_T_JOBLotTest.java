@@ -232,11 +232,11 @@ class SES_AI_T_JOBLotTest {
     Money price = new Money(new java.math.BigDecimal("100.00"));
     OriginalDateTime startDate = new OriginalDateTime("2023-12-31 23:59:59");
 
-    lot.retrieveWithFilter(mockConn, "test-tenant", testVector, price, startDate, 5);
+    lot.retrieveWithFilter(mockConn, "test-tenant", testVector, price, startDate, 0.5, 5);
     assertEquals(1, lot.size());
 
     SES_AI_T_JOBLot empty = new SES_AI_T_JOBLot();
-    empty.retrieveWithFilter(null, "test-tenant", testVector, price, startDate, 5);
+    empty.retrieveWithFilter(null, "test-tenant", testVector, price, startDate, 0.5, 5);
     assertTrue(empty.isEmpty());
   }
 
@@ -249,11 +249,11 @@ class SES_AI_T_JOBLotTest {
     OriginalDateTime startDate = new OriginalDateTime("2023-12-31 23:59:59");
 
     lot.retrieveWithFilter(
-        mockConn, "test-tenant", testVector, price, startDate, 3, Area.関東_首都圏, 5);
+        mockConn, "test-tenant", testVector, price, startDate, 3, Area.関東_首都圏, 0.5, 5);
     assertEquals(1, lot.size());
 
     SES_AI_T_JOBLot empty = new SES_AI_T_JOBLot();
-    empty.retrieveWithFilter(null, "test-tenant", testVector, price, startDate, 3, Area.関東_首都圏, 5);
+    empty.retrieveWithFilter(null, "test-tenant", testVector, price, startDate, 3, Area.関東_首都圏, 0.5, 5);
     assertTrue(empty.isEmpty());
   }
 }

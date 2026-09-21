@@ -9,7 +9,7 @@ import lombok.Data;
 /**
  * 【Entityクラス】 スキルシート情報と要員情報を結合したEntityクラス. スキルシートの要約と要員の要約を保持する.
  *
- * @author
+ * @author Copel Co., Ltd.
  */
 @Data
 @lombok.EqualsAndHashCode(callSuper = false)
@@ -47,6 +47,50 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
   /** 単価 / unit_price */
   @Column(physicalName = "unit_price", logicalName = "単価")
   private Money unitPrice;
+
+  /** 氏名 / name */
+  @Column(physicalName = "name", logicalName = "氏名")
+  private String name;
+
+  /** 年齢 / age */
+  @Column(physicalName = "age", logicalName = "年齢")
+  private Integer age;
+
+  /** 性別 / gender */
+  @Column(physicalName = "gender", logicalName = "性別")
+  private copel.sesproductpackage.core.unit.Gender gender;
+
+  /** 国籍 / nationality */
+  @Column(physicalName = "nationality", logicalName = "国籍")
+  private String nationality;
+
+  /** 開始日 / start_date */
+  @Column(physicalName = "start_date", logicalName = "開始日")
+  private copel.sesproductpackage.core.unit.OriginalDateTime startDate;
+
+  /** 場所 / place */
+  @Column(physicalName = "place", logicalName = "場所")
+  private String place;
+
+  /** 地域 / area */
+  @Column(physicalName = "area", logicalName = "地域")
+  private copel.sesproductpackage.core.unit.Area area;
+
+  /** 出社可能日数 / office_availability */
+  @Column(physicalName = "office_availability", logicalName = "出社可能日数")
+  private Integer officeAvailability;
+
+  /** 所属 / organization */
+  @Column(physicalName = "organization", logicalName = "所属")
+  private String organization;
+
+  /** 経歴 / experiences */
+  @Column(physicalName = "experiences", logicalName = "経歴")
+  private String experiences;
+
+  /** URL / url */
+  @Column(physicalName = "url", logicalName = "URL")
+  private String url;
 
   // ================================
   // Overrideメソッド (EntityBaseの抽象メソッド実装)
@@ -89,22 +133,22 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
   }
 
   private static final String SELECT_BY_PERSON_ID_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.url "
           + "FROM SES_AI_T_PERSON p INNER JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
           + "WHERE p.person_id = ?";
 
   private static final String SELECT_BY_FILE_ID_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.url "
           + "FROM SES_AI_T_PERSON p INNER JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
           + "WHERE s.file_id = ?";
 
   private static final String SELECT_OUTER_JOIN_BY_PERSON_ID_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.url "
           + "FROM SES_AI_T_PERSON p LEFT JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
           + "WHERE p.person_id = ?";
 
   private static final String SELECT_OUTER_JOIN_BY_FILE_ID_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.unit_price, s.register_date, s.register_user, COALESCE(s.from_group, p.from_group) AS from_group, COALESCE(s.from_id, p.from_id) AS from_id, COALESCE(s.from_name, p.from_name) AS from_name "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.unit_price, s.register_date, s.register_user, COALESCE(s.from_group, p.from_group) AS from_group, COALESCE(s.from_id, p.from_id) AS from_id, COALESCE(s.from_name, p.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.url "
           + "FROM SES_AI_T_SKILLSHEET s LEFT JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
           + "WHERE s.file_id = ?";
 
@@ -230,6 +274,22 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
     this.setFromGroup(resultSet.getString("from_group"));
     this.setFromId(resultSet.getString("from_id"));
     this.setFromName(resultSet.getString("from_name"));
+    this.name = resultSet.getString("name");
+    this.age = resultSet.getObject("age") != null ? resultSet.getInt("age") : null;
+    String genderStr = resultSet.getString("gender");
+    this.gender = genderStr == null ? null : copel.sesproductpackage.core.unit.Gender.valueOf(genderStr);
+    this.nationality = resultSet.getString("nationality");
+    String startDateStr = resultSet.getString("start_date");
+    if (startDateStr != null) {
+      this.startDate = new copel.sesproductpackage.core.unit.OriginalDateTime(startDateStr);
+    }
+    this.place = resultSet.getString("place");
+    String areaStr = resultSet.getString("area");
+    this.area = areaStr == null ? null : copel.sesproductpackage.core.unit.Area.valueOf(areaStr);
+    this.officeAvailability = resultSet.getObject("office_availability") != null ? resultSet.getInt("office_availability") : null;
+    this.organization = resultSet.getString("organization");
+    this.experiences = resultSet.getString("experiences");
+    this.url = resultSet.getString("url");
   }
 
   @Override
