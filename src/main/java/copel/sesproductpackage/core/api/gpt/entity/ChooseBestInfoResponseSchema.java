@@ -7,6 +7,7 @@ import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.api.gpt.schema.SchemaIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
@@ -38,15 +39,15 @@ public class ChooseBestInfoResponseSchema {
     }
     return this.candidateResults.stream()
         // 各評価フラグがすべて true である要素のみに絞り込み
-        .filter(CandidateEvaluationResult::isPriceEvaluateResult)
-        .filter(CandidateEvaluationResult::isPlaceEvaluateResult)
-        .filter(CandidateEvaluationResult::isOfficeEvaluateResult)
-        .filter(CandidateEvaluationResult::isPersonMonthsEvaluateResult)
-        .filter(CandidateEvaluationResult::isOtherConstraintsResult)
+        .filter(r -> r.isPriceEvaluateResult())
+        .filter(r -> r.isPlaceEvaluateResult())
+        .filter(r -> r.isOfficeEvaluateResult())
+        .filter(r -> r.isPersonMonthsEvaluateResult())
+        .filter(r -> r.isOtherConstraintsResult())
         // 必須スキル評価が FullyMet の要素のみに絞り込み
         .filter(r -> EvaluateType.FullyMet.equals(r.getMustSkillEvaluateResult()))
         // マッチ度の最大値（同点の場合は任意で1つ）を取得
-        .max(CandidateEvaluationResult::compareTo)
+        .max((r1, r2) -> r1.compareTo(r2))
         .orElse(null);
   }
 
@@ -107,6 +108,7 @@ public class ChooseBestInfoResponseSchema {
   }
 
   @Data
+  @Getter
   @NoArgsConstructor
   @AllArgsConstructor
   public static class CandidateEvaluationResult implements Comparable<CandidateEvaluationResult> {
@@ -179,6 +181,31 @@ public class ChooseBestInfoResponseSchema {
       }
       // matchScore の降順（大きい順）
       return Integer.compare(this.matchScore, o.matchScore);
+    }
+
+    @SchemaIgnore
+    public boolean isPriceEvaluateResult() {
+      return this.priceEvaluateResult;
+    }
+
+    @SchemaIgnore
+    public boolean isPlaceEvaluateResult() {
+      return this.placeEvaluateResult;
+    }
+
+    @SchemaIgnore
+    public boolean isOfficeEvaluateResult() {
+      return this.officeEvaluateResult;
+    }
+
+    @SchemaIgnore
+    public boolean isPersonMonthsEvaluateResult() {
+      return this.personMonthsEvaluateResult;
+    }
+
+    @SchemaIgnore
+    public boolean isOtherConstraintsResult() {
+      return this.otherConstraintsResult;
     }
 
     /**
