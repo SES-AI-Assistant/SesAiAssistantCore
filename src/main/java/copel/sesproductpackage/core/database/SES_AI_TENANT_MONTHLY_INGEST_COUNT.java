@@ -173,17 +173,12 @@ public class SES_AI_TENANT_MONTHLY_INGEST_COUNT
 
   /**
    * 現在年月（JST基準）のメッセージ受信カウントをアトミックに 1 加算します.
-   * チャネル種別にChannelType Enumを使用することで型安全性を確保し、不正なチャネル名の混入を防止します.
    *
    * @param tenantId テナントID
    * @param channelType チャネル種別（ChannelType）
    */
   public static void increment(String tenantId, ChannelType channelType) {
-    if (channelType == null) {
-      log.warn("increment skipped due to null channelType: tenantId={}", tenantId);
-      return;
-    }
-    increment(tenantId, channelType.getValue());
+    increment(tenantId, channelType, 1L);
   }
 
   /**
@@ -195,8 +190,7 @@ public class SES_AI_TENANT_MONTHLY_INGEST_COUNT
    */
   public static void increment(String tenantId, ChannelType channelType, long amount) {
     OriginalDateTime nowDt = new OriginalDateTime();
-    String yearMonth = nowDt.getYYYYMM();
-    increment(tenantId, yearMonth, channelType, amount);
+    increment(tenantId, nowDt.getYYYYMM(), channelType, amount);
   }
 
   /**
@@ -210,38 +204,6 @@ public class SES_AI_TENANT_MONTHLY_INGEST_COUNT
    */
   public static void increment(
       String tenantId, String yearMonth, ChannelType channelType, long amount) {
-    if (channelType == null) {
-      log.warn(
-          "increment skipped due to null channelType: tenantId={}, yearMonth={}",
-          tenantId,
-          yearMonth);
-      return;
-    }
-    increment(tenantId, yearMonth, channelType.getValue(), amount);
-  }
-
-  /**
-   * 現在年月（JST基準）のメッセージ受信カウントをアトミックに 1 加算します.
-   *
-   * @param tenantId テナントID
-   * @param channelType チャネル種別文字列（EMAIL / LINE）
-   */
-  public static void increment(String tenantId, String channelType) {
-    OriginalDateTime nowDt = new OriginalDateTime();
-    String yearMonth = nowDt.getYYYYMM();
-    increment(tenantId, yearMonth, channelType, 1L);
-  }
-
-  /**
-   * 指定年月のメッセージ受信カウントをアトミックに加算します.
-   *
-   * @param tenantId テナントID
-   * @param yearMonth 年月（YYYYMM）
-   * @param channelType チャネル種別（EMAIL / LINE）
-   * @param amount 加算量
-   */
-  public static void increment(
-      String tenantId, String yearMonth, String channelType, long amount) {
     // 引数バリデーション
     // 0以下の不正な加算値をガードし、意図しない減算や無駄な更新をスキップ
     if (tenantId == null
@@ -249,7 +211,6 @@ public class SES_AI_TENANT_MONTHLY_INGEST_COUNT
         || yearMonth == null
         || yearMonth.isBlank()
         || channelType == null
-        || channelType.isBlank()
         || amount <= 0) {
       log.warn(
           "increment skipped due to invalid arguments: tenantId={}, yearMonth={}, channelType={}, amount={}",
@@ -262,7 +223,7 @@ public class SES_AI_TENANT_MONTHLY_INGEST_COUNT
 
     Map<String, AttributeValue> key = new HashMap<>();
     key.put("partitionKey", AttributeValue.builder().s(tenantId + "#" + yearMonth).build());
-    key.put("sortKey", AttributeValue.builder().s(channelType).build());
+    key.put("sortKey", AttributeValue.builder().s(channelType.getValue()).build());
 
     Map<String, String> expressionAttributeNames = new HashMap<>();
     // 親クラス仕様に準拠した最終更新日時属性
@@ -277,7 +238,7 @@ public class SES_AI_TENANT_MONTHLY_INGEST_COUNT
         ":now", AttributeValue.builder().s(Instant.now().toString()).build());
     expressionAttributeValues.put(":tid", AttributeValue.builder().s(tenantId).build());
     expressionAttributeValues.put(":ym", AttributeValue.builder().s(yearMonth).build());
-    expressionAttributeValues.put(":ct", AttributeValue.builder().s(channelType).build());
+    expressionAttributeValues.put(":ct", AttributeValue.builder().s(channelType.getValue()).build());
     expressionAttributeValues.put(
         ":inc", AttributeValue.builder().n(String.valueOf(amount)).build());
 

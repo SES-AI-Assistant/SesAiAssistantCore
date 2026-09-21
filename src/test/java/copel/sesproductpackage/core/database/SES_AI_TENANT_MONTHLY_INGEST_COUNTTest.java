@@ -358,8 +358,8 @@ class SES_AI_TENANT_MONTHLY_INGEST_COUNTTest {
   class IncrementTests {
 
     @Test
-    @DisplayName("increment(tenantId, channelType): ChannelType Enum を用いて現在年月(JST)・amount=1 で加算されること")
-    void testIncrementTwoArgumentsWithEnum() {
+    @DisplayName("increment(tenantId, channelType): 現在年月(JST)・amount=1 で加算されること")
+    void testIncrementTwoArguments() {
       OriginalDateTime nowDt = new OriginalDateTime();
       String expectedYearMonth = nowDt.getYYYYMM();
 
@@ -400,8 +400,8 @@ class SES_AI_TENANT_MONTHLY_INGEST_COUNTTest {
     }
 
     @Test
-    @DisplayName("increment(tenantId, channelType, amount): ChannelType Enum を用いて現在年月(JST)・指定 amount で加算されること")
-    void testIncrementThreeArgumentsWithEnum() {
+    @DisplayName("increment(tenantId, channelType, amount): 現在年月(JST)・指定 amount で加算されること")
+    void testIncrementThreeArguments() {
       OriginalDateTime nowDt = new OriginalDateTime();
       String expectedYearMonth = nowDt.getYYYYMM();
 
@@ -442,24 +442,8 @@ class SES_AI_TENANT_MONTHLY_INGEST_COUNTTest {
     }
 
     @Test
-    @DisplayName("increment(tenantId, channelType): String 版オーバーロードの動作検証")
-    void testIncrementTwoArgumentsWithString() {
-      OriginalDateTime nowDt = new OriginalDateTime();
-      String expectedYearMonth = nowDt.getYYYYMM();
-
-      SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", "EMAIL");
-
-      ArgumentCaptor<UpdateItemRequest> captor = ArgumentCaptor.forClass(UpdateItemRequest.class);
-      verify(mockDbClient, times(1)).updateItem(captor.capture());
-
-      UpdateItemRequest request = captor.getValue();
-      assertEquals("tenant-001#" + expectedYearMonth, request.key().get("partitionKey").s());
-      assertEquals("EMAIL", request.key().get("sortKey").s());
-    }
-
-    @Test
-    @DisplayName("increment(tenantId, yearMonth, channelType, amount): ChannelType Enum 4引数での完全なパラメータ検証")
-    void testIncrementFourArgumentsWithEnum() {
+    @DisplayName("increment(tenantId, yearMonth, channelType, amount): 4引数での完全なパラメータ検証")
+    void testIncrementFourArguments() {
       try (MockedStatic<Properties> mockedProperties = mockStatic(Properties.class)) {
         mockedProperties
             .when(() -> Properties.get(SsmParameterKey.TENANT_MONTHLY_INGEST_COUNT_TABLE_NAME.getKey()))
@@ -502,26 +486,21 @@ class SES_AI_TENANT_MONTHLY_INGEST_COUNTTest {
     }
 
     @Test
-    @DisplayName("increment(tenantId, yearMonth, channelType, amount): String 版 4引数の動作検証")
-    void testIncrementFourArgumentsWithString() {
-      SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-888", "202611", "EMAIL", 5L);
-
-      ArgumentCaptor<UpdateItemRequest> captor = ArgumentCaptor.forClass(UpdateItemRequest.class);
-      verify(mockDbClient, times(1)).updateItem(captor.capture());
-
-      UpdateItemRequest request = captor.getValue();
-      assertEquals("tenant-888#202611", request.key().get("partitionKey").s());
-      assertEquals("EMAIL", request.key().get("sortKey").s());
-      assertEquals("5", request.expressionAttributeValues().get(":inc").n());
-    }
-
-    @Test
-    @DisplayName("ChannelType Enum が null の場合スキップされること")
-    void testIncrementSkippedWhenChannelTypeEnumNull() {
-      SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", (ChannelType) null);
+    @DisplayName("channelType が null の場合スキップされること（2引数、3引数、4引数）")
+    void testIncrementSkippedWhenChannelTypeNull() {
+      // 2引数
+      reset(mockDbClient);
+      SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", null);
       verify(mockDbClient, never()).updateItem(any(UpdateItemRequest.class));
 
-      SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", "202609", (ChannelType) null, 1L);
+      // 3引数
+      reset(mockDbClient);
+      SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", null, 5L);
+      verify(mockDbClient, never()).updateItem(any(UpdateItemRequest.class));
+
+      // 4引数
+      reset(mockDbClient);
+      SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", "202609", null, 1L);
       verify(mockDbClient, never()).updateItem(any(UpdateItemRequest.class));
     }
 
@@ -530,12 +509,33 @@ class SES_AI_TENANT_MONTHLY_INGEST_COUNTTest {
     void testIncrementSkippedWhenTenantIdInvalid() {
       List<String> invalidInputs = List.of("", "   ", "\t", "\n");
       for (String invalid : invalidInputs) {
+        // 4引数
         reset(mockDbClient);
-        SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment(invalid, "202609", "EMAIL", 1L);
+        SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment(invalid, "202609", ChannelType.EMAIL, 1L);
+        verify(mockDbClient, never()).updateItem(any(UpdateItemRequest.class));
+
+        // 3引数
+        reset(mockDbClient);
+        SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment(invalid, ChannelType.EMAIL, 1L);
+        verify(mockDbClient, never()).updateItem(any(UpdateItemRequest.class));
+
+        // 2引数
+        reset(mockDbClient);
+        SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment(invalid, ChannelType.EMAIL);
         verify(mockDbClient, never()).updateItem(any(UpdateItemRequest.class));
       }
+
+      // null の場合
       reset(mockDbClient);
-      SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment(null, "202609", "EMAIL", 1L);
+      SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment(null, "202609", ChannelType.EMAIL, 1L);
+      verify(mockDbClient, never()).updateItem(any(UpdateItemRequest.class));
+
+      reset(mockDbClient);
+      SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment(null, ChannelType.EMAIL, 1L);
+      verify(mockDbClient, never()).updateItem(any(UpdateItemRequest.class));
+
+      reset(mockDbClient);
+      SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment(null, ChannelType.EMAIL);
       verify(mockDbClient, never()).updateItem(any(UpdateItemRequest.class));
     }
 
@@ -545,44 +545,35 @@ class SES_AI_TENANT_MONTHLY_INGEST_COUNTTest {
       List<String> invalidInputs = List.of("", "   ", "\t", "\n");
       for (String invalid : invalidInputs) {
         reset(mockDbClient);
-        SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", invalid, "EMAIL", 1L);
+        SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", invalid, ChannelType.EMAIL, 1L);
         verify(mockDbClient, never()).updateItem(any(UpdateItemRequest.class));
       }
       reset(mockDbClient);
-      SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", null, "EMAIL", 1L);
-      verify(mockDbClient, never()).updateItem(any(UpdateItemRequest.class));
-    }
-
-    @Test
-    @DisplayName("channelType が null または空文字・空白の場合スキップされること")
-    void testIncrementSkippedWhenChannelTypeInvalid() {
-      List<String> invalidInputs = List.of("", "   ", "\t", "\n");
-      for (String invalid : invalidInputs) {
-        reset(mockDbClient);
-        SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", "202609", invalid, 1L);
-        verify(mockDbClient, never()).updateItem(any(UpdateItemRequest.class));
-      }
-      reset(mockDbClient);
-      SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", "202609", (String) null, 1L);
+      SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", null, ChannelType.EMAIL, 1L);
       verify(mockDbClient, never()).updateItem(any(UpdateItemRequest.class));
     }
 
     @Test
     @DisplayName("amount が 0 または負数の場合スキップされること")
     void testIncrementSkippedWhenAmountNonPositive() {
-      // amount = 0
+      // 4引数: amount = 0
       reset(mockDbClient);
       SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", "202609", ChannelType.EMAIL, 0L);
       verify(mockDbClient, never()).updateItem(any(UpdateItemRequest.class));
 
-      // amount = -1
+      // 4引数: amount = -1
       reset(mockDbClient);
       SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", "202609", ChannelType.EMAIL, -1L);
       verify(mockDbClient, never()).updateItem(any(UpdateItemRequest.class));
 
-      // String 版でも同様
+      // 3引数: amount = 0
       reset(mockDbClient);
-      SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", "202609", "EMAIL", -5L);
+      SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", ChannelType.EMAIL, 0L);
+      verify(mockDbClient, never()).updateItem(any(UpdateItemRequest.class));
+
+      // 3引数: amount = -5
+      reset(mockDbClient);
+      SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", ChannelType.EMAIL, -5L);
       verify(mockDbClient, never()).updateItem(any(UpdateItemRequest.class));
     }
 
@@ -595,7 +586,7 @@ class SES_AI_TENANT_MONTHLY_INGEST_COUNTTest {
 
       assertThrows(
           DynamoDbException.class,
-          () -> SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", "202609", "EMAIL", 1L));
+          () -> SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", "202609", ChannelType.EMAIL, 1L));
     }
 
     @Test
