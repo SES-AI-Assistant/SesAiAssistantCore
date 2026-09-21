@@ -414,8 +414,8 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
    */
   public String toNotificationInfo() {
     String nameAge = String.format("%s/%d歳", this.name, this.age);
-    String genderStr = this.gender != null ? this.gender.getDisplayName() : "不詳";
-    String price = String.format("%.0f万円", this.unitPrice.getValue() / 10000.0);
+    String genderStr = this.gender != null ? this.gender.toJapanese() : "不詳";
+    String price = String.format("%.0f万円", this.unitPrice.getValue().doubleValue() / 10000.0);
     return String.format("%s/%s/%s", nameAge, genderStr, price);
   }
 }
