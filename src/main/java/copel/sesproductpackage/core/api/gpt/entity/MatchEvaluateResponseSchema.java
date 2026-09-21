@@ -303,6 +303,61 @@ public class MatchEvaluateResponseSchema {
   }
 
   /**
+   * 評価結果を通知用のサマリーテキストに変換する.
+   *
+   * プッシュ通知のペイロード制限（iOS/Android 各 4KB）の中で、マッチング評価の主要な判定項目を
+   * コンパクトに表示するために、必須スキル・条件面・尚可スキル・その他条件をアイコンと
+   * 簡潔なテキストで表現する.
+   *
+   * @return 評価サマリー（複数行のテキスト、各行は「・項目名：判定アイコン」形式）
+   */
+  public String toNotificationSummary() {
+    StringBuilder sb = new StringBuilder();
+
+    // 必須スキル評価サマリー
+    if (this.mustList != null && !this.mustList.isEmpty()) {
+      boolean allMet =
+          this.mustList.stream()
+              .allMatch(m -> m.result == EvaluateType.FullyMet);
+      sb.append("・必須スキル：").append(allMet ? "◎" : "〇").append("\n");
+    }
+
+    // 単価評価
+    if (this.priceResult != null) {
+      sb.append("・単価：").append(this.priceResult.result ? "◎" : "×").append("\n");
+    }
+
+    // 出社要件
+    if (this.officeResult != null) {
+      String icon =
+          this.officeResult.result != null
+              ? this.officeResult.result.getIcon()
+              : "-";
+      sb.append("・出社要件：").append(icon).append("\n");
+    }
+
+    // 場所
+    if (this.placeResult != null) {
+      String icon =
+          this.placeResult.result != null
+              ? this.placeResult.result.getIcon()
+              : "◎";
+      sb.append("・場所：").append(icon).append("\n");
+    }
+
+    // 尚可スキル（簡略版）
+    if (this.wantList != null && !this.wantList.isEmpty()) {
+      long metCount =
+          this.wantList.stream()
+              .filter(w -> w.result == EvaluateType.FullyMet)
+              .count();
+      sb.append("・尚可スキル：").append(metCount).append("/").append(this.wantList.size()).append("\n");
+    }
+
+    return sb.toString();
+  }
+
+  /**
    * マッチング詳細テーブルの評価文カラムにセットする文字列に変換する. 最大2000文字.
    *
    * @return 評価文

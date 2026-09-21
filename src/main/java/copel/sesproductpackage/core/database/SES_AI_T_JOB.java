@@ -320,4 +320,23 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
         (stmt) -> stmt.setString(1, this.jobId),
         "SES_AI_T_JOB.deleteByPk");
   }
+
+  /**
+   * 案件概要を指定文字数で短縮した形で返す.
+   *
+   * プッシュ通知のメッセージテキストで案件情報を表示する際、長い概要テキストを
+   * ペイロード制限内に収めるため、指定文字数以内に収めて末尾に省略記号を付ける.
+   *
+   * @param maxLength 最大文字数
+   * @return 短縮された案件概要。maxLength以下の場合はそのまま返す。超過時は末尾に「...」を付ける
+   */
+  public String getTruncatedOverview(int maxLength) {
+    if (this.overview == null || this.overview.isEmpty()) {
+      return "";
+    }
+    if (this.overview.length() <= maxLength) {
+      return this.overview;
+    }
+    return this.overview.substring(0, maxLength) + "...";
+  }
 }

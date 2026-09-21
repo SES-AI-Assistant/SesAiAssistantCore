@@ -393,4 +393,19 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
     }
     return new OriginalDateTime(year, month, 1, 0, 0, 0);
   }
+
+  /**
+   * 月を「M月」形式で返す.
+   *
+   * プッシュ通知のメッセージテキストで開始月を簡潔に表示する際に、
+   * 数値の月を日本語表記に統一してペイロード内で効率的に表現する.
+   *
+   * @return 月（例：「10月」）、nullの場合は「未定」
+   */
+  public String month() {
+    if (this.dateTime == null) {
+      return "未定";
+    }
+    return String.format("%d月", this.dateTime.getMonthValue());
+  }
 }

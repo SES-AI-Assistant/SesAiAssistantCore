@@ -403,4 +403,19 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
         (stmt) -> stmt.setString(1, this.personId),
         "SES_AI_T_PERSON.deleteByPk");
   }
+
+  /**
+   * 要員情報を「名前/年齢歳/性別/単価万円」形式で返す.
+   *
+   * プッシュ通知のメッセージテキストで要員を簡潔に表示する際に、
+   * 複数の情報フィールドを単一文字列に統合してペイロードを効率化する.
+   *
+   * @return フォーマットされた要員情報（例：「佐藤 一郎/32歳/男性/80万円」）
+   */
+  public String toNotificationInfo() {
+    String nameAge = String.format("%s/%d歳", this.name, this.age);
+    String genderStr = this.gender != null ? this.gender.getDisplayName() : "不詳";
+    String price = String.format("%.0f万円", this.unitPrice.getValue() / 10000.0);
+    return String.format("%s/%s/%s", nameAge, genderStr, price);
+  }
 }
