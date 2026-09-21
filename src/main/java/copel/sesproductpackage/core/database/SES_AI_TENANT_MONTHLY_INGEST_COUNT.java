@@ -187,6 +187,19 @@ public class SES_AI_TENANT_MONTHLY_INGEST_COUNT
   }
 
   /**
+   * 現在年月（JST基準）のメッセージ受信カウントを指定量アトミックに加算します.
+   *
+   * @param tenantId テナントID
+   * @param channelType チャネル種別（ChannelType）
+   * @param amount 加算量
+   */
+  public static void increment(String tenantId, ChannelType channelType, long amount) {
+    OriginalDateTime nowDt = new OriginalDateTime();
+    String yearMonth = nowDt.getYYYYMM();
+    increment(tenantId, yearMonth, channelType, amount);
+  }
+
+  /**
    * 指定年月のメッセージ受信カウントをアトミックに加算します.
    * チャネル種別にChannelType Enumを使用することで型安全性を確保し、不正なチャネル名の混入を防止します.
    *

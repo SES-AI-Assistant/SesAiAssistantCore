@@ -400,6 +400,48 @@ class SES_AI_TENANT_MONTHLY_INGEST_COUNTTest {
     }
 
     @Test
+    @DisplayName("increment(tenantId, channelType, amount): ChannelType Enum を用いて現在年月(JST)・指定 amount で加算されること")
+    void testIncrementThreeArgumentsWithEnum() {
+      OriginalDateTime nowDt = new OriginalDateTime();
+      String expectedYearMonth = nowDt.getYYYYMM();
+
+      SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", ChannelType.EMAIL, 5L);
+
+      ArgumentCaptor<UpdateItemRequest> captor = ArgumentCaptor.forClass(UpdateItemRequest.class);
+      verify(mockDbClient, times(1)).updateItem(captor.capture());
+
+      UpdateItemRequest request = captor.getValue();
+      assertEquals("SES_AI_TENANT_MONTHLY_INGEST_COUNT", request.tableName());
+
+      // Key の検証
+      Map<String, AttributeValue> key = request.key();
+      assertEquals("tenant-001#" + expectedYearMonth, key.get("partitionKey").s());
+      assertEquals("EMAIL", key.get("sortKey").s());
+
+      // updateExpression の検証
+      assertEquals(
+          "SET #upd = :now, #tid = if_not_exists(#tid, :tid), #ym = if_not_exists(#ym, :ym), #ct = if_not_exists(#ct, :ct) ADD #cnt :inc",
+          request.updateExpression());
+
+      // expressionAttributeNames の検証
+      Map<String, String> names = request.expressionAttributeNames();
+      assertEquals("timestamp", names.get("#upd"));
+      assertEquals("tenantId", names.get("#tid"));
+      assertEquals("yearMonth", names.get("#ym"));
+      assertEquals("channelType", names.get("#ct"));
+      assertEquals("count", names.get("#cnt"));
+
+      // expressionAttributeValues の検証
+      Map<String, AttributeValue> values = request.expressionAttributeValues();
+      assertNotNull(values.get(":now").s());
+      assertDoesNotThrow(() -> Instant.parse(values.get(":now").s()));
+      assertEquals("tenant-001", values.get(":tid").s());
+      assertEquals(expectedYearMonth, values.get(":ym").s());
+      assertEquals("EMAIL", values.get(":ct").s());
+      assertEquals("5", values.get(":inc").n());
+    }
+
+    @Test
     @DisplayName("increment(tenantId, channelType): String 版オーバーロードの動作検証")
     void testIncrementTwoArgumentsWithString() {
       OriginalDateTime nowDt = new OriginalDateTime();
