@@ -205,6 +205,14 @@ class SsmParameterKeyTest {
         SsmParameterKey.API_USAGE_HISTORY_TABLE_ARN
             .getKey()
             .equals("infrastructure/dynamodb/api-usage-history-table/arn"));
+    assertTrue(
+        SsmParameterKey.TENANT_MONTHLY_INGEST_COUNT_TABLE_NAME
+            .getKey()
+            .equals("infrastructure/dynamodb/tenant-monthly-ingest-count-table/name"));
+    assertTrue(
+        SsmParameterKey.TENANT_MONTHLY_INGEST_COUNT_TABLE_ARN
+            .getKey()
+            .equals("infrastructure/dynamodb/tenant-monthly-ingest-count-table/arn"));
   }
 
   @Test

@@ -71,7 +71,15 @@ public enum SsmParameterKey {
 
   // DynamoDB
   API_USAGE_HISTORY_TABLE_NAME("infrastructure/dynamodb/api-usage-history-table/name"),
-  API_USAGE_HISTORY_TABLE_ARN("infrastructure/dynamodb/api-usage-history-table/arn");
+  API_USAGE_HISTORY_TABLE_ARN("infrastructure/dynamodb/api-usage-history-table/arn"),
+
+  /** テナント別月次受信集計情報テーブル名（SES_AI_TENANT_MONTHLY_INGEST_COUNT）. */
+  TENANT_MONTHLY_INGEST_COUNT_TABLE_NAME(
+      "infrastructure/dynamodb/tenant-monthly-ingest-count-table/name"),
+
+  /** テナント別月次受信集計情報テーブルARN（SES_AI_TENANT_MONTHLY_INGEST_COUNT）. */
+  TENANT_MONTHLY_INGEST_COUNT_TABLE_ARN(
+      "infrastructure/dynamodb/tenant-monthly-ingest-count-table/arn");
 
   // アプリケーションからアクセスさせたくないインフラリソースのためコメントアウト
   // ECR
