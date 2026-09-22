@@ -46,7 +46,8 @@ public class SkillsheetInfoSchema {
       sb.append("■スキル・経験\n");
       for (Experience experience : this.experiences) {
         String duration = experience.getDuration();
-        if (duration != null && "不明".equals(duration.trim())) {
+        // 期間が未設定（null/空欄）または「不明」と推測された場合は「経験あり」として表示
+        if (duration == null || duration.trim().isEmpty() || "不明".equals(duration.trim())) {
           duration = "経験あり";
         }
         sb.append("・")

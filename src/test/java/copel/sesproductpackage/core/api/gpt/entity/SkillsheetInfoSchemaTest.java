@@ -16,6 +16,7 @@ class SkillsheetInfoSchemaTest {
   @Test
   @DisplayName("通常の期間あり（例: 3年 → ・Java: 3年）")
   void testToSummaryText_NormalDuration() {
+    // 期間が明示されている場合はそのまま「・スキル名: 期間」の形式で出力されることを検証
     SkillsheetInfoSchema schema = new SkillsheetInfoSchema();
     schema.setExperiences(List.of(new Experience("Java", "3年")));
 
@@ -26,6 +27,7 @@ class SkillsheetInfoSchemaTest {
   @Test
   @DisplayName("durationが「不明」の場合に「経験あり」へ置換される")
   void testToSummaryText_UnknownDuration() {
+    // 期間が「不明」と推測された場合、「経験あり」に置換されて出力されることを検証
     SkillsheetInfoSchema schema = new SkillsheetInfoSchema();
     schema.setExperiences(List.of(new Experience("Java", "不明")));
 
@@ -36,6 +38,7 @@ class SkillsheetInfoSchemaTest {
   @Test
   @DisplayName("durationの前後に空白がある「  不明  」の場合に「経験あり」へ置換される")
   void testToSummaryText_UnknownDurationWithWhitespace() {
+    // 前後に空白を含む「  不明  」でもトリムされて「経験あり」に置換されることを検証
     SkillsheetInfoSchema schema = new SkillsheetInfoSchema();
     schema.setExperiences(List.of(new Experience("Java", "  不明  ")));
 
@@ -44,12 +47,35 @@ class SkillsheetInfoSchemaTest {
   }
 
   @Test
-  @DisplayName("durationがnullの場合（「・Java」となること）")
+  @DisplayName("durationがnullの場合に「経験あり」へ置換される")
   void testToSummaryText_NullDuration() {
+    // 期間が未設定(null)の場合、期間なしではなく「経験あり」として表示されることを検証
     SkillsheetInfoSchema schema = new SkillsheetInfoSchema();
     schema.setExperiences(List.of(new Experience("Java", null)));
 
-    String expected = "■スキル・経験\n・Java";
+    String expected = "■スキル・経験\n・Java: 経験あり";
+    assertEquals(expected, schema.toSummaryText());
+  }
+
+  @Test
+  @DisplayName("durationが空文字の場合に「経験あり」へ置換される")
+  void testToSummaryText_EmptyDuration() {
+    // 期間が空文字("")の場合も「経験あり」として扱われることを検証
+    SkillsheetInfoSchema schema = new SkillsheetInfoSchema();
+    schema.setExperiences(List.of(new Experience("Java", "")));
+
+    String expected = "■スキル・経験\n・Java: 経験あり";
+    assertEquals(expected, schema.toSummaryText());
+  }
+
+  @Test
+  @DisplayName("durationが空白文字列の場合に「経験あり」へ置換される")
+  void testToSummaryText_BlankDuration() {
+    // 期間が空白のみ("   ")の場合もトリムされて「経験あり」として扱われることを検証
+    SkillsheetInfoSchema schema = new SkillsheetInfoSchema();
+    schema.setExperiences(List.of(new Experience("Java", "   ")));
+
+    String expected = "■スキル・経験\n・Java: 経験あり";
     assertEquals(expected, schema.toSummaryText());
   }
 

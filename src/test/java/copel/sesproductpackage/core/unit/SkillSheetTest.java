@@ -142,6 +142,8 @@ class SkillSheetTest {
   @Test
   void testGenerateSummary() throws Exception {
     Transformer transformer = mock(Transformer.class);
+    // SkillSheet#generateSummaryが構造化出力(SkillsheetInfoSchema)を受け取る実装に移行したため、
+    // Transformerの戻り値としてSkillsheetInfoSchemaをモックし、toSummaryText()の出力を設定する
     SkillsheetInfoSchema schema = mock(SkillsheetInfoSchema.class);
     when(schema.toSummaryText()).thenReturn("a".repeat(1000));
     when(transformer.generate(anyString(), any())).thenReturn(schema);
@@ -183,6 +185,8 @@ class SkillSheetTest {
   @Test
   void testGenerateSummaryShortAnswer() throws Exception {
     Transformer transformer = mock(Transformer.class);
+    // SkillSheet#generateSummaryが構造化出力(SkillsheetInfoSchema)を受け取る実装に移行したため、
+    // Transformerの戻り値としてSkillsheetInfoSchemaをモックし、短い要約テキストが設定されるケースを検証
     SkillsheetInfoSchema schema = mock(SkillsheetInfoSchema.class);
     when(schema.toSummaryText()).thenReturn("short");
     when(transformer.generate(anyString(), any())).thenReturn(schema);
