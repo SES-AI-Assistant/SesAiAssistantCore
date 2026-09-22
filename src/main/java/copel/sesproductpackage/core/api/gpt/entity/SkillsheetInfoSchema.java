@@ -45,9 +45,13 @@ public class SkillsheetInfoSchema {
     if (this.experiences != null && !this.experiences.isEmpty()) {
       sb.append("■スキル・経験\n");
       for (Experience experience : this.experiences) {
+        String duration = experience.getDuration();
+        if (duration != null && "不明".equals(duration.trim())) {
+          duration = "経験あり";
+        }
         sb.append("・")
             .append(experience.getPerspective())
-            .append(experience.getDuration() != null ? ": " + experience.getDuration() : "")
+            .append(duration != null ? ": " + duration : "")
             .append("\n");
       }
     }

@@ -8,8 +8,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
-import copel.sesproductpackage.core.api.gpt.GptAnswer;
 import copel.sesproductpackage.core.api.gpt.Transformer;
+import copel.sesproductpackage.core.api.gpt.entity.SkillsheetInfoSchema;
 import copel.sesproductpackage.core.api.markitdown.MarkItDown;
 import copel.sesproductpackage.core.api.markitdown.MarkItDown.MarkitdownLambdaRequestEntity;
 import copel.sesproductpackage.core.api.markitdown.MarkItDown.MarkitdownLambdaResponseEntity;
@@ -142,9 +142,9 @@ class SkillSheetTest {
   @Test
   void testGenerateSummary() throws Exception {
     Transformer transformer = mock(Transformer.class);
-    GptAnswer answer = mock(GptAnswer.class, RETURNS_DEEP_STUBS);
-    when(answer.getAnswer()).thenReturn("a".repeat(1500));
-    when(transformer.generate(anyString())).thenReturn(answer);
+    SkillsheetInfoSchema schema = mock(SkillsheetInfoSchema.class);
+    when(schema.toSummaryText()).thenReturn("a".repeat(1000));
+    when(transformer.generate(anyString(), any())).thenReturn(schema);
 
     SkillSheet ss = new SkillSheet("1", "t.txt", "Some Content");
     ss.generateSummary(transformer);
@@ -183,9 +183,9 @@ class SkillSheetTest {
   @Test
   void testGenerateSummaryShortAnswer() throws Exception {
     Transformer transformer = mock(Transformer.class);
-    GptAnswer answer = mock(GptAnswer.class, RETURNS_DEEP_STUBS);
-    when(answer.getAnswer()).thenReturn("short");
-    when(transformer.generate(anyString())).thenReturn(answer);
+    SkillsheetInfoSchema schema = mock(SkillsheetInfoSchema.class);
+    when(schema.toSummaryText()).thenReturn("short");
+    when(transformer.generate(anyString(), any())).thenReturn(schema);
 
     SkillSheet ss = new SkillSheet("1", "t.txt", "Content");
     ss.generateSummary(transformer);
