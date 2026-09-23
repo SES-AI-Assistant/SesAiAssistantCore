@@ -247,8 +247,36 @@ class SkillsheetInfoSchemaTest {
     Field durationField = Experience.class.getDeclaredField("duration");
     Schema schemaAnnotation = durationField.getAnnotation(Schema.class);
 
-    String expectedPattern = "^([1-9][0-9]*年([1-9][0-9]*[ヶケカヵか]?月)?|[1-9][0-9]*[ヶケカヵか]?月)$";
-    assertEquals(expectedPattern, schemaAnnotation.pattern());
+    assertEquals(SkillsheetInfoSchema.DURATION_REGEX, schemaAnnotation.pattern());
+    assertEquals(
+        "^([1-9][0-9]*年([1-9][0-9]*[ヶケカヵか]?月)?|[1-9][0-9]*[ヶケカヵか]?月)$",
+        SkillsheetInfoSchema.DURATION_REGEX);
+  }
+
+  @Test
+  @DisplayName("スキーマ定義: Experienceのアノテーションtitleが「スキル」「経験年数」に設定されていること")
+  void testSchemaAnnotation_ExperienceTitles() throws NoSuchFieldException {
+    Field perspectiveField = Experience.class.getDeclaredField("perspective");
+    Schema perspectiveSchema = perspectiveField.getAnnotation(Schema.class);
+    assertEquals("スキル", perspectiveSchema.title());
+
+    Field durationField = Experience.class.getDeclaredField("duration");
+    Schema durationSchema = durationField.getAnnotation(Schema.class);
+    assertEquals("経験年数", durationSchema.title());
+  }
+
+  @Test
+  @DisplayName("スキーマ定義: ProjectExperienceの年月フィールドに期待する正規表現patternが設定されていること")
+  void testSchemaAnnotation_ProjectExperiencePatterns() throws NoSuchFieldException {
+    Field startMonthField = ProjectExperience.class.getDeclaredField("startMonth");
+    Schema startMonthSchema = startMonthField.getAnnotation(Schema.class);
+    assertEquals(SkillsheetInfoSchema.YEAR_MONTH_REGEX, startMonthSchema.pattern());
+
+    Field endMonthField = ProjectExperience.class.getDeclaredField("endMonth");
+    Schema endMonthSchema = endMonthField.getAnnotation(Schema.class);
+    assertEquals(SkillsheetInfoSchema.YEAR_MONTH_REGEX, endMonthSchema.pattern());
+
+    assertEquals("^[0-9]{4}年([1-9]|1[0-2])月$", SkillsheetInfoSchema.YEAR_MONTH_REGEX);
   }
 
   // ================================================
@@ -293,14 +321,12 @@ class SkillsheetInfoSchemaTest {
     List<Experience> longExperiences = new ArrayList<>();
     // 1項目あたり約35文字 x 35個 = 約1225文字
     for (int i = 0; i < 35; i++) {
-      longExperiences.add(
-          new Experience("スキル項目名あいうえおかきくけこさしすせそたちつてとなにぬねの" + i, "10年"));
+      longExperiences.add(new Experience("スキル項目名あいうえおかきくけこさしすせそたちつてとなにぬねの" + i, "10年"));
     }
     schema.setExperiences(longExperiences);
 
     String result = schema.toSummaryText();
     assertEquals(1000, result.length());
-    assertTrue(
-        result.startsWith("■スキル・経験\n・スキル項目名あいうえおかきくけこさしすせそたちつてとなにぬねの0"));
+    assertTrue(result.startsWith("■スキル・経験\n・スキル項目名あいうえおかきくけこさしすせそたちつてとなにぬねの0"));
   }
 }

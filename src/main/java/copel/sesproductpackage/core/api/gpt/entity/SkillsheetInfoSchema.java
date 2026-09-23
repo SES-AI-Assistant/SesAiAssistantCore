@@ -17,11 +17,22 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SkillsheetInfoSchema {
   /**
+   * 期間判定用正規表現文字列.
+   * 「N年」「Nヶ月」「N年Nヶ月」の3種類（表記揺らぎ「[ヶケカヵか]?月」も許容）にマッチする.
+   */
+  public static final String DURATION_REGEX =
+      "^([1-9][0-9]*年([1-9][0-9]*[ヶケカヵか]?月)?|[1-9][0-9]*[ヶケカヵか]?月)$";
+
+  /**
+   * 年月判定用正規表現文字列（「YYYY年M月」形式）.
+   */
+  public static final String YEAR_MONTH_REGEX = "^[0-9]{4}年([1-9]|1[0-2])月$";
+
+  /**
    * 期間判定用正規表現パターン.
    * 「N年」「Nヶ月」「N年Nヶ月」の3種類（表記揺らぎ「[ヶケカヵか]?月」も許容）にマッチする.
    */
-  private static final Pattern DURATION_PATTERN =
-      Pattern.compile("^([1-9][0-9]*年([1-9][0-9]*[ヶケカヵか]?月)?|[1-9][0-9]*[ヶケカヵか]?月)$");
+  private static final Pattern DURATION_PATTERN = Pattern.compile(DURATION_REGEX);
 
   @Schema(
       title = "スキル一覧",
@@ -43,9 +54,9 @@ public class SkillsheetInfoSchema {
   // メソッド
   // ================================================
   /**
-   * 案件概要文に変換します.
+   * スキルシート概要文に変換します.
    *
-   * @return 案件概要文
+   * @return スキルシート概要文
    */
   public String toSummaryText() {
     StringBuilder sb = new StringBuilder();
@@ -66,7 +77,7 @@ public class SkillsheetInfoSchema {
             .append("\n");
       }
     }
-    // 1. 直近の経験
+    // 2. 直近の経験
     if (this.projectExperiences != null && !this.projectExperiences.isEmpty()) {
       sb.append("■直近のPJ経験\n");
       for (ProjectExperience projectExperience : this.projectExperiences) {
@@ -94,7 +105,7 @@ public class SkillsheetInfoSchema {
   @AllArgsConstructor
   public static class Experience {
     @Schema(
-        title = "要求項目",
+        title = "スキル",
         description = "経験、スキル、観点など",
         maxLength = 30,
         required = true,
@@ -102,10 +113,10 @@ public class SkillsheetInfoSchema {
     private String perspective;
 
     @Schema(
-        title = "要求期間",
+        title = "経験年数",
         description =
             "各プロジェクトで使用されたスキルについて、各プロジェクトの期間（開始年月～終了年月）から月数を算出し、スキル毎に合算した経験年数や期間（例: 「3年」）。本文中に明確な年数や期間の記載がない場合は、推測せず必ず「null」にすること。",
-        pattern = "^([1-9][0-9]*年([1-9][0-9]*[ヶケカヵか]?月)?|[1-9][0-9]*[ヶケカヵか]?月)$",
+        pattern = DURATION_REGEX,
         maxLength = 30,
         example = "3年")
     private String duration = null;
@@ -119,7 +130,7 @@ public class SkillsheetInfoSchema {
         title = "開始年月",
         description = "プロジェクト開始年月（「YYYY年M月」形式）。「8月」のように月しか記載がない場合は適切な年を補完すること。",
         required = true,
-        pattern = "^[0-9]{4}年([1-9]|1[0-2])月$",
+        pattern = YEAR_MONTH_REGEX,
         example = "2023年8月")
     private String startMonth;
 
@@ -127,7 +138,7 @@ public class SkillsheetInfoSchema {
         title = "終了年月",
         description = "プロジェクト終了年月（「YYYY年M月」形式）。「8月」のように月しか記載がない場合は適切な年を補完すること。",
         required = true,
-        pattern = "^[0-9]{4}年([1-9]|1[0-2])月$",
+        pattern = YEAR_MONTH_REGEX,
         example = "2023年11月")
     private String endMonth;
 
