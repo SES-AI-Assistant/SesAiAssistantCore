@@ -24,11 +24,6 @@ public class SkillsheetInfoSchema {
       "^([1-9][0-9]*年([1-9][0-9]*[ヶケカヵか]?月)?|[1-9][0-9]*[ヶケカヵか]?月)$";
 
   /**
-   * 年月判定用正規表現文字列（「YYYY年M月」形式）.
-   */
-  public static final String YEAR_MONTH_REGEX = "^[0-9]{4}年([1-9]|1[0-2])月$";
-
-  /**
    * 期間判定用正規表現パターン.
    * 「N年」「Nヶ月」「N年Nヶ月」の3種類（表記揺らぎ「[ヶケカヵか]?月」も許容）にマッチする.
    */
@@ -54,9 +49,9 @@ public class SkillsheetInfoSchema {
   // メソッド
   // ================================================
   /**
-   * スキルシート概要文に変換します.
+   * 案件概要文に変換します.
    *
-   * @return スキルシート概要文
+   * @return 案件概要文
    */
   public String toSummaryText() {
     StringBuilder sb = new StringBuilder();
@@ -77,7 +72,7 @@ public class SkillsheetInfoSchema {
             .append("\n");
       }
     }
-    // 2. 直近の経験
+    // 1. 直近の経験
     if (this.projectExperiences != null && !this.projectExperiences.isEmpty()) {
       sb.append("■直近のPJ経験\n");
       for (ProjectExperience projectExperience : this.projectExperiences) {
@@ -105,7 +100,7 @@ public class SkillsheetInfoSchema {
   @AllArgsConstructor
   public static class Experience {
     @Schema(
-        title = "スキル",
+        title = "要求項目",
         description = "経験、スキル、観点など",
         maxLength = 30,
         required = true,
@@ -113,7 +108,7 @@ public class SkillsheetInfoSchema {
     private String perspective;
 
     @Schema(
-        title = "経験年数",
+        title = "要求期間",
         description =
             "各プロジェクトで使用されたスキルについて、各プロジェクトの期間（開始年月～終了年月）から月数を算出し、スキル毎に合算した経験年数や期間（例: 「3年」）。本文中に明確な年数や期間の記載がない場合は、推測せず必ず「null」にすること。",
         pattern = DURATION_REGEX,
@@ -130,7 +125,7 @@ public class SkillsheetInfoSchema {
         title = "開始年月",
         description = "プロジェクト開始年月（「YYYY年M月」形式）。「8月」のように月しか記載がない場合は適切な年を補完すること。",
         required = true,
-        pattern = YEAR_MONTH_REGEX,
+        pattern = "^[0-9]{4}年([1-9]|1[0-2])月$",
         example = "2023年8月")
     private String startMonth;
 
@@ -138,7 +133,7 @@ public class SkillsheetInfoSchema {
         title = "終了年月",
         description = "プロジェクト終了年月（「YYYY年M月」形式）。「8月」のように月しか記載がない場合は適切な年を補完すること。",
         required = true,
-        pattern = YEAR_MONTH_REGEX,
+        pattern = "^[0-9]{4}年([1-9]|1[0-2])月$",
         example = "2023年11月")
     private String endMonth;
 
