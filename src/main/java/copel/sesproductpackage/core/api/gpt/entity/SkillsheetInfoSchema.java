@@ -68,7 +68,8 @@ public class SkillsheetInfoSchema {
         }
         sb.append("・")
             .append(experience.getPerspective())
-            .append(duration != null ? ": " + duration : "")
+            .append(": ")
+            .append(duration)
             .append("\n");
       }
     }
