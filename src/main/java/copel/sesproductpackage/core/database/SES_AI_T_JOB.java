@@ -1,16 +1,19 @@
 package copel.sesproductpackage.core.database;
 
-import copel.sesproductpackage.core.database.base.Column;
-import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
-import copel.sesproductpackage.core.unit.Area;
-import copel.sesproductpackage.core.unit.Money;
-import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
+
+import copel.sesproductpackage.core.database.base.Column;
+import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
+import copel.sesproductpackage.core.unit.Area;
+import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -338,5 +341,32 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
       return this.overview;
     }
     return this.overview.substring(0, maxLength) + "...";
+  }
+
+  /**
+   * 必須スキルを改行区切りの文字列配列として取得します.
+   *
+   * @return 必須スキルリスト
+   */
+  public List<String> getMustSkillsAsList() {
+    return Arrays.asList(this.mustSkills.split("\n"));
+  }
+
+  /**
+   * 尚可スキルを改行区切りの文字列配列として取得します.
+   *
+   * @return 尚可スキルリスト
+   */
+  public List<String> getWantSkillsAsList() {
+    return Arrays.asList(this.wantSkills.split("\n"));
+  }
+
+  /**
+   * その他条件を改行区切りの文字列配列として取得します.
+   *
+   * @return その他条件リスト
+   */
+  public List<String> getOtherRequirementsAsList() {
+    return Arrays.asList(this.otherRequirements.split("\n"));
   }
 }
