@@ -88,6 +88,14 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
   @Column(physicalName = "experiences", logicalName = "経歴")
   private String experiences;
 
+  /** NG条件 / ng_requirements */
+  @Column(physicalName = "ng_requirements", logicalName = "NG条件")
+  private String ngRequirements;
+
+  /** その他条件 / other_requirements */
+  @Column(physicalName = "other_requirements", logicalName = "その他条件")
+  private String otherRequirements;
+
   /** URL / url */
   @Column(physicalName = "url", logicalName = "URL")
   private String url;
@@ -133,22 +141,22 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
   }
 
   private static final String SELECT_BY_PERSON_ID_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.url "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url "
           + "FROM SES_AI_T_PERSON p INNER JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
           + "WHERE p.person_id = ?";
 
   private static final String SELECT_BY_FILE_ID_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.url "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url "
           + "FROM SES_AI_T_PERSON p INNER JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
           + "WHERE s.file_id = ?";
 
   private static final String SELECT_OUTER_JOIN_BY_PERSON_ID_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.url "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url "
           + "FROM SES_AI_T_PERSON p LEFT JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
           + "WHERE p.person_id = ?";
 
   private static final String SELECT_OUTER_JOIN_BY_FILE_ID_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.unit_price, s.register_date, s.register_user, COALESCE(s.from_group, p.from_group) AS from_group, COALESCE(s.from_id, p.from_id) AS from_id, COALESCE(s.from_name, p.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.url "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.unit_price, s.register_date, s.register_user, COALESCE(s.from_group, p.from_group) AS from_group, COALESCE(s.from_id, p.from_id) AS from_id, COALESCE(s.from_name, p.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url "
           + "FROM SES_AI_T_SKILLSHEET s LEFT JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
           + "WHERE s.file_id = ?";
 

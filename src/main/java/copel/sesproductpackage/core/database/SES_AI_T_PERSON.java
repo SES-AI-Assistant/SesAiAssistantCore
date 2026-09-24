@@ -40,15 +40,15 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
   // ================================
   /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_PERSON (person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, url, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_T_PERSON (person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, url, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE person_id = ?";
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE person_id = ?";
 
   /** UPDATE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_T_PERSON SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, content_summary = ?, file_id = ?, unit_price = ?, vector_data = ?::vector, name = ?, age = ?, gender = ?, nationality = ?, start_date = ?, place = ?, area = ?, office_availability = ?, organization = ?, experiences = ?, url = ?, ttl = ? WHERE person_id = ?";
+      "UPDATE SES_AI_T_PERSON SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, content_summary = ?, file_id = ?, unit_price = ?, vector_data = ?::vector, name = ?, age = ?, gender = ?, nationality = ?, start_date = ?, place = ?, area = ?, office_availability = ?, organization = ?, experiences = ?, ng_requirements = ?, other_requirements = ?, url = ?, ttl = ? WHERE person_id = ?";
 
   /** UPDATE文(file_idのみ). */
   private static final String UPDATE_FILE_ID_SQL =
@@ -131,6 +131,14 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
   /** 経歴 / experiences */
   @Column(physicalName = "experiences", logicalName = "経歴")
   private String experiences;
+
+  /** NG条件 / ng_requirements */
+  @Column(physicalName = "ng_requirements", logicalName = "NG条件")
+  private String ngRequirements;
+
+  /** その他条件 / other_requirements */
+  @Column(physicalName = "other_requirements", logicalName = "その他条件")
+  private String otherRequirements;
 
   /** URL / url */
   @Column(physicalName = "url", logicalName = "URL")
@@ -429,5 +437,23 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
    */
   public List<String> getExperiencesAsList() {
     return Arrays.asList(this.experiences.split("\n"));
+  }
+
+  /**
+   * その他条件を改行区切りの文字列配列として取得します.
+   *
+   * @return その他条件リスト
+   */
+  public List<String> getOtherRequirementsAsList() {
+    return Arrays.asList(this.otherRequirements.split("\n"));
+  }
+
+  /**
+   * NG条件を改行区切りの文字列配列として取得します.
+   *
+   * @return NG条件リスト
+   */
+  public List<String> getNgRequirementsAsList() {
+    return Arrays.asList(this.otherRequirements.split("\n"));
   }
 }

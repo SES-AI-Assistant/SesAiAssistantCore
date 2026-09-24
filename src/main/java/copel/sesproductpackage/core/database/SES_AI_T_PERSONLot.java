@@ -23,34 +23,34 @@ import java.util.List;
 public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
   /** 全文検索SQL. */
   private static final String SELECT_LIKE_SQL =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, url, register_date, register_user, ttl, tenant_id FROM SES_AI_T_PERSON WHERE raw_content LIKE ?";
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl, tenant_id FROM SES_AI_T_PERSON WHERE raw_content LIKE ?";
 
   /** 複合条件全文検索用 SELECT 接頭辞（末尾に WHERE を含む）. */
   private static final String SELECT_RAW_CONTENT_FOR_FULLTEXT =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, url, register_date, register_user, ttl, tenant_id FROM SES_AI_T_PERSON WHERE ";
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl, tenant_id FROM SES_AI_T_PERSON WHERE ";
 
   /** 検索SQL. */
   private static final String SELECT_SQL =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, url, register_date, register_user, ttl, tenant_id FROM SES_AI_T_PERSON WHERE ";
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl, tenant_id FROM SES_AI_T_PERSON WHERE ";
 
   /** 検索SQL(指定時間以降検索). */
   private static final String SELECT_SQL_BY_REGISTER_DATE =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, url, register_date, register_user, ttl, tenant_id FROM SES_AI_T_PERSON WHERE register_date >= ?";
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl, tenant_id FROM SES_AI_T_PERSON WHERE register_date >= ?";
 
   /** 全件検索SQL. */
   private static final String SELECT_ALL_SQL =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, url, register_date, register_user, ttl, tenant_id FROM SES_AI_T_PERSON ORDER BY register_date DESC";
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl, tenant_id FROM SES_AI_T_PERSON ORDER BY register_date DESC";
 
   /** ベクトル検索のカウント用SQL. */
   private static final String COUNT_SQL_FOR_RETRIEVE = "SELECT COUNT(*) FROM SES_AI_T_PERSON";
 
   /** 類似度閾値ベクトル検索用SQL（ページング用・LIMIT/OFFSET除外）. */
   private static final String RETRIEVE_WITH_THRESHOLD_SQL_WITHOUT_LIMIT =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, url, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_PERSON WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_PERSON WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
 
   /** 期限切れ要員取得SQL前半（テナントIDあり）. */
   private static final String SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_PREFIX =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, url, register_date, register_user, ttl, tenant_id "
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl, tenant_id "
           + "FROM SES_AI_T_PERSON "
           + "WHERE ((ttl IS NOT NULL AND ttl < NOW()) "
           + "   OR (ttl IS NULL AND register_date IS NOT NULL AND (register_date + INTERVAL '";
@@ -64,7 +64,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
 
   /** 期限切れ要員取得SQL前半（テナントIDなし、バッチ用）. */
   private static final String SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_WITHOUT_TENANT_PREFIX =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, url, register_date, register_user, ttl, tenant_id "
+      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl, tenant_id "
           + "FROM SES_AI_T_PERSON "
           + "WHERE ((ttl IS NOT NULL AND ttl < NOW()) "
           + "   OR (ttl IS NULL AND register_date IS NOT NULL AND (register_date + INTERVAL '";

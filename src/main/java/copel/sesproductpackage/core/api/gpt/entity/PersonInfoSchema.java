@@ -90,11 +90,11 @@ public class PersonInfoSchema {
 	description = "要員都合のNG条件のリスト", 
 	itemType = String.class,
     required = true,
-    minItems = 1,
+    minItems = 0,
     maxItems = 10)
   private List<String> ngRequirements = null;
 
-  @Schema(title = "その他", description = "その他、備考などの事項", itemType = String.class)
+  @Schema(title = "その他", description = "その他、備考などの事項", itemType = String.class, minItems = 0, maxItems = 10)
   private List<String> otherRequirements = null;
 
   @Schema(
