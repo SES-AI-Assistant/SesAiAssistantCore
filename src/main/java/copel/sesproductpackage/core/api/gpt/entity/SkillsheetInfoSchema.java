@@ -2,6 +2,7 @@ package copel.sesproductpackage.core.api.gpt.entity;
 
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import java.util.List;
+import java.util.regex.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,6 +16,19 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SkillsheetInfoSchema {
+  /**
+   * 期間判定用正規表現文字列.
+   * 「N年」「Nヶ月」「N年Nヶ月」の3種類（表記揺らぎ「[ヶケカヵか]?月」も許容）にマッチする.
+   */
+  public static final String DURATION_REGEX =
+      "^([1-9][0-9]*年([1-9][0-9]*[ヶケカヵか]?月)?|[1-9][0-9]*[ヶケカヵか]?月)$";
+
+  /**
+   * 期間判定用正規表現パターン.
+   * 「N年」「Nヶ月」「N年Nヶ月」の3種類（表記揺らぎ「[ヶケカヵか]?月」も許容）にマッチする.
+   */
+  private static final Pattern DURATION_PATTERN = Pattern.compile(DURATION_REGEX);
+
   @Schema(
       title = "スキル一覧",
       description = "スキル、経験のリスト。各プロジェクトで使用されたスキルについて、各プロジェクトの期間（開始年月～終了年月）から月数を算出し、スキル毎に合算したもの。",
@@ -45,9 +59,17 @@ public class SkillsheetInfoSchema {
     if (this.experiences != null && !this.experiences.isEmpty()) {
       sb.append("■スキル・経験\n");
       for (Experience experience : this.experiences) {
+        String duration = experience.getDuration();
+        // 期間が未設定（null/空文字）または正規表現（N年/Nヶ月/N年Nヶ月）にマッチしない場合は一律「経験あり」とする
+        if (duration == null
+            || duration.isBlank()
+            || !DURATION_PATTERN.matcher(duration.trim()).matches()) {
+          duration = "経験あり";
+        }
         sb.append("・")
             .append(experience.getPerspective())
-            .append(experience.getDuration() != null ? ": " + experience.getDuration() : "")
+            .append(": ")
+            .append(duration)
             .append("\n");
       }
     }
@@ -90,6 +112,7 @@ public class SkillsheetInfoSchema {
         title = "要求期間",
         description =
             "各プロジェクトで使用されたスキルについて、各プロジェクトの期間（開始年月～終了年月）から月数を算出し、スキル毎に合算した経験年数や期間（例: 「3年」）。本文中に明確な年数や期間の記載がない場合は、推測せず必ず「null」にすること。",
+        pattern = DURATION_REGEX,
         maxLength = 30,
         example = "3年")
     private String duration = null;
