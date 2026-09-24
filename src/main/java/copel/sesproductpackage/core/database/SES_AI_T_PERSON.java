@@ -460,6 +460,6 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
    * @return NG条件リスト
    */
   public List<String> getNgRequirementsAsList() {
-    return Arrays.asList(this.otherRequirements.split("\n"));
+    return Arrays.asList(this.ngRequirements.split("\n"));
   }
 }
