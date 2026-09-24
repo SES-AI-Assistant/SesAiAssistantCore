@@ -1,9 +1,10 @@
 package copel.sesproductpackage.core.database;
 
+import java.math.BigDecimal;
+
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
 import copel.sesproductpackage.core.unit.Money;
-import java.math.BigDecimal;
 import lombok.Data;
 
 /**
@@ -297,6 +298,8 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
     this.officeAvailability = resultSet.getObject("office_availability") != null ? resultSet.getInt("office_availability") : null;
     this.organization = resultSet.getString("organization");
     this.experiences = resultSet.getString("experiences");
+    this.otherRequirements = resultSet.getString("other_requirements");
+    this.ngRequirements = resultSet.getString("ng_requirements");
     this.url = resultSet.getString("url");
   }
 

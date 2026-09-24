@@ -300,10 +300,12 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
           stmt.setObject(17, this.officeAvailability);
           stmt.setString(18, this.organization);
           stmt.setString(19, this.experiences);
-          stmt.setString(20, this.url);
-          stmt.setTimestamp(21, this.registerDate == null ? null : this.registerDate.toTimestamp());
-          stmt.setString(22, this.registerUser);
-          stmt.setTimestamp(23, this.ttl == null ? null : this.ttl.toTimestamp());
+          stmt.setString(20, this.ngRequirements);
+          stmt.setString(21, this.otherRequirements);
+          stmt.setString(22, this.url);
+          stmt.setTimestamp(23, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(24, this.registerUser);
+          stmt.setTimestamp(25, this.ttl == null ? null : this.ttl.toTimestamp());
         },
         "SES_AI_T_PERSON.insert");
   }
@@ -343,9 +345,11 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
           stmt.setObject(16, this.officeAvailability);
           stmt.setString(17, this.organization);
           stmt.setString(18, this.experiences);
-          stmt.setString(19, this.url);
-          stmt.setTimestamp(20, this.ttl == null ? null : this.ttl.toTimestamp());
-          stmt.setString(21, this.personId);
+          stmt.setString(19, this.ngRequirements);
+          stmt.setString(20, this.otherRequirements);
+          stmt.setString(21, this.url);
+          stmt.setTimestamp(22, this.ttl == null ? null : this.ttl.toTimestamp());
+          stmt.setString(23, this.personId);
         },
         "SES_AI_T_PERSON.updateByPk");
   }
@@ -387,6 +391,8 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
           this.officeAvailability = rs.getObject("office_availability") == null ? null : rs.getInt("office_availability");
           this.organization = rs.getString("organization");
           this.experiences = rs.getString("experiences");
+          this.otherRequirements = rs.getString("other_requirements");
+          this.ngRequirements = rs.getString("ng_requirements");
           this.url = rs.getString("url");
           this.registerDate = new OriginalDateTime(rs.getString("register_date"));
           this.registerUser = rs.getString("register_user");
