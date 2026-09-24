@@ -349,7 +349,7 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
    * @return 必須スキルリスト
    */
   public List<String> getMustSkillsAsList() {
-    return Arrays.asList(this.mustSkills.split("\n"));
+    return this.mustSkills == null ? Arrays.asList() : Arrays.asList(this.mustSkills.split("\n"));
   }
 
   /**
@@ -358,7 +358,7 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
    * @return 尚可スキルリスト
    */
   public List<String> getWantSkillsAsList() {
-    return Arrays.asList(this.wantSkills.split("\n"));
+    return this.wantSkills == null ? Arrays.asList() : Arrays.asList(this.wantSkills.split("\n"));
   }
 
   /**
@@ -367,6 +367,6 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
    * @return その他条件リスト
    */
   public List<String> getOtherRequirementsAsList() {
-    return Arrays.asList(this.otherRequirements.split("\n"));
+    return this.otherRequirements == null ? Arrays.asList() : Arrays.asList(this.otherRequirements.split("\n"));
   }
 }

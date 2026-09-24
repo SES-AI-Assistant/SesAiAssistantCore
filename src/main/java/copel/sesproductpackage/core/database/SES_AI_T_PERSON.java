@@ -442,7 +442,7 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
    * @return 経験リスト
    */
   public List<String> getExperiencesAsList() {
-    return Arrays.asList(this.experiences.split("\n"));
+    return this.experiences == null ? Arrays.asList() : Arrays.asList(this.experiences.split("\n"));
   }
 
   /**
@@ -451,7 +451,7 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
    * @return その他条件リスト
    */
   public List<String> getOtherRequirementsAsList() {
-    return Arrays.asList(this.otherRequirements.split("\n"));
+    return this.otherRequirements == null ? Arrays.asList() : Arrays.asList(this.otherRequirements.split("\n"));
   }
 
   /**
@@ -460,6 +460,6 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
    * @return NG条件リスト
    */
   public List<String> getNgRequirementsAsList() {
-    return Arrays.asList(this.ngRequirements.split("\n"));
+    return this.ngRequirements == null ? Arrays.asList() : Arrays.asList(this.ngRequirements.split("\n"));
   }
 }
