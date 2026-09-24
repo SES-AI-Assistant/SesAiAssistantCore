@@ -1,6 +1,8 @@
 package copel.sesproductpackage.core.database;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
 
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
@@ -316,5 +318,32 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
   @Override
   protected String getCheckSql() {
     return null; // 今回は使用しない
+  }
+
+  /**
+   * 経験を改行区切りの文字列配列として取得します.
+   *
+   * @return 経験リスト
+   */
+  public List<String> getExperiencesAsList() {
+    return Arrays.asList(this.experiences.split("\n"));
+  }
+
+  /**
+   * その他条件を改行区切りの文字列配列として取得します.
+   *
+   * @return その他条件リスト
+   */
+  public List<String> getOtherRequirementsAsList() {
+    return Arrays.asList(this.otherRequirements.split("\n"));
+  }
+
+  /**
+   * NG条件を改行区切りの文字列配列として取得します.
+   *
+   * @return NG条件リスト
+   */
+  public List<String> getNgRequirementsAsList() {
+    return Arrays.asList(this.ngRequirements.split("\n"));
   }
 }
