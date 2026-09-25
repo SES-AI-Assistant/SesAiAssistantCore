@@ -140,4 +140,109 @@ class MoneyTest {
     Money m2 = new Money(1000000);
     assertEquals(m1.hashCode(), m2.hashCode());
   }
+
+  // ================================================
+  // 定数テスト
+  // ================================================
+  @Test
+  void testSkillMatchPrice() {
+    assertNotNull(Money.SKILL_MATCH_PRICE);
+    assertEquals(9_990_000L, Money.SKILL_MATCH_PRICE.toYenValue());
+    assertEquals("999万円", Money.SKILL_MATCH_PRICE.toJapaneseFormat());
+    assertEquals("999", Money.SKILL_MATCH_PRICE.toManFormat());
+    assertEquals(new BigDecimal(9_990_000L), Money.SKILL_MATCH_PRICE.getValue());
+    assertTrue(Money.SKILL_MATCH_PRICE.hasValue());
+    assertFalse(Money.SKILL_MATCH_PRICE.isEmpty());
+  }
+
+  @Test
+  void testIsSkillMatch() {
+    assertTrue(Money.SKILL_MATCH_PRICE.isSkillMatch());
+    assertTrue(new Money(9_990_000L).isSkillMatch());
+    assertFalse(new Money(1_000_000L).isSkillMatch());
+    assertFalse(Money.empty().isSkillMatch());
+  }
+
+  // ================================================
+  // 比較メソッド（isGreaterThan, isGreaterThanOrEqualTo, isLessThan, isLessThanOrEqualTo）テスト
+  // ================================================
+  @Test
+  void testIsGreaterThan() {
+    Money m100 = new Money(1000000);
+    Money m80 = new Money(800000);
+    Money mSame = new Money(1000000);
+    Money mEmpty = Money.empty();
+
+    // 大小関係
+    assertTrue(m100.isGreaterThan(m80));
+    assertFalse(m80.isGreaterThan(m100));
+    assertFalse(m100.isGreaterThan(mSame));
+
+    // null / empty 境界値
+    assertFalse(m100.isGreaterThan(null));
+    assertFalse(m100.isGreaterThan(mEmpty));
+    assertFalse(mEmpty.isGreaterThan(m100));
+    assertFalse(mEmpty.isGreaterThan(null));
+    assertFalse(mEmpty.isGreaterThan(mEmpty));
+  }
+
+  @Test
+  void testIsGreaterThanOrEqualTo() {
+    Money m100 = new Money(1000000);
+    Money m80 = new Money(800000);
+    Money mSame = new Money(1000000);
+    Money mEmpty = Money.empty();
+
+    // 大小関係・同額
+    assertTrue(m100.isGreaterThanOrEqualTo(m80));
+    assertFalse(m80.isGreaterThanOrEqualTo(m100));
+    assertTrue(m100.isGreaterThanOrEqualTo(mSame));
+
+    // null / empty 境界値
+    assertFalse(m100.isGreaterThanOrEqualTo(null));
+    assertFalse(m100.isGreaterThanOrEqualTo(mEmpty));
+    assertFalse(mEmpty.isGreaterThanOrEqualTo(m100));
+    assertFalse(mEmpty.isGreaterThanOrEqualTo(null));
+    assertFalse(mEmpty.isGreaterThanOrEqualTo(mEmpty));
+  }
+
+  @Test
+  void testIsLessThan() {
+    Money m100 = new Money(1000000);
+    Money m80 = new Money(800000);
+    Money mSame = new Money(1000000);
+    Money mEmpty = Money.empty();
+
+    // 大小関係
+    assertFalse(m100.isLessThan(m80));
+    assertTrue(m80.isLessThan(m100));
+    assertFalse(m100.isLessThan(mSame));
+
+    // null / empty 境界値
+    assertFalse(m100.isLessThan(null));
+    assertFalse(m100.isLessThan(mEmpty));
+    assertFalse(mEmpty.isLessThan(m100));
+    assertFalse(mEmpty.isLessThan(null));
+    assertFalse(mEmpty.isLessThan(mEmpty));
+  }
+
+  @Test
+  void testIsLessThanOrEqualTo() {
+    Money m100 = new Money(1000000);
+    Money m80 = new Money(800000);
+    Money mSame = new Money(1000000);
+    Money mEmpty = Money.empty();
+
+    // 大小関係・同額
+    assertFalse(m100.isLessThanOrEqualTo(m80));
+    assertTrue(m80.isLessThanOrEqualTo(m100));
+    assertTrue(m100.isLessThanOrEqualTo(mSame));
+
+    // null / empty 境界値
+    assertFalse(m100.isLessThanOrEqualTo(null));
+    assertFalse(m100.isLessThanOrEqualTo(mEmpty));
+    assertFalse(mEmpty.isLessThanOrEqualTo(m100));
+    assertFalse(mEmpty.isLessThanOrEqualTo(null));
+    assertFalse(mEmpty.isLessThanOrEqualTo(mEmpty));
+  }
 }

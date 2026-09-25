@@ -3,8 +3,10 @@ package copel.sesproductpackage.core.database;
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.MatchingStatus;
+import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.UUID;
@@ -29,15 +31,15 @@ public class SES_AI_T_MATCH extends EntityBase {
 
   /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_MATCH (matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, score, must_evaluation_text, want_evaluation_text, place_evaluation_text, office_evaluation_text, other_evaluation_text, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_T_MATCH (matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, score, must_evaluation_text, want_evaluation_text, place_evaluation_text, office_evaluation_text, other_evaluation_text, profit, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
-      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, score, must_evaluation_text, want_evaluation_text, place_evaluation_text, office_evaluation_text, other_evaluation_text, register_date, register_user FROM SES_AI_T_MATCH WHERE matching_id = ?";
+      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, score, must_evaluation_text, want_evaluation_text, place_evaluation_text, office_evaluation_text, other_evaluation_text, profit, register_date, register_user FROM SES_AI_T_MATCH WHERE matching_id = ?";
 
   /** UPDATE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_T_MATCH SET user_id = ?, job_id = ?, person_id = ?, job_content = ?, person_content = ?, status_cd = ?, evaluation_text = ?, score = ?, must_evaluation_text = ?, want_evaluation_text = ?, place_evaluation_text = ?, office_evaluation_text = ?, other_evaluation_text = ?, register_date = ?, register_user = ? WHERE matching_id = ?";
+      "UPDATE SES_AI_T_MATCH SET user_id = ?, job_id = ?, person_id = ?, job_content = ?, person_content = ?, status_cd = ?, evaluation_text = ?, score = ?, must_evaluation_text = ?, want_evaluation_text = ?, place_evaluation_text = ?, office_evaluation_text = ?, other_evaluation_text = ?, profit = ?, register_date = ?, register_user = ? WHERE matching_id = ?";
 
   /** DELETE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_T_MATCH WHERE matching_id = ?";
@@ -98,6 +100,10 @@ public class SES_AI_T_MATCH extends EntityBase {
   @Column(physicalName = "other_evaluation_text", logicalName = "その他条件評価文")
   private String otherEvaluationText;
 
+  /** 利益 / profit */
+  @Column(physicalName = "profit", logicalName = "利益")
+  private Money profit;
+
   /**
    * このレコードがjob_idを持つかどうかを判定します.
    *
@@ -114,6 +120,23 @@ public class SES_AI_T_MATCH extends EntityBase {
    */
   public boolean hasPersonId() {
     return !OriginalStringUtils.isEmpty(this.personId);
+  }
+
+  /**
+   * 案件単価と要員単価から粗利益を計算してセットする.
+   * いずれかが未設定、または案件単価がスキル見合いの場合は null をセットする.
+   *
+   * @param jobMoney 案件単価
+   * @param personMoney 要員単価
+   * @author Copel Co., Ltd.
+   */
+  public void setProfit(Money jobMoney, Money personMoney) {
+    if (jobMoney == null || jobMoney.isEmpty() || jobMoney.isSkillMatch()
+        || personMoney == null || personMoney.isEmpty()) {
+      this.profit = null;
+      return;
+    }
+    this.profit = new Money(jobMoney.getValue().subtract(personMoney.getValue()));
   }
 
   @Override
@@ -140,8 +163,9 @@ public class SES_AI_T_MATCH extends EntityBase {
           stmt.setString(12, this.placeEvaluationText);
           stmt.setString(13, this.officeEvaluationText);
           stmt.setString(14, this.otherEvaluationText);
-          stmt.setTimestamp(15, new OriginalDateTime().toTimestamp());
-          stmt.setString(16, this.registerUser);
+          stmt.setObject(15, this.profit == null ? null : this.profit.getValue());
+          stmt.setTimestamp(16, new OriginalDateTime().toTimestamp());
+          stmt.setString(17, this.registerUser);
         },
         "SES_AI_T_MATCH.insert");
   }
@@ -170,6 +194,8 @@ public class SES_AI_T_MATCH extends EntityBase {
           this.placeEvaluationText = rs.getString("place_evaluation_text");
           this.officeEvaluationText = rs.getString("office_evaluation_text");
           this.otherEvaluationText = rs.getString("other_evaluation_text");
+          BigDecimal profitValue = rs.getBigDecimal("profit");
+          this.profit = profitValue == null ? Money.empty() : new Money(profitValue);
           this.registerDate = new OriginalDateTime(rs.getString("register_date"));
           this.registerUser = rs.getString("register_user");
         },
@@ -199,9 +225,10 @@ public class SES_AI_T_MATCH extends EntityBase {
           stmt.setString(11, this.placeEvaluationText);
           stmt.setString(12, this.officeEvaluationText);
           stmt.setString(13, this.otherEvaluationText);
-          stmt.setTimestamp(14, this.registerDate == null ? null : this.registerDate.toTimestamp());
-          stmt.setString(15, this.registerUser);
-          stmt.setString(16, this.matchingId);
+          stmt.setObject(14, this.profit == null ? null : this.profit.getValue());
+          stmt.setTimestamp(15, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(16, this.registerUser);
+          stmt.setString(17, this.matchingId);
         },
         "SES_AI_T_MATCH.updateByPk");
   }

@@ -12,6 +12,12 @@ import java.util.regex.Pattern;
  * @author Copel Co., Ltd.
  */
 public class Money implements Comparable<Money> {
+  // ================================================
+  // 定数
+  // ================================================
+  /** スキル見合いの仕様値（999万円）. */
+  public static final Money SKILL_MATCH_PRICE = new Money(9_990_000L);
+
   @Schema(
       description = "金額",
       required = true,
@@ -58,6 +64,16 @@ public class Money implements Comparable<Money> {
   /** 値が設定されているか. */
   public boolean hasValue() {
     return value != null;
+  }
+
+  /**
+   * 金額がスキル見合い（999万円）であるかを判定する.
+   *
+   * @return スキル見合いの場合は true、それ以外は false
+   * @author Copel Co., Ltd.
+   */
+  public boolean isSkillMatch() {
+    return SKILL_MATCH_PRICE.equals(this);
   }
 
   // ================================================
@@ -110,6 +126,66 @@ public class Money implements Comparable<Money> {
   // ================================================
   // 比較処理
   // ================================================
+
+  /**
+   * 自身が指定された金額より大きいかを判定する.
+   * 自身または対象の金額が未設定（empty）または null の場合は安全に false を返す.
+   *
+   * @param other 比較対象の金額
+   * @return 自身が other より大きい場合は true、それ以外は false
+   * @author Copel Co., Ltd.
+   */
+  public boolean isGreaterThan(Money other) {
+    if (this.isEmpty() || other == null || other.isEmpty()) {
+      return false;
+    }
+    return this.value.compareTo(other.value) > 0;
+  }
+
+  /**
+   * 自身が指定された金額以上であるかを判定する.
+   * 自身または対象の金額が未設定（empty）または null の場合は安全に false を返す.
+   *
+   * @param other 比較対象の金額
+   * @return 自身が other 以上の場合は true、それ以外は false
+   * @author Copel Co., Ltd.
+   */
+  public boolean isGreaterThanOrEqualTo(Money other) {
+    if (this.isEmpty() || other == null || other.isEmpty()) {
+      return false;
+    }
+    return this.value.compareTo(other.value) >= 0;
+  }
+
+  /**
+   * 自身が指定された金額より小さいかを判定する.
+   * 自身または対象の金額が未設定（empty）または null の場合は安全に false を返す.
+   *
+   * @param other 比較対象の金額
+   * @return 自身が other より小さい場合は true、それ以外は false
+   * @author Copel Co., Ltd.
+   */
+  public boolean isLessThan(Money other) {
+    if (this.isEmpty() || other == null || other.isEmpty()) {
+      return false;
+    }
+    return this.value.compareTo(other.value) < 0;
+  }
+
+  /**
+   * 自身が指定された金額以下であるかを判定する.
+   * 自身または対象の金額が未設定（empty）または null の場合は安全に false を返す.
+   *
+   * @param other 比較対象の金額
+   * @return 自身が other 以下の場合は true、それ以外は false
+   * @author Copel Co., Ltd.
+   */
+  public boolean isLessThanOrEqualTo(Money other) {
+    if (this.isEmpty() || other == null || other.isEmpty()) {
+      return false;
+    }
+    return this.value.compareTo(other.value) <= 0;
+  }
 
   @Override
   public int compareTo(Money other) {

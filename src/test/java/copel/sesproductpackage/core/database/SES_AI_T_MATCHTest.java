@@ -4,7 +4,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.unit.MatchingStatus;
+import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -43,6 +45,7 @@ class SES_AI_T_MATCHTest {
     match.setPlaceEvaluationText("place_eval");
     match.setOfficeEvaluationText("office_eval");
     match.setOtherEvaluationText("other_eval");
+    match.setProfit(new Money(100000L));
     match.setRegisterDate(new OriginalDateTime());
     match.setRegisterUser("admin");
 
@@ -56,8 +59,10 @@ class SES_AI_T_MATCHTest {
     assertEquals(0, match.insert(null));
     when(ps.executeUpdate()).thenReturn(1);
     match.setStatus(MatchingStatus.提案中);
+    match.setProfit(new Money(100000L));
     assertEquals(1, match.insert(conn));
     match.setStatus(null);
+    match.setProfit(null);
     assertEquals(1, match.insert(conn));
 
     match.selectByPk(null);
@@ -75,16 +80,26 @@ class SES_AI_T_MATCHTest {
     when(rs.getString("place_evaluation_text")).thenReturn("place_eval");
     when(rs.getString("office_evaluation_text")).thenReturn("office_eval");
     when(rs.getString("other_evaluation_text")).thenReturn("other_eval");
+    when(rs.getBigDecimal("profit")).thenReturn(new BigDecimal("100000"));
     match.selectByPk(conn);
+    assertEquals(100000L, match.getProfit().toYenValue());
+
+    // profit is null
+    when(rs.next()).thenReturn(true);
+    when(rs.getBigDecimal("profit")).thenReturn(null);
+    match.selectByPk(conn);
+    assertTrue(match.getProfit().isEmpty());
 
     when(ps.executeUpdate()).thenReturn(1);
     match.setMatchingId("id");
     match.setTenantId("default");
     match.setStatus(MatchingStatus.提案中);
+    match.setProfit(new Money(100000L));
     match.setRegisterDate(new OriginalDateTime());
     assertTrue(match.updateByPk(conn));
 
     match.setStatus(null);
+    match.setProfit(null);
     match.setRegisterDate(new OriginalDateTime());
     assertTrue(match.updateByPk(conn));
 
@@ -135,11 +150,50 @@ class SES_AI_T_MATCHTest {
     m1.setUserId("u1");
     assertEquals(m1, m2);
 
+    m2.setProfit(new Money(100000L));
+    assertNotEquals(m1, m2);
+    m1.setProfit(new Money(100000L));
+    assertEquals(m1, m2);
+
     m2.setRegisterUser("u1");
     assertNotEquals(m1, m2);
     m1.setRegisterUser("u1");
     assertEquals(m1, m2);
 
     assertTrue(m1.canEqual(m2));
+  }
+
+  @Test
+  void testSetProfitWithJobAndPersonMoney() {
+    // 正常系: 100万円 - 80万円 = 20万円
+    match.setProfit(new Money(1_000_000L), new Money(800_000L));
+    assertNotNull(match.getProfit());
+    assertEquals(200_000L, match.getProfit().toYenValue());
+
+    // 同額: 80万円 - 80万円 = 0円
+    match.setProfit(new Money(800_000L), new Money(800_000L));
+    assertNotNull(match.getProfit());
+    assertEquals(0L, match.getProfit().toYenValue());
+
+    // 負数（案件 < 要員）: -20万円
+    match.setProfit(new Money(800_000L), new Money(1_000_000L));
+    assertNotNull(match.getProfit());
+    assertEquals(-200_000L, match.getProfit().toYenValue());
+
+    // スキル見合い: null
+    match.setProfit(Money.SKILL_MATCH_PRICE, new Money(800_000L));
+    assertNull(match.getProfit());
+
+    // 案件単価 null / empty: null
+    match.setProfit(null, new Money(800_000L));
+    assertNull(match.getProfit());
+    match.setProfit(Money.empty(), new Money(800_000L));
+    assertNull(match.getProfit());
+
+    // 要員単価 null / empty: null
+    match.setProfit(new Money(1_000_000L), null);
+    assertNull(match.getProfit());
+    match.setProfit(new Money(1_000_000L), Money.empty());
+    assertNull(match.getProfit());
   }
 }
