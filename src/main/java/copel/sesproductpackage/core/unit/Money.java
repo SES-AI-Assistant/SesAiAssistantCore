@@ -15,8 +15,11 @@ public class Money implements Comparable<Money> {
   // ================================================
   // 定数
   // ================================================
-  /** スキル見合いの仕様値（999万円）. */
-  public static final Money SKILL_MATCH_PRICE = new Money(9_990_000L);
+  /**
+   * 単価不問・単価提示依頼（SESにおける「スキル見合い」）の仕様値（999万円）.
+   * 固定の単価が設定されておらず、要員のスキルや提案内容に応じて単価を提示・決定（応相談）することを表す.
+   */
+  public static final Money NEGOTIABLE_PRICE = new Money(9_990_000L);
 
   @Schema(
       description = "金額",
@@ -67,13 +70,14 @@ public class Money implements Comparable<Money> {
   }
 
   /**
-   * 金額がスキル見合い（999万円）であるかを判定する.
+   * 金額が単価不問・単価提示依頼（SESにおける「スキル見合い」: 999万円）であるかを判定する.
+   * 固定単価ではなく、提案時に単価の提示が必要（応相談・単価不問）な案件の場合に true を返す.
    *
-   * @return スキル見合いの場合は true、それ以外は false
+   * @return 単価不問（スキル見合い）の場合は true、それ以外は false
    * @author Copel Co., Ltd.
    */
-  public boolean isSkillMatch() {
-    return SKILL_MATCH_PRICE.equals(this);
+  public boolean isNegotiable() {
+    return NEGOTIABLE_PRICE.equals(this);
   }
 
   // ================================================

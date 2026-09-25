@@ -180,8 +180,8 @@ class SES_AI_T_MATCHTest {
     assertNotNull(match.getProfit());
     assertEquals(-200_000L, match.getProfit().toYenValue());
 
-    // スキル見合い: null
-    match.setProfit(Money.SKILL_MATCH_PRICE, new Money(800_000L));
+    // 単価不問（スキル見合い）: null
+    match.setProfit(Money.NEGOTIABLE_PRICE, new Money(800_000L));
     assertNull(match.getProfit());
 
     // 案件単価 null / empty: null

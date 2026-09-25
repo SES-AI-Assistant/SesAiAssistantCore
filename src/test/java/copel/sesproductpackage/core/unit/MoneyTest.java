@@ -145,22 +145,22 @@ class MoneyTest {
   // 定数テスト
   // ================================================
   @Test
-  void testSkillMatchPrice() {
-    assertNotNull(Money.SKILL_MATCH_PRICE);
-    assertEquals(9_990_000L, Money.SKILL_MATCH_PRICE.toYenValue());
-    assertEquals("999万円", Money.SKILL_MATCH_PRICE.toJapaneseFormat());
-    assertEquals("999", Money.SKILL_MATCH_PRICE.toManFormat());
-    assertEquals(new BigDecimal(9_990_000L), Money.SKILL_MATCH_PRICE.getValue());
-    assertTrue(Money.SKILL_MATCH_PRICE.hasValue());
-    assertFalse(Money.SKILL_MATCH_PRICE.isEmpty());
+  void testNegotiablePrice() {
+    assertNotNull(Money.NEGOTIABLE_PRICE);
+    assertEquals(9_990_000L, Money.NEGOTIABLE_PRICE.toYenValue());
+    assertEquals("999万円", Money.NEGOTIABLE_PRICE.toJapaneseFormat());
+    assertEquals("999", Money.NEGOTIABLE_PRICE.toManFormat());
+    assertEquals(new BigDecimal(9_990_000L), Money.NEGOTIABLE_PRICE.getValue());
+    assertTrue(Money.NEGOTIABLE_PRICE.hasValue());
+    assertFalse(Money.NEGOTIABLE_PRICE.isEmpty());
   }
 
   @Test
-  void testIsSkillMatch() {
-    assertTrue(Money.SKILL_MATCH_PRICE.isSkillMatch());
-    assertTrue(new Money(9_990_000L).isSkillMatch());
-    assertFalse(new Money(1_000_000L).isSkillMatch());
-    assertFalse(Money.empty().isSkillMatch());
+  void testIsNegotiable() {
+    assertTrue(Money.NEGOTIABLE_PRICE.isNegotiable());
+    assertTrue(new Money(9_990_000L).isNegotiable());
+    assertFalse(new Money(1_000_000L).isNegotiable());
+    assertFalse(Money.empty().isNegotiable());
   }
 
   // ================================================

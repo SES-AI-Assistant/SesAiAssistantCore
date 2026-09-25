@@ -124,14 +124,14 @@ public class SES_AI_T_MATCH extends EntityBase {
 
   /**
    * 案件単価と要員単価から粗利益を計算してセットする.
-   * いずれかが未設定、または案件単価がスキル見合いの場合は null をセットする.
+   * いずれかが未設定、または案件単価が単価不問（スキル見合い）の場合は null をセットする.
    *
    * @param jobMoney 案件単価
    * @param personMoney 要員単価
    * @author Copel Co., Ltd.
    */
   public void setProfit(Money jobMoney, Money personMoney) {
-    if (jobMoney == null || jobMoney.isEmpty() || jobMoney.isSkillMatch()
+    if (jobMoney == null || jobMoney.isEmpty() || jobMoney.isNegotiable()
         || personMoney == null || personMoney.isEmpty()) {
       this.profit = null;
       return;
