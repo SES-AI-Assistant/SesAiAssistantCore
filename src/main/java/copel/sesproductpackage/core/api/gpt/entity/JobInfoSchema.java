@@ -1,5 +1,6 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
@@ -62,11 +63,22 @@ public class JobInfoSchema {
   private Area area = Area.関東_首都圏;
 
   @Schema(
-      title = "単価（円）",
-      description = "案件の単価/月。幅がある場合は最大値を設定。時給や日給が設定されている場合は1ヵ月(160h)に換算する。スキル見合いの場合は999万円とする。",
+      title = "単価（万円）",
+      description =
+          "月額単価を万円単位の数値で設定。例: 185万→185、80万/800,000円/800K→80、65.5万→65.5、時給3000円(160h)→48。幅がある場合は上限。スキル見合い・応相談・未記載は999。",
       required = true,
-      itemType = Money.class)
-  private Money price;
+      type = "number",
+      example = "185")
+  private BigDecimal priceInMan;
+
+  /**
+   * 単価を Money 値オブジェクト（円単位）で取得します.
+   *
+   * @return 円単位の Money インスタンス
+   */
+  public Money getPrice() {
+    return Money.toSesUnitFromMan(this.priceInMan);
+  }
 
   @Schema(
       title = "出社要件",
@@ -123,7 +135,7 @@ public class JobInfoSchema {
       sb.append("■開始: ").append(this.startYearMonth.replace("/", "年")).append("月\n");
     }
     // 6. 単価
-    sb.append("■単価: ").append(this.price).append("\n");
+    sb.append("■単価: ").append(this.getPrice()).append("\n");
     // 7. 出社要件、場所
     if (this.officeRequirements == 0) {
       sb.append("■出社要件: ").append("フルリモート\n");

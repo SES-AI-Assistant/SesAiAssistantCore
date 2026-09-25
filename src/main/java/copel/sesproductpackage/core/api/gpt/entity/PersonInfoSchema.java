@@ -1,5 +1,6 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
@@ -51,11 +52,22 @@ public class PersonInfoSchema {
   private String startYearMonth;
 
   @Schema(
-      title = "単価（円）",
-      description = "希望する単価。幅がある場合は最小値を設定。",
+      title = "希望単価（万円）",
+      description =
+          "月額希望単価を万円単位の数値で設定。例: 80万/800,000円/800K→80、65.5万→65.5、時給2500円(160h)→40。幅がある場合は希望下限。スキル見合い・未記載は999。",
       required = true,
-      itemType = Money.class)
-  private Money price;
+      type = "number",
+      example = "80")
+  private BigDecimal priceInMan;
+
+  /**
+   * 希望単価を Money 値オブジェクト（円単位）で取得します.
+   *
+   * @return 円単位の Money インスタンス
+   */
+  public Money getPrice() {
+    return Money.toSesUnitFromMan(this.priceInMan);
+  }
 
   @Schema(title = "場所", description = "要員の在住地域や最寄駅名など", maxLength = 20, example = "品川")
   private String place = null;
@@ -131,7 +143,7 @@ public class PersonInfoSchema {
       sb.append("■開始: ").append(this.startYearMonth.replace("/", "年")).append("月\n");
     }
     // 5. 単価
-    sb.append("■単価: ").append(this.price).append("\n");
+    sb.append("■単価: ").append(this.getPrice()).append("\n");
     // 6. 所属形態
     sb.append("■所属形態: ").append(this.organization).append("\n");
     // 7. 場所
