@@ -668,7 +668,8 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
           stmt.setInt(paramIndex + 3, officeAvailability);
           stmt.setString(paramIndex + 4, area.name());
           stmt.setString(paramIndex + 5, vectorValue);
-          return paramIndex + 6;
+          stmt.setDouble(paramIndex + 6, similarityThreshold2);
+          return paramIndex + 7;
         });
   }
 
