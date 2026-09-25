@@ -48,7 +48,7 @@ public class PersonInfoSchema {
       example = "日本")
   private String nationality = "日本";
 
-  @Schema(title = "開始年月", description = "稼働開始が可能な年月。必ずyyyy/MM形式で設定してください。未記載の場合や即日、などの表現がされている場合は本日日付にして。", pattern = "^\\d{4}/(0?[1-9]|1[0-2])$", required = true, example = "2026/6")
+  @Schema(title = "開始年月", description = "稼働開始が可能な年月。必ずyyyy/MM形式で設定してください。未記載の場合や即日、などの表現がされている場合は本日日付にして。", pattern = "^\\d{4}/(0?[1-9]|1[0-2])$", required = true, example = "2026/6", currentAndNextYearOnly = true)
   private String startYearMonth;
 
   @Schema(
