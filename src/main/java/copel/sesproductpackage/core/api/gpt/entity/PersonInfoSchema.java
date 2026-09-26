@@ -73,8 +73,13 @@ public class PersonInfoSchema {
       example = "1")
   private int officeAvailability;
 
-  @Schema(title = "所属", description = "商流や所属。不明な場合は「未記載」とする。", required = true, maxLength = 20, example = "1社先正社員")
-  private String organization = "未記載";
+  @Schema(
+      title = "所属",
+      description = "商流や所属。不明な場合は「未記載」とする。",
+      required = true,
+      itemType = Organization.class,
+      example = "1社先正社員")
+  private Organization organization = null;
 
   @Schema(
 	title = "経歴", 
@@ -133,7 +138,9 @@ public class PersonInfoSchema {
     // 5. 単価
     sb.append("■単価: ").append(this.price).append("\n");
     // 6. 所属形態
-    sb.append("■所属形態: ").append(this.organization).append("\n");
+    if (this.organization != null) {
+      sb.append("■所属形態: ").append(this.organization.toDisplayString()).append("\n");
+    }
     // 7. 場所
     if (this.place != null) {
       sb.append("■場所: ").append(this.place).append("\n");
@@ -247,5 +254,55 @@ public class PersonInfoSchema {
         maxLength = 30,
         example = "3年")
     private String duration = null;
+  }
+
+  /**
+   * 要員の所属情報を表す値オブジェクト.
+   *
+   * @author Copel Co., Ltd.
+   */
+  @Data
+  @NoArgsConstructor
+  @AllArgsConstructor
+  public static class Organization {
+    @Schema(
+        title = "N社先の数字",
+        description = "N社先の『N』にあたる数字（0=0社先、1=1社先、2=2社先など）",
+        required = true,
+        gt = -1,
+        lt = 9,
+        example = "1")
+    private int companiesTierNumber;
+
+    @Schema(
+        title = "所属形態",
+        description = "正社員、個人事業主、その他の3択。フリーランスは個人事業主とする。",
+        itemType = EmploymentType.class,
+        required = true,
+        example = "正社員")
+    private EmploymentType employmentType;
+
+    /**
+     * 表示用文字列に変換します.
+     *
+     * @return 表示用文字列（例: "1社先正社員"）
+     */
+    public String toDisplayString() {
+      if (this.companiesTierNumber == 0) {
+        return String.format("弊社所属%s", this.employmentType.name());
+      }
+      return String.format("%d社先%s", this.companiesTierNumber, this.employmentType.name());
+    }
+  }
+
+  /**
+   * 所属形態.
+   *
+   * @author Copel Co., Ltd.
+   */
+  public enum EmploymentType {
+    正社員,
+    個人事業主,
+    その他;
   }
 }
