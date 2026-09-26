@@ -3,6 +3,8 @@ package copel.sesproductpackage.core.api.gpt.schema;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import java.lang.reflect.Field;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -381,7 +383,18 @@ public final class SchemaGenerator {
     if (schema.maxLength() >= 0) {
       fieldSchema.put("maxLength", schema.maxLength());
     }
-    if (!schema.pattern().isEmpty()) {
+    if (schema.currentAndNextYearOnly()) {
+      int currentYear = LocalDate.now(ZoneId.of("Asia/Tokyo")).getYear();
+      int nextYear = currentYear + 1;
+      String yearRegex = "(" + currentYear + "|" + nextYear + ")";
+      String pattern = schema.pattern();
+      if (!pattern.isEmpty()) {
+        pattern = pattern.replace("\\d{4}", yearRegex).replace("[0-9]{4}", yearRegex);
+      } else {
+        pattern = "^" + yearRegex + "/(0?[1-9]|1[0-2])$";
+      }
+      fieldSchema.put("pattern", pattern);
+    } else if (!schema.pattern().isEmpty()) {
       fieldSchema.put("pattern", schema.pattern());
     }
     if (!schema.format().isEmpty()) {
