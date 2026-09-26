@@ -3,6 +3,7 @@ package copel.sesproductpackage.core.database;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -47,11 +48,13 @@ class SES_AI_T_MATCHLotTest {
     when(rs.getString("place_evaluation_text")).thenReturn(null);
     when(rs.getString("office_evaluation_text")).thenReturn(null);
     when(rs.getString("other_evaluation_text")).thenReturn(null);
+    when(rs.getBigDecimal("profit")).thenReturn(new BigDecimal("150000"));
 
     SES_AI_T_MATCHLot lot = new SES_AI_T_MATCHLot();
     lot.selectAll(connection, "test-tenant");
     assertEquals(1, lot.size());
     assertEquals("M1", lot.get(0).getMatchingId());
+    assertEquals(150000L, lot.get(0).getProfit().toYenValue());
   }
 
   @Test
@@ -73,10 +76,12 @@ class SES_AI_T_MATCHLotTest {
     when(rs.getString("place_evaluation_text")).thenReturn(null);
     when(rs.getString("office_evaluation_text")).thenReturn(null);
     when(rs.getString("other_evaluation_text")).thenReturn(null);
+    when(rs.getBigDecimal("profit")).thenReturn(null);
 
     SES_AI_T_MATCHLot lot = new SES_AI_T_MATCHLot();
     lot.selectAllWithoutTenantId(connection);
     assertEquals(1, lot.size());
     assertEquals("M1", lot.get(0).getMatchingId());
+    assertTrue(lot.get(0).getProfit().isEmpty());
   }
 }
