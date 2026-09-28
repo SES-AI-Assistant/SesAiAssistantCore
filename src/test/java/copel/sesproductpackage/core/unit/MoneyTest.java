@@ -159,8 +159,12 @@ class MoneyTest {
   void testIsNegotiable() {
     assertTrue(Money.NEGOTIABLE_PRICE.isNegotiable());
     assertTrue(new Money(9_990_000L).isNegotiable());
+    assertTrue(Money.toSesUnitFromMan(new BigDecimal("999")).isNegotiable());
+    assertTrue(Money.toSesUnitFromMan(new BigDecimal("9990000")).isNegotiable());
+    assertFalse(Money.toSesUnitFromMan(new BigDecimal("80")).isNegotiable());
     assertFalse(new Money(1_000_000L).isNegotiable());
     assertFalse(Money.empty().isNegotiable());
+    assertFalse(new Money(100).isNegotiable());
   }
 
   // ================================================
@@ -244,5 +248,169 @@ class MoneyTest {
     assertFalse(mEmpty.isLessThanOrEqualTo(m100));
     assertFalse(mEmpty.isLessThanOrEqualTo(null));
     assertFalse(mEmpty.isLessThanOrEqualTo(mEmpty));
+  }
+
+  // ================================================
+  // 純粋な円受取（コンストラクタ）の検証（サニタイズ副作用なし）
+  // ================================================
+
+  @Test
+  void testConstructor_PureYenWithoutSanitizeSideEffects() {
+    // new Money(100) は 100円のままであり、サニタイズ（100万円への変換等）の副作用を受けないこと
+    Money m100 = new Money(100);
+    assertEquals(100L, m100.toYenValue());
+    assertEquals(new BigDecimal("100"), m100.getValue());
+
+    Money m100Bd = new Money(new BigDecimal("100"));
+    assertEquals(100L, m100Bd.toYenValue());
+    assertEquals(new BigDecimal("100"), m100Bd.getValue());
+
+    // 80 も 80万円ではなく 80円のまま
+    Money m80 = new Money(80);
+    assertEquals(80L, m80.toYenValue());
+    assertEquals(new BigDecimal("80"), m80.getValue());
+
+    Money m80Bd = new Money(new BigDecimal("80"));
+    assertEquals(80L, m80Bd.toYenValue());
+    assertEquals(new BigDecimal("80"), m80Bd.getValue());
+  }
+
+  // ================================================
+  // 万円単位からSES単位への変換ファクトリ（toSesUnitFromMan）自己修復テスト
+  // ================================================
+
+  @Test
+  void testToSesUnitFromMan_Null() {
+    Money moneyNull = Money.toSesUnitFromMan(null);
+    assertTrue(moneyNull.isEmpty());
+    assertNull(moneyNull.getValue());
+  }
+
+  @Test
+  void testToSesUnitFromMan_ZeroAndNegative() {
+    Money mZero = Money.toSesUnitFromMan(BigDecimal.ZERO);
+    assertEquals(0L, mZero.toYenValue());
+
+    Money mNegative = Money.toSesUnitFromMan(new BigDecimal("-100"));
+    assertEquals(-100L, mNegative.toYenValue());
+  }
+
+  @Test
+  void testToSesUnitFromMan_NegotiablePrice() {
+    // 999（万円） -> 9,990,000円（NEGOTIABLE_PRICE定数オブジェクトと一致）
+    Money m999 = Money.toSesUnitFromMan(new BigDecimal("999"));
+    assertEquals(9990000L, m999.toYenValue());
+    assertTrue(m999.isNegotiable());
+    assertSame(Money.NEGOTIABLE_PRICE, m999);
+
+    // 9,990,000（円） -> 9,990,000円
+    Money mYen = Money.toSesUnitFromMan(new BigDecimal("9990000"));
+    assertEquals(9990000L, mYen.toYenValue());
+    assertTrue(mYen.isNegotiable());
+    assertSame(Money.NEGOTIABLE_PRICE, mYen);
+  }
+
+  @Test
+  void testToSesUnitFromMan_NormalManRange() {
+    // 185 -> 1,850,000円
+    Money m185 = Money.toSesUnitFromMan(new BigDecimal("185"));
+    assertEquals(1850000L, m185.toYenValue());
+
+    // 80 -> 800,000円
+    Money m80 = Money.toSesUnitFromMan(new BigDecimal("80"));
+    assertEquals(800000L, m80.toYenValue());
+
+    // 10（境界値下限） -> 100,000円
+    Money m10 = Money.toSesUnitFromMan(new BigDecimal("10"));
+    assertEquals(100000L, m10.toYenValue());
+
+    // 500（境界値上限） -> 5,000,000円
+    Money m500 = Money.toSesUnitFromMan(new BigDecimal("500"));
+    assertEquals(5000000L, m500.toYenValue());
+  }
+
+  @Test
+  void testToSesUnitFromMan_DecimalManRange() {
+    // 65.5 -> 655,000円
+    Money m65_5 = Money.toSesUnitFromMan(new BigDecimal("65.5"));
+    assertEquals(655000L, m65_5.toYenValue());
+  }
+
+  @Test
+  void testToSesUnitFromMan_HourlyWageLeakage() {
+    // 3,000 (160h換算: 480,000円)
+    Money m3000 = Money.toSesUnitFromMan(new BigDecimal("3000"));
+    assertEquals(480000L, m3000.toYenValue());
+
+    // 1,500 (160h換算: 240,000円)
+    Money m1500 = Money.toSesUnitFromMan(new BigDecimal("1500"));
+    assertEquals(240000L, m1500.toYenValue());
+
+    // 1,000（境界値下限: 160,000円）
+    Money m1000 = Money.toSesUnitFromMan(new BigDecimal("1000"));
+    assertEquals(160000L, m1000.toYenValue());
+
+    // 8,000（境界値上限: 1,280,000円）
+    Money m8000 = Money.toSesUnitFromMan(new BigDecimal("8000"));
+    assertEquals(1280000L, m8000.toYenValue());
+  }
+
+  @Test
+  void testToSesUnitFromMan_DailyWageLeakage() {
+    // 25,000 (20日換算: 500,000円)
+    Money m25000 = Money.toSesUnitFromMan(new BigDecimal("25000"));
+    assertEquals(500000L, m25000.toYenValue());
+
+    // 10,000（境界値下限: 200,000円）
+    Money m10000 = Money.toSesUnitFromMan(new BigDecimal("10000"));
+    assertEquals(200000L, m10000.toYenValue());
+
+    // 50,000（境界値上限: 1,000,000円）
+    Money m50000 = Money.toSesUnitFromMan(new BigDecimal("50000"));
+    assertEquals(1000000L, m50000.toYenValue());
+  }
+
+  @Test
+  void testToSesUnitFromMan_ExtraZeroRelief() {
+    // 18,500,000 -> 1,850,000円 (ゼロ1個過剰)
+    Money m18500000 = Money.toSesUnitFromMan(new BigDecimal("18500000"));
+    assertEquals(1850000L, m18500000.toYenValue());
+
+    // 10,000,000（境界値下限: 1,000,000円）
+    Money m10000000 = Money.toSesUnitFromMan(new BigDecimal("10000000"));
+    assertEquals(1000000L, m10000000.toYenValue());
+  }
+
+  @Test
+  void testToSesUnitFromMan_AlreadyInYen() {
+    // 800,000 -> 800,000円
+    Money m800000 = Money.toSesUnitFromMan(new BigDecimal("800000"));
+    assertEquals(800000L, m800000.toYenValue());
+
+    // 100,000（境界値下限） -> 100,000円
+    Money m100000 = Money.toSesUnitFromMan(new BigDecimal("100000"));
+    assertEquals(100000L, m100000.toYenValue());
+
+    // 5,000,000（境界値上限） -> 5,000,000円
+    Money m5000000 = Money.toSesUnitFromMan(new BigDecimal("5000000"));
+    assertEquals(5000000L, m5000000.toYenValue());
+  }
+
+  @Test
+  void testToSesUnitFromMan_OtherRangeUnder1000() {
+    // 600（500超〜1000未満: 万円換算 6,000,000円）
+    Money m600 = Money.toSesUnitFromMan(new BigDecimal("600"));
+    assertEquals(6000000L, m600.toYenValue());
+
+    // 750 -> 7,500,000円
+    Money m750 = Money.toSesUnitFromMan(new BigDecimal("750"));
+    assertEquals(7500000L, m750.toYenValue());
+  }
+
+  @Test
+  void testToSesUnitFromMan_OtherFallback() {
+    // 8500（8000超〜10000未満: そのまま 8500）
+    Money m8500 = Money.toSesUnitFromMan(new BigDecimal("8500"));
+    assertEquals(8500L, m8500.toYenValue());
   }
 }

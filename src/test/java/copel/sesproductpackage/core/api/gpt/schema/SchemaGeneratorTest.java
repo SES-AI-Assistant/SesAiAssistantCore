@@ -2,6 +2,10 @@ package copel.sesproductpackage.core.api.gpt.schema;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import copel.sesproductpackage.core.api.gpt.entity.JobInfoSchema;
+import copel.sesproductpackage.core.api.gpt.entity.PersonInfoSchema;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -408,5 +412,151 @@ class SchemaGeneratorTest {
     public String name;
 
     @SchemaIgnore public String internalId;
+  }
+
+  @Test
+  void testGenerate_CurrentAndNextYearOnly_WithPattern() {
+    int currentYear = LocalDate.now(ZoneId.of("Asia/Tokyo")).getYear();
+    int nextYear = currentYear + 1;
+    String expectedPattern = "^(" + currentYear + "|" + nextYear + ")/(0?[1-9]|1[0-2])$";
+
+    Map<String, Object> schema =
+        SchemaGenerator.generate(ResponseWithCurrentAndNextYearPatternDigits.class);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("startYearMonth");
+
+    String pattern = (String) fieldSchema.get("pattern");
+    assertEquals(expectedPattern, pattern);
+    assertYearMonthPatternMatches(pattern, currentYear, nextYear, "/");
+  }
+
+  @Test
+  void testGenerate_CurrentAndNextYearOnly_WithBracketDigitsPattern() {
+    int currentYear = LocalDate.now(ZoneId.of("Asia/Tokyo")).getYear();
+    int nextYear = currentYear + 1;
+    String expectedPattern = "^(" + currentYear + "|" + nextYear + ")-(0?[1-9]|1[0-2])$";
+
+    Map<String, Object> schema =
+        SchemaGenerator.generate(ResponseWithCurrentAndNextYearPatternBracketDigits.class);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("startYearMonth");
+
+    String pattern = (String) fieldSchema.get("pattern");
+    assertEquals(expectedPattern, pattern);
+    assertYearMonthPatternMatches(pattern, currentYear, nextYear, "-");
+  }
+
+  @Test
+  void testGenerate_CurrentAndNextYearOnly_WithoutPattern() {
+    int currentYear = LocalDate.now(ZoneId.of("Asia/Tokyo")).getYear();
+    int nextYear = currentYear + 1;
+    String expectedPattern = "^(" + currentYear + "|" + nextYear + ")/(0?[1-9]|1[0-2])$";
+
+    Map<String, Object> schema =
+        SchemaGenerator.generate(ResponseWithCurrentAndNextYearNoPattern.class);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("startYearMonth");
+
+    String pattern = (String) fieldSchema.get("pattern");
+    assertEquals(expectedPattern, pattern);
+    assertYearMonthPatternMatches(pattern, currentYear, nextYear, "/");
+  }
+
+  @Test
+  void testGenerate_CurrentAndNextYearOnly_False() {
+    Map<String, Object> schema =
+        SchemaGenerator.generate(ResponseWithCurrentAndNextYearFalse.class);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("startYearMonth");
+
+    assertEquals("^\\d{4}/(0?[1-9]|1[0-2])$", fieldSchema.get("pattern"));
+  }
+
+  @Test
+  void testGenerate_JobInfoSchema_StartYearMonthPattern() {
+    int currentYear = LocalDate.now(ZoneId.of("Asia/Tokyo")).getYear();
+    int nextYear = currentYear + 1;
+    String expectedPattern = "^(" + currentYear + "|" + nextYear + ")/(0?[1-9]|1[0-2])$";
+
+    Map<String, Object> schema = SchemaGenerator.generate(JobInfoSchema.class);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("startYearMonth");
+
+    String pattern = (String) fieldSchema.get("pattern");
+    assertEquals(expectedPattern, pattern);
+    assertYearMonthPatternMatches(pattern, currentYear, nextYear, "/");
+  }
+
+  @Test
+  void testGenerate_PersonInfoSchema_StartYearMonthPattern() {
+    int currentYear = LocalDate.now(ZoneId.of("Asia/Tokyo")).getYear();
+    int nextYear = currentYear + 1;
+    String expectedPattern = "^(" + currentYear + "|" + nextYear + ")/(0?[1-9]|1[0-2])$";
+
+    Map<String, Object> schema = SchemaGenerator.generate(PersonInfoSchema.class);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("startYearMonth");
+
+    String pattern = (String) fieldSchema.get("pattern");
+    assertEquals(expectedPattern, pattern);
+    assertYearMonthPatternMatches(pattern, currentYear, nextYear, "/");
+  }
+
+  /**
+   * 年月正規表現パターンの振る舞いを検証するヘルパーメソッド.
+   *
+   * @param pattern 検証対象の正規表現パターン
+   * @param currentYear 実行年
+   * @param nextYear 翌年
+   * @param separator 年と月の区切り文字（例: "/" または "-"）
+   */
+  private static void assertYearMonthPatternMatches(
+      String pattern, int currentYear, int nextYear, String separator) {
+    // 正常系: 当年・翌年の有効月
+    assertTrue((currentYear + separator + "01").matches(pattern));
+    assertTrue((currentYear + separator + "12").matches(pattern));
+    assertTrue((nextYear + separator + "06").matches(pattern));
+
+    // 異常系: 過去年、2年後以降、無効月
+    assertFalse(((currentYear - 1) + separator + "12").matches(pattern));
+    assertFalse(((nextYear + 1) + separator + "01").matches(pattern));
+    assertFalse((currentYear + separator + "00").matches(pattern));
+    assertFalse((currentYear + separator + "13").matches(pattern));
+  }
+
+  /** テスト用のcurrentAndNextYearOnly検証用レスポンス（patternあり: \\d{4}）. */
+  static class ResponseWithCurrentAndNextYearPatternDigits {
+    @Schema(pattern = "^\\d{4}/(0?[1-9]|1[0-2])$", currentAndNextYearOnly = true)
+    public String startYearMonth;
+  }
+
+  /** テスト用のcurrentAndNextYearOnly検証用レスポンス（patternあり: [0-9]{4}）. */
+  static class ResponseWithCurrentAndNextYearPatternBracketDigits {
+    @Schema(pattern = "^[0-9]{4}-(0?[1-9]|1[0-2])$", currentAndNextYearOnly = true)
+    public String startYearMonth;
+  }
+
+  /** テスト用のcurrentAndNextYearOnly検証用レスポンス（patternなし）. */
+  static class ResponseWithCurrentAndNextYearNoPattern {
+    @Schema(currentAndNextYearOnly = true)
+    public String startYearMonth;
+  }
+
+  /** テスト用のcurrentAndNextYearOnly=false検証用レスポンス. */
+  static class ResponseWithCurrentAndNextYearFalse {
+    @Schema(pattern = "^\\d{4}/(0?[1-9]|1[0-2])$", currentAndNextYearOnly = false)
+    public String startYearMonth;
   }
 }

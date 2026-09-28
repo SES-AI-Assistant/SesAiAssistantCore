@@ -24,6 +24,9 @@ public class Money implements Comparable<Money> {
    */
   public static final Money NEGOTIABLE_PRICE = new Money(9_990_000L);
 
+  /** 万円から円への換算倍率（10,000）. */
+  private static final BigDecimal MAN_UNIT = new BigDecimal("10000");
+
   @Schema(
       description = "金額",
       required = true,
@@ -90,6 +93,58 @@ public class Money implements Comparable<Money> {
   // ================================================
   public static Money empty() {
     return new Money();
+  }
+
+  /**
+   * 万円単位の数値から、SESの業務単位（円単位、スキル見合い、時給・日給換算）に適合した Money インスタンスを生成します.
+   * 入力値はSESの相場・仕様に基づいて自動修復され、安全な Money オブジェクトとして返されます.
+   *
+   * @param manValue 万円単位の値（null可）
+   * @return Money インスタンス（nullの場合は empty）
+   * @author Copel Co., Ltd.
+   */
+  public static Money toSesUnitFromMan(BigDecimal manValue) {
+    if (manValue == null) {
+      return Money.empty();
+    }
+    if (manValue.compareTo(BigDecimal.ZERO) <= 0) {
+      return new Money(manValue.setScale(0, RoundingMode.HALF_UP));
+    }
+    // 1. スキル見合い仕様値（999 または 9,990,000）→ 定義済みオブジェクトを返却
+    if (manValue.compareTo(new BigDecimal("999")) == 0
+        || manValue.compareTo(NEGOTIABLE_PRICE.getValue()) == 0) {
+      return NEGOTIABLE_PRICE;
+    }
+    // 2. 正常な万円範囲（10以上 500以下、小数の65.5なども含む）→ 1万倍して円単位
+    if (manValue.compareTo(new BigDecimal("10")) >= 0
+        && manValue.compareTo(new BigDecimal("500")) <= 0) {
+      return new Money(manValue.multiply(MAN_UNIT).setScale(0, RoundingMode.HALF_UP));
+    }
+    // 3. 【時給の漏れ検知】1,000以上 8,000以下（160h換算）
+    if (manValue.compareTo(new BigDecimal("1000")) >= 0
+        && manValue.compareTo(new BigDecimal("8000")) <= 0) {
+      return new Money(manValue.multiply(new BigDecimal("160")).setScale(0, RoundingMode.HALF_UP));
+    }
+    // 4. 【日給の漏れ検知】10,000以上 50,000以下（20日換算）
+    if (manValue.compareTo(new BigDecimal("10000")) >= 0
+        && manValue.compareTo(new BigDecimal("50000")) <= 0) {
+      return new Money(manValue.multiply(new BigDecimal("20")).setScale(0, RoundingMode.HALF_UP));
+    }
+    // 5. 【ゼロ1個過剰の救済】1,000万以上
+    // ※SES業界の相場上、月額1,000万円以上の正規案件・要員は実質的に存在しないため、LLMの1桁過剰出力（1850万円など）を安全に救済する仕様
+    if (manValue.compareTo(new BigDecimal("10000000")) >= 0) {
+      return new Money(manValue.divide(BigDecimal.TEN, 0, RoundingMode.HALF_UP));
+    }
+    // 6. 通常の円範囲（100,000以上 5,000,000以下）→ そのまま円として採用
+    if (manValue.compareTo(new BigDecimal("100000")) >= 0
+        && manValue.compareTo(new BigDecimal("5000000")) <= 0) {
+      return new Money(manValue.setScale(0, RoundingMode.HALF_UP));
+    }
+    // 7. その他の範囲（500超〜1000未満など）→ 万円として1万倍
+    if (manValue.compareTo(new BigDecimal("1000")) < 0) {
+      return new Money(manValue.multiply(MAN_UNIT).setScale(0, RoundingMode.HALF_UP));
+    }
+    return new Money(manValue.setScale(0, RoundingMode.HALF_UP));
   }
 
   /** DB保存用：円単位の BigDecimal（NULL可能）. */
