@@ -644,12 +644,25 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       return;
     }
 
-    executeVectorPagedQuery(
+    // COUNT SQL 用のパラメータバインダー（SELECT句がないため、vectorValue をスキップ）
+    EntityLotBase.VectorParameterBinder countBinder =
+        (stmt, paramIndex, vectorValue, similarityThreshold2) -> {
+          stmt.setBigDecimal(paramIndex, price.getValue());
+          stmt.setTimestamp(paramIndex + 1, startDate.toTimestamp());
+          stmt.setInt(paramIndex + 2, officeAvailability);
+          stmt.setString(paramIndex + 3, area.name());
+          stmt.setString(paramIndex + 4, vectorValue);
+          stmt.setDouble(paramIndex + 5, similarityThreshold2);
+          return paramIndex + 6;
+        };
+
+    executeVectorPagedQueryWithCountBinder(
         connection,
         RETRIEVE_WITH_FILTER_4_VALUES_SQL_WITHOUT_LIMIT,
         tenantId,
         query.toString(),
         similarityThreshold,
+        countBinder,
         page,
         size,
         rs -> {

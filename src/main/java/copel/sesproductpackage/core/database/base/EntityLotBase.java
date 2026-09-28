@@ -1370,6 +1370,65 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @throws SQLException
    * @throws IllegalArgumentException tenantId が null または空文字列の場合
    */
+  protected void executeVectorPagedQueryWithCountBinder(
+      final Connection conn,
+      final String baseQuerySql,
+      final String tenantId,
+      final String vectorValue,
+      final double similarityThreshold,
+      final VectorParameterBinder countBinder,
+      final int page,
+      final int size,
+      final ResultSetMapper<E> mapper,
+      final VectorParameterBinder binder)
+      throws SQLException {
+    if (conn == null) {
+      this.entityLot = new ArrayList<>();
+      this.totalCount = 0;
+      this.pageSize = size;
+      this.currentPageIndex = page;
+      return;
+    }
+
+    // SQL末尾に tenant_id フィルター条件を自動付加
+    final String filteredSql = addTenantIdFilter(baseQuerySql, tenantId);
+
+    // COUNT クエリを実行（COUNT SQL 用の binder を使用）
+    this.totalCount =
+        getCountByVectorForCount(conn, baseQuerySql, tenantId, vectorValue, similarityThreshold, countBinder);
+
+    // データ取得クエリにLIMIT/OFFSETを追加
+    final String pagedSql = filteredSql + " LIMIT ? OFFSET ?";
+
+    try (PreparedStatement stmt = conn.prepareStatement(pagedSql)) {
+      // ユーザー定義のバインド処理（ベクトル値・スレッショルド値以外）
+      int nextParamIndex = binder.bind(stmt, 1, vectorValue, similarityThreshold);
+
+      // tenant_id をバインド
+      setTenantIdParameter(stmt, nextParamIndex, tenantId);
+      nextParamIndex++;
+
+      // LIMIT をバインド
+      stmt.setInt(nextParamIndex, size);
+      nextParamIndex++;
+
+      // OFFSET をバインド
+      stmt.setInt(nextParamIndex, (page - 1) * size);
+
+      // SQL をログ出力
+      logSql(pagedSql);
+
+      List<E> results = new ArrayList<>();
+      try (ResultSet rs = stmt.executeQuery()) {
+        while (rs.next()) {
+          results.add(mapper.map(rs));
+        }
+      }
+
+      this.entityLot = results;
+    }
+  }
+
   protected void executeVectorPagedQuery(
       final Connection conn,
       final String baseQuerySql,
@@ -1455,12 +1514,42 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
 
     try (PreparedStatement stmt = conn.prepareStatement(countSql)) {
       // COUNT SQL のパラメータバインディング
-      // SELECT SQL と COUNT SQL でプレースホルダ構造が異なる：
-      // - SELECT SQL: 7個（SELECT句に vector、WHERE句に 6個）
-      // - COUNT SQL: 6個（SELECT句削除で vector が消える）→ tenant_id で 7個
+      // SELECT SQL 向けの binder を使用：
       // binder は SELECT SQL 向けに 1-7 をバインドして 8 を返すため、
       // COUNT SQL では - 1 で調整して 7 を得る（tenant_id の位置）
       int nextParamIndex = binder.bind(stmt, 1, vectorValue, similarityThreshold) - 1;
+
+      // tenant_id をバインド
+      setTenantIdParameter(stmt, nextParamIndex, tenantId);
+
+      logSql(countSql);
+
+      try (ResultSet rs = stmt.executeQuery()) {
+        if (rs.next()) {
+          return rs.getLong(1);
+        }
+      }
+    }
+
+    return 0;
+  }
+
+  private long getCountByVectorForCount(
+      final Connection conn,
+      final String baseQuerySql,
+      final String tenantId,
+      final String vectorValue,
+      final double similarityThreshold,
+      final VectorParameterBinder countBinder)
+      throws SQLException {
+    // COUNT SQL を生成（toCountSql は SELECT を COUNT(*) に置換）
+    final String countSql = addTenantIdFilter(toCountSql(baseQuerySql), tenantId);
+
+    try (PreparedStatement stmt = conn.prepareStatement(countSql)) {
+      // COUNT SQL 専用の binder を使用：
+      // COUNT SQL では SELECT句がないため、countBinder は SELECT SQL と異なるパラメータ順序で実装
+      // countBinder は 1-6 をバインドして 7 を返す（tenant_id の位置）
+      int nextParamIndex = countBinder.bind(stmt, 1, vectorValue, similarityThreshold);
 
       // tenant_id をバインド
       setTenantIdParameter(stmt, nextParamIndex, tenantId);
