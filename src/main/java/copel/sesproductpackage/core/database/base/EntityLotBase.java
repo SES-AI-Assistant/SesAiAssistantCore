@@ -1455,9 +1455,9 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
 
     try (PreparedStatement stmt = conn.prepareStatement(countSql)) {
       // COUNT SQL のパラメータバインディング
-      // toCountSql で SELECT 句が削除されているため、SELECT句の vector パラメータが存在しない
-      // binderをparamIndex=0で呼び出し、パラメータをシフトさせて正しい位置にバインド
-      int nextParamIndex = binder.bind(stmt, 0, vectorValue, similarityThreshold);
+      // binder は paramIndex から 7 個のパラメータをバインドして (paramIndex + 7) を返す
+      // 返された値は tenant_id バインド用の位置として使用する
+      int nextParamIndex = binder.bind(stmt, 1, vectorValue, similarityThreshold);
 
       // tenant_id をバインド
       setTenantIdParameter(stmt, nextParamIndex, tenantId);
