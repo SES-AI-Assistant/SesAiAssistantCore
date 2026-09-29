@@ -39,9 +39,6 @@ public class ChooseBestInfoResponseSchema {
     }
     return this.candidateResults.stream()
         // 各評価フラグがすべて true である要素のみに絞り込み
-        .filter(r -> r.isPriceEvaluateResult())
-        .filter(r -> r.isPlaceEvaluateResult())
-        .filter(r -> r.isOfficeEvaluateResult())
         .filter(r -> r.isPersonMonthsEvaluateResult())
         .filter(r -> r.isOtherConstraintsResult())
         // 必須スキル評価が FullyMet の要素のみに絞り込み
@@ -68,10 +65,7 @@ public class ChooseBestInfoResponseSchema {
     }
 
     return this.candidateResults.stream()
-        .filter(r -> r.isPriceEvaluateResult())
         .filter(r -> r.isPersonMonthsEvaluateResult())
-        // 出社要件（required=true の場合のみ、出社要件と場所をチェック）
-        .filter(r -> !rules.isOfficeRequired() || r.isOfficeEvaluateResult() && r.isPlaceEvaluateResult())
         // その他制約条件（required=true の場合のみチェック）
         .filter(r -> !rules.isOtherConstraintsRequired() || r.isOtherConstraintsResult())
         // 必須スキル（level=null の場合は無視）
@@ -140,36 +134,14 @@ public class ChooseBestInfoResponseSchema {
     private EvaluateType wantSkillEvaluateResult;
 
     @Schema(
-        title = "単価評価結果",
-        description = "案件単価 >= 要員単価であればtrue、それ以外はfalse。案件側がスキル見合いである場合は一律true",
-        defaultValue = "false",
-        required = true)
-    private boolean priceEvaluateResult;
-
-    @Schema(
-        title = "場所評価結果",
-        description =
-            "案件場所から要員の場所まで在来線1時間以内で通勤できるかどうか。案件側がフルリモートである場合、または案件や要員どちらかの場所が不明な場合は一律trueとする。",
-        defaultValue = "false")
-    private boolean placeEvaluateResult;
-
-    @Schema(
-        title = "出社要件評価結果",
-        description =
-            "要員がフルリモート希望かつ、案件がフルリモートである場合はtrue。要員が常駐可能かつ、案件が常駐である場合はtrue。要員の出社許容日数/週 >= 案件の求める出社日数/週である場合はtrue。案件または要員側に出社・フルリモート希望や要件が未記載の場合はtrueとする。それ以外は全てfalse。",
-        defaultValue = "false",
-        required = true)
-    private boolean officeEvaluateResult;
-
-    @Schema(
         title = "人月工数評価結果",
         description = "要員の稼働可能人月工数 >= 案件の求める人月工数であればtrue、それ以外はfalse。案件の求める人月工数が不明の場合は一律trueとする。",
         defaultValue = "true")
     private boolean personMonthsEvaluateResult = true;
 
     @Schema(
-        title = "制約条件評価結果",
-        description = "他項目で評価している単価や出社要件を除いたその他の制約条件の評価結果。要員が希望する制約条件を案件が1つ以上違反している場合はfalse。案件が希望する制約条件を要員が1つ以上違反している場合はfalse。それ以外はtrue。例えば年齢制限や商流制限などを評価する。",
+        title = "その他制約条件評価結果",
+        description = "単価、出社頻度を除いたその他の制約条件の評価結果。要員が希望する制約条件を案件が1つ以上違反している場合はfalse。案件が希望する制約条件を要員が1つ以上違反している場合はfalse。それ以外はtrue。例えば年齢制限や商流制限などを評価する。",
         defaultValue = "true")
     private boolean otherConstraintsResult = true;
 
@@ -181,21 +153,6 @@ public class ChooseBestInfoResponseSchema {
       }
       // matchScore の降順（大きい順）
       return Integer.compare(this.matchScore, o.matchScore);
-    }
-
-    @SchemaIgnore
-    public boolean isPriceEvaluateResult() {
-      return this.priceEvaluateResult;
-    }
-
-    @SchemaIgnore
-    public boolean isPlaceEvaluateResult() {
-      return this.placeEvaluateResult;
-    }
-
-    @SchemaIgnore
-    public boolean isOfficeEvaluateResult() {
-      return this.officeEvaluateResult;
     }
 
     @SchemaIgnore
@@ -216,31 +173,17 @@ public class ChooseBestInfoResponseSchema {
     @SchemaIgnore
     public String toEvaluiationText() {
       StringBuilder sb = new StringBuilder();
-      // 1. マッチ度
-      sb.append("マッチ度: ").append(this.matchScore).append("点\n");
-      // 2. 必須スキル
+      // 必須スキル
       sb.append("■必須スキル: ")
         .append(this.mustSkillEvaluateResult != null ? this.mustSkillEvaluateResult.getIcon() : "-")
         .append("\n");
-      // 3. 尚可スキル
+      // 尚可スキル
       sb.append("■尚可スキル: ")
         .append(this.wantSkillEvaluateResult != null ? this.wantSkillEvaluateResult.getIcon() : "-")
         .append("\n");
-      // 4. 単価
-      sb.append("■単価: ")
-        .append(this.priceEvaluateResult ? "○" : "×")
-        .append("\n");
-      // 5. 場所
-      sb.append("■場所: ")
-        .append(this.placeEvaluateResult ? "○" : "×")
-        .append("\n");
-      // 6. 出社
-      sb.append("■出社: ")
-        .append(this.officeEvaluateResult ? "○" : "×")
-        .append("\n");
-      // 7. その他
+      // その他
       sb.append("■その他制約事項: ")
-        .append(this.officeEvaluateResult ? "満たす" : "満たさない")
+        .append(this.otherConstraintsResult ? "満たす" : "満たさない")
         .append("\n");
       return sb.toString();
     }
