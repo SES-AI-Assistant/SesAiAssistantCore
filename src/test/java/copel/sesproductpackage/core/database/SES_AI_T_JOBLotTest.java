@@ -19,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import copel.sesproductpackage.core.search.FulltextCondition;
+import copel.sesproductpackage.core.search.JobDetailFilterCondition;
 import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
@@ -255,5 +256,101 @@ class SES_AI_T_JOBLotTest {
     SES_AI_T_JOBLot empty = new SES_AI_T_JOBLot();
     empty.retrieveWithFilter(null, "test-tenant", testVector, price, startDate, 3, Area.関東_首都圏, 0.5, 5);
     assertTrue(empty.isEmpty());
+  }
+
+  @Test
+  void testSearchByJobWithDetailFilter() throws SQLException {
+    // 全文検索条件
+    FulltextCondition condition = new FulltextCondition();
+    condition.setConditions(List.of("Java", "Spring Boot"));
+    condition.setLogicalOperator(論理演算子.AND);
+
+    // 詳細フィルター条件を設定
+    JobDetailFilterCondition detailFilter = new JobDetailFilterCondition();
+    detailFilter.setMinPrice(new Money(new java.math.BigDecimal("50.00")));
+    detailFilter.setMaxPrice(new Money(new java.math.BigDecimal("150.00")));
+    detailFilter.setStartDate(new OriginalDateTime("2023-01-01 00:00:00"));
+    detailFilter.setArea(Area.関東_首都圏);
+    detailFilter.setOfficeRequirements(3);
+
+    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+
+    // 詳細フィルター付き全文検索
+    assertDoesNotThrow(
+        () ->
+            lot.searchByJobWithDetailFilter(
+                mockConn,
+                "test-tenant",
+                List.of(condition),
+                detailFilter,
+                1,
+                10));
+  }
+
+  @Test
+  void testSearchByJobWithDetailFilterNullFilter() throws SQLException {
+    // 全文検索条件
+    FulltextCondition condition = new FulltextCondition();
+    condition.setConditions(List.of("Java"));
+    condition.setLogicalOperator(論理演算子.OR);
+
+    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+
+    // nullフィルターでも例外が発生しないことを確認
+    assertDoesNotThrow(
+        () ->
+            lot.searchByJobWithDetailFilter(
+                mockConn,
+                "test-tenant",
+                List.of(condition),
+                null,
+                1,
+                10));
+  }
+
+  @Test
+  void testRetrieveByJobVectorWithDetailFilter() throws SQLException {
+    setupDefaultResultSet();
+
+    // 詳細フィルター条件を設定
+    JobDetailFilterCondition detailFilter = new JobDetailFilterCondition();
+    detailFilter.setMinPrice(new Money(new java.math.BigDecimal("50.00")));
+    detailFilter.setMaxPrice(new Money(new java.math.BigDecimal("150.00")));
+    detailFilter.setStartDate(new OriginalDateTime("2023-01-01 00:00:00"));
+
+    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+    Vector testVector = createTestVector();
+
+    // 詳細フィルター付きベクトル検索
+    assertDoesNotThrow(
+        () ->
+            lot.retrieveByJobVectorWithDetailFilter(
+                mockConn,
+                "test-tenant",
+                testVector,
+                0.5,
+                detailFilter,
+                1,
+                10));
+  }
+
+  @Test
+  void testRetrieveByJobVectorWithDetailFilterNullFilter() throws SQLException {
+    setupDefaultResultSet();
+
+    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+    Vector testVector = createTestVector();
+
+    // nullフィルターでも例外が発生しないことを確認
+    assertDoesNotThrow(
+        () ->
+            lot.retrieveByJobVectorWithDetailFilter(
+                mockConn,
+                "test-tenant",
+                testVector,
+                0.5,
+                null,
+                1,
+                10));
   }
 }

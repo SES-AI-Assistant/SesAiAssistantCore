@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import copel.sesproductpackage.core.search.FulltextCondition;
+import copel.sesproductpackage.core.search.PersonDetailFilterCondition;
 import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
@@ -254,5 +255,100 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
                 Area.関東_首都圏,
                 0.5,
                 5));
+  }
+
+  @Test
+  void testSearchByPersonOrSkillSheetSummaryWithDetailFilter() throws SQLException {
+    // 全文検索条件
+    FulltextCondition condition = new FulltextCondition();
+    condition.setConditions(List.of("Java", "Spring"));
+    condition.setLogicalOperator(論理演算子.AND);
+
+    // 詳細フィルター条件を設定
+    PersonDetailFilterCondition detailFilter = new PersonDetailFilterCondition();
+    detailFilter.setMinPrice(new Money(new java.math.BigDecimal("50.00")));
+    detailFilter.setMaxPrice(new Money(new java.math.BigDecimal("150.00")));
+    detailFilter.setMinAge(25);
+    detailFilter.setMaxAge(60);
+    detailFilter.setArea(Area.関東_首都圏);
+    detailFilter.setGender("M");
+
+    SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
+
+    // null connectionでも例外が発生しないことを確認
+    assertDoesNotThrow(
+        () ->
+            lot.searchByPersonOrSkillSheetSummaryWithDetailFilter(
+                mockConnection,
+                "test-tenant",
+                List.of(condition),
+                detailFilter,
+                1,
+                10));
+  }
+
+  @Test
+  void testSearchByPersonOrSkillSheetSummaryWithDetailFilterNullFilter() throws SQLException {
+    // 全文検索条件
+    FulltextCondition condition = new FulltextCondition();
+    condition.setConditions(List.of("Java"));
+    condition.setLogicalOperator(論理演算子.OR);
+
+    SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
+
+    // nullフィルターでも例外が発生しないことを確認
+    assertDoesNotThrow(
+        () ->
+            lot.searchByPersonOrSkillSheetSummaryWithDetailFilter(
+                mockConnection,
+                "test-tenant",
+                List.of(condition),
+                null,
+                1,
+                10));
+  }
+
+  @Test
+  void testRetrieveByPersonVectorWithDetailFilter() throws SQLException {
+    prepareMockResultSet(true);
+
+    // 詳細フィルター条件を設定
+    PersonDetailFilterCondition detailFilter = new PersonDetailFilterCondition();
+    detailFilter.setStartDate(new OriginalDateTime("2023-01-01 00:00:00"));
+    detailFilter.setMinPrice(new Money(new java.math.BigDecimal("50.00")));
+    detailFilter.setMaxAge(65);
+
+    SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
+
+    // 詳細フィルター付きベクトル検索
+    assertDoesNotThrow(
+        () ->
+            lot.retrieveByPersonVectorWithDetailFilter(
+                mockConnection,
+                "test-tenant",
+                mockVector,
+                0.5,
+                detailFilter,
+                1,
+                10));
+  }
+
+  @Test
+  void testRetrieveByPersonVectorWithDetailFilterNullFilter() throws SQLException {
+    prepareMockResultSet(true);
+
+    SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
+
+    // nullフィルターでも例外が発生しないことを確認
+    assertDoesNotThrow(
+        () ->
+            lot.retrieveByPersonVectorWithDetailFilter(
+                mockConnection,
+                "test-tenant",
+                mockVector,
+                0.5,
+                null,
+                1,
+                10));
   }
 }
