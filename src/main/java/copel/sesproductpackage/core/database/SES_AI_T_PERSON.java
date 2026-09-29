@@ -462,4 +462,61 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
   public List<String> getNgRequirementsAsList() {
     return this.ngRequirements == null ? Arrays.asList() : Arrays.asList(this.ngRequirements.split("\n"));
   }
+
+  /**
+   * 指定した単価に書き換えた要員サマリを作成する。提案用のため、その他条件やNG条件は除外する。
+   * 指定された単価がスキル見合い単価である場合、要員の単価に指定された乗数をかけた金額を記載する。（未指定の場合は1.1倍）
+   * 単価が未指定の場合は単価未記載のサマリを作成する。
+   *
+   * @param targetPrice 指定単価
+   * @param multiplier 単価倍率
+   * @return 要員サマリ
+   */
+  public String getSummaryWithTargetPrice(Money targetPrice) {
+    return getSummaryWithTargetPrice(targetPrice, 1.1);
+  }
+  public String getSummaryWithTargetPrice(Money targetPrice, double multiplier) {
+    StringBuilder sb = new StringBuilder();
+    // 1. 名前
+    sb.append("■名前: ").append(this.name).append("\n");
+    // 2. 年齢
+    if (this.age > 0) {
+      sb.append("■年齢: ").append(this.age).append("歳\n");
+    }
+    // 2. 性別
+    sb.append("■性別: ").append(this.gender.toJapanese()).append("\n");
+    // 3. 国籍
+    sb.append("■国籍: ").append(this.nationality).append("\n");
+    // 4. 稼働開始可能月
+    if (this.startDate != null) {
+      sb.append("■開始: ").append(this.startDate.month()).append("月\n");
+    }
+    // 5. 単価
+    if (targetPrice != null && !targetPrice.isEmpty()) {
+      if (targetPrice.isNegotiable()) {
+        sb.append("■単価: ").append(this.unitPrice.multiply(multiplier).toJapaneseFormat()).append("\n");
+      } else {
+        sb.append("■単価: ").append(targetPrice.toJapaneseFormat()).append("\n");        
+      }
+    }
+    // 6. 所属形態
+    // TODO: organizationの型をOrganization型にし、1社インクリメントしてセットする実装をする
+    // 7. 場所
+    if (this.place != null) {
+      sb.append("■場所: ").append(this.place).append("\n");
+    }
+    // 8. 出社可否
+    if (this.officeAvailability == 0) {
+      sb.append("■出社: ").append("フルリモート希望\n");
+    } else if (this.officeAvailability == 5) {
+      sb.append("■出社: ").append("常駐可").append("\n");
+    } else {
+      sb.append("■出社: ").append("週").append(this.officeAvailability).append("まで可").append("\n");
+    }
+    // 9. 経歴
+    if (this.experiences != null && !this.experiences.isEmpty()) {
+      sb.append("■経歴\n").append(this.experiences);
+    }
+    return sb.toString();
+  }
 }

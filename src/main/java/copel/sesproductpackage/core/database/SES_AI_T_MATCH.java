@@ -1,15 +1,16 @@
 package copel.sesproductpackage.core.database;
 
+import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.UUID;
+
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.MatchingStatus;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
-import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.UUID;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -244,5 +245,19 @@ public class SES_AI_T_MATCH extends EntityBase {
         this.tenantId,
         (stmt) -> stmt.setString(1, this.matchingId),
         "SES_AI_T_MATCH.deleteByPk");
+  }
+
+  /**
+   * スキル要件（必須スキルと尚可スキル）の評価結果を生成する.
+   *
+   * @return 評価結果文章.
+   */
+  public String getSkillEvaluateText() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(this.mustEvaluationText);
+    if (this.wantEvaluationText != null && !this.wantEvaluationText.isEmpty()) {
+      sb.append("\n").append(this.mustEvaluationText);
+    }
+    return sb.toString();
   }
 }

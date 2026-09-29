@@ -369,4 +369,59 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
   public List<String> getOtherRequirementsAsList() {
     return this.otherRequirements == null ? Arrays.asList() : Arrays.asList(this.otherRequirements.split("\n"));
   }
+
+  /**
+   * 指定した単価に書き換えた案件サマリを作成する。
+   * 指定された単価がスキル見合い単価である場合、案件の単価に指定された乗数をかけた金額を記載する。（未指定の場合は0.9倍）
+   * 単価が未指定の場合は単価未記載のサマリを作成する。
+   *
+   * @param targetPrice 指定単価
+   * @param multiplier 単価倍率
+   * @return 案件サマリ
+   */
+  public String getSummaryWithTargetPrice(Money targetPrice) {
+    return getSummaryWithTargetPrice(targetPrice, 0.9);
+  }
+  public String getSummaryWithTargetPrice(Money targetPrice, double multiplier) {
+    StringBuilder sb = new StringBuilder();
+    // 1. 案件名
+    sb.append(this.title).append("\n");
+    // 2. 概要
+    sb.append("■概要\n").append(this.overview).append("\n");
+    // 3. 必須
+    if (this.mustSkills != null && !this.mustSkills.isEmpty()) {
+      sb.append("■必須\n").append(this.mustSkills);
+    }
+    // 4. 尚可
+    if (this.wantSkills != null && !this.wantSkills.isEmpty()) {
+      sb.append("■尚可\n").append(this.wantSkills);
+    }
+    // 5. 開始
+    if (this.startDate != null) {
+      sb.append("■開始: ").append(this.startDate.month()).append("月\n");
+    }
+    // 6. 単価
+    if (targetPrice != null && !targetPrice.isEmpty()) {
+      if (targetPrice.isNegotiable()) {
+        sb.append("■単価: ").append(this.unitPrice.multiply(multiplier).toJapaneseFormat()).append("\n");
+      } else {
+        sb.append("■単価: ").append(targetPrice.toJapaneseFormat()).append("\n");        
+      }
+    }
+    // 7. 出社要件、場所
+    if (this.officeRequirements == 0) {
+      sb.append("■出社要件: ").append("フルリモート\n");
+    } else if (this.officeRequirements == 5) {
+      sb.append("■出社要件: ").append("常駐").append("\n");
+      sb.append("■場所: ").append(this.place != null ? this.place : "不明").append("\n");
+    } else {
+      sb.append("■出社要件: ").append("週").append(this.officeRequirements).append("\n");
+      sb.append("■場所: ").append(this.place != null ? this.place : "不明").append("\n");
+    }
+    // 8. その他
+    if (this.otherRequirements != null && !this.otherRequirements.isEmpty()) {
+      sb.append("■その他\n").append(otherRequirements);
+    }
+    return sb.toString();
+  }
 }
