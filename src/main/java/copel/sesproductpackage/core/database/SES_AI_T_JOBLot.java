@@ -914,7 +914,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param param バインドするパラメータ値
    * @throws SQLException
    */
-  private void bindParameter(
+  protected void bindParameter(
       final java.sql.PreparedStatement stmt, final int paramIndex, final Object param)
       throws SQLException {
     if (param instanceof Money) {
