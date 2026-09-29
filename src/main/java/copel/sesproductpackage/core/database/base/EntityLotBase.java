@@ -899,7 +899,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param param バインドするパラメータ値
    * @throws SQLException
    */
-  private void bindParameter(
+  protected void bindParameter(
       final PreparedStatement stmt, final int paramIndex, final Object param)
       throws SQLException {
     if (param instanceof java.math.BigDecimal) {
