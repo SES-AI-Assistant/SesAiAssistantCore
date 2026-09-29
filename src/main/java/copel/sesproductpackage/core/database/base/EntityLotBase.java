@@ -792,6 +792,136 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   }
 
   /**
+   * 動的WHERE句と詳細フィルターでページング検索を実行し、結果をこのLotに保持します.
+   *
+   * <p>全文検索条件と詳細フィルター条件をマージしたWHERE句でページング検索を実行します。
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param selectSqlPrefix SELECT句から WHERE句の直前までのSQL（例：SELECT ... FROM ... INNER JOIN ... WHERE）
+   * @param whereClauseWithoutWhere マージされたWHERE句（WHEREキーワード含まない）
+   * @param likeParams 全文検索のLIKEパラメータリスト
+   * @param filterParams 詳細フィルターのパラメータリスト
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException
+   */
+  protected void selectByDynamicWhereWithFilterPaged(
+      final Connection connection,
+      final String tenantId,
+      final String selectSqlPrefix,
+      final String whereClauseWithoutWhere,
+      final List<String> likeParams,
+      final List<Object> filterParams,
+      final int page,
+      final int size)
+      throws SQLException {
+    this.entityLot = new ArrayList<>();
+    if (connection == null || selectSqlPrefix == null || whereClauseWithoutWhere == null) {
+      return;
+    }
+
+    // (1) 件数用 SQL 構築（tenantId フィルターなし）
+    final String fullSelect = selectSqlPrefix + whereClauseWithoutWhere;
+    final String countSql = toCountSql(fullSelect);
+
+    // tenant_id フィルターを追加して実行
+    final String filteredCountSql = addTenantIdFilter(countSql, tenantId);
+    try (PreparedStatement preparedStatement = connection.prepareStatement(filteredCountSql)) {
+      int paramIndex = 1;
+      // 全文検索パラメータをバインド
+      if (likeParams != null) {
+        for (String p : likeParams) {
+          preparedStatement.setString(paramIndex++, p);
+        }
+      }
+      // 詳細フィルターパラメータをバインド
+      if (filterParams != null) {
+        for (Object param : filterParams) {
+          bindParameter(preparedStatement, paramIndex++, param);
+        }
+      }
+      setTenantIdParameter(preparedStatement, paramIndex, tenantId);
+
+      logSql(filteredCountSql);
+
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        if (resultSet.next()) {
+          this.totalCount = resultSet.getLong(1);
+        }
+      }
+    }
+
+    this.pageSize = size;
+    this.currentPageIndex = page;
+
+    if (this.totalCount == 0) {
+      return;
+    }
+
+    // (2) ページング用 SQL（tenantId フィルターなし）
+    final String pagedSql = fullSelect + " LIMIT ? OFFSET ?";
+    final String filteredPagedSql = addTenantIdFilter(pagedSql, tenantId);
+
+    // executeQueryWithoutTenantFilter を使用（filteredPagedSql に既にテナントフィルターが含まれている）
+    List<E> results =
+        executeQueryWithoutTenantFilter(
+            connection,
+            filteredPagedSql,
+            this::mapResultSet,
+            (stmt, paramIndex) -> {
+              int idx = paramIndex;
+              // 全文検索パラメータをバインド
+              if (likeParams != null) {
+                for (String p : likeParams) {
+                  stmt.setString(idx++, p);
+                }
+              }
+              // 詳細フィルターパラメータをバインド
+              if (filterParams != null) {
+                for (Object param : filterParams) {
+                  bindParameter(stmt, idx++, param);
+                }
+              }
+              stmt.setString(idx++, tenantId);
+              stmt.setInt(idx++, size);
+              stmt.setInt(idx, (page - 1) * size);
+              return idx + 1;
+            });
+    this.entityLot.addAll(results);
+  }
+
+  /**
+   * PreparedStatementにパラメータを型に応じてバインドするヘルパーメソッド.
+   *
+   * @param stmt PreparedStatement
+   * @param paramIndex パラメータインデックス（1-based）
+   * @param param バインドするパラメータ値
+   * @throws SQLException
+   */
+  private void bindParameter(
+      final PreparedStatement stmt, final int paramIndex, final Object param)
+      throws SQLException {
+    if (param instanceof java.math.BigDecimal) {
+      stmt.setBigDecimal(paramIndex, (java.math.BigDecimal) param);
+    } else if (param instanceof java.sql.Timestamp) {
+      stmt.setTimestamp(paramIndex, (java.sql.Timestamp) param);
+    } else if (param instanceof Enum<?>) {
+      stmt.setString(paramIndex, ((Enum<?>) param).name());
+    } else if (param instanceof Integer) {
+      stmt.setInt(paramIndex, (Integer) param);
+    } else if (param instanceof String) {
+      stmt.setString(paramIndex, (String) param);
+    } else if (param instanceof Double) {
+      stmt.setDouble(paramIndex, (Double) param);
+    } else if (param instanceof Long) {
+      stmt.setLong(paramIndex, (Long) param);
+    } else {
+      stmt.setObject(paramIndex, param);
+    }
+  }
+
+  /**
    * 条件を指定して件数を取得します.
    *
    * @param connection DBコネクション

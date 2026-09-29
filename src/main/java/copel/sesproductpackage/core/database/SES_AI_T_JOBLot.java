@@ -1,5 +1,11 @@
 package copel.sesproductpackage.core.database;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
 import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.search.FulltextCondition;
 import copel.sesproductpackage.core.search.FulltextConditionsWhereClause;
@@ -9,11 +15,6 @@ import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * 【Entityクラス】 案件情報(SES_AI_T_JOB)テーブルのLotクラス.
@@ -709,7 +710,6 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       final int page,
       final int size)
       throws SQLException {
-    this.entityLot = new ArrayList<>();
     if (connection == null || conditions == null || conditions.isEmpty()) {
       return;
     }
@@ -734,95 +734,17 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       mergedWhere.append(detailFilterWhere.getWhereClauseWithoutWhereKeyword());
     }
 
-    // (4) 全件数を取得
-    String countSql = "SELECT COUNT(*) FROM SES_AI_T_JOB WHERE " + mergedWhere.toString();
-    countSql = addTenantIdFilter(countSql, tenantId);
-
-    try (PreparedStatement countStmt = connection.prepareStatement(countSql)) {
-      int paramIndex = 1;
-      // 全文検索パラメータ
-      for (String likeParam : ftBuilt.getLikeParams()) {
-        countStmt.setString(paramIndex++, likeParam);
-      }
-      // 詳細フィルターパラメータ
-      for (Object param : detailFilterWhere.getParams()) {
-        if (param instanceof Money) {
-          countStmt.setBigDecimal(paramIndex++, ((Money) param).getValue());
-        } else if (param instanceof OriginalDateTime) {
-          countStmt.setTimestamp(paramIndex++, ((OriginalDateTime) param).toTimestamp());
-        } else if (param instanceof Area) {
-          countStmt.setString(paramIndex++, ((Area) param).name());
-        } else if (param instanceof Integer) {
-          countStmt.setInt(paramIndex++, (Integer) param);
-        } else if (param instanceof String) {
-          countStmt.setString(paramIndex++, (String) param);
-        } else if (param instanceof java.math.BigDecimal) {
-          countStmt.setBigDecimal(paramIndex++, (java.math.BigDecimal) param);
-        } else if (param instanceof java.sql.Timestamp) {
-          countStmt.setTimestamp(paramIndex++, (java.sql.Timestamp) param);
-        } else {
-          countStmt.setObject(paramIndex++, param);
-        }
-      }
-      setTenantIdParameter(countStmt, paramIndex, tenantId);
-
-      try (ResultSet resultSet = countStmt.executeQuery()) {
-        if (resultSet.next()) {
-          this.totalCount = resultSet.getLong(1);
-        }
-      }
-    }
-
-    this.pageSize = size;
-    this.currentPageIndex = page;
-
-    if (this.totalCount == 0) {
-      this.entityLot = new ArrayList<>();
-      return;
-    }
-
-    // (5) ページング実行
-    String pagedSql =
-        SELECT_RAW_CONTENT_FOR_FULLTEXT + mergedWhere.toString() + " LIMIT ? OFFSET ?";
-    pagedSql = addTenantIdFilter(pagedSql, tenantId);
-
-    List<SES_AI_T_JOB> results =
-        executeQueryWithoutTenantFilter(
-            connection,
-            pagedSql,
-            this::mapResultSet,
-            (stmt, paramIndex) -> {
-              int idx = paramIndex;
-              // 全文検索パラメータ
-              for (String likeParam : ftBuilt.getLikeParams()) {
-                stmt.setString(idx++, likeParam);
-              }
-              // 詳細フィルターパラメータ
-              for (Object param : detailFilterWhere.getParams()) {
-                if (param instanceof Money) {
-                  stmt.setBigDecimal(idx++, ((Money) param).getValue());
-                } else if (param instanceof OriginalDateTime) {
-                  stmt.setTimestamp(idx++, ((OriginalDateTime) param).toTimestamp());
-                } else if (param instanceof Area) {
-                  stmt.setString(idx++, ((Area) param).name());
-                } else if (param instanceof Integer) {
-                  stmt.setInt(idx++, (Integer) param);
-                } else if (param instanceof String) {
-                  stmt.setString(idx++, (String) param);
-                } else if (param instanceof java.math.BigDecimal) {
-                  stmt.setBigDecimal(idx++, (java.math.BigDecimal) param);
-                } else if (param instanceof java.sql.Timestamp) {
-                  stmt.setTimestamp(idx++, (java.sql.Timestamp) param);
-                } else {
-                  stmt.setObject(idx++, param);
-                }
-              }
-              stmt.setString(idx++, tenantId);
-              stmt.setInt(idx++, size);
-              stmt.setInt(idx, (page - 1) * size);
-              return idx + 1;
-            });
-    this.entityLot = results;
+    // (4) selectByDynamicWhereWithFilterPagedを呼び出してページング検索を実行
+    // 全文検索パラメータと詳細フィルターパラメータをマージしてLotに保持
+    this.selectByDynamicWhereWithFilterPaged(
+        connection,
+        tenantId,
+        SELECT_RAW_CONTENT_FOR_FULLTEXT,
+        mergedWhere.toString(),
+        ftBuilt.getLikeParams(),
+        detailFilterWhere.getParams(),
+        page,
+        size);
   }
 
   /**
@@ -871,97 +793,153 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
             + "FROM SES_AI_T_JOB "
             + "WHERE "
             + whereClause.toString()
-            + " ORDER BY distance ASC LIMIT ? OFFSET ?";
+            + " ORDER BY distance ASC";
 
-    // (4) 全件数を取得
-    String countSql =
-        "SELECT COUNT(*) FROM SES_AI_T_JOB WHERE " + whereClause.toString();
-    countSql = addTenantIdFilter(countSql, tenantId);
+    // (4) COUNT SQL用の部分SQL（ベクトル距離計算とフィルター条件を含む）
+    String countQueryPart = "SES_AI_T_JOB WHERE " + whereClause.toString();
 
-    java.sql.PreparedStatement countStmt = null;
-    try {
-      countStmt = connection.prepareStatement(countSql);
-      int paramIndex = 1;
-      String vectorStr = query.toString();
-      countStmt.setString(paramIndex++, vectorStr);
-      countStmt.setDouble(paramIndex++, similarityThreshold);
-      for (Object param : detailFilterWhere.getParams()) {
-        if (param instanceof Money) {
-          countStmt.setBigDecimal(paramIndex++, ((Money) param).getValue());
-        } else if (param instanceof OriginalDateTime) {
-          countStmt.setTimestamp(paramIndex++, ((OriginalDateTime) param).toTimestamp());
-        } else if (param instanceof Area) {
-          countStmt.setString(paramIndex++, ((Area) param).name());
-        } else if (param instanceof Integer) {
-          countStmt.setInt(paramIndex++, (Integer) param);
-        } else if (param instanceof String) {
-          countStmt.setString(paramIndex++, (String) param);
-        } else if (param instanceof java.math.BigDecimal) {
-          countStmt.setBigDecimal(paramIndex++, (java.math.BigDecimal) param);
-        } else if (param instanceof java.sql.Timestamp) {
-          countStmt.setTimestamp(paramIndex++, (java.sql.Timestamp) param);
-        } else {
-          countStmt.setObject(paramIndex++, param);
+    // (5) executeRetrieveWithFilterPagedを呼び出してページング検索を実行
+    // 詳細フィルターパラメータをメソッドに渡す
+    this.executeRetrieveWithFilterPaged(
+        connection,
+        tenantId,
+        sql,
+        query,
+        detailFilterWhere.getParams(),
+        similarityThreshold,
+        page,
+        size,
+        countQueryPart);
+  }
+
+  /**
+   * ベクトル検索を詳細フィルター条件付きでページング実行します（動的パラメータ対応版）.
+   *
+   * <p>ベクトル検索に動的な詳細フィルター条件を追加して実行します。
+   * tenant_id フィルター、PreparedStatement 実行をこのメソッドが一元的に処理します。
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param sql ベクトル検索SQL
+   * @param query 検索ベクトル
+   * @param filterParams 詳細フィルターのパラメータリスト
+   * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @param countQueryPart COUNT SQL用の部分SQL
+   * @throws SQLException
+   */
+  private void executeRetrieveWithFilterPaged(
+      final Connection connection,
+      final String tenantId,
+      final String sql,
+      final Vector query,
+      final List<Object> filterParams,
+      final double similarityThreshold,
+      final int page,
+      final int size,
+      final String countQueryPart)
+      throws SQLException {
+    if (connection == null || query == null) {
+      return;
+    }
+
+    // (1) 全件数を取得 (countQueryPart があれば、tenant_id フィルターを適用)
+    if (countQueryPart != null) {
+      String countSql = "SELECT COUNT(*) FROM " + countQueryPart;
+      countSql = addTenantIdFilter(countSql, tenantId);
+      try (java.sql.PreparedStatement preparedStatement = connection.prepareStatement(countSql)) {
+        int paramIndex = 1;
+        String vectorStr = query.toString();
+        preparedStatement.setString(paramIndex++, vectorStr);
+        preparedStatement.setDouble(paramIndex++, similarityThreshold);
+        // 詳細フィルターパラメータをバインド
+        if (filterParams != null) {
+          for (Object param : filterParams) {
+            bindParameter(preparedStatement, paramIndex++, param);
+          }
+        }
+        setTenantIdParameter(preparedStatement, paramIndex, tenantId);
+        try (java.sql.ResultSet resultSet = preparedStatement.executeQuery()) {
+          if (resultSet.next()) {
+            this.totalCount = resultSet.getLong(1);
+          }
         }
       }
-      setTenantIdParameter(countStmt, paramIndex, tenantId);
-
-      try (ResultSet resultSet = countStmt.executeQuery()) {
-        if (resultSet.next()) {
-          this.totalCount = resultSet.getLong(1);
-        }
-      }
-    } finally {
-      if (countStmt != null) {
-        countStmt.close();
-      }
+    } else {
+      this.totalCount = size;
     }
 
     this.pageSize = size;
     this.currentPageIndex = page;
 
-    if (this.totalCount == 0) {
-      this.entityLot = new ArrayList<>();
+    if (this.totalCount == 0 && countQueryPart != null) {
       return;
     }
 
-    // (5) ページング実行
-    String pagedSql = addTenantIdFilter(sql, tenantId);
+    // (2) ページング実行（tenant_id フィルターを適用）
+    String pagedSql = sql + " LIMIT ? OFFSET ?";
     List<SES_AI_T_JOB> results =
-        executeQueryWithoutTenantFilter(
+        executeQuery(
             connection,
             pagedSql,
+            tenantId,
             this::mapResultSet,
             (stmt, paramIndex) -> {
               int idx = paramIndex;
               String vectorStr = query.toString();
-              stmt.setString(idx++, vectorStr);
-              stmt.setDouble(idx++, similarityThreshold);
-              for (Object param : detailFilterWhere.getParams()) {
-                if (param instanceof Money) {
-                  stmt.setBigDecimal(idx++, ((Money) param).getValue());
-                } else if (param instanceof OriginalDateTime) {
-                  stmt.setTimestamp(idx++, ((OriginalDateTime) param).toTimestamp());
-                } else if (param instanceof Area) {
-                  stmt.setString(idx++, ((Area) param).name());
-                } else if (param instanceof Integer) {
-                  stmt.setInt(idx++, (Integer) param);
-                } else if (param instanceof String) {
-                  stmt.setString(idx++, (String) param);
-                } else if (param instanceof java.math.BigDecimal) {
-                  stmt.setBigDecimal(idx++, (java.math.BigDecimal) param);
-                } else if (param instanceof java.sql.Timestamp) {
-                  stmt.setTimestamp(idx++, (java.sql.Timestamp) param);
-                } else {
-                  stmt.setObject(idx++, param);
+              stmt.setString(idx, vectorStr);
+              stmt.setString(idx + 1, vectorStr);
+              stmt.setDouble(idx + 2, similarityThreshold);
+              // 詳細フィルターパラメータをバインド
+              int filterParamStartIdx = idx + 3;
+              if (filterParams != null) {
+                for (int i = 0; i < filterParams.size(); i++) {
+                  bindParameter(stmt, filterParamStartIdx + i, filterParams.get(i));
                 }
               }
-              stmt.setString(idx++, tenantId);
-              stmt.setInt(idx++, size);
-              stmt.setInt(idx, (page - 1) * size);
-              return idx + 1;
+              int nextIdx = filterParamStartIdx + (filterParams != null ? filterParams.size() : 0);
+              stmt.setInt(nextIdx, size);
+              stmt.setInt(nextIdx + 1, (page - 1) * size);
+              return nextIdx + 2;
             });
     this.entityLot = results;
+  }
+
+  /**
+   * PreparedStatementにパラメータを型に応じてバインドするヘルパーメソッド.
+   *
+   * @param stmt PreparedStatement
+   * @param paramIndex パラメータインデックス（1-based）
+   * @param param バインドするパラメータ値
+   * @throws SQLException
+   */
+  private void bindParameter(
+      final java.sql.PreparedStatement stmt, final int paramIndex, final Object param)
+      throws SQLException {
+    if (param instanceof Money) {
+      stmt.setBigDecimal(paramIndex, ((Money) param).getValue());
+    } else if (param instanceof OriginalDateTime) {
+      stmt.setTimestamp(paramIndex, ((OriginalDateTime) param).toTimestamp());
+    } else if (param instanceof Area) {
+      stmt.setString(paramIndex, ((Area) param).name());
+    } else if (param instanceof Integer) {
+      stmt.setInt(paramIndex, (Integer) param);
+    } else if (param instanceof String) {
+      stmt.setString(paramIndex, (String) param);
+    } else if (param instanceof java.math.BigDecimal) {
+      stmt.setBigDecimal(paramIndex, (java.math.BigDecimal) param);
+    } else if (param instanceof java.sql.Timestamp) {
+      stmt.setTimestamp(paramIndex, (java.sql.Timestamp) param);
+    } else if (param instanceof Enum<?>) {
+      stmt.setString(paramIndex, ((Enum<?>) param).name());
+    } else if (param instanceof Double) {
+      stmt.setDouble(paramIndex, (Double) param);
+    } else if (param instanceof Long) {
+      stmt.setLong(paramIndex, (Long) param);
+    } else {
+      stmt.setObject(paramIndex, param);
+    }
   }
 
   /**
