@@ -488,7 +488,7 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
     // 3. 国籍
     sb.append("■国籍: ").append(this.nationality).append("\n");
     // 4. 稼働開始可能月
-    if (this.startDate != null) {
+    if (this.startDate != null && !this.startDate.isEmpty()) {
       sb.append("■開始: ").append(this.startDate.month()).append("月\n");
     }
     // 5. 単価
@@ -502,7 +502,7 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
     // 6. 所属形態
     // TODO: organizationの型をOrganization型にし、1社インクリメントしてセットする実装をする
     // 7. 場所
-    if (this.place != null) {
+    if (this.place != null && !this.place.isEmpty()) {
       sb.append("■場所: ").append(this.place).append("\n");
     }
     // 8. 出社可否
@@ -516,6 +516,10 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
     // 9. 経歴
     if (this.experiences != null && !this.experiences.isEmpty()) {
       sb.append("■経歴\n").append(this.experiences);
+    }
+    // 7. 場所
+    if (this.url != null && !this.url.isEmpty()) {
+      sb.append("■URL: ").append(this.url).append("\n");
     }
     return sb.toString();
   }

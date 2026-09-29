@@ -256,7 +256,7 @@ public class SES_AI_T_MATCH extends EntityBase {
     StringBuilder sb = new StringBuilder();
     sb.append(this.mustEvaluationText);
     if (this.wantEvaluationText != null && !this.wantEvaluationText.isEmpty()) {
-      sb.append("\n").append(this.mustEvaluationText);
+      sb.append("\n").append(this.wantEvaluationText);
     }
     return sb.toString();
   }
