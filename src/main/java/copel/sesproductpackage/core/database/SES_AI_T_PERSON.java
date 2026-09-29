@@ -515,7 +515,7 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
     }
     // 9. 経歴
     if (this.experiences != null && !this.experiences.isEmpty()) {
-      sb.append("■経歴\n").append(this.experiences);
+      sb.append("■経歴\n").append(this.experiences).append("\n");
     }
     // 7. 場所
     if (this.url != null && !this.url.isEmpty()) {
