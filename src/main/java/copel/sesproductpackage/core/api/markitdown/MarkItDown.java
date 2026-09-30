@@ -7,6 +7,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import copel.sesproductpackage.core.util.Properties;
 import copel.sesproductpackage.core.util.SsmParameterKey;
+import java.util.Locale;
+import java.util.concurrent.TimeoutException;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -112,6 +114,178 @@ public final class MarkItDown {
       log.error("markitdown-lambda の invoke に失敗しました: {}", e.getMessage());
       throw new IllegalStateException("Lambda の呼び出しに失敗しました。", e);
     }
+  }
+
+  /**
+   * markitdown-lambda の検証結果ステータス.
+   *
+   * @author Copel Co., Ltd.
+   */
+  public enum ValidationStatus {
+    /** 正常に Markdown が抽出できた. */
+    SUCCESS,
+    /** サイズ上限超過またはタイムアウト. */
+    TOO_LARGE_OR_TIMEOUT,
+    /** 解析不能（未対応形式、アクセス権限エラー、空 Markdown 等）. */
+    PARSE_FAILED
+  }
+
+  /**
+   * markitdown-lambda による解析可否の検証結果オブジェクト.
+   *
+   * @author Copel Co., Ltd.
+   */
+  @Data
+  @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
+  public static class ValidationResult {
+
+    /** 検証ステータス. */
+    private ValidationStatus status;
+
+    /** 抽出された Markdown（正常時）. */
+    private String markdown;
+
+    /** エラーメッセージ（失敗時）. */
+    private String errorMessage;
+
+    /**
+     * 正常に Markdown が抽出できたかどうかを判定する.
+     *
+     * @return 正常時は {@code true}、それ以外は {@code false}
+     */
+    public boolean isSuccess() {
+      return status == ValidationStatus.SUCCESS;
+    }
+
+    /**
+     * サイズ上限超過またはタイムアウトかどうかを判定する.
+     *
+     * @return サイズ上限超過またはタイムアウト時は {@code true}、それ以外は {@code false}
+     */
+    public boolean isTooLargeOrTimeout() {
+      return status == ValidationStatus.TOO_LARGE_OR_TIMEOUT;
+    }
+
+    /**
+     * 解析不能（未対応形式、アクセス権限エラー、空 Markdown 等）かどうかを判定する.
+     *
+     * @return 解析不能時は {@code true}、それ以外は {@code false}
+     */
+    public boolean isParseFailed() {
+      return status == ValidationStatus.PARSE_FAILED;
+    }
+  }
+
+  /**
+   * markitdown-lambda で指定されたリクエストが解析可能かを検証する.
+   *
+   * @param request 検証対象のリクエスト（SPEC 3.1）
+   * @return 検証結果オブジェクト
+   */
+  public static ValidationResult validate(final MarkitdownLambdaRequestEntity request) {
+    try {
+      final MarkitdownLambdaResponseEntity res = invoke(request);
+      if (res != null
+          && res.isSuccess()
+          && res.getMarkdown() != null
+          && !res.getMarkdown().isBlank()) {
+        return ValidationResult.builder()
+            .status(ValidationStatus.SUCCESS)
+            .markdown(res.getMarkdown())
+            .build();
+      }
+
+      final String errorMessage;
+      final String checkTarget;
+      if (res != null && res.getError() != null) {
+        final String msg = res.getError().getMessage();
+        final String type = res.getError().getType();
+        errorMessage = msg != null ? msg : (type != null ? type : "解析に失敗しました。");
+        checkTarget = (type != null ? type + " " : "") + (msg != null ? msg : "");
+      } else if (res != null && res.isSuccess()) {
+        errorMessage = "Markdownの抽出結果が空です。";
+        checkTarget = errorMessage;
+      } else {
+        errorMessage = "解析に失敗しました。";
+        checkTarget = errorMessage;
+      }
+
+      if (containsTooLargeOrTimeoutKeyword(checkTarget)) {
+        return ValidationResult.builder()
+            .status(ValidationStatus.TOO_LARGE_OR_TIMEOUT)
+            .errorMessage(errorMessage)
+            .build();
+      }
+
+      return ValidationResult.builder()
+          .status(ValidationStatus.PARSE_FAILED)
+          .errorMessage(errorMessage)
+          .build();
+    } catch (final Exception e) {
+      log.warn("markitdown-lambda の検証実行中に例外が発生しました: {}", e.getMessage(), e);
+      final String errorMessage = e.getMessage();
+      Throwable current = e;
+      while (current != null) {
+        if (current instanceof TimeoutException
+            || containsTooLargeOrTimeoutKeyword(current.getMessage())) {
+          return ValidationResult.builder()
+              .status(ValidationStatus.TOO_LARGE_OR_TIMEOUT)
+              .errorMessage(errorMessage)
+              .build();
+        }
+        current = current.getCause();
+      }
+      return ValidationResult.builder()
+          .status(ValidationStatus.PARSE_FAILED)
+          .errorMessage(errorMessage)
+          .build();
+    }
+  }
+
+  /**
+   * URL を指定して markitdown-lambda で解析可能かを事前に検証する便利用メソッド.
+   *
+   * @param url 解析対象の URL
+   * @return 検証結果オブジェクト
+   */
+  public static ValidationResult validateUrl(final String url) {
+    return validate(MarkitdownLambdaRequestEntity.builder().url(url).build());
+  }
+
+  /**
+   * Base64 エンコードされたファイルコンテンツとファイル名を指定して markitdown-lambda で解析可能かを事前に検証する便利用メソッド.
+   *
+   * @param fileBase64 ファイルの Base64 エンコード文字列
+   * @param filename 元ファイル名（拡張子付き推奨）
+   * @return 検証結果オブジェクト
+   */
+  public static ValidationResult validateFile(final String fileBase64, final String filename) {
+    return validate(
+        MarkitdownLambdaRequestEntity.builder().fileBase64(fileBase64).filename(filename).build());
+  }
+
+  /**
+   * 文字列にサイズ上限超過またはタイムアウトを示すキーワードが含まれているかを判定する.
+   *
+   * @param text 判定対象の文字列
+   * @return キーワードが含まれている場合は {@code true}、それ以外は {@code false}
+   */
+  private static boolean containsTooLargeOrTimeoutKeyword(final String text) {
+    if (text == null || text.isBlank()) {
+      return false;
+    }
+    final String lower = text.toLowerCase(Locale.ROOT);
+    return lower.contains("上限")
+        || lower.contains("too large")
+        || lower.contains("payload too large")
+        || lower.contains("payload size")
+        || lower.contains("request payload")
+        || lower.contains("exceeds limit")
+        || lower.contains("413")
+        || lower.contains("timed out")
+        || lower.contains("timeout");
   }
 
   /**
