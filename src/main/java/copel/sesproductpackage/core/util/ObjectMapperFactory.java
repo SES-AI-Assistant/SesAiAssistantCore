@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import java.io.IOException;
 
@@ -19,6 +20,7 @@ public class ObjectMapperFactory {
    */
   private static ObjectMapper createGptObjectMapper() {
     ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
     SimpleModule module = new SimpleModule();
     // 変数宣言で型を明示する
     JsonDeserializer<String> stringDeserializer =
