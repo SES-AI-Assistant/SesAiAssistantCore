@@ -883,8 +883,6 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
                   bindParameter(stmt, idx++, param);
                 }
               }
-              // tenant_id をバインド（WHERE 句の p.tenant_id = ?）
-              stmt.setString(idx++, tenantId);
               // LIMIT と OFFSET をバインド
               stmt.setInt(idx++, size);
               stmt.setInt(idx++, (page - 1) * size);
