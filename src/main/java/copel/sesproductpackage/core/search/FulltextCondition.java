@@ -1,12 +1,14 @@
 package copel.sesproductpackage.core.search;
 
 import java.util.Objects;
+import lombok.NoArgsConstructor;
 
 /**
  * 全文検索 API の 1 条件（operator / keyword / negated）.
  *
  * <p>先頭要素の {@code operator} は解釈に用いない想定です。
  */
+@NoArgsConstructor(force = true)
 public final class FulltextCondition {
   private final String operator;
   private final String keyword;
