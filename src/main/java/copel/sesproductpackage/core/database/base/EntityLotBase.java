@@ -861,13 +861,13 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
 
     // (2) ページング用 SQL（tenantId フィルターなし）
     final String pagedSql = fullSelect + " LIMIT ? OFFSET ?";
-    final String filteredPagedSql = addTenantIdFilter(pagedSql, tenantId);
 
-    // executeQueryWithoutTenantFilter を使用（filteredPagedSql に既にテナントフィルターが含まれている）
+    // executeQuery を使用（Base側が自動的にtenantIdフィルターを処理）
     List<E> results =
-        executeQueryWithoutTenantFilter(
+        executeQuery(
             connection,
-            filteredPagedSql,
+            pagedSql,
+            tenantId,
             this::mapResultSet,
             (stmt, paramIndex) -> {
               int idx = paramIndex;
@@ -883,7 +883,6 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
                   bindParameter(stmt, idx++, param);
                 }
               }
-              stmt.setString(idx++, tenantId);
               stmt.setInt(idx++, size);
               stmt.setInt(idx, (page - 1) * size);
               return idx + 1;
@@ -1390,6 +1389,8 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
 
     try (PreparedStatement stmt = conn.prepareStatement(sql)) {
       binder.bind(stmt, 1);
+
+      logSql(sql);
 
       List<E> results = new ArrayList<>();
       try (ResultSet rs = stmt.executeQuery()) {
