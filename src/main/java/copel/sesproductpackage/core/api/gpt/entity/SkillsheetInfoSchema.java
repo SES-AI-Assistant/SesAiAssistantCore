@@ -16,17 +16,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SkillsheetInfoSchema {
-  /**
-   * 期間判定用正規表現文字列.
-   * 「N年」「Nヶ月」「N年Nヶ月」の3種類（表記揺らぎ「[ヶケカヵか]?月」も許容）にマッチする.
-   */
+  /** 期間判定用正規表現文字列. 「N年」「Nヶ月」「N年Nヶ月」の3種類（表記揺らぎ「[ヶケカヵか]?月」も許容）にマッチする. */
   public static final String DURATION_REGEX =
       "^([1-9][0-9]*年([1-9][0-9]*[ヶケカヵか]?月)?|[1-9][0-9]*[ヶケカヵか]?月)$";
 
-  /**
-   * 期間判定用正規表現パターン.
-   * 「N年」「Nヶ月」「N年Nヶ月」の3種類（表記揺らぎ「[ヶケカヵか]?月」も許容）にマッチする.
-   */
+  /** 期間判定用正規表現パターン. 「N年」「Nヶ月」「N年Nヶ月」の3種類（表記揺らぎ「[ヶケカヵか]?月」も許容）にマッチする. */
   private static final Pattern DURATION_PATTERN = Pattern.compile(DURATION_REGEX);
 
   @Schema(

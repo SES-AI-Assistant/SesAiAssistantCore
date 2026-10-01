@@ -1,11 +1,5 @@
 package copel.sesproductpackage.core.database;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-
 import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.search.FulltextCondition;
 import copel.sesproductpackage.core.search.FulltextConditionsWhereClause;
@@ -15,6 +9,11 @@ import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 【Entityクラス】 案件情報(SES_AI_T_JOB)テーブルのLotクラス.
@@ -330,7 +329,8 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       final Money price,
       final OriginalDateTime startDate)
       throws SQLException {
-    this.searchByRawContentWithFilterPaged(connection, tenantId, query, price, startDate, 1, Integer.MAX_VALUE);
+    this.searchByRawContentWithFilterPaged(
+        connection, tenantId, query, price, startDate, 1, Integer.MAX_VALUE);
   }
 
   /**
@@ -396,7 +396,15 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       final Area area)
       throws SQLException {
     this.searchByRawContentWithFilterPaged(
-        connection, tenantId, query, price, startDate, officeRequirements, area, 1, Integer.MAX_VALUE);
+        connection,
+        tenantId,
+        query,
+        price,
+        startDate,
+        officeRequirements,
+        area,
+        1,
+        Integer.MAX_VALUE);
   }
 
   /**
@@ -530,7 +538,8 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       double similarityThreshold,
       int limit)
       throws SQLException {
-    this.retrieveWithFilterPaged(connection, tenantId, query, price, startDate, similarityThreshold, 1, limit);
+    this.retrieveWithFilterPaged(
+        connection, tenantId, query, price, startDate, similarityThreshold, 1, limit);
   }
 
   /**
@@ -612,7 +621,16 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       int limit)
       throws SQLException {
     this.retrieveWithFilterPaged(
-        connection, tenantId, query, price, startDate, officeAvailability, area, similarityThreshold, 1, limit);
+        connection,
+        tenantId,
+        query,
+        price,
+        startDate,
+        officeAvailability,
+        area,
+        similarityThreshold,
+        1,
+        limit);
   }
 
   /**
@@ -815,8 +833,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   /**
    * ベクトル検索を詳細フィルター条件付きでページング実行します（動的パラメータ対応版）.
    *
-   * <p>ベクトル検索に動的な詳細フィルター条件を追加して実行します。
-   * tenant_id フィルター、PreparedStatement 実行をこのメソッドが一元的に処理します。
+   * <p>ベクトル検索に動的な詳細フィルター条件を追加して実行します。 tenant_id フィルター、PreparedStatement 実行をこのメソッドが一元的に処理します。
    *
    * @param connection DBコネクション
    * @param tenantId テナントID
@@ -969,7 +986,10 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
     sesAiTJob.setPlace(resultSet.getString("place"));
     String areaStr = resultSet.getString("area");
     sesAiTJob.setArea(areaStr == null ? null : Area.valueOf(areaStr));
-    sesAiTJob.setOfficeRequirements(resultSet.getObject("office_requirements") == null ? null : resultSet.getInt("office_requirements"));
+    sesAiTJob.setOfficeRequirements(
+        resultSet.getObject("office_requirements") == null
+            ? null
+            : resultSet.getInt("office_requirements"));
     sesAiTJob.setOtherRequirements(resultSet.getString("other_requirements"));
     sesAiTJob.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
     sesAiTJob.setRegisterUser(resultSet.getString("register_user"));

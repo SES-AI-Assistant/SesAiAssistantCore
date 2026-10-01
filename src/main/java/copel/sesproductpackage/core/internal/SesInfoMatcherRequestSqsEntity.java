@@ -17,7 +17,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
 
 /**
  * AwsLambdaSesInfoMatcherに付帯するSQSへのリクエストEntityクラス.

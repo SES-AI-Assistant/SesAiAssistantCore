@@ -563,8 +563,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
   /**
    * ベクトル検索を詳細フィルター条件付きでページング実行します（動的パラメータ対応版）.
    *
-   * <p>ベクトル検索に動的な詳細フィルター条件を追加して実行します。
-   * tenant_id フィルター、PreparedStatement 実行をこのメソッドが一元的に処理します。
+   * <p>ベクトル検索に動的な詳細フィルター条件を追加して実行します。 tenant_id フィルター、PreparedStatement 実行をこのメソッドが一元的に処理します。
    *
    * @param connection DBコネクション
    * @param tenantId テナントID
@@ -1152,9 +1151,10 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
             + " ORDER BY distance ASC";
 
     // (4) COUNT SQL用の部分SQL（ベクトル距離計算とフィルター条件を含む）
-    String countQueryPart = "SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
-        + "WHERE "
-        + whereClause.toString();
+    String countQueryPart =
+        "SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
+            + "WHERE "
+            + whereClause.toString();
 
     // (5) executeRetrieveWithFilterPagedを呼び出してページング検索を実行
     // 詳細フィルターパラメータをメソッドに渡す

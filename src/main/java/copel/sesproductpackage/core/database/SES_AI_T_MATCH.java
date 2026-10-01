@@ -1,16 +1,15 @@
 package copel.sesproductpackage.core.database;
 
-import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.UUID;
-
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.MatchingStatus;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
+import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.UUID;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -124,16 +123,18 @@ public class SES_AI_T_MATCH extends EntityBase {
   }
 
   /**
-   * 案件単価と要員単価から粗利益を計算してセットする.
-   * いずれかが未設定、または案件単価が単価不問（スキル見合い）の場合は null をセットする.
+   * 案件単価と要員単価から粗利益を計算してセットする. いずれかが未設定、または案件単価が単価不問（スキル見合い）の場合は null をセットする.
    *
    * @param jobMoney 案件単価
    * @param personMoney 要員単価
    * @author Copel Co., Ltd.
    */
   public void setProfit(Money jobMoney, Money personMoney) {
-    if (jobMoney == null || jobMoney.isEmpty() || jobMoney.isNegotiable()
-        || personMoney == null || personMoney.isEmpty()) {
+    if (jobMoney == null
+        || jobMoney.isEmpty()
+        || jobMoney.isNegotiable()
+        || personMoney == null
+        || personMoney.isEmpty()) {
       this.profit = null;
       return;
     }

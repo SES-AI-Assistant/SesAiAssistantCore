@@ -1,5 +1,12 @@
 package copel.sesproductpackage.core.database;
 
+import copel.sesproductpackage.core.database.base.Column;
+import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
+import copel.sesproductpackage.core.unit.Area;
+import copel.sesproductpackage.core.unit.Gender;
+import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.util.OriginalStringUtils;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -8,14 +15,6 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-
-import copel.sesproductpackage.core.database.base.Column;
-import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
-import copel.sesproductpackage.core.unit.Area;
-import copel.sesproductpackage.core.unit.Gender;
-import copel.sesproductpackage.core.unit.Money;
-import copel.sesproductpackage.core.unit.OriginalDateTime;
-import copel.sesproductpackage.core.util.OriginalStringUtils;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -388,7 +387,8 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
           this.place = rs.getString("place");
           String areaStr = rs.getString("area");
           this.area = areaStr == null ? null : Area.valueOf(areaStr);
-          this.officeAvailability = rs.getObject("office_availability") == null ? null : rs.getInt("office_availability");
+          this.officeAvailability =
+              rs.getObject("office_availability") == null ? null : rs.getInt("office_availability");
           this.organization = rs.getString("organization");
           this.experiences = rs.getString("experiences");
           this.otherRequirements = rs.getString("other_requirements");
@@ -424,8 +424,7 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
   /**
    * 要員情報を「名前/年齢歳/性別/単価万円」形式で返す.
    *
-   * プッシュ通知のメッセージテキストで要員を簡潔に表示する際に、
-   * 複数の情報フィールドを単一文字列に統合してペイロードを効率化する.
+   * <p>プッシュ通知のメッセージテキストで要員を簡潔に表示する際に、 複数の情報フィールドを単一文字列に統合してペイロードを効率化する.
    *
    * @return フォーマットされた要員情報（例：「佐藤 一郎/32歳/男性/80万円」）
    */
@@ -451,7 +450,9 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
    * @return その他条件リスト
    */
   public List<String> getOtherRequirementsAsList() {
-    return this.otherRequirements == null ? Arrays.asList() : Arrays.asList(this.otherRequirements.split("\n"));
+    return this.otherRequirements == null
+        ? Arrays.asList()
+        : Arrays.asList(this.otherRequirements.split("\n"));
   }
 
   /**
@@ -460,13 +461,14 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
    * @return NG条件リスト
    */
   public List<String> getNgRequirementsAsList() {
-    return this.ngRequirements == null ? Arrays.asList() : Arrays.asList(this.ngRequirements.split("\n"));
+    return this.ngRequirements == null
+        ? Arrays.asList()
+        : Arrays.asList(this.ngRequirements.split("\n"));
   }
 
   /**
    * 指定した単価に書き換えた要員サマリを作成する。提案用のため、その他条件やNG条件は除外する。
-   * 指定された単価がスキル見合い単価である場合、要員の単価に指定された乗数をかけた金額を記載する。（未指定の場合は1.1倍）
-   * 単価が未指定の場合は単価未記載のサマリを作成する。
+   * 指定された単価がスキル見合い単価である場合、要員の単価に指定された乗数をかけた金額を記載する。（未指定の場合は1.1倍） 単価が未指定の場合は単価未記載のサマリを作成する。
    *
    * @param targetPrice 指定単価
    * @param multiplier 単価倍率
@@ -475,6 +477,7 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
   public String getSummaryWithTargetPrice(Money targetPrice) {
     return getSummaryWithTargetPrice(targetPrice, 1.1);
   }
+
   public String getSummaryWithTargetPrice(Money targetPrice, double multiplier) {
     StringBuilder sb = new StringBuilder();
     // 1. 名前
@@ -494,9 +497,11 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
     // 5. 単価
     if (targetPrice != null && !targetPrice.isEmpty()) {
       if (targetPrice.isNegotiable()) {
-        sb.append("■単価: ").append(this.unitPrice.multiply(multiplier).toJapaneseFormat()).append("\n");
+        sb.append("■単価: ")
+            .append(this.unitPrice.multiply(multiplier).toJapaneseFormat())
+            .append("\n");
       } else {
-        sb.append("■単価: ").append(targetPrice.toJapaneseFormat()).append("\n");        
+        sb.append("■単価: ").append(targetPrice.toJapaneseFormat()).append("\n");
       }
     }
     // 6. 所属形態

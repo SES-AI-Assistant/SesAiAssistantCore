@@ -57,5 +57,4 @@ public enum RequestType {
         return OtherMessage;
     }
   }
-
 }

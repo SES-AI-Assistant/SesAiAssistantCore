@@ -1,5 +1,10 @@
 package copel.sesproductpackage.core.database;
 
+import copel.sesproductpackage.core.database.base.Column;
+import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
+import copel.sesproductpackage.core.unit.Area;
+import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -8,12 +13,6 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-
-import copel.sesproductpackage.core.database.base.Column;
-import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
-import copel.sesproductpackage.core.unit.Area;
-import copel.sesproductpackage.core.unit.Money;
-import copel.sesproductpackage.core.unit.OriginalDateTime;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -256,7 +255,8 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
           this.place = rs.getString("place");
           String areaStr = rs.getString("area");
           this.area = areaStr == null ? null : Area.valueOf(areaStr);
-          this.officeRequirements = rs.getObject("office_requirements") == null ? null : rs.getInt("office_requirements");
+          this.officeRequirements =
+              rs.getObject("office_requirements") == null ? null : rs.getInt("office_requirements");
           this.otherRequirements = rs.getString("other_requirements");
           this.registerDate = new OriginalDateTime(rs.getString("register_date"));
           this.registerUser = rs.getString("register_user");
@@ -327,8 +327,7 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
   /**
    * 案件概要を指定文字数で短縮した形で返す.
    *
-   * プッシュ通知のメッセージテキストで案件情報を表示する際、長い概要テキストを
-   * ペイロード制限内に収めるため、指定文字数以内に収めて末尾に省略記号を付ける.
+   * <p>プッシュ通知のメッセージテキストで案件情報を表示する際、長い概要テキストを ペイロード制限内に収めるため、指定文字数以内に収めて末尾に省略記号を付ける.
    *
    * @param maxLength 最大文字数
    * @return 短縮された案件概要。maxLength以下の場合はそのまま返す。超過時は末尾に「...」を付ける
@@ -367,12 +366,13 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
    * @return その他条件リスト
    */
   public List<String> getOtherRequirementsAsList() {
-    return this.otherRequirements == null ? Arrays.asList() : Arrays.asList(this.otherRequirements.split("\n"));
+    return this.otherRequirements == null
+        ? Arrays.asList()
+        : Arrays.asList(this.otherRequirements.split("\n"));
   }
 
   /**
-   * 指定した単価に書き換えた案件サマリを作成する。
-   * 指定された単価がスキル見合い単価である場合、案件の単価に指定された乗数をかけた金額を記載する。（未指定の場合は0.9倍）
+   * 指定した単価に書き換えた案件サマリを作成する。 指定された単価がスキル見合い単価である場合、案件の単価に指定された乗数をかけた金額を記載する。（未指定の場合は0.9倍）
    * 単価が未指定の場合は単価未記載のサマリを作成する。
    *
    * @param targetPrice 指定単価
@@ -382,6 +382,7 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
   public String getSummaryWithTargetPrice(Money targetPrice) {
     return getSummaryWithTargetPrice(targetPrice, 0.9);
   }
+
   public String getSummaryWithTargetPrice(Money targetPrice, double multiplier) {
     StringBuilder sb = new StringBuilder();
     // 1. 案件名
@@ -403,9 +404,11 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
     // 6. 単価
     if (targetPrice != null && !targetPrice.isEmpty()) {
       if (targetPrice.isNegotiable()) {
-        sb.append("■単価: ").append(this.unitPrice.multiply(multiplier).toJapaneseFormat()).append("\n");
+        sb.append("■単価: ")
+            .append(this.unitPrice.multiply(multiplier).toJapaneseFormat())
+            .append("\n");
       } else {
-        sb.append("■単価: ").append(targetPrice.toJapaneseFormat()).append("\n");        
+        sb.append("■単価: ").append(targetPrice.toJapaneseFormat()).append("\n");
       }
     }
     // 7. 出社要件、場所

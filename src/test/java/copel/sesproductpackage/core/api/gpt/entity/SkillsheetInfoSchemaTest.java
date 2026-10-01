@@ -295,14 +295,12 @@ class SkillsheetInfoSchemaTest {
     List<Experience> longExperiences = new ArrayList<>();
     // 1項目あたり約35文字 x 35個 = 約1225文字
     for (int i = 0; i < 35; i++) {
-      longExperiences.add(
-          new Experience("スキル項目名あいうえおかきくけこさしすせそたちつてとなにぬねの" + i, "10年"));
+      longExperiences.add(new Experience("スキル項目名あいうえおかきくけこさしすせそたちつてとなにぬねの" + i, "10年"));
     }
     schema.setExperiences(longExperiences);
 
     String result = schema.toSummaryText();
     assertEquals(1000, result.length());
-    assertTrue(
-        result.startsWith("■スキル・経験\n・スキル項目名あいうえおかきくけこさしすせそたちつてとなにぬねの0"));
+    assertTrue(result.startsWith("■スキル・経験\n・スキル項目名あいうえおかきくけこさしすせそたちつてとなにぬねの0"));
   }
 }

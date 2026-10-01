@@ -8,7 +8,6 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
@@ -185,8 +184,7 @@ public class Properties {
   }
 
   /**
-   * プロパティファイルをS3から読み込みます。
-   * キャッシュが有効な場合はスキップします（TTL: CACHE_TTL_MS プロパティで設定、デフォルト1日）。
+   * プロパティファイルをS3から読み込みます。 キャッシュが有効な場合はスキップします（TTL: CACHE_TTL_MS プロパティで設定、デフォルト1日）。
    *
    * @param s3Client S3クライアント
    */
@@ -229,8 +227,7 @@ public class Properties {
 
   /**
    * Parameter Store からパラメータを読み込みます。/nectar/{env}/ 以下のパラメータを全て読み込みます。 キー名が S3 のプロパティと被った場合は
-   * Parameter Store の値を優先します。
-   * キャッシュが有効な場合はスキップします（TTL: CACHE_TTL_MS プロパティで設定、デフォルト1日）。
+   * Parameter Store の値を優先します。 キャッシュが有効な場合はスキップします（TTL: CACHE_TTL_MS プロパティで設定、デフォルト1日）。
    *
    * @param ssmClient SSM クライアント
    */

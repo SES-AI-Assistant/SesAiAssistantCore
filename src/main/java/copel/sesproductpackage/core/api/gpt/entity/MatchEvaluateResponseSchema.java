@@ -1,9 +1,8 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
-import java.util.List;
-
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -111,27 +110,28 @@ public class MatchEvaluateResponseSchema {
    * 各項目の評価結果をもとに、決定論的なロジック演算によってマッチスコア（0〜100点）を算出する.
    *
    * <p><b>■ 配点構造（合計 100点満点）</b>
+   *
    * <ul>
-   *   <li><b>必須スキル（mustList）：最大 40点</b>
-   *       <br>各要素の達成率（FullyMet=1.0, PartiallyMet=0.4, NotMet/Unknown=0.0）の平均 × 40点。
-   *       <br>※未設定（nullまたは空）の場合は満点（40点）扱い。</li>
+   *   <li><b>必須スキル（mustList）：最大 40点</b> <br>
+   *       各要素の達成率（FullyMet=1.0, PartiallyMet=0.4, NotMet/Unknown=0.0）の平均 × 40点。 <br>
+   *       ※未設定（nullまたは空）の場合は満点（40点）扱い。
    *   <li><b>条件面評価：最大 30点</b>
    *       <ul>
-   *         <li>単価（priceResult）：適合で 10点 / 不可で 0点</li>
-   *         <li>出社要件（officeResult）：FullyMet=10点 / PartiallyMet=4点 / NotMet=0点</li>
-   *         <li>場所（placeResult）：FullyMet=5点 / PartiallyMet=2点 / NotMet=0点（※null時は5点）</li>
-   *         <li>人月工数（personMonthsResult）：適合で 5点 / 不可で 0点（※null時は5点）</li>
+   *         <li>単価（priceResult）：適合で 10点 / 不可で 0点
+   *         <li>出社要件（officeResult）：FullyMet=10点 / PartiallyMet=4点 / NotMet=0点
+   *         <li>場所（placeResult）：FullyMet=5点 / PartiallyMet=2点 / NotMet=0点（※null時は5点）
+   *         <li>人月工数（personMonthsResult）：適合で 5点 / 不可で 0点（※null時は5点）
    *       </ul>
-   *   </li>
-   *   <li><b>尚可スキル（wantList）：最大 20点</b>
-   *       <br>各要素の達成率の平均 × 20点。
-   *       <br>※未設定（nullまたは空）の場合は満点（20点）扱い。</li>
-   *   <li><b>その他の評価（otherList）：最大 10点</b>
-   *       <br>各要素の達成率の平均 × 10点。
-   *       <br>※未設定（nullまたは空）の場合は満点（10点）扱い。</li>
+   *   <li><b>尚可スキル（wantList）：最大 20点</b> <br>
+   *       各要素の達成率の平均 × 20点。 <br>
+   *       ※未設定（nullまたは空）の場合は満点（20点）扱い。
+   *   <li><b>その他の評価（otherList）：最大 10点</b> <br>
+   *       各要素の達成率の平均 × 10点。 <br>
+   *       ※未設定（nullまたは空）の場合は満点（10点）扱い。
    * </ul>
    *
    * <p><b>■ 計算例</b>
+   *
    * <pre>{@code
    * 【前提条件】
    * - isMatch() == true
@@ -153,9 +153,10 @@ public class MatchEvaluateResponseSchema {
     // 1. 必須スキルスコア（最大 40点 / null・空は40点満点）
     double mustScore = 40.0;
     if (this.mustList != null && !this.mustList.isEmpty()) {
-      double sum = this.mustList.stream()
-          .mapToDouble(m -> m.getResult() != null ? m.getResult().getRate() : 0.0)
-          .sum();
+      double sum =
+          this.mustList.stream()
+              .mapToDouble(m -> m.getResult() != null ? m.getResult().getRate() : 0.0)
+              .sum();
       mustScore = 40.0 * (sum / this.mustList.size());
     }
     // 2. 条件面スコア（最大 30点）
@@ -181,17 +182,19 @@ public class MatchEvaluateResponseSchema {
     // 3. 尚可スキルスコア（最大 20点 / null・空は20点満点）
     double wantScore = 20.0;
     if (this.wantList != null && !this.wantList.isEmpty()) {
-      double sum = this.wantList.stream()
-          .mapToDouble(w -> w.getResult() != null ? w.getResult().getRate() : 0.0)
-          .sum();
+      double sum =
+          this.wantList.stream()
+              .mapToDouble(w -> w.getResult() != null ? w.getResult().getRate() : 0.0)
+              .sum();
       wantScore = 20.0 * (sum / this.wantList.size());
     }
     // 4. その他スコア（最大 10点 / null・空は10点満点）
     double otherScore = 10.0;
     if (this.otherList != null && !this.otherList.isEmpty()) {
-      double sum = this.otherList.stream()
-          .mapToDouble(o -> o.getResult() != null ? o.getResult().getRate() : 0.0)
-          .sum();
+      double sum =
+          this.otherList.stream()
+              .mapToDouble(o -> o.getResult() != null ? o.getResult().getRate() : 0.0)
+              .sum();
       otherScore = 10.0 * (sum / this.otherList.size());
     }
     // 合計点の算出（四捨五入）
@@ -214,7 +217,10 @@ public class MatchEvaluateResponseSchema {
         sb.append("・")
             .append(must.getPerspective())
             .append("：")
-            .append(must.getResult() != null ? (must.getResult().getIcon() + "(" + must.getComment() + ")") : "-")
+            .append(
+                must.getResult() != null
+                    ? (must.getResult().getIcon() + "(" + must.getComment() + ")")
+                    : "-")
             .append("\n");
       }
     }
@@ -234,7 +240,10 @@ public class MatchEvaluateResponseSchema {
         sb.append("・")
             .append(must.getPerspective())
             .append("：")
-            .append(must.getResult() != null ? (must.getResult().getIcon() + "(" + must.getComment() + ")") : "-")
+            .append(
+                must.getResult() != null
+                    ? (must.getResult().getIcon() + "(" + must.getComment() + ")")
+                    : "-")
             .append("\n");
       }
     }
@@ -305,9 +314,8 @@ public class MatchEvaluateResponseSchema {
   /**
    * 評価結果を通知用のサマリーテキストに変換する.
    *
-   * プッシュ通知のペイロード制限（iOS/Android 各 4KB）の中で、マッチング評価の主要な判定項目を
-   * コンパクトに表示するために、必須スキル・条件面・尚可スキル・その他条件をアイコンと
-   * 簡潔なテキストで表現する.
+   * <p>プッシュ通知のペイロード制限（iOS/Android 各 4KB）の中で、マッチング評価の主要な判定項目を
+   * コンパクトに表示するために、必須スキル・条件面・尚可スキル・その他条件をアイコンと 簡潔なテキストで表現する.
    *
    * @return 評価サマリー（複数行のテキスト、各行は「・項目名：判定アイコン」形式）
    */
@@ -316,9 +324,7 @@ public class MatchEvaluateResponseSchema {
 
     // 必須スキル評価サマリー
     if (this.mustList != null && !this.mustList.isEmpty()) {
-      boolean allMet =
-          this.mustList.stream()
-              .allMatch(m -> m.result == EvaluateType.FullyMet);
+      boolean allMet = this.mustList.stream().allMatch(m -> m.result == EvaluateType.FullyMet);
       sb.append("・必須スキル：").append(allMet ? "◎" : "〇").append("\n");
     }
 
@@ -329,28 +335,19 @@ public class MatchEvaluateResponseSchema {
 
     // 出社要件
     if (this.officeResult != null) {
-      String icon =
-          this.officeResult.result != null
-              ? this.officeResult.result.getIcon()
-              : "-";
+      String icon = this.officeResult.result != null ? this.officeResult.result.getIcon() : "-";
       sb.append("・出社要件：").append(icon).append("\n");
     }
 
     // 場所
     if (this.placeResult != null) {
-      String icon =
-          this.placeResult.result != null
-              ? this.placeResult.result.getIcon()
-              : "◎";
+      String icon = this.placeResult.result != null ? this.placeResult.result.getIcon() : "◎";
       sb.append("・場所：").append(icon).append("\n");
     }
 
     // 尚可スキル（簡略版）
     if (this.wantList != null && !this.wantList.isEmpty()) {
-      long metCount =
-          this.wantList.stream()
-              .filter(w -> w.result == EvaluateType.FullyMet)
-              .count();
+      long metCount = this.wantList.stream().filter(w -> w.result == EvaluateType.FullyMet).count();
       sb.append("・尚可スキル：").append(metCount).append("/").append(this.wantList.size()).append("\n");
     }
 
@@ -533,10 +530,10 @@ public class MatchEvaluateResponseSchema {
   }
 
   public static enum EvaluateType {
-    FullyMet,      // 記載された実務経験あり
-    PartiallyMet,  // 関連スキルのみ（記載スキルと異なる）
-    NotMet,        // 記載なし
-    Unknown;       // 不明
+    FullyMet, // 記載された実務経験あり
+    PartiallyMet, // 関連スキルのみ（記載スキルと異なる）
+    NotMet, // 記載なし
+    Unknown; // 不明
 
     public String getIcon() {
       return switch (this) {

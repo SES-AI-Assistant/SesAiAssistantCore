@@ -1,12 +1,11 @@
 package copel.sesproductpackage.core.database;
 
-import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.List;
-
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
 import copel.sesproductpackage.core.unit.Money;
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
 import lombok.Data;
 
 /**
@@ -288,7 +287,8 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
     this.name = resultSet.getString("name");
     this.age = resultSet.getObject("age") != null ? resultSet.getInt("age") : null;
     String genderStr = resultSet.getString("gender");
-    this.gender = genderStr == null ? null : copel.sesproductpackage.core.unit.Gender.valueOf(genderStr);
+    this.gender =
+        genderStr == null ? null : copel.sesproductpackage.core.unit.Gender.valueOf(genderStr);
     this.nationality = resultSet.getString("nationality");
     String startDateStr = resultSet.getString("start_date");
     if (startDateStr != null) {
@@ -297,7 +297,10 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
     this.place = resultSet.getString("place");
     String areaStr = resultSet.getString("area");
     this.area = areaStr == null ? null : copel.sesproductpackage.core.unit.Area.valueOf(areaStr);
-    this.officeAvailability = resultSet.getObject("office_availability") != null ? resultSet.getInt("office_availability") : null;
+    this.officeAvailability =
+        resultSet.getObject("office_availability") != null
+            ? resultSet.getInt("office_availability")
+            : null;
     this.organization = resultSet.getString("organization");
     this.experiences = resultSet.getString("experiences");
     this.otherRequirements = resultSet.getString("other_requirements");
@@ -335,7 +338,9 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
    * @return その他条件リスト
    */
   public List<String> getOtherRequirementsAsList() {
-    return this.otherRequirements == null ? Arrays.asList() : Arrays.asList(this.otherRequirements.split("\n"));
+    return this.otherRequirements == null
+        ? Arrays.asList()
+        : Arrays.asList(this.otherRequirements.split("\n"));
   }
 
   /**
@@ -344,6 +349,8 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
    * @return NG条件リスト
    */
   public List<String> getNgRequirementsAsList() {
-    return this.ngRequirements == null ? Arrays.asList() : Arrays.asList(this.ngRequirements.split("\n"));
+    return this.ngRequirements == null
+        ? Arrays.asList()
+        : Arrays.asList(this.ngRequirements.split("\n"));
   }
 }

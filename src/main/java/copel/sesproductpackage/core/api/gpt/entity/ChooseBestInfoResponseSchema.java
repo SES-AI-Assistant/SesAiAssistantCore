@@ -1,10 +1,9 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
-import java.util.List;
-
 import copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateResponseSchema.EvaluateType;
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.api.gpt.schema.SchemaIgnore;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
@@ -69,30 +68,31 @@ public class ChooseBestInfoResponseSchema {
         // その他制約条件（required=true の場合のみチェック）
         .filter(r -> !rules.isOtherConstraintsRequired() || r.isOtherConstraintsResult())
         // 必須スキル（level=null の場合は無視）
-        .filter(r -> {
-          if (rules.getMustSkillLevel() == null) {
-            return true;
-          }
-          EvaluateType result = r.getMustSkillEvaluateResult();
-          EvaluateType level = rules.getMustSkillLevel();
-          return result.ordinal() <= level.ordinal();
-        })
+        .filter(
+            r -> {
+              if (rules.getMustSkillLevel() == null) {
+                return true;
+              }
+              EvaluateType result = r.getMustSkillEvaluateResult();
+              EvaluateType level = rules.getMustSkillLevel();
+              return result.ordinal() <= level.ordinal();
+            })
         // 尚好スキル（level=null の場合は無視）
-        .filter(r -> {
-          if (rules.getWantSkillLevel() == null) {
-            return true;
-          }
-          EvaluateType result = r.getWantSkillEvaluateResult();
-          EvaluateType level = rules.getWantSkillLevel();
-          return result.ordinal() <= level.ordinal();
-        })
+        .filter(
+            r -> {
+              if (rules.getWantSkillLevel() == null) {
+                return true;
+              }
+              EvaluateType result = r.getWantSkillEvaluateResult();
+              EvaluateType level = rules.getWantSkillLevel();
+              return result.ordinal() <= level.ordinal();
+            })
         .sorted(java.util.Comparator.reverseOrder())
         .toList();
   }
 
   /**
-   * 評価結果を元に、条件を満たす全候補をマッチ度の降順（大きい順）で返却する.
-   * デフォルトのフィルタリングルール（全て必須）を使用します.
+   * 評価結果を元に、条件を満たす全候補をマッチ度の降順（大きい順）で返却する. デフォルトのフィルタリングルール（全て必須）を使用します.
    *
    * @return 条件を満たすCandidateEvaluationResultのリスト（該当なしの場合は空リスト）
    */
@@ -141,7 +141,8 @@ public class ChooseBestInfoResponseSchema {
 
     @Schema(
         title = "その他制約条件評価結果",
-        description = "単価、出社頻度を除いたその他の制約条件の評価結果。要員が希望する制約条件を案件が1つ以上違反している場合はfalse。案件が希望する制約条件を要員が1つ以上違反している場合はfalse。それ以外はtrue。例えば年齢制限や商流制限などを評価する。",
+        description =
+            "単価、出社頻度を除いたその他の制約条件の評価結果。要員が希望する制約条件を案件が1つ以上違反している場合はfalse。案件が希望する制約条件を要員が1つ以上違反している場合はfalse。それ以外はtrue。例えば年齢制限や商流制限などを評価する。",
         defaultValue = "true")
     private boolean otherConstraintsResult = true;
 
@@ -175,16 +176,16 @@ public class ChooseBestInfoResponseSchema {
       StringBuilder sb = new StringBuilder();
       // 必須スキル
       sb.append("■必須スキル: ")
-        .append(this.mustSkillEvaluateResult != null ? this.mustSkillEvaluateResult.getIcon() : "-")
-        .append("\n");
+          .append(
+              this.mustSkillEvaluateResult != null ? this.mustSkillEvaluateResult.getIcon() : "-")
+          .append("\n");
       // 尚可スキル
       sb.append("■尚可スキル: ")
-        .append(this.wantSkillEvaluateResult != null ? this.wantSkillEvaluateResult.getIcon() : "-")
-        .append("\n");
+          .append(
+              this.wantSkillEvaluateResult != null ? this.wantSkillEvaluateResult.getIcon() : "-")
+          .append("\n");
       // その他
-      sb.append("■その他制約事項: ")
-        .append(this.otherConstraintsResult ? "満たす" : "満たさない")
-        .append("\n");
+      sb.append("■その他制約事項: ").append(this.otherConstraintsResult ? "満たす" : "満たさない").append("\n");
       return sb.toString();
     }
   }

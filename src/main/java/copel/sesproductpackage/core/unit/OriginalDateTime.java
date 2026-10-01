@@ -69,11 +69,14 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
                     date + " 00:00:00", DateTimeFormatter.ofPattern(pattern + " HH:mm:ss"));
           } else if ("yyyy-MM".equals(pattern) || "yyyy/MM".equals(pattern)) {
             // 月単位の入力の場合、01日として解析
-            String dateWithDay = date + ("-".equals(String.valueOf(pattern.charAt(4))) ? "-01" : "/01");
-            String fullPattern = pattern + ("-".equals(String.valueOf(pattern.charAt(4))) ? "-dd" : "/dd");
+            String dateWithDay =
+                date + ("-".equals(String.valueOf(pattern.charAt(4))) ? "-01" : "/01");
+            String fullPattern =
+                pattern + ("-".equals(String.valueOf(pattern.charAt(4))) ? "-dd" : "/dd");
             this.dateTime =
                 LocalDateTime.parse(
-                    dateWithDay + " 00:00:00", DateTimeFormatter.ofPattern(fullPattern + " HH:mm:ss"));
+                    dateWithDay + " 00:00:00",
+                    DateTimeFormatter.ofPattern(fullPattern + " HH:mm:ss"));
           } else {
             this.dateTime = LocalDateTime.parse(date, DateTimeFormatter.ofPattern(pattern));
           }
@@ -406,8 +409,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
   /**
    * 月を「M月」形式で返す.
    *
-   * プッシュ通知のメッセージテキストで開始月を簡潔に表示する際に、
-   * 数値の月を日本語表記に統一してペイロード内で効率的に表現する.
+   * <p>プッシュ通知のメッセージテキストで開始月を簡潔に表示する際に、 数値の月を日本語表記に統一してペイロード内で効率的に表現する.
    *
    * @return 月（例：「10月」）、nullの場合は「未定」
    */

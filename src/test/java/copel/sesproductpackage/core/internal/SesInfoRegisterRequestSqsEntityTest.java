@@ -3,21 +3,18 @@ package copel.sesproductpackage.core.internal;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.amazonaws.regions.Regions;
+import copel.sesproductpackage.core.api.line.LineMessagingAPI;
+import copel.sesproductpackage.core.unit.RequestType;
+import copel.sesproductpackage.core.util.Properties;
+import copel.sesproductpackage.core.util.SsmParameterKey;
 import java.io.IOException;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import com.amazonaws.regions.Regions;
-
-import copel.sesproductpackage.core.api.line.LineMessagingAPI;
-import copel.sesproductpackage.core.unit.RequestType;
-import copel.sesproductpackage.core.util.Properties;
-import copel.sesproductpackage.core.util.SsmParameterKey;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SesInfoRegisterRequestSqsEntity テスト")
@@ -122,7 +119,6 @@ class SesInfoRegisterRequestSqsEntityTest {
 
     assertFalse(entity.isValid());
   }
-
 
   @Test
   @DisplayName("isValid() - LineFile 正常系")

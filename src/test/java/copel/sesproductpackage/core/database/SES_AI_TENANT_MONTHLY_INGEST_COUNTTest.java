@@ -57,7 +57,9 @@ class SES_AI_TENANT_MONTHLY_INGEST_COUNTTest {
     DynamoDbEnhancedClient.Builder mockEnhancedBuilder = mock(DynamoDbEnhancedClient.Builder.class);
     when(mockEnhancedBuilder.dynamoDbClient(any())).thenReturn(mockEnhancedBuilder);
     when(mockEnhancedBuilder.build()).thenReturn(mockEnhancedClient);
-    mockedEnhancedClientStatic.when(DynamoDbEnhancedClient::builder).thenReturn(mockEnhancedBuilder);
+    mockedEnhancedClientStatic
+        .when(DynamoDbEnhancedClient::builder)
+        .thenReturn(mockEnhancedBuilder);
 
     mockTable = mock(DynamoDbTable.class);
     when(mockEnhancedClient.table(anyString(), any(TableSchema.class))).thenReturn(mockTable);
@@ -82,28 +84,44 @@ class SES_AI_TENANT_MONTHLY_INGEST_COUNTTest {
     void testConstructorAndTableNameResolution() {
       SES_AI_TENANT_MONTHLY_INGEST_COUNT entity = new SES_AI_TENANT_MONTHLY_INGEST_COUNT();
       assertNotNull(entity);
-      assertEquals("SES_AI_TENANT_MONTHLY_INGEST_COUNT", SES_AI_TENANT_MONTHLY_INGEST_COUNT.resolveTableName());
+      assertEquals(
+          "SES_AI_TENANT_MONTHLY_INGEST_COUNT",
+          SES_AI_TENANT_MONTHLY_INGEST_COUNT.resolveTableName());
 
       try (MockedStatic<Properties> mockedProperties = mockStatic(Properties.class)) {
         mockedProperties
-            .when(() -> Properties.get(SsmParameterKey.TENANT_MONTHLY_INGEST_COUNT_TABLE_NAME.getKey()))
+            .when(
+                () ->
+                    Properties.get(SsmParameterKey.TENANT_MONTHLY_INGEST_COUNT_TABLE_NAME.getKey()))
             .thenReturn("custom-table-name");
         assertEquals("custom-table-name", SES_AI_TENANT_MONTHLY_INGEST_COUNT.resolveTableName());
 
         mockedProperties
-            .when(() -> Properties.get(SsmParameterKey.TENANT_MONTHLY_INGEST_COUNT_TABLE_NAME.getKey()))
+            .when(
+                () ->
+                    Properties.get(SsmParameterKey.TENANT_MONTHLY_INGEST_COUNT_TABLE_NAME.getKey()))
             .thenReturn("");
-        assertEquals("SES_AI_TENANT_MONTHLY_INGEST_COUNT", SES_AI_TENANT_MONTHLY_INGEST_COUNT.resolveTableName());
+        assertEquals(
+            "SES_AI_TENANT_MONTHLY_INGEST_COUNT",
+            SES_AI_TENANT_MONTHLY_INGEST_COUNT.resolveTableName());
 
         mockedProperties
-            .when(() -> Properties.get(SsmParameterKey.TENANT_MONTHLY_INGEST_COUNT_TABLE_NAME.getKey()))
+            .when(
+                () ->
+                    Properties.get(SsmParameterKey.TENANT_MONTHLY_INGEST_COUNT_TABLE_NAME.getKey()))
             .thenReturn("   ");
-        assertEquals("SES_AI_TENANT_MONTHLY_INGEST_COUNT", SES_AI_TENANT_MONTHLY_INGEST_COUNT.resolveTableName());
+        assertEquals(
+            "SES_AI_TENANT_MONTHLY_INGEST_COUNT",
+            SES_AI_TENANT_MONTHLY_INGEST_COUNT.resolveTableName());
 
         mockedProperties
-            .when(() -> Properties.get(SsmParameterKey.TENANT_MONTHLY_INGEST_COUNT_TABLE_NAME.getKey()))
+            .when(
+                () ->
+                    Properties.get(SsmParameterKey.TENANT_MONTHLY_INGEST_COUNT_TABLE_NAME.getKey()))
             .thenReturn(null);
-        assertEquals("SES_AI_TENANT_MONTHLY_INGEST_COUNT", SES_AI_TENANT_MONTHLY_INGEST_COUNT.resolveTableName());
+        assertEquals(
+            "SES_AI_TENANT_MONTHLY_INGEST_COUNT",
+            SES_AI_TENANT_MONTHLY_INGEST_COUNT.resolveTableName());
       }
     }
 
@@ -161,8 +179,10 @@ class SES_AI_TENANT_MONTHLY_INGEST_COUNTTest {
     @Test
     @DisplayName("equals, hashCode, canEqual, toString の網羅テスト")
     void testEqualsAndHashCode() {
-      SES_AI_TENANT_MONTHLY_INGEST_COUNT e1 = createEntity("t1", "202609", ChannelType.EMAIL, 10L, "2026-09-01T00:00:00Z");
-      SES_AI_TENANT_MONTHLY_INGEST_COUNT e2 = createEntity("t1", "202609", ChannelType.EMAIL, 10L, "2026-09-01T00:00:00Z");
+      SES_AI_TENANT_MONTHLY_INGEST_COUNT e1 =
+          createEntity("t1", "202609", ChannelType.EMAIL, 10L, "2026-09-01T00:00:00Z");
+      SES_AI_TENANT_MONTHLY_INGEST_COUNT e2 =
+          createEntity("t1", "202609", ChannelType.EMAIL, 10L, "2026-09-01T00:00:00Z");
 
       assertEquals(e1, e2);
       assertEquals(e1.hashCode(), e2.hashCode());
@@ -172,16 +192,20 @@ class SES_AI_TENANT_MONTHLY_INGEST_COUNTTest {
       assertFalse(e1.equals("other type"));
 
       // 各フィールドの不一致テスト
-      SES_AI_TENANT_MONTHLY_INGEST_COUNT diffTenant = createEntity("t2", "202609", ChannelType.EMAIL, 10L, "2026-09-01T00:00:00Z");
+      SES_AI_TENANT_MONTHLY_INGEST_COUNT diffTenant =
+          createEntity("t2", "202609", ChannelType.EMAIL, 10L, "2026-09-01T00:00:00Z");
       assertNotEquals(e1, diffTenant);
 
-      SES_AI_TENANT_MONTHLY_INGEST_COUNT diffYm = createEntity("t1", "202610", ChannelType.EMAIL, 10L, "2026-09-01T00:00:00Z");
+      SES_AI_TENANT_MONTHLY_INGEST_COUNT diffYm =
+          createEntity("t1", "202610", ChannelType.EMAIL, 10L, "2026-09-01T00:00:00Z");
       assertNotEquals(e1, diffYm);
 
-      SES_AI_TENANT_MONTHLY_INGEST_COUNT diffCt = createEntity("t1", "202609", ChannelType.LINE, 10L, "2026-09-01T00:00:00Z");
+      SES_AI_TENANT_MONTHLY_INGEST_COUNT diffCt =
+          createEntity("t1", "202609", ChannelType.LINE, 10L, "2026-09-01T00:00:00Z");
       assertNotEquals(e1, diffCt);
 
-      SES_AI_TENANT_MONTHLY_INGEST_COUNT diffCount = createEntity("t1", "202609", ChannelType.EMAIL, 99L, "2026-09-01T00:00:00Z");
+      SES_AI_TENANT_MONTHLY_INGEST_COUNT diffCount =
+          createEntity("t1", "202609", ChannelType.EMAIL, 99L, "2026-09-01T00:00:00Z");
       assertNotEquals(e1, diffCount);
 
       // callSuper = false のため親クラスの timestamp フィールドが異なっていても等価と判定されること
@@ -446,7 +470,9 @@ class SES_AI_TENANT_MONTHLY_INGEST_COUNTTest {
     void testIncrementFourArguments() {
       try (MockedStatic<Properties> mockedProperties = mockStatic(Properties.class)) {
         mockedProperties
-            .when(() -> Properties.get(SsmParameterKey.TENANT_MONTHLY_INGEST_COUNT_TABLE_NAME.getKey()))
+            .when(
+                () ->
+                    Properties.get(SsmParameterKey.TENANT_MONTHLY_INGEST_COUNT_TABLE_NAME.getKey()))
             .thenReturn("custom-ingest-table");
 
         SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-999", "202612", ChannelType.LINE, 10L);
@@ -586,7 +612,9 @@ class SES_AI_TENANT_MONTHLY_INGEST_COUNTTest {
 
       assertThrows(
           DynamoDbException.class,
-          () -> SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", "202609", ChannelType.EMAIL, 1L));
+          () ->
+              SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment(
+                  "tenant-001", "202609", ChannelType.EMAIL, 1L));
     }
 
     @Test
@@ -595,7 +623,8 @@ class SES_AI_TENANT_MONTHLY_INGEST_COUNTTest {
       // 一旦 null にリセット
       SES_AI_TENANT_MONTHLY_INGEST_COUNT.setDynamoDbClient(null);
 
-      try (MockedStatic<DynamoDbClientFactory> mockedFactory = mockStatic(DynamoDbClientFactory.class)) {
+      try (MockedStatic<DynamoDbClientFactory> mockedFactory =
+          mockStatic(DynamoDbClientFactory.class)) {
         DynamoDbClient clientFromFactory = mock(DynamoDbClient.class);
         mockedFactory.when(DynamoDbClientFactory::create).thenReturn(clientFromFactory);
 

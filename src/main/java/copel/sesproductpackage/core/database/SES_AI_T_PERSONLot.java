@@ -532,7 +532,10 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
     sesAiTPerson.setPlace(resultSet.getString("place"));
     String areaStr = resultSet.getString("area");
     sesAiTPerson.setArea(areaStr == null ? null : Area.valueOf(areaStr));
-    sesAiTPerson.setOfficeAvailability(resultSet.getObject("office_availability") == null ? null : resultSet.getInt("office_availability"));
+    sesAiTPerson.setOfficeAvailability(
+        resultSet.getObject("office_availability") == null
+            ? null
+            : resultSet.getInt("office_availability"));
     sesAiTPerson.setOrganization(resultSet.getString("organization"));
     sesAiTPerson.setExperiences(resultSet.getString("experiences"));
     sesAiTPerson.setUrl(resultSet.getString("url"));

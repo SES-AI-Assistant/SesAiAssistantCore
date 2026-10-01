@@ -8,10 +8,7 @@ import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * 案件検索の詳細フィルター条件を保持するクラス.
- * 各フィールドが null の場合、そのフィルター条件は適用されません。
- */
+/** 案件検索の詳細フィルター条件を保持するクラス. 各フィールドが null の場合、そのフィルター条件は適用されません。 */
 @Getter
 @Setter
 public class JobDetailFilterCondition {
@@ -124,8 +121,7 @@ public class JobDetailFilterCondition {
 
     /** WHERE句が空でないかを確認します. */
     public boolean isEmpty() {
-      return whereClauseWithoutWhereKeyword == null
-          || whereClauseWithoutWhereKeyword.isEmpty();
+      return whereClauseWithoutWhereKeyword == null || whereClauseWithoutWhereKeyword.isEmpty();
     }
   }
 }

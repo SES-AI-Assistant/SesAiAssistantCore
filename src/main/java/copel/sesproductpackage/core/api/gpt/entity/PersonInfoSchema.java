@@ -1,13 +1,12 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
-import java.math.BigDecimal;
-import java.util.List;
-
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import java.math.BigDecimal;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -48,7 +47,13 @@ public class PersonInfoSchema {
       example = "日本")
   private String nationality = "日本";
 
-  @Schema(title = "開始年月", description = "稼働開始が可能な年月。必ずyyyy/MM形式で設定してください。未記載の場合や即日、などの表現がされている場合は本日日付にして。", pattern = "^\\d{4}/(0?[1-9]|1[0-2])$", required = true, example = "2026/6", currentAndNextYearOnly = true)
+  @Schema(
+      title = "開始年月",
+      description = "稼働開始が可能な年月。必ずyyyy/MM形式で設定してください。未記載の場合や即日、などの表現がされている場合は本日日付にして。",
+      pattern = "^\\d{4}/(0?[1-9]|1[0-2])$",
+      required = true,
+      example = "2026/6",
+      currentAndNextYearOnly = true)
   private String startYearMonth;
 
   @Schema(
@@ -72,7 +77,10 @@ public class PersonInfoSchema {
   @Schema(title = "場所", description = "要員の在住地域や最寄駅名など", maxLength = 20, example = "品川")
   private String place = null;
 
-  @Schema(title = "地域", description = "要員の在住地域や最寄駅が属する地域。判別が難しい場合や未記載の場合は関東_首都圏とする", example = "関東_首都圏")
+  @Schema(
+      title = "地域",
+      description = "要員の在住地域や最寄駅が属する地域。判別が難しい場合や未記載の場合は関東_首都圏とする",
+      example = "関東_首都圏")
   private Area area = Area.関東_首都圏;
 
   @Schema(
@@ -94,24 +102,29 @@ public class PersonInfoSchema {
   private Organization organization = null;
 
   @Schema(
-	title = "経歴", 
-	description = "箇条書き形式の経歴のリスト", 
-	itemType = Experience.class,
-    required = true,
-    minItems = 1,
-    maxItems = 10)
+      title = "経歴",
+      description = "箇条書き形式の経歴のリスト",
+      itemType = Experience.class,
+      required = true,
+      minItems = 1,
+      maxItems = 10)
   private List<Experience> experiences = null;
 
   @Schema(
-	title = "NG条件", 
-	description = "要員都合のNG条件のリスト", 
-	itemType = String.class,
-    required = true,
-    minItems = 0,
-    maxItems = 10)
+      title = "NG条件",
+      description = "要員都合のNG条件のリスト",
+      itemType = String.class,
+      required = true,
+      minItems = 0,
+      maxItems = 10)
   private List<String> ngRequirements = null;
 
-  @Schema(title = "その他", description = "その他、備考などの事項", itemType = String.class, minItems = 0, maxItems = 10)
+  @Schema(
+      title = "その他",
+      description = "その他、備考などの事項",
+      itemType = String.class,
+      minItems = 0,
+      maxItems = 10)
   private List<String> otherRequirements = null;
 
   @Schema(
@@ -205,7 +218,8 @@ public class PersonInfoSchema {
   public OriginalDateTime getStartDateAsOriginalDateTime() {
     if (this.startYearMonth == null) {
       OriginalDateTime now = new OriginalDateTime();
-      return OriginalDateTime.fromMonth(now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
+      return OriginalDateTime.fromMonth(
+          now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
     }
     String[] parts = this.startYearMonth.split("/");
     if (parts.length == 2) {
@@ -215,11 +229,13 @@ public class PersonInfoSchema {
         return OriginalDateTime.fromMonth(year, month);
       } catch (NumberFormatException e) {
         OriginalDateTime now = new OriginalDateTime();
-        return OriginalDateTime.fromMonth(now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
+        return OriginalDateTime.fromMonth(
+            now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
       }
     }
     OriginalDateTime now = new OriginalDateTime();
-    return OriginalDateTime.fromMonth(now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
+    return OriginalDateTime.fromMonth(
+        now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
   }
 
   /**

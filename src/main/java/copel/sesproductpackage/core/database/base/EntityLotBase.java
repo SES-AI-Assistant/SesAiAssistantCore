@@ -687,19 +687,21 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
-  protected <T extends java.math.BigDecimal, U extends java.time.temporal.Temporal, V extends Enum<?>> void selectByDynamicWhereWithFilterPaged(
-      final Connection connection,
-      final String tenantId,
-      final String selectSqlPrefix,
-      final String whereClauseWithoutWhere,
-      final List<String> likeParams,
-      final Object price,
-      final Object startDate,
-      final Integer integerFilter,
-      final Enum<?> areaFilter,
-      final int page,
-      final int size)
-      throws SQLException {
+  protected <
+          T extends java.math.BigDecimal, U extends java.time.temporal.Temporal, V extends Enum<?>>
+      void selectByDynamicWhereWithFilterPaged(
+          final Connection connection,
+          final String tenantId,
+          final String selectSqlPrefix,
+          final String whereClauseWithoutWhere,
+          final List<String> likeParams,
+          final Object price,
+          final Object startDate,
+          final Integer integerFilter,
+          final Enum<?> areaFilter,
+          final int page,
+          final int size)
+          throws SQLException {
     this.entityLot = new ArrayList<>();
     if (connection == null || selectSqlPrefix == null || whereClauseWithoutWhere == null) {
       return;
@@ -907,8 +909,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @throws SQLException
    */
   protected void bindParameter(
-      final PreparedStatement stmt, final int paramIndex, final Object param)
-      throws SQLException {
+      final PreparedStatement stmt, final int paramIndex, final Object param) throws SQLException {
     if (param instanceof java.math.BigDecimal) {
       stmt.setBigDecimal(paramIndex, (java.math.BigDecimal) param);
     } else if (param instanceof java.sql.Timestamp) {
@@ -1539,7 +1540,8 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
 
     // COUNT クエリを実行（COUNT SQL 用の binder を使用）
     this.totalCount =
-        getCountByVectorForCount(conn, baseQuerySql, tenantId, vectorValue, similarityThreshold, countBinder);
+        getCountByVectorForCount(
+            conn, baseQuerySql, tenantId, vectorValue, similarityThreshold, countBinder);
 
     // データ取得クエリにLIMIT/OFFSETを追加
     final String pagedSql = filteredSql + " LIMIT ? OFFSET ?";
