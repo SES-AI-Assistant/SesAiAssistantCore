@@ -65,6 +65,21 @@ class PersonInfoSchemaTest {
   }
 
   @Test
+  @DisplayName("getPrice: priceInMan が応相談（0）の場合、0円の Money が返り isConsultation が true となること")
+  void testGetPrice_Zero() {
+    PersonInfoSchema schema = new PersonInfoSchema();
+    schema.setPriceInMan(BigDecimal.ZERO);
+
+    Money price = schema.getPrice();
+    assertNotNull(price);
+    assertFalse(price.isEmpty());
+    assertEquals(0L, price.toYenValue());
+    assertTrue(price.isConsultation());
+    assertTrue(price.isNegotiable());
+    assertEquals("0万円", price.toJapaneseFormat());
+  }
+
+  @Test
   @DisplayName("getPrice: priceInMan が null の場合、Money.empty が返ること")
   void testGetPrice_Null() {
     PersonInfoSchema schema = new PersonInfoSchema();
@@ -89,6 +104,20 @@ class PersonInfoSchemaTest {
     assertNotNull(schema);
     assertEquals(new BigDecimal("80"), schema.getPriceInMan());
     assertEquals(800000L, schema.getPrice().toYenValue());
+  }
+
+  @Test
+  @DisplayName("Jackson: JSONから priceInMan が応相談（0）としてデシリアライズされること")
+  void testJacksonDeserialize_ZeroPrice_Consultation() throws Exception {
+    String json = "{\"name\":\"T.T\",\"priceInMan\":0}";
+    PersonInfoSchema schema = objectMapper.readValue(json, PersonInfoSchema.class);
+
+    assertNotNull(schema);
+    assertEquals(new BigDecimal("0"), schema.getPriceInMan());
+    assertEquals(0L, schema.getPrice().toYenValue());
+    assertTrue(schema.getPrice().isConsultation());
+    assertTrue(schema.getPrice().isNegotiable());
+    assertEquals("0万円", schema.getPrice().toJapaneseFormat());
   }
 
   @Test
@@ -156,5 +185,6 @@ class PersonInfoSchemaTest {
     assertEquals("number", schemaAnnotation.type());
     assertEquals("80", schemaAnnotation.example());
     assertTrue(schemaAnnotation.description().contains("月額希望単価を万円単位の数値で設定"));
+    assertTrue(schemaAnnotation.description().contains("スキル見合い・応相談・未記載は0"));
   }
 }
