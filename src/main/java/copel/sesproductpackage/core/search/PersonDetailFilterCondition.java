@@ -13,7 +13,7 @@ import lombok.Setter;
 @Setter
 public class PersonDetailFilterCondition {
   /** 国籍フィルターの特別な値：「日本以外」を表す. */
-  private static final String NATIONALITY_OTHER = "OTHER";
+  private static final String NATIONALITY_OTHER = "日本以外";
 
   /** nationality カラムが「日本国籍」を表す際の実際の格納値. */
   private static final String NATIONALITY_JAPAN = "日本";
@@ -37,7 +37,7 @@ public class PersonDetailFilterCondition {
   private String gender;
 
   /**
-   * 国籍。nationality カラムの格納値（例："日本"）と完全一致する文字列を指定する。 「日本以外」を検索したい場合のみ特別な値 "OTHER"
+   * 国籍。nationality カラムの格納値（例："日本"）と完全一致する文字列を指定する。 「日本以外」を検索したい場合のみ特別な値 "日本以外"
    * を指定する（nationalityカラムが "日本" 以外の値を持つ要員が対象になる）.
    */
   private String nationality;
@@ -123,7 +123,7 @@ public class PersonDetailFilterCondition {
       params.add(this.gender);
     }
 
-    // 国籍フィルター（"OTHER" は「nationalityが"日本"ではない」ことを表す特別な値）
+    // 国籍フィルター（"日本以外" は「nationalityが"日本"ではない」ことを表す特別な値）
     if (this.nationality != null && !this.nationality.isEmpty()) {
       if (whereClause.length() > 0) {
         whereClause.append(" AND ");

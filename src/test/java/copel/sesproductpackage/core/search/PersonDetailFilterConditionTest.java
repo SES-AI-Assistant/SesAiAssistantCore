@@ -85,9 +85,9 @@ class PersonDetailFilterConditionTest {
 
   @Test
   void testBuildWhereClause_nationalityOther_mapsToNotEqualsJapan() {
-    // "OTHER" は「日本」以外の全ての自由入力値（例：ベトナム等）を対象にする特別な値
+    // "日本以外" は「日本」以外の全ての自由入力値（例：ベトナム等）を対象にする特別な値
     PersonDetailFilterCondition condition = new PersonDetailFilterCondition();
-    condition.setNationality("OTHER");
+    condition.setNationality("日本以外");
     PersonDetailFilterCondition.WhereClauseAndParams result = condition.buildWhereClause("p");
     assertEquals(
         "p.nationality IS NOT NULL AND p.nationality <> ?",
@@ -98,7 +98,7 @@ class PersonDetailFilterConditionTest {
 
   @Test
   void testBuildWhereClause_nationalityArbitraryValue_exactMatch() {
-    // "OTHER"以外の値は常に完全一致（例えば特定の国名を直接指定するケースにも対応）
+    // "日本以外"以外の値は常に完全一致（例えば特定の国名を直接指定するケースにも対応）
     PersonDetailFilterCondition condition = new PersonDetailFilterCondition();
     condition.setNationality("ベトナム");
     PersonDetailFilterCondition.WhereClauseAndParams result = condition.buildWhereClause("p");
