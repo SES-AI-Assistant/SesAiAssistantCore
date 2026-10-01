@@ -18,7 +18,7 @@ public class JobDetailFilterCondition {
   /** エリア（地域コード）。このエリアに一致する案件を対象. */
   private Area area;
 
-  /** 出社要件（0～5）。この値以上の出社要件を持つ案件を対象. */
+  /** 出社要件（0～5、0=フルリモート、5=常駐）。この値以下の出社要件を持つ案件を対象. */
   private Integer officeRequirements;
 
   /** 最小単価。この価格以上の案件を対象. */
@@ -60,12 +60,13 @@ public class JobDetailFilterCondition {
       params.add(this.area);
     }
 
-    // 出社要件フィルター（officeRequirements 以上）
+    // 出社要件フィルター（ユーザーが許容できる出社日数の上限を指定するため officeRequirements 以下を検索対象とする。
+    // 例：フルリモート(0)を指定した場合、出社を伴う案件(1以上)を除外する必要がある）
     if (this.officeRequirements != null) {
       if (whereClause.length() > 0) {
         whereClause.append(" AND ");
       }
-      whereClause.append(prefix).append("office_requirements >= ?");
+      whereClause.append(prefix).append("office_requirements <= ?");
       params.add(this.officeRequirements);
     }
 
