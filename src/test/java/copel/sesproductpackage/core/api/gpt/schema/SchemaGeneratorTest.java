@@ -2,6 +2,7 @@ package copel.sesproductpackage.core.api.gpt.schema;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import copel.sesproductpackage.core.api.gpt.entity.JobInfoSchema;
 import copel.sesproductpackage.core.api.gpt.entity.PersonInfoSchema;
 import java.time.LocalDate;
@@ -425,7 +426,7 @@ class SchemaGeneratorTest {
     @SuppressWarnings("unchecked")
     Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
     @SuppressWarnings("unchecked")
-    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("startYearMonth");
+    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("start_year_month");
 
     String pattern = (String) fieldSchema.get("pattern");
     assertEquals(expectedPattern, pattern);
@@ -443,7 +444,7 @@ class SchemaGeneratorTest {
     @SuppressWarnings("unchecked")
     Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
     @SuppressWarnings("unchecked")
-    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("startYearMonth");
+    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("start_year_month");
 
     String pattern = (String) fieldSchema.get("pattern");
     assertEquals(expectedPattern, pattern);
@@ -461,7 +462,7 @@ class SchemaGeneratorTest {
     @SuppressWarnings("unchecked")
     Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
     @SuppressWarnings("unchecked")
-    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("startYearMonth");
+    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("start_year_month");
 
     String pattern = (String) fieldSchema.get("pattern");
     assertEquals(expectedPattern, pattern);
@@ -475,7 +476,7 @@ class SchemaGeneratorTest {
     @SuppressWarnings("unchecked")
     Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
     @SuppressWarnings("unchecked")
-    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("startYearMonth");
+    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("start_year_month");
 
     assertEquals("^\\d{4}/(0?[1-9]|1[0-2])$", fieldSchema.get("pattern"));
   }
@@ -490,7 +491,7 @@ class SchemaGeneratorTest {
     @SuppressWarnings("unchecked")
     Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
     @SuppressWarnings("unchecked")
-    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("startYearMonth");
+    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("start_year_month");
 
     String pattern = (String) fieldSchema.get("pattern");
     assertEquals(expectedPattern, pattern);
@@ -507,7 +508,7 @@ class SchemaGeneratorTest {
     @SuppressWarnings("unchecked")
     Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
     @SuppressWarnings("unchecked")
-    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("startYearMonth");
+    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("start_year_month");
 
     String pattern = (String) fieldSchema.get("pattern");
     assertEquals(expectedPattern, pattern);
@@ -558,5 +559,54 @@ class SchemaGeneratorTest {
   static class ResponseWithCurrentAndNextYearFalse {
     @Schema(pattern = "^\\d{4}/(0?[1-9]|1[0-2])$", currentAndNextYearOnly = false)
     public String startYearMonth;
+  }
+
+  @Test
+  void testGenerate_CamelCaseFieldName_ConvertsToSnakeCase() {
+    Map<String, Object> schema = SchemaGenerator.generate(ResponseWithCamelCaseField.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    assertTrue(properties.containsKey("match_score"));
+    assertFalse(properties.containsKey("matchScore"));
+  }
+
+  @Test
+  void testGenerate_ConsecutiveUpperCaseFieldName_ConvertsToSnakeCase() {
+    Map<String, Object> schema = SchemaGenerator.generate(ResponseWithConsecutiveUpperCase.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    assertTrue(properties.containsKey("user_id"));
+    assertFalse(properties.containsKey("userID"));
+  }
+
+  @Test
+  void testGenerate_JsonPropertyAnnotation_OverridesFieldName() {
+    Map<String, Object> schema = SchemaGenerator.generate(ResponseWithJsonPropertyName.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    assertTrue(properties.containsKey("custom_name"));
+    assertFalse(properties.containsKey("displayName"));
+  }
+
+  /** テスト用のキャメルケースフィールドを含むレスポンス. */
+  static class ResponseWithCamelCaseField {
+    @Schema(description = "マッチ度")
+    public int matchScore;
+  }
+
+  /** テスト用の大文字が連続するフィールドを含むレスポンス. */
+  static class ResponseWithConsecutiveUpperCase {
+    @Schema(description = "ユーザーID")
+    public String userID;
+  }
+
+  /** テスト用の@JsonProperty指定フィールドを含むレスポンス. */
+  static class ResponseWithJsonPropertyName {
+    @JsonProperty("custom_name")
+    @Schema(description = "表示名")
+    public String displayName;
   }
 }

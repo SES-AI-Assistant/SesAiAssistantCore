@@ -1,5 +1,6 @@
 package copel.sesproductpackage.core.api.gpt.schema;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import java.lang.reflect.Field;
@@ -126,11 +127,47 @@ public final class SchemaGenerator {
   /**
    * フィールド名を取得します.
    *
+   * <p>ObjectMapperFactory が ObjectMapper に {@code PropertyNamingStrategies.SNAKE_CASE}
+   * を設定しているため、Gemini からのレスポンスデシリアライズ時はスネークケースのプロパティ名が要求される。
+   * スキーマに記載する名前もこれに合わせてスネークケースへ変換する必要がある（@JsonPropertyで明示されている場合はその値を優先）。
+   *
    * @param field リフレクションフィールド
-   * @return フィールド名
+   * @return JSON Schemaに記載するフィールド名（スネークケース）
    */
   private static String getFieldName(final Field field) {
-    return field.getName();
+    JsonProperty jsonProperty = field.getAnnotation(JsonProperty.class);
+    if (jsonProperty != null && !jsonProperty.value().isEmpty()) {
+      return jsonProperty.value();
+    }
+    return toSnakeCase(field.getName());
+  }
+
+  /**
+   * キャメルケースの文字列をスネークケースへ変換します.
+   *
+   * <p>Jackson の {@code PropertyNamingStrategies.SNAKE_CASE} と同様の変換結果となるよう、
+   * 大文字が連続する場合（例："ID"）は区切りのアンダースコアを挿入しない。
+   *
+   * @param camelCase キャメルケースの文字列
+   * @return スネークケースに変換された文字列
+   */
+  private static String toSnakeCase(final String camelCase) {
+    StringBuilder result = new StringBuilder(camelCase.length() * 2);
+    boolean wasPrevUpperCase = false;
+    for (int i = 0; i < camelCase.length(); i++) {
+      char c = camelCase.charAt(i);
+      if (Character.isUpperCase(c)) {
+        if (!wasPrevUpperCase && result.length() > 0 && result.charAt(result.length() - 1) != '_') {
+          result.append('_');
+        }
+        result.append(Character.toLowerCase(c));
+        wasPrevUpperCase = true;
+      } else {
+        result.append(c);
+        wasPrevUpperCase = false;
+      }
+    }
+    return result.toString();
   }
 
   /**
