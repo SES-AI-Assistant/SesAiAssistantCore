@@ -859,15 +859,19 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       return;
     }
 
-    // (2) ページング用 SQL（tenantId フィルターなし）
+    // (2) ページング用 SQL（tenantId フィルター追加）
+    // addTenantIdFilter は "AND tenant_id = ?" を LIMIT/OFFSET より前に挿入するため、
+    // executeQuery（tenant_id を末尾バインドする前提のテンプレート）は使用できない。
+    // そのため、COUNT SQL と同様に事前にフィルター適用済みSQLを組み立て、
+    // tenant_id を LIMIT/OFFSET より前の正しい位置でバインドする。
     final String pagedSql = fullSelect + " LIMIT ? OFFSET ?";
+    final String filteredPagedSql = addTenantIdFilter(pagedSql, tenantId);
 
-    // executeQuery を使用（Base側が自動的にtenantIdフィルターを処理）
+    // executeQueryWithoutTenantFilter を使用（filteredPagedSql に既にテナントフィルターが含まれている）
     List<E> results =
-        executeQuery(
+        executeQueryWithoutTenantFilter(
             connection,
-            pagedSql,
-            tenantId,
+            filteredPagedSql,
             this::mapResultSet,
             (stmt, paramIndex) -> {
               int idx = paramIndex;
@@ -883,6 +887,8 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
                   bindParameter(stmt, idx++, param);
                 }
               }
+              // tenant_id をバインド（WHERE句内、LIMIT/OFFSETより前の位置）
+              setTenantIdParameter(stmt, idx++, tenantId);
               // LIMIT と OFFSET をバインド
               stmt.setInt(idx++, size);
               stmt.setInt(idx++, (page - 1) * size);
