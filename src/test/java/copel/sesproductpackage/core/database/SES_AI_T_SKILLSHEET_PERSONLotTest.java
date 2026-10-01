@@ -4,16 +4,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.util.List;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import copel.sesproductpackage.core.search.FulltextCondition;
 import copel.sesproductpackage.core.search.PersonDetailFilterCondition;
 import copel.sesproductpackage.core.unit.Area;
@@ -22,6 +12,15 @@ import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 class SES_AI_T_SKILLSHEET_PERSONLotTest {
 
@@ -297,12 +296,7 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
     assertDoesNotThrow(
         () ->
             lot.searchByPersonOrSkillSheetSummaryWithDetailFilter(
-                mockConnection,
-                "test-tenant",
-                List.of(condition),
-                null,
-                1,
-                10));
+                mockConnection, "test-tenant", List.of(condition), null, 1, 10));
   }
 
   @Test
@@ -321,13 +315,7 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
     assertDoesNotThrow(
         () ->
             lot.retrieveByPersonVectorWithDetailFilter(
-                mockConnection,
-                "test-tenant",
-                mockVector,
-                0.5,
-                detailFilter,
-                1,
-                10));
+                mockConnection, "test-tenant", mockVector, 0.5, detailFilter, 1, 10));
   }
 
   @Test
@@ -340,12 +328,50 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
     assertDoesNotThrow(
         () ->
             lot.retrieveByPersonVectorWithDetailFilter(
-                mockConnection,
-                "test-tenant",
-                mockVector,
-                0.5,
-                null,
-                1,
-                10));
+                mockConnection, "test-tenant", mockVector, 0.5, null, 1, 10));
+  }
+
+  @Test
+  void testRetrieveByPersonVectorWithDetailFilterNullFilterGeneratesValidSql() throws SQLException {
+    // 詳細フィルター条件が全て未指定（null）の場合でも、COUNT SQL・ページングSQLが
+    // 正しい構文（FROM句・LIMIT句を含む）で生成されることを確認する。
+    // 過去にCOUNT SQLのFROM句欠落、ページングSQLのLIMIT句欠落によりPostgreSQL構文エラーが
+    // 発生した不具合の再発防止テスト。
+    PreparedStatement mockCountStmt = mock(PreparedStatement.class);
+    PreparedStatement mockDataStmt = mock(PreparedStatement.class);
+    ResultSet mockCountRs = mock(ResultSet.class);
+
+    ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+    when(mockConnection.prepareStatement(sqlCaptor.capture()))
+        .thenReturn(mockCountStmt)
+        .thenReturn(mockDataStmt);
+    when(mockCountStmt.executeQuery()).thenReturn(mockCountRs);
+    when(mockCountRs.next()).thenReturn(true);
+    when(mockCountRs.getLong(1)).thenReturn(1L);
+    when(mockDataStmt.executeQuery()).thenReturn(mockResultSet);
+    when(mockResultSet.next()).thenReturn(true, false);
+    when(mockResultSet.getString("file_id")).thenReturn("f1");
+    when(mockResultSet.getString("person_id")).thenReturn("p1");
+    when(mockResultSet.getString("tenant_id")).thenReturn("test-tenant");
+    when(mockResultSetMetaData.getColumnCount()).thenReturn(2);
+    when(mockResultSetMetaData.getColumnLabel(1)).thenReturn("file_id");
+    when(mockResultSetMetaData.getColumnLabel(2)).thenReturn("distance");
+    when(mockResultSet.getDouble("distance")).thenReturn(0.85);
+
+    SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
+
+    lot.retrieveByPersonVectorWithDetailFilter(
+        mockConnection, "test-tenant", mockVector, 0.5, null, 1, 10);
+
+    assertEquals(1, lot.size());
+    assertEquals("p1", lot.get(0).getPersonId());
+
+    List<String> capturedSqls = sqlCaptor.getAllValues();
+    String countSql = capturedSqls.get(0);
+    String pagedSql = capturedSqls.get(1);
+
+    assertTrue(countSql.contains("FROM SES_AI_T_SKILLSHEET"));
+    assertTrue(pagedSql.contains("ORDER BY distance ASC LIMIT ?"));
+    assertTrue(pagedSql.contains("OFFSET ?"));
   }
 }

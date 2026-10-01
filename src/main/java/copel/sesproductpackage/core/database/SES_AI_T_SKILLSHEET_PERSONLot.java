@@ -1148,11 +1148,11 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
             + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
             + "WHERE "
             + whereClause.toString()
-            + " ORDER BY distance ASC";
+            + " ORDER BY distance ASC LIMIT ?";
 
     // (4) COUNT SQL用の部分SQL（ベクトル距離計算とフィルター条件を含む）
     String countQueryPart =
-        "SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
+        "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
             + "WHERE "
             + whereClause.toString();
 
