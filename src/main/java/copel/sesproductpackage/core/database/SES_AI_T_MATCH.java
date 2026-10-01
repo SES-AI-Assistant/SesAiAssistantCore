@@ -123,7 +123,7 @@ public class SES_AI_T_MATCH extends EntityBase {
   }
 
   /**
-   * 案件単価と要員単価から粗利益を計算してセットする. いずれかが未設定、または案件単価が単価不問（スキル見合い）の場合は null をセットする.
+   * 案件単価と要員単価から粗利益を計算してセットする. いずれかが未設定、または案件単価・要員単価が単価不問（スキル見合い・応相談）の場合は null をセットする.
    *
    * @param jobMoney 案件単価
    * @param personMoney 要員単価
@@ -134,7 +134,8 @@ public class SES_AI_T_MATCH extends EntityBase {
         || jobMoney.isEmpty()
         || jobMoney.isNegotiable()
         || personMoney == null
-        || personMoney.isEmpty()) {
+        || personMoney.isEmpty()
+        || personMoney.isNegotiable()) {
       this.profit = null;
       return;
     }

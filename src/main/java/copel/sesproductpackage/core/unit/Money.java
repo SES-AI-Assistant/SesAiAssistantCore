@@ -73,15 +73,30 @@ public class Money implements Comparable<Money> {
   }
 
   /**
-   * 金額が単価不問・単価提示依頼（SESにおける「スキル見合い」: 999万円）であるかを判定する.
+   * 単価不問（スキル見合い・応相談）の案件または要員であるかを判定する.
    *
-   * <p>「negotiable（交渉可能・応相談）」の名の通り、固定単価ではなく、 提案時に単価の提示や交渉が必要（スキル見合い・応相談・単価不問）な案件であるかを判定する。
+   * <p>「negotiable（交渉可能・応相談）」の名の通り、固定単価ではなく、
+   * 提案時に単価の提示や交渉が必要（スキル見合い・応相談・単価不問）な案件・要員であるかを判定する。
+   * スキル見合い仕様値（999万円）または応相談（0円または負数）の場合に true を返す。
    *
-   * @return 単価不問（スキル見合い）の場合は true、それ以外は false
+   * @return 単価不問（スキル見合い・応相談）の場合は true、それ以外は false
    * @author Copel Co., Ltd.
    */
   public boolean isNegotiable() {
-    return NEGOTIABLE_PRICE.equals(this);
+    if (isEmpty()) {
+      return false;
+    }
+    return NEGOTIABLE_PRICE.equals(this) || isConsultation();
+  }
+
+  /**
+   * 金額が「応相談（0円または負数・未定）」であるかを判定する.
+   *
+   * @return 応相談の場合は true、それ以外は false
+   * @author Copel Co., Ltd.
+   */
+  public boolean isConsultation() {
+    return !isEmpty() && this.value.compareTo(BigDecimal.ZERO) <= 0;
   }
 
   // ================================================
@@ -94,6 +109,7 @@ public class Money implements Comparable<Money> {
   /**
    * 万円単位の数値から、SESの業務単位（円単位、スキル見合い、時給・日給換算）に適合した Money インスタンスを生成します. 入力値はSESの相場・仕様に基づいて自動修復され、安全な
    * Money オブジェクトとして返されます.
+   * 負数（-1など）やゼロは「応相談（0円）」として安全に0円に正規化されます.
    *
    * @param manValue 万円単位の値（null可）
    * @return Money インスタンス（nullの場合は empty）
@@ -104,7 +120,7 @@ public class Money implements Comparable<Money> {
       return Money.empty();
     }
     if (manValue.compareTo(BigDecimal.ZERO) <= 0) {
-      return new Money(manValue.setScale(0, RoundingMode.HALF_UP));
+      return new Money(0);
     }
     // 1. スキル見合い仕様値（999 または 9,990,000）→ 定義済みオブジェクトを返却
     if (manValue.compareTo(new BigDecimal("999")) == 0
@@ -151,7 +167,7 @@ public class Money implements Comparable<Money> {
   /**
    * 画面表示用：「100万円」形式.
    *
-   * @return 「100万円」形式の文字列、またはnull
+   * @return 「100万円」形式の文字列、未設定の場合はnull
    */
   public String toJapaneseFormat() {
     if (isEmpty()) {
