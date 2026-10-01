@@ -17,6 +17,7 @@ import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import copel.sesproductpackage.core.search.FulltextCondition;
 import copel.sesproductpackage.core.search.JobDetailFilterCondition;
@@ -261,9 +262,8 @@ class SES_AI_T_JOBLotTest {
   @Test
   void testSearchByJobWithDetailFilter() throws SQLException {
     // 全文検索条件
-    FulltextCondition condition = new FulltextCondition();
-    condition.setConditions(List.of("Java", "Spring Boot"));
-    condition.setLogicalOperator(論理演算子.AND);
+    FulltextCondition condition1 = new FulltextCondition("AND", "Java", false);
+    FulltextCondition condition2 = new FulltextCondition("AND", "Spring Boot", false);
 
     // 詳細フィルター条件を設定
     JobDetailFilterCondition detailFilter = new JobDetailFilterCondition();
@@ -281,7 +281,7 @@ class SES_AI_T_JOBLotTest {
             lot.searchByJobWithDetailFilter(
                 mockConn,
                 "test-tenant",
-                List.of(condition),
+                List.of(condition1, condition2),
                 detailFilter,
                 1,
                 10));
@@ -290,9 +290,7 @@ class SES_AI_T_JOBLotTest {
   @Test
   void testSearchByJobWithDetailFilterNullFilter() throws SQLException {
     // 全文検索条件
-    FulltextCondition condition = new FulltextCondition();
-    condition.setConditions(List.of("Java"));
-    condition.setLogicalOperator(論理演算子.OR);
+    FulltextCondition condition = new FulltextCondition("OR", "Java", false);
 
     SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
 
@@ -309,7 +307,7 @@ class SES_AI_T_JOBLotTest {
   }
 
   @Test
-  void testRetrieveByJobVectorWithDetailFilter() throws SQLException {
+  void testRetrieveByJobVectorWithDetailFilter() throws Exception {
     setupDefaultResultSet();
 
     // 詳細フィルター条件を設定
@@ -335,7 +333,7 @@ class SES_AI_T_JOBLotTest {
   }
 
   @Test
-  void testRetrieveByJobVectorWithDetailFilterNullFilter() throws SQLException {
+  void testRetrieveByJobVectorWithDetailFilterNullFilter() throws Exception {
     setupDefaultResultSet();
 
     SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
@@ -352,5 +350,50 @@ class SES_AI_T_JOBLotTest {
                 null,
                 1,
                 10));
+  }
+
+  @Test
+  void testSearchByJobWithDetailFilterWhereClauseHasNoTableAlias() throws SQLException {
+    // 全文検索条件
+    FulltextCondition condition = new FulltextCondition("AND", "Java", false);
+
+    // 詳細フィルター条件を設定（SELECT_RAW_CONTENT_FOR_FULLTEXTのFROM句にはエイリアスが無いため、
+    // WHERE句に "j." エイリアスが付与されると「missing FROM-clause entry」エラーとなる回帰を検出する）
+    JobDetailFilterCondition detailFilter = new JobDetailFilterCondition();
+    detailFilter.setMinPrice(new Money(new java.math.BigDecimal("50.00")));
+    detailFilter.setMaxPrice(new Money(new java.math.BigDecimal("150.00")));
+
+    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+
+    lot.searchByJobWithDetailFilter(mockConn, "test-tenant", List.of(condition), detailFilter, 1, 10);
+
+    ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+    verify(mockConn, atLeastOnce()).prepareStatement(sqlCaptor.capture());
+    for (String executedSql : sqlCaptor.getAllValues()) {
+      assertFalse(executedSql.contains("j.unit_price"), "WHERE句にテーブルエイリアス j が付与されていないこと: " + executedSql);
+    }
+  }
+
+  @Test
+  void testRetrieveByJobVectorWithDetailFilterWhereClauseHasNoTableAlias() throws Exception {
+    setupDefaultResultSet();
+
+    // ベクトル検索SQLのFROM句にはエイリアスが無いため、WHERE句に "j." エイリアスが付与されると
+    // 「missing FROM-clause entry」エラーとなる回帰を検出する
+    JobDetailFilterCondition detailFilter = new JobDetailFilterCondition();
+    detailFilter.setMinPrice(new Money(new java.math.BigDecimal("50.00")));
+    detailFilter.setStartDate(new OriginalDateTime("2023-01-01 00:00:00"));
+
+    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+    Vector testVector = createTestVector();
+
+    lot.retrieveByJobVectorWithDetailFilter(mockConn, "test-tenant", testVector, 0.5, detailFilter, 1, 10);
+
+    ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+    verify(mockConn, atLeastOnce()).prepareStatement(sqlCaptor.capture());
+    for (String executedSql : sqlCaptor.getAllValues()) {
+      assertFalse(executedSql.contains("j.unit_price"), "WHERE句にテーブルエイリアス j が付与されていないこと: " + executedSql);
+      assertFalse(executedSql.contains("j.start_date"), "WHERE句にテーブルエイリアス j が付与されていないこと: " + executedSql);
+    }
   }
 }

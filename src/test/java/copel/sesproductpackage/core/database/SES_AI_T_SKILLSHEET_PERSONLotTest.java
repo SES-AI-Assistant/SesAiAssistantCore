@@ -260,9 +260,8 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
   @Test
   void testSearchByPersonOrSkillSheetSummaryWithDetailFilter() throws SQLException {
     // 全文検索条件
-    FulltextCondition condition = new FulltextCondition();
-    condition.setConditions(List.of("Java", "Spring"));
-    condition.setLogicalOperator(論理演算子.AND);
+    FulltextCondition condition1 = new FulltextCondition("AND", "Java", false);
+    FulltextCondition condition2 = new FulltextCondition("AND", "Spring", false);
 
     // 詳細フィルター条件を設定
     PersonDetailFilterCondition detailFilter = new PersonDetailFilterCondition();
@@ -281,7 +280,7 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
             lot.searchByPersonOrSkillSheetSummaryWithDetailFilter(
                 mockConnection,
                 "test-tenant",
-                List.of(condition),
+                List.of(condition1, condition2),
                 detailFilter,
                 1,
                 10));
@@ -290,9 +289,7 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
   @Test
   void testSearchByPersonOrSkillSheetSummaryWithDetailFilterNullFilter() throws SQLException {
     // 全文検索条件
-    FulltextCondition condition = new FulltextCondition();
-    condition.setConditions(List.of("Java"));
-    condition.setLogicalOperator(論理演算子.OR);
+    FulltextCondition condition = new FulltextCondition("OR", "Java", false);
 
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
 

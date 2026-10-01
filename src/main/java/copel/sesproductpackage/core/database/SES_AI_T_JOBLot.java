@@ -737,10 +737,12 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
         FulltextConditionsWhereClause.build("raw_content", conditions);
 
     // (2) 詳細フィルターのWHERE句とパラメータを構築
+    // SELECT_RAW_CONTENT_FOR_FULLTEXT のFROM句に "j" エイリアスが存在しないため、
+    // エイリアス無しでWHERE句を構築する（付与すると「missing FROM-clause entry」エラーとなる）
     JobDetailFilterCondition.WhereClauseAndParams detailFilterWhere =
         (detailFilter != null)
-            ? detailFilter.buildWhereClause("j")
-            : new JobDetailFilterCondition().buildWhereClause("j");
+            ? detailFilter.buildWhereClause()
+            : new JobDetailFilterCondition().buildWhereClause();
 
     // (3) WHERE句をマージ
     StringBuilder mergedWhere = new StringBuilder();
@@ -793,10 +795,12 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
     }
 
     // (1) 詳細フィルターのWHERE句とパラメータを構築
+    // ベクトル検索SQLのFROM句に "j" エイリアスが存在しないため、
+    // エイリアス無しでWHERE句を構築する（付与すると「missing FROM-clause entry」エラーとなる）
     JobDetailFilterCondition.WhereClauseAndParams detailFilterWhere =
         (detailFilter != null)
-            ? detailFilter.buildWhereClause("j")
-            : new JobDetailFilterCondition().buildWhereClause("j");
+            ? detailFilter.buildWhereClause()
+            : new JobDetailFilterCondition().buildWhereClause();
 
     // (2) ベクトル検索のWHERE句を構築（詳細フィルターを追加）
     StringBuilder whereClause = new StringBuilder();
