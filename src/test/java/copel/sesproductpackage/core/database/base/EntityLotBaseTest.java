@@ -727,4 +727,30 @@ class EntityLotBaseTest {
     verify(ps).setInt(3, 10);
     verify(ps).setInt(4, 0);
   }
+
+  @Test
+  void testBindParameter_OriginalDateTime() throws SQLException {
+    // OriginalDateTime は setObject() に流れると PostgreSQL が型推論できずエラーになるため、
+    // toTimestamp() で java.sql.Timestamp に変換してバインドする必要がある（回帰テスト）。
+    PreparedStatement ps = mock(PreparedStatement.class);
+    TestEntityLot lot = new TestEntityLot();
+    OriginalDateTime dateTime = new OriginalDateTime("2026/11");
+
+    lot.bindParameter(ps, 1, dateTime);
+
+    verify(ps).setTimestamp(1, dateTime.toTimestamp());
+    verify(ps, never()).setObject(anyInt(), any());
+  }
+
+  @Test
+  void testBindParameter_OriginalDateTime_Empty() throws SQLException {
+    // 空のOriginalDateTime（dateTimeがnull）の場合は null としてバインドされる
+    PreparedStatement ps = mock(PreparedStatement.class);
+    TestEntityLot lot = new TestEntityLot();
+    OriginalDateTime emptyDateTime = new OriginalDateTime((String) null);
+
+    lot.bindParameter(ps, 1, emptyDateTime);
+
+    verify(ps).setTimestamp(1, null);
+  }
 }

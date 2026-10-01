@@ -1,6 +1,7 @@
 package copel.sesproductpackage.core.database.base;
 
 import copel.sesproductpackage.core.unit.LogicalOperators;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -912,6 +913,11 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       stmt.setBigDecimal(paramIndex, (java.math.BigDecimal) param);
     } else if (param instanceof java.sql.Timestamp) {
       stmt.setTimestamp(paramIndex, (java.sql.Timestamp) param);
+    } else if (param instanceof OriginalDateTime) {
+      // OriginalDateTime は独自の日時ラッパー型のため、JDBCドライバが型推論できる
+      // java.sql.Timestamp に変換してからバインドする必要がある（さもないと
+      // 「Can't infer the SQL type」エラーになる）。
+      stmt.setTimestamp(paramIndex, ((OriginalDateTime) param).toTimestamp());
     } else if (param instanceof Enum<?>) {
       stmt.setString(paramIndex, ((Enum<?>) param).name());
     } else if (param instanceof Integer) {
