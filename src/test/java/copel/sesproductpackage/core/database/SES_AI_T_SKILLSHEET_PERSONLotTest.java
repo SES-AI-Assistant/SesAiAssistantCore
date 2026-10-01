@@ -373,5 +373,12 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
     assertTrue(countSql.contains("FROM SES_AI_T_SKILLSHEET"));
     assertTrue(pagedSql.contains("ORDER BY distance ASC LIMIT ?"));
     assertTrue(pagedSql.contains("OFFSET ?"));
+
+    // tenant_id は addTenantIdFilter により LIMIT/OFFSET より前（4番目）に挿入されるため、
+    // 同じ位置でバインドされている必要がある（過去にLIMIT/OFFSETがtenant_idの位置に
+    // バインドされ、character varying = integer の型不一致エラーが発生した不具合の再発防止）
+    verify(mockDataStmt).setString(4, "test-tenant");
+    verify(mockDataStmt).setInt(5, 10);
+    verify(mockDataStmt).setInt(6, 0);
   }
 }
