@@ -353,6 +353,47 @@ class SES_AI_T_JOBLotTest {
   }
 
   @Test
+  void testRetrieveByJobVectorWithDetailFilterNullFilterBindsTenantIdBeforeLimitOffset()
+      throws Exception {
+    // tenant_id は addTenantIdFilter により LIMIT/OFFSET より前（4番目）に挿入されるため、
+    // 同じ位置でバインドされている必要がある（過去にLIMIT/OFFSETがtenant_idの位置に
+    // バインドされ、character varying = integer の型不一致エラーが発生した不具合の再発防止）
+    PreparedStatement mockCountStmt = mock(PreparedStatement.class);
+    PreparedStatement mockDataStmt = mock(PreparedStatement.class);
+    ResultSet mockCountRs = mock(ResultSet.class);
+    ResultSet mockDataRs = mock(ResultSet.class);
+
+    ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+    when(mockConn.prepareStatement(sqlCaptor.capture()))
+        .thenReturn(mockCountStmt)
+        .thenReturn(mockDataStmt);
+    when(mockCountStmt.executeQuery()).thenReturn(mockCountRs);
+    when(mockCountRs.next()).thenReturn(true);
+    when(mockCountRs.getLong(1)).thenReturn(1L);
+    when(mockDataStmt.executeQuery()).thenReturn(mockDataRs);
+    when(mockDataRs.next()).thenReturn(true, false);
+    when(mockDataRs.getString("job_id")).thenReturn("jid1");
+    when(mockDataRs.getString("tenant_id")).thenReturn("test-tenant");
+    when(mockDataRs.getDouble("distance")).thenReturn(0.5);
+
+    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+    Vector testVector = createTestVector();
+
+    lot.retrieveByJobVectorWithDetailFilter(mockConn, "test-tenant", testVector, 0.5, null, 1, 10);
+
+    assertEquals(1, lot.size());
+
+    List<String> capturedSqls = sqlCaptor.getAllValues();
+    String pagedSql = capturedSqls.get(1);
+    assertTrue(pagedSql.contains("ORDER BY distance ASC LIMIT ?"));
+    assertTrue(pagedSql.contains("OFFSET ?"));
+
+    verify(mockDataStmt).setString(4, "test-tenant");
+    verify(mockDataStmt).setInt(5, 10);
+    verify(mockDataStmt).setInt(6, 0);
+  }
+
+  @Test
   void testSearchByJobWithDetailFilterWhereClauseHasNoTableAlias() throws SQLException {
     // 全文検索条件
     FulltextCondition condition = new FulltextCondition("AND", "Java", false);

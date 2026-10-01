@@ -920,9 +920,11 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
                 }
               }
               int nextIdx = filterParamStartIdx + (filterParams != null ? filterParams.size() : 0);
-              stmt.setInt(nextIdx, size);
-              stmt.setInt(nextIdx + 1, (page - 1) * size);
-              return nextIdx + 2;
+              // nextIdx は addTenantIdFilter が挿入する tenant_id 用プレースホルダーの位置のため
+              // 空けておき、LIMIT/OFFSET はその直後にバインドする
+              stmt.setInt(nextIdx + 1, size);
+              stmt.setInt(nextIdx + 2, (page - 1) * size);
+              return nextIdx;
             });
     this.entityLot = results;
   }
