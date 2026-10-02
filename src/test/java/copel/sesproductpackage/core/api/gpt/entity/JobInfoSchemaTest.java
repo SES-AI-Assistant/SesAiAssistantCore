@@ -4,12 +4,16 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import copel.sesproductpackage.core.api.gpt.entity.JobInfoSchema.Requirements;
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.unit.Money;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * JobInfoSchema の単体テスト.
@@ -155,5 +159,83 @@ class JobInfoSchemaTest {
     assertEquals("number", schemaAnnotation.type());
     assertEquals("185", schemaAnnotation.example());
     assertTrue(schemaAnnotation.description().contains("月額単価を万円単位の数値で設定"));
+  }
+
+  // ================================================
+  // isValid の動作検証
+  // ================================================
+
+  @Test
+  @DisplayName("isValid: 正常系（タイトル・概要・必須スキル完備の案件データ）")
+  void isValid_normal_withTitleAndOverviewAndMustSkills() {
+    JobInfoSchema job = new JobInfoSchema();
+    job.setTitle("大手ECサイト刷新に伴うバックエンド開発");
+    job.setOverview("Java/SpringBootを用いたマイクロサービスの設計・開発");
+    job.setMustList(List.of(new Requirements("Java開発経験3年以上", "3年")));
+
+    assertTrue(job.isValid());
+  }
+
+  @Test
+  @DisplayName("isValid: 正常系（必須スキルなし・概要のみ記載されている案件データ）")
+  void isValid_normal_withTitleAndOverviewOnly() {
+    JobInfoSchema job = new JobInfoSchema();
+    job.setTitle("クラウド移行支援PMO");
+    job.setOverview("AWS環境への移行プロジェクトにおける進捗管理およびベンダーコントロール");
+    job.setMustList(null);
+
+    assertTrue(job.isValid());
+  }
+
+  @Test
+  @DisplayName("isValid: 正常系（概要なし・必須スキルのみ記載されている案件データ）")
+  void isValid_normal_withTitleAndMustSkillsOnly() {
+    JobInfoSchema job = new JobInfoSchema();
+    job.setTitle("金融機関向けインフラ構築保守");
+    job.setOverview(null);
+    job.setMustList(List.of(new Requirements("Linux/RHEL環境の運用構築経験", "2年")));
+
+    assertTrue(job.isValid());
+  }
+
+  @Test
+  @DisplayName("isValid: 異常系（タイトルがnull）")
+  void isValid_abnormal_nullTitle() {
+    JobInfoSchema job = new JobInfoSchema();
+    job.setTitle(null);
+    job.setOverview("概要文");
+    job.setMustList(List.of(new Requirements("スキル", "1年")));
+
+    assertFalse(job.isValid());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", "   ", "　", "\t\n"})
+  @DisplayName("isValid: 異常系（案件名が空文字・空白文字）")
+  void isValid_abnormal_blankTitle(String invalidTitle) {
+    JobInfoSchema job = new JobInfoSchema();
+    job.setTitle(invalidTitle);
+    job.setOverview("概要文");
+    job.setMustList(List.of(new Requirements("スキル", "1年")));
+
+    assertFalse(job.isValid());
+  }
+
+  @Test
+  @DisplayName("isValid: 異常系（募集実体なし：概要なし かつ 必須スキルなし）")
+  void isValid_abnormal_noSubstance() {
+    JobInfoSchema job1 = new JobInfoSchema();
+    job1.setTitle("システム開発案件");
+    job1.setOverview(null);
+    job1.setMustList(null);
+
+    JobInfoSchema job2 = new JobInfoSchema();
+    job2.setTitle("システム開発案件");
+    job2.setOverview("   ");
+    job2.setMustList(List.of());
+
+    assertAll(
+        () -> assertFalse(job1.isValid()),
+        () -> assertFalse(job2.isValid()));
   }
 }
