@@ -7,6 +7,8 @@ import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,6 +22,32 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PersonInfoSchema {
+  // ================================================
+  // 定数
+  // ================================================
+  /**
+   * 架空要員名・プレースホルダーとして除外する名称一覧.
+   *
+   * @author Copel Co., Ltd.
+   */
+  public static final Set<String> INVALID_PERSON_NAMES =
+      Set.of(
+          "n/a",
+          "na",
+          "none",
+          "不明",
+          "なし",
+          "未定",
+          "要員様",
+          "要員",
+          "エンジニア",
+          "技術者",
+          "プロパー",
+          "メンバー",
+          "様",
+          "さん",
+          "担当",
+          "営業");
   @Schema(
       title = "氏名",
       description = "紹介されている要員本人の名前またはイニシャル",
@@ -258,6 +286,61 @@ public class PersonInfoSchema {
       }
     }
     return sb.toString();
+  }
+
+  /**
+   * 要員情報のデータ構造妥当性を検証する（第3層物理ガードレール）.
+   *
+   * <p>氏名未記載、架空要員名、実体のないプロファイルを物理的に遮断します。
+   *
+   * @return 妥当な場合はtrue、不正な場合はfalse
+   * @author Copel Co., Ltd.
+   */
+  public boolean isValid() {
+    // 氏名のチェック
+    if (this.name == null || this.name.strip().isEmpty()) {
+      return false;
+    }
+    String trimmedName = this.name.strip();
+    // 架空要員名・プレースホルダーの除外
+    if (INVALID_PERSON_NAMES.contains(trimmedName.toLowerCase(Locale.ROOT))) {
+      return false;
+    }
+    // 文字（漢字・ひらがな・カタカナ・アルファベット等）が1文字も含まれない（記号のみ・数字のみ等）場合は除外
+    if (!trimmedName.matches(".*\\p{L}.*")) {
+      return false;
+    }
+    // 実体プロファイルの存在チェック（スキルも年齢も存在しない場合は実体なしと判定）
+    boolean hasExperiences = this.experiences != null && !this.experiences.isEmpty();
+    boolean hasAge = this.age > 0;
+    if (!hasExperiences && !hasAge) {
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * 要員情報の希望単価を正規化・自己修復します.
+   *
+   * <p>単価が1,000円未満かつ0円超（例: 45円、55円などの単位誤認値）の場合、
+   * 万円単位の誤認とみなして10,000倍（450,000円、550,000円）に自己修復し、
+   * 内部の priceInMan も同期更新します。
+   *
+   * @return 正規化後の Money インスタンス（未設定または0以下の場合はそのまま返却）
+   * @author Copel Co., Ltd.
+   */
+  public Money normalizePrice() {
+    Money price = this.getPrice();
+    if (price != null && price.hasValue()) {
+      BigDecimal val = price.getValue();
+      if (val.compareTo(BigDecimal.ZERO) > 0 && val.compareTo(new BigDecimal("1000")) < 0) {
+        Money repairedPrice = price.multiply(10000.0);
+        this.setPriceInMan(val);
+        return repairedPrice;
+      }
+      return price;
+    }
+    return price != null ? price : Money.empty();
   }
 
   // ================================================

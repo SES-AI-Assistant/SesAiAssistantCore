@@ -42,6 +42,11 @@ public class ContentParseSchema {
       itemType = InfoSchema.class)
   private List<InfoSchema> informations = null;
 
+  /**
+   * 抽出された個別情報スキーマ.
+   *
+   * @author Copel Co., Ltd.
+   */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
@@ -49,7 +54,18 @@ public class ContentParseSchema {
     @Schema(
         title = "情報種別",
         description =
-            "特定の人物を提案する文章であり、「氏名（イニシャル）」「年齢（〇〇歳）」「経験スキル」が記載されている場合は「PERSON」、プロジェクトの参画者を募集する文章であり、「必須スキル」「尚可スキル」「勤務地・常駐先」が記載されている場合は「JOB」、それ以外の場合は「Unknown」とする。広告、宣伝、交流会やイベント案内、URLのみ・ファイル展開のみのための連絡、SES案件・要員の紹介と無関係な連絡なども「Unknown」とする。",
+            "情報種別。メール・文章の主旨に応じて以下のルールで厳格に分類する。\n"
+                + "【最重要判定原則: 主述の向き】\n"
+                + "メールの主旨が人材の提案・売り込み（PERSON）なのか、案件の参画者募集（JOB）なのかを最優先で判定する。\n"
+                + "【PERSON】: 人材の提案・売り込み（エントリー、推薦、ご提案、自社要員展開等）。"
+                + "氏名/イニシャル、実年齢、単価、所属形態、稼働開始日、職歴・スキル等の特定個人属性が存在する場合は、"
+                + "本文中に案件名・勤務地・必須スキルの記載（引用文やマッチング希望条件）が含まれていても、主部が特定個人の提案である限り絶対にJOBではなく「PERSON」とする。"
+                + "返信メール（Re:）でのエントリーの場合も本文中の案件引用に惑わされず「PERSON」として抽出すること（引用された案件をJOBとして抽出してはならない）。\n"
+                + "【JOB】: プロジェクト参画者の募集（案件案内、求めるスキル、勤務地等）。"
+                + "特定個人のプロファイルが存在せず参画者を募るものは「JOB」とする。"
+                + "営業担当者の名前（「担当：田中」「齊藤」「宮澤」等）や、募集条件（「募集人数：1名」「求める要員：30代まで」「見合う要員様がいらっしゃいましたらご提案ください」等）に惑わされてPERSONを出力してはならない。\n"
+                + "【混在メールの切り分け】: 1通内に案件募集と要員提案が明確に併記されている場合（アライアンスメルマガ等）は、案件ブロックからJOBを、要員ブロックからPERSONをそれぞれ別個に抽出すること。\n"
+                + "【Unknown】: 不在通知、自動返信（休暇・不在等）、退職挨拶、配信停止連絡、送信専用アドレス通知、イベント・交流会案内、またはSES案件・要員の具体的な提案を伴わない一般的な連絡。summaryは出力しないこと。",
         itemType = InformationType.class,
         required = true)
     private InformationType type = InformationType.Unknown;
@@ -66,16 +82,32 @@ public class ContentParseSchema {
       @JsonSubTypes.Type(value = Object.class, name = "Unknown")
     })
     @ConditionalSchema({
-      @ConditionalCase(enumValue = "PERSON", title = "要員情報", schema = PersonInfoSchema.class),
-      @ConditionalCase(enumValue = "JOB", title = "案件情報", schema = JobInfoSchema.class)
+      @ConditionalCase(
+          enumValue = "PERSON",
+          title = "要員情報",
+          description = "要員情報",
+          schema = PersonInfoSchema.class),
+      @ConditionalCase(
+          enumValue = "JOB",
+          title = "案件情報",
+          description = "案件情報",
+          schema = JobInfoSchema.class)
     })
     @Schema(description = "情報種別に応じた要約情報の詳細データ。Unknown の場合は出力しないこと")
     private Object summary = null;
   }
 
+  /**
+   * 情報種別Enum.
+   *
+   * @author Copel Co., Ltd.
+   */
   public enum InformationType {
+    /** 案件情報. */
     JOB,
+    /** 要員情報. */
     PERSON,
+    /** 対象外（不在通知、退職挨拶等）. */
     Unknown;
   }
 }

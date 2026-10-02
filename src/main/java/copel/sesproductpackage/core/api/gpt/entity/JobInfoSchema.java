@@ -6,6 +6,7 @@ import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Locale;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,6 +20,44 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class JobInfoSchema {
+  // ================================================
+  // 定数
+  // ================================================
+  /**
+   * 案件タイトルに含まれていた場合に不在・自動応答の誤混入として除外するキーワード一覧.
+   *
+   * @author Copel Co., Ltd.
+   */
+  public static final List<String> INVALID_TITLE_KEYWORDS =
+      List.of(
+          "自動応答",
+          "休暇のお知らせ",
+          "不在通知",
+          "退職のご挨拶",
+          "配信停止");
+
+  /**
+   * 要員提案の誤混入として除外するキーワード一覧.
+   *
+   * @author Copel Co., Ltd.
+   */
+  public static final List<String> PERSON_PROPOSAL_KEYWORDS =
+      List.of(
+          "要員紹介",
+          "要員提案",
+          "【要員】",
+          "スキルシート送付",
+          "スキルシート添付",
+          "経歴書送付",
+          "経歴書添付");
+
+  /**
+   * 案件名に含まれる場合に案件として救済するキーワード一覧.
+   *
+   * @author Copel Co., Ltd.
+   */
+  public static final List<String> VALID_JOB_KEYWORDS =
+      List.of("開発", "システム", "刷新", "案件", "pj", "構築");
   @Schema(
       title = "案件名",
       description = "案件名の記載がない場合は内容から簡潔な案件名を考えて記載してください",
@@ -255,6 +294,49 @@ public class JobInfoSchema {
       return null;
     }
     return String.join("\n", this.otherRequirements);
+  }
+
+  /**
+   * 案件情報のデータ構造妥当性を検証する（第3層物理ガードレール）.
+   *
+   * <p>不在通知・自動返信、要員提案の誤混入、募集実体のない架空案件を物理的に遮断します。
+   *
+   * @return 妥当な場合はtrue、不正な場合はfalse
+   * @author Copel Co., Ltd.
+   */
+  public boolean isValid() {
+    // タイトルのチェック
+    if (this.title == null || this.title.strip().isEmpty()) {
+      return false;
+    }
+    String lowerTitle = this.title.strip().toLowerCase(Locale.ROOT);
+
+    // 不在通知・自動返信・挨拶等の誤混入排除
+    for (String keyword : INVALID_TITLE_KEYWORDS) {
+      if (lowerTitle.contains(keyword.toLowerCase(Locale.ROOT))) {
+        return false;
+      }
+    }
+
+    // 要員提案の誤混入排除（ただし「開発」「システム」などの案件系キーワードを含む正規案件タイトルは救済）
+    boolean isJobContext =
+        VALID_JOB_KEYWORDS.stream().anyMatch(lowerTitle::contains);
+    if (!isJobContext) {
+      for (String keyword : PERSON_PROPOSAL_KEYWORDS) {
+        if (lowerTitle.contains(keyword.toLowerCase(Locale.ROOT))) {
+          return false;
+        }
+      }
+    }
+
+    // 募集実体のチェック（概要も必須スキルも存在しない場合は実体なしと判定）
+    boolean hasOverview =
+        this.overview != null && !this.overview.strip().isEmpty();
+    boolean hasMustSkills = this.mustList != null && !this.mustList.isEmpty();
+    if (!hasOverview && !hasMustSkills) {
+      return false;
+    }
+    return true;
   }
 
   // ================================================
