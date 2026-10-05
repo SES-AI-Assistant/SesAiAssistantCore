@@ -28,6 +28,12 @@ class MoneyTest {
   }
 
   @Test
+  void testToJapaneseFormat_Zero() {
+    Money moneyZero = new Money(0);
+    assertEquals("0万円", moneyZero.toJapaneseFormat());
+  }
+
+  @Test
   void testToManFormat() {
     Money money = new Money(1300000);
     assertEquals("130", money.toManFormat());
@@ -161,10 +167,23 @@ class MoneyTest {
     assertTrue(new Money(9_990_000L).isNegotiable());
     assertTrue(Money.toSesUnitFromMan(new BigDecimal("999")).isNegotiable());
     assertTrue(Money.toSesUnitFromMan(new BigDecimal("9990000")).isNegotiable());
+    assertTrue(new Money(-1L).isNegotiable());
+    assertTrue(new Money(-100L).isNegotiable());
+    assertTrue(new Money(0L).isNegotiable());
     assertFalse(Money.toSesUnitFromMan(new BigDecimal("80")).isNegotiable());
     assertFalse(new Money(1_000_000L).isNegotiable());
     assertFalse(Money.empty().isNegotiable());
     assertFalse(new Money(100).isNegotiable());
+  }
+
+  @Test
+  void testIsConsultation() {
+    assertTrue(new Money(0L).isConsultation());
+    assertTrue(new Money(-1L).isConsultation());
+    assertTrue(new Money(-100L).isConsultation());
+    assertFalse(Money.NEGOTIABLE_PRICE.isConsultation());
+    assertFalse(new Money(800_000L).isConsultation());
+    assertFalse(Money.empty().isConsultation());
   }
 
   // ================================================
@@ -290,9 +309,15 @@ class MoneyTest {
   void testToSesUnitFromMan_ZeroAndNegative() {
     Money mZero = Money.toSesUnitFromMan(BigDecimal.ZERO);
     assertEquals(0L, mZero.toYenValue());
+    assertTrue(mZero.isConsultation());
 
     Money mNegative = Money.toSesUnitFromMan(new BigDecimal("-100"));
-    assertEquals(-100L, mNegative.toYenValue());
+    assertEquals(0L, mNegative.toYenValue());
+    assertTrue(mNegative.isConsultation());
+
+    Money mMinus1 = Money.toSesUnitFromMan(new BigDecimal("-1"));
+    assertEquals(0L, mMinus1.toYenValue());
+    assertTrue(mMinus1.isConsultation());
   }
 
   @Test

@@ -180,8 +180,24 @@ class SES_AI_T_MATCHTest {
     assertNotNull(match.getProfit());
     assertEquals(-200_000L, match.getProfit().toYenValue());
 
-    // 単価不問（スキル見合い）: null
+    // 案件単価が単価不問（スキル見合い）: null
     match.setProfit(Money.NEGOTIABLE_PRICE, new Money(800_000L));
+    assertNull(match.getProfit());
+
+    // 要員単価が単価不問（応相談・0円）: null
+    match.setProfit(new Money(800_000L), new Money(0L));
+    assertNull(match.getProfit());
+
+    // 要員単価が単価不問（応相談・負数）: null
+    match.setProfit(new Money(800_000L), new Money(-1L));
+    assertNull(match.getProfit());
+
+    // 要員単価が単価不問（スキル見合い仕様値）: null
+    match.setProfit(new Money(800_000L), Money.NEGOTIABLE_PRICE);
+    assertNull(match.getProfit());
+
+    // 案件・要員の両方が単価不問: null
+    match.setProfit(Money.NEGOTIABLE_PRICE, new Money(-1L));
     assertNull(match.getProfit());
 
     // 案件単価 null / empty: null
