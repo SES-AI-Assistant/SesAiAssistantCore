@@ -257,6 +257,30 @@ public class JobInfoSchema {
     return String.join("\n", this.otherRequirements);
   }
 
+  /**
+   * 案件情報のデータ構造妥当性を検証する.
+   *
+   * <p>タイトルが空である場合や、募集実体のない案件を遮断します。
+   *
+   * @return 妥当な場合はtrue、不正な場合はfalse
+   * @author Copel Co., Ltd.
+   */
+  public boolean isValid() {
+    // タイトルのチェック
+    if (this.title == null || this.title.strip().isEmpty()) {
+      return false;
+    }
+
+    // 募集実体のチェック（概要も必須スキルも存在しない場合は実体なしと判定）
+    boolean hasOverview =
+        this.overview != null && !this.overview.strip().isEmpty();
+    boolean hasMustSkills = this.mustList != null && !this.mustList.isEmpty();
+    if (!hasOverview && !hasMustSkills) {
+      return false;
+    }
+    return true;
+  }
+
   // ================================================
   // フィールド用のクラス
   // ================================================

@@ -7,6 +7,8 @@ import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,9 +22,40 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PersonInfoSchema {
+  // ================================================
+  // 定数
+  // ================================================
+  /**
+   * 架空要員名・プレースホルダーとして除外する名称一覧.
+   *
+   * @author Copel Co., Ltd.
+   */
+  public static final Set<String> INVALID_PERSON_NAMES =
+      Set.of(
+          "unknown",
+          "n/a",
+          "na",
+          "none",
+          "不明",
+          "なし",
+          "未定",
+          "要員様",
+          "要員",
+          "エンジニア",
+          "技術者",
+          "プロパー",
+          "メンバー",
+          "様",
+          "さん",
+          "担当",
+          "営業");
   @Schema(
       title = "氏名",
-      description = "紹介されている要員本人の名前またはイニシャル",
+      description =
+          "紹介されている要員本人の氏名またはイニシャル（例: 山田太郎、T.T、YM等）。"
+              + "職種名（エンジニア、プログラマー、PM等）や所属名（〇〇所属、弊社プロパー等）、"
+              + "一般名詞・プレースホルダー（要員様、N/A、担当者等）を設定することは厳禁。"
+              + "特定個人の名前・イニシャルが記載されていない場合は架空の要員として出力せず、必ず Unknown と判定すること。",
       maxLength = 10,
       required = true,
       example = "T.T")
@@ -258,6 +291,35 @@ public class PersonInfoSchema {
       }
     }
     return sb.toString();
+  }
+
+  /**
+   * 要員情報のデータ構造妥当性を検証する（第3層物理ガードレール）.
+   *
+   * <p>氏名未記載、架空要員名、実体プロファイル（スキル経歴）のないデータを物理的に遮断します。
+   *
+   * @return 妥当な場合はtrue、不正な場合はfalse
+   * @author Copel Co., Ltd.
+   */
+  public boolean isValid() {
+    // 氏名のチェック
+    if (this.name == null || this.name.strip().isEmpty()) {
+      return false;
+    }
+    String trimmedName = this.name.strip();
+    // 架空要員名・プレースホルダーの除外（unknown, n/a, none, 不明, なし, 未定 等）
+    if (INVALID_PERSON_NAMES.contains(trimmedName.toLowerCase(Locale.ROOT))) {
+      return false;
+    }
+    // 文字（漢字・ひらがな・カタカナ・アルファベット等）が1文字も含まれない（記号のみ・数字のみ等）場合は除外
+    if (!trimmedName.matches(".*\\p{L}.*")) {
+      return false;
+    }
+    // 実体プロファイル（スキル経歴）の存在チェック（スキルが1件も存在しない場合は実体なしとして除外）
+    if (this.experiences == null || this.experiences.isEmpty()) {
+      return false;
+    }
+    return true;
   }
 
   // ================================================
