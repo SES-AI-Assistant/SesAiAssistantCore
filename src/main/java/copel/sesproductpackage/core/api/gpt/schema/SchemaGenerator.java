@@ -140,6 +140,40 @@ public final class SchemaGenerator {
   }
 
   /**
+   * 指定されたフィールド単体のJSON Schemaを生成します.
+   *
+   * <p>{@code @SchemaIgnore} が付与されたフィールドであってもスキップせずスキーマを生成する（
+   * requestBodyには含めないがクエリパラメータとしては文書化したい、といった用途向け）。
+   *
+   * @param field リフレクションフィールド
+   * @return フィールドのスキーマオブジェクト
+   */
+  public static Map<String, Object> generateFieldSchema(final Field field) {
+    Schema schemaAnnotation = field.getAnnotation(Schema.class);
+    return generateFieldSchema(field, schemaAnnotation);
+  }
+
+  /**
+   * フィールドのOpenAPI/JSON Schema上のプロパティ名を取得します（{@code @JsonProperty}優先、無ければスネークケース変換）.
+   *
+   * @param field リフレクションフィールド
+   * @return プロパティ名
+   */
+  public static String resolveFieldName(final Field field) {
+    return getFieldName(field);
+  }
+
+  /**
+   * クラス自身と全ての親クラスに宣言されたフィールドを集約して返します（{@code collectAllFields}の公開版）.
+   *
+   * @param clazz 対象クラス
+   * @return フィールドのリスト（親クラス→自クラスの順）
+   */
+  public static List<Field> resolveAllFields(final Class<?> clazz) {
+    return collectAllFields(clazz);
+  }
+
+  /**
    * 任意のMapをYAML文字列へ変換します.
    *
    * <p>OpenAPIドキュメント全体（paths/components等を含む大きなMap）のように、 単一クラスのスキーマに限らない任意のMap構造をYAML化する場合に使用する。
