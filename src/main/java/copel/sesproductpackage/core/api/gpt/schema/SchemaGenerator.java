@@ -2,6 +2,9 @@ package copel.sesproductpackage.core.api.gpt.schema;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
@@ -51,6 +54,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class SchemaGenerator {
 
+  /** YAML出力用のObjectMapper（ドキュメント区切り行 "---" を出力しない）. */
+  private static final ObjectMapper YAML_MAPPER =
+      new ObjectMapper(
+          YAMLFactory.builder().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER).build());
+
   private SchemaGenerator() {}
 
   /**
@@ -72,7 +80,7 @@ public final class SchemaGenerator {
       Map<String, Object> properties = new LinkedHashMap<>();
       List<String> required = new ArrayList<>();
 
-      Field[] fields = clazz.getDeclaredFields();
+      List<Field> fields = collectAllFields(clazz);
       for (Field field : fields) {
         if (isStaticOrSpecial(field)) {
           continue;
@@ -118,6 +126,32 @@ public final class SchemaGenerator {
           .writeValueAsString(schema);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Failed to format schema to JSON: " + e.getMessage(), e);
+    }
+  }
+
+  /**
+   * 指定されたクラスからJSON Schemaを生成し、YAML文字列として返します.
+   *
+   * @param clazz JSON Schema生成対象のクラス
+   * @return YAML文字列
+   */
+  public static String generateYaml(final Class<?> clazz) {
+    return toYaml(generate(clazz));
+  }
+
+  /**
+   * 任意のMapをYAML文字列へ変換します.
+   *
+   * <p>OpenAPIドキュメント全体（paths/components等を含む大きなMap）のように、 単一クラスのスキーマに限らない任意のMap構造をYAML化する場合に使用する。
+   *
+   * @param data YAML化対象のMap
+   * @return YAML文字列
+   */
+  public static String toYaml(final Map<String, Object> data) {
+    try {
+      return YAML_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(data);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Failed to format schema to YAML: " + e.getMessage(), e);
     }
   }
 
@@ -187,7 +221,7 @@ public final class SchemaGenerator {
 
     Class<?> fieldType = field.getType();
 
-    if (fieldType == List.class || fieldType.isArray()) {
+    if (java.util.Collection.class.isAssignableFrom(fieldType) || fieldType.isArray()) {
       handleArrayType(fieldSchema, field, schema);
     } else if (fieldType.isEnum()) {
       handleEnumType(fieldSchema, fieldType, schema);
@@ -478,6 +512,9 @@ public final class SchemaGenerator {
     if (!schema.title().isEmpty()) {
       fieldSchema.put("title", schema.title());
     }
+    if (!schema.xDataSource().isEmpty()) {
+      fieldSchema.put("x-data-source", schema.xDataSource());
+    }
   }
 
   /**
@@ -488,7 +525,7 @@ public final class SchemaGenerator {
    */
   private static Map<String, Object> generateObjectProperties(final Class<?> clazz) {
     Map<String, Object> properties = new LinkedHashMap<>();
-    Field[] fields = clazz.getDeclaredFields();
+    List<Field> fields = collectAllFields(clazz);
 
     for (Field field : fields) {
       if (isStaticOrSpecial(field)) {
@@ -516,7 +553,7 @@ public final class SchemaGenerator {
    */
   private static List<String> extractRequiredFields(final Class<?> clazz) {
     List<String> required = new ArrayList<>();
-    Field[] fields = clazz.getDeclaredFields();
+    List<Field> fields = collectAllFields(clazz);
 
     for (Field field : fields) {
       if (isStaticOrSpecial(field)) {
@@ -582,6 +619,28 @@ public final class SchemaGenerator {
       return "array";
     }
     return "string";
+  }
+
+  /**
+   * クラス自身と、そのすべての親クラス（Objectを除く）に宣言されたフィールドを集約して返します.
+   *
+   * <p>{@link Class#getDeclaredFields()} は自クラスで直接宣言されたフィールドしか返さないため、 継承元クラスのフィールドを含めるために本メソッドで階層を遡って収集する。
+   * 親クラスのフィールドを先に追加する（基底→派生の順）。
+   *
+   * @param clazz 対象クラス
+   * @return フィールドのリスト（親クラス→自クラスの順）
+   */
+  private static List<Field> collectAllFields(final Class<?> clazz) {
+    List<Class<?>> hierarchy = new ArrayList<>();
+    for (Class<?> current = clazz; current != null && current != Object.class; current = current.getSuperclass()) {
+      hierarchy.add(current);
+    }
+
+    List<Field> fields = new ArrayList<>();
+    for (int i = hierarchy.size() - 1; i >= 0; i--) {
+      fields.addAll(List.of(hierarchy.get(i).getDeclaredFields()));
+    }
+    return fields;
   }
 
   /**

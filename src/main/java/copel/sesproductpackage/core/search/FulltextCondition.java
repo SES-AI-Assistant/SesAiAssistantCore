@@ -1,5 +1,6 @@
 package copel.sesproductpackage.core.search;
 
+import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import java.util.Objects;
 import lombok.NoArgsConstructor;
 
@@ -10,8 +11,13 @@ import lombok.NoArgsConstructor;
  */
 @NoArgsConstructor(force = true)
 public final class FulltextCondition {
+  @Schema(description = "\"AND\" または \"OR\"", required = true, example = "AND")
   private final String operator;
+
+  @Schema(description = "検索キーワード", required = true, example = "Python")
   private final String keyword;
+
+  @Schema(description = "否定フラグ", required = true, example = "false")
   private final boolean negated;
 
   public FulltextCondition(final String operator, final String keyword, final boolean negated) {
