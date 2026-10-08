@@ -8,7 +8,6 @@ package copel.sesproductpackage.core.unit;
 public enum Permission {
   // 画面閲覧系
   VIEW_MATCHING_LIST("マッチング一覧閲覧"),
-  VIEW_SKILLS_SHEET_LIST("スキルシート一覧閲覧"),
   VIEW_JOB_LIST("案件一覧閲覧"),
   // アクション系
   DOWNLOAD_SKILLSHEET("スキルシートダウンロード"),

@@ -15,7 +15,6 @@ public enum Plan {
       EnumSet.of(
           Permission.VIEW_MATCHING_LIST,
           Permission.VIEW_JOB_LIST,
-          Permission.VIEW_SKILLS_SHEET_LIST,
           Permission.MANAGE_WATCH)),
   PREMIUM("10", "プレミアムプラン", EnumSet.allOf(Permission.class));
 
