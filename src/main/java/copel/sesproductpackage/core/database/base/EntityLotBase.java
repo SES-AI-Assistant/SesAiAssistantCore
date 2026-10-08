@@ -1036,13 +1036,25 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     }
 
     // (2) ページング SQL 構築（tenantId フィルターなし）
-    StringBuilder sql = new StringBuilder(baseSql);
-    boolean hasWhereClause = baseSql.toUpperCase().contains("WHERE");
+    // baseSql に ORDER BY / GROUP BY / HAVING が含まれる場合、
+    // WHERE/AND条件はそれらの句より前に挿入しないと構文エラーになるため、挿入位置を検出する。
+    final String upperBaseSql = baseSql.toUpperCase();
+    int clauseInsertPosition = baseSql.length();
+    for (final String keyword : new String[] {" ORDER BY", " GROUP BY", " HAVING"}) {
+      final int keywordIndex = upperBaseSql.indexOf(keyword);
+      if (keywordIndex >= 0 && keywordIndex < clauseInsertPosition) {
+        clauseInsertPosition = keywordIndex;
+      }
+    }
+    final String beforeClause = baseSql.substring(0, clauseInsertPosition);
+    final String afterClause = baseSql.substring(clauseInsertPosition);
+    boolean hasWhereClause = beforeClause.toUpperCase().contains("WHERE");
 
+    StringBuilder conditionBuilder = new StringBuilder();
     if (query != null && !query.isEmpty()) {
       boolean isFirst = true;
       if (!hasWhereClause) {
-        sql.append(" WHERE ");
+        conditionBuilder.append(" WHERE ");
         hasWhereClause = true;
       } else {
         isFirst = false;
@@ -1050,14 +1062,16 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
 
       for (final String columnName : query.keySet()) {
         if (isFirst) {
-          sql.append(columnName).append(" = ?");
+          conditionBuilder.append(columnName).append(" = ?");
           isFirst = false;
         } else {
-          sql.append(isAnd ? " AND " : " OR ").append(columnName).append(" = ?");
+          conditionBuilder.append(isAnd ? " AND " : " OR ").append(columnName).append(" = ?");
         }
       }
     }
 
+    StringBuilder sql =
+        new StringBuilder(beforeClause).append(conditionBuilder).append(afterClause);
     sql.append(" LIMIT ? OFFSET ?");
 
     if (connection == null) {

@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /**
  * SES_AI_T_WATCH_JOB_PERSONLot のテストクラス.
@@ -302,6 +303,19 @@ class SES_AI_T_WATCH_JOB_PERSONLotTest {
 
     assertEquals(1, lot.size());
     verify(ps, times(2)).executeQuery();
+
+    // ORDER BY句を含むベースSQLに対してWHERE条件が正しくORDER BYより前に
+    // 挿入されていることを検証する（ORDER BYの後にWHEREが来ると構文エラーになるため）。
+    ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+    verify(connection, times(2)).prepareStatement(sqlCaptor.capture());
+    String pagingSql = sqlCaptor.getAllValues().get(1);
+    String upperPagingSql = pagingSql.toUpperCase();
+    int wherePos = upperPagingSql.indexOf("WHERE");
+    int orderByPos = upperPagingSql.indexOf("ORDER BY");
+    assertTrue(wherePos >= 0, "ページングSQLにWHERE句が存在すること");
+    assertTrue(orderByPos >= 0, "ページングSQLにORDER BY句が存在すること");
+    assertTrue(wherePos < orderByPos, "WHERE句はORDER BY句より前に配置されること");
+    assertEquals(wherePos, upperPagingSql.lastIndexOf("WHERE"), "WHERE句が重複生成されていないこと");
   }
 
   @Test
