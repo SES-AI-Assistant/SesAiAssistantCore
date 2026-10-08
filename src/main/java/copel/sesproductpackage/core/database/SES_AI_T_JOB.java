@@ -391,15 +391,15 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
     sb.append("■概要\n").append(this.overview).append("\n");
     // 3. 必須
     if (this.mustSkills != null && !this.mustSkills.isEmpty()) {
-      sb.append("■必須\n").append(this.mustSkills);
+      sb.append("■必須\n").append(this.mustSkills).append("\n");
     }
     // 4. 尚可
     if (this.wantSkills != null && !this.wantSkills.isEmpty()) {
-      sb.append("■尚可\n").append(this.wantSkills);
+      sb.append("■尚可\n").append(this.wantSkills).append("\n");
     }
     // 5. 開始
     if (this.startDate != null) {
-      sb.append("■開始: ").append(this.startDate.month()).append("月\n");
+      sb.append("■開始: ").append(this.startDate.month()).append("\n");
     }
     // 6. 単価
     if (targetPrice != null && !targetPrice.isEmpty()) {
@@ -423,7 +423,7 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
     }
     // 8. その他
     if (this.otherRequirements != null && !this.otherRequirements.isEmpty()) {
-      sb.append("■その他\n").append(otherRequirements);
+      sb.append("■その他\n").append(otherRequirements).append("\n");
     }
     return sb.toString();
   }
