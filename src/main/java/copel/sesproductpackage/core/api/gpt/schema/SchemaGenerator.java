@@ -2,9 +2,9 @@ package copel.sesproductpackage.core.api.gpt.schema;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
@@ -658,15 +658,17 @@ public final class SchemaGenerator {
   /**
    * クラス自身と、そのすべての親クラス（Objectを除く）に宣言されたフィールドを集約して返します.
    *
-   * <p>{@link Class#getDeclaredFields()} は自クラスで直接宣言されたフィールドしか返さないため、 継承元クラスのフィールドを含めるために本メソッドで階層を遡って収集する。
-   * 親クラスのフィールドを先に追加する（基底→派生の順）。
+   * <p>{@link Class#getDeclaredFields()} は自クラスで直接宣言されたフィールドしか返さないため、
+   * 継承元クラスのフィールドを含めるために本メソッドで階層を遡って収集する。 親クラスのフィールドを先に追加する（基底→派生の順）。
    *
    * @param clazz 対象クラス
    * @return フィールドのリスト（親クラス→自クラスの順）
    */
   private static List<Field> collectAllFields(final Class<?> clazz) {
     List<Class<?>> hierarchy = new ArrayList<>();
-    for (Class<?> current = clazz; current != null && current != Object.class; current = current.getSuperclass()) {
+    for (Class<?> current = clazz;
+        current != null && current != Object.class;
+        current = current.getSuperclass()) {
       hierarchy.add(current);
     }
 

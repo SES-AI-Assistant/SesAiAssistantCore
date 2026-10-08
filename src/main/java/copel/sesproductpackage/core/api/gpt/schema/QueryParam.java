@@ -8,9 +8,9 @@ import java.lang.annotation.Target;
 /**
  * このフィールドがrequestBodyではなくクエリパラメータであることを示すマーカーアノテーション.
  *
- * <p>OpenAPI生成時、本アノテーションが付与されたフィールドは requestBody のプロパティとしてではなく、
- * GET/DELETE等のクエリパラメータ（{@code in: query}）として出力される。フィールド自体の型・説明・例は
- * 通常どおり {@link Schema} アノテーションで指定する（{@code @SchemaIgnore} と併用してもよい）。
+ * <p>OpenAPI生成時、本アノテーションが付与されたフィールドは requestBody のプロパティとしてではなく、 GET/DELETE等のクエリパラメータ（{@code in:
+ * query}）として出力される。フィールド自体の型・説明・例は 通常どおり {@link Schema} アノテーションで指定する（{@code @SchemaIgnore}
+ * と併用してもよい）。
  *
  * <p>使用例：
  *

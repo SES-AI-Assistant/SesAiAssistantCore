@@ -12,10 +12,7 @@ public enum Plan {
   FREE(
       "00",
       "フリープラン",
-      EnumSet.of(
-          Permission.VIEW_MATCHING_LIST,
-          Permission.VIEW_JOB_LIST,
-          Permission.MANAGE_WATCH)),
+      EnumSet.of(Permission.VIEW_MATCHING_LIST, Permission.VIEW_JOB_LIST, Permission.MANAGE_WATCH)),
   PREMIUM("10", "プレミアムプラン", EnumSet.allOf(Permission.class));
 
   /** コード値. */
