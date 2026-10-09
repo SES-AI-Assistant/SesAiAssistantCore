@@ -216,26 +216,51 @@ public class PersonInfoSchema {
    * @return OriginalDateTime
    */
   public OriginalDateTime getStartDateAsOriginalDateTime() {
-    if (this.startYearMonth == null) {
-      OriginalDateTime now = new OriginalDateTime();
-      return OriginalDateTime.fromMonth(
-          now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
+    return getStartDateAsOriginalDateTime(null);
+  }
+
+  /**
+   * 開始年月から OriginalDateTime を生成します（本文の即日判定および過去年月フォールバック対応）.
+   *
+   * @param rawContent 対象メールやメッセージの本文（null可）
+   * @return OriginalDateTime
+   */
+  public OriginalDateTime getStartDateAsOriginalDateTime(final String rawContent) {
+    OriginalDateTime now = new OriginalDateTime();
+    int currentYear = now.toLocalDate().getYear();
+    int currentMonth = now.toLocalDate().getMonthValue();
+
+    // 1. メール本文に「即日」が含まれる場合は確実に当月をセット
+    // shortcut: 否定文（「即日不可」等）の文脈判定は未対応, 誤判定多発時はGPTプロンプト抽出へ移行
+    if (rawContent != null && rawContent.contains("即日")) {
+      return OriginalDateTime.fromMonth(currentYear, currentMonth);
     }
+
+    // 2. 開始年月が未設定または空の場合は当月をセット
+    if (this.startYearMonth == null || this.startYearMonth.isBlank()) {
+      return OriginalDateTime.fromMonth(currentYear, currentMonth);
+    }
+
+    // 3. 開始年月をパースし、過去年月の場合は当月へフォールバック
     String[] parts = this.startYearMonth.split("/");
     if (parts.length == 2) {
       try {
-        int year = Integer.parseInt(parts[0]);
-        int month = Integer.parseInt(parts[1]);
+        int year = Integer.parseInt(parts[0].trim());
+        int month = Integer.parseInt(parts[1].trim());
+
+        // 月が1〜12の範囲外、または現在年月より過去の場合は安全に当月へフォールバック
+        if (month < 1
+            || month > 12
+            || year < currentYear
+            || (year == currentYear && month < currentMonth)) {
+          return OriginalDateTime.fromMonth(currentYear, currentMonth);
+        }
         return OriginalDateTime.fromMonth(year, month);
       } catch (NumberFormatException e) {
-        OriginalDateTime now = new OriginalDateTime();
-        return OriginalDateTime.fromMonth(
-            now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
+        return OriginalDateTime.fromMonth(currentYear, currentMonth);
       }
     }
-    OriginalDateTime now = new OriginalDateTime();
-    return OriginalDateTime.fromMonth(
-        now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
+    return OriginalDateTime.fromMonth(currentYear, currentMonth);
   }
 
   /**

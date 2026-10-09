@@ -265,8 +265,21 @@ public final class SchemaGenerator {
       handleSimpleType(fieldSchema, fieldType, schema);
     }
 
-    if (schema != null && !schema.description().isEmpty()) {
-      fieldSchema.put("description", schema.description());
+    if (schema != null) {
+      String baseDescription = schema.description();
+      if (schema.currentAndNextYearOnly()) {
+        LocalDate now = LocalDate.now(ZoneId.of("Asia/Tokyo"));
+        String currentYearMonth = String.format("%04d/%02d", now.getYear(), now.getMonthValue());
+        fieldSchema.put("example", currentYearMonth);
+        String dynamicNote =
+            String.format(
+                "（※現在年月は %s です。未記載や「即日」「随時」などの表現がされている場合は必ず「%s」に設定してください）",
+                currentYearMonth, currentYearMonth);
+        fieldSchema.put(
+            "description", baseDescription.isEmpty() ? dynamicNote : baseDescription + dynamicNote);
+      } else if (!baseDescription.isEmpty()) {
+        fieldSchema.put("description", baseDescription);
+      }
     }
 
     return fieldSchema;

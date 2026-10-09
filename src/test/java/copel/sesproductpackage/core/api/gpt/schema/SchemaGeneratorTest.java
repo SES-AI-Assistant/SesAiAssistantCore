@@ -547,6 +547,55 @@ class SchemaGeneratorTest {
     assertYearMonthPatternMatches(pattern, currentYear, nextYear, "/");
   }
 
+  @Test
+  void testGenerate_CurrentAndNextYearOnly_DynamicExampleAndDescription() {
+    LocalDate now = LocalDate.now(ZoneId.of("Asia/Tokyo"));
+    String currentYearMonth = String.format("%04d/%02d", now.getYear(), now.getMonthValue());
+    String expectedNote =
+        String.format(
+            "（※現在年月は %s です。未記載や「即日」「随時」などの表現がされている場合は必ず「%s」に設定してください）",
+            currentYearMonth, currentYearMonth);
+
+    // 1. JobInfoSchema の検証（既存の description に動的注記が追加され、example が動的現在年月になること）
+    Map<String, Object> jobSchema = SchemaGenerator.generate(JobInfoSchema.class);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> jobProperties = (Map<String, Object>) jobSchema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> jobFieldSchema =
+        (Map<String, Object>) jobProperties.get("start_year_month");
+
+    assertEquals(currentYearMonth, jobFieldSchema.get("example"));
+    assertNotNull(jobFieldSchema.get("description"));
+    assertTrue(((String) jobFieldSchema.get("description")).contains(expectedNote));
+    assertTrue(((String) jobFieldSchema.get("description")).startsWith("案件の開始年月"));
+
+    // 2. PersonInfoSchema の検証
+    Map<String, Object> personSchema = SchemaGenerator.generate(PersonInfoSchema.class);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> personProperties = (Map<String, Object>) personSchema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> personFieldSchema =
+        (Map<String, Object>) personProperties.get("start_year_month");
+
+    assertEquals(currentYearMonth, personFieldSchema.get("example"));
+    assertNotNull(personFieldSchema.get("description"));
+    assertTrue(((String) personFieldSchema.get("description")).contains(expectedNote));
+    assertTrue(((String) personFieldSchema.get("description")).startsWith("稼働開始が可能な年月"));
+
+    // 3. description 未設定（空文字）のクラスにおける検証（動的注記のみが設定されること）
+    Map<String, Object> noPatternSchema =
+        SchemaGenerator.generate(ResponseWithCurrentAndNextYearNoPattern.class);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> noPatternProperties =
+        (Map<String, Object>) noPatternSchema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> noPatternFieldSchema =
+        (Map<String, Object>) noPatternProperties.get("start_year_month");
+
+    assertEquals(currentYearMonth, noPatternFieldSchema.get("example"));
+    assertEquals(expectedNote, noPatternFieldSchema.get("description"));
+  }
+
   /**
    * 年月正規表現パターンの振る舞いを検証するヘルパーメソッド.
    *
