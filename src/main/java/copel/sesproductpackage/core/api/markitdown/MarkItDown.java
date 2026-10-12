@@ -4,7 +4,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
+import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import copel.sesproductpackage.core.util.Properties;
 import copel.sesproductpackage.core.util.SsmParameterKey;
 import lombok.AllArgsConstructor;
@@ -34,8 +35,6 @@ public final class MarkItDown {
       Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey());
 
   private static final String ENV_AWS_REGION = "AWS_REGION";
-
-  private static final ObjectMapper MAPPER = new ObjectMapper();
 
   /**
    * UT 専用: {@code true} のとき、リクエストの JSON 化で {@link JsonProcessingException} を投げる（本番では常に {@code
@@ -70,7 +69,7 @@ public final class MarkItDown {
       if (injectJsonProcessingExceptionOnSerializeForTest) {
         throw new JsonParseException(null, "injected for test");
       }
-      payloadJson = MAPPER.writeValueAsString(request);
+      payloadJson = ObjectMapperFactory.OBJECT_MAPPER.writeValueAsString(request);
     } catch (final JsonProcessingException e) {
       throw new IllegalStateException("markitdown-lambda 向けリクエストの JSON 化に失敗しました。", e);
     }
@@ -103,7 +102,7 @@ public final class MarkItDown {
       }
 
       try {
-        return MAPPER.readValue(
+        return ObjectMapperFactory.OBJECT_MAPPER.readValue(
             response.payload().asUtf8String(), MarkitdownLambdaResponseEntity.class);
       } catch (final JsonProcessingException e) {
         throw new IllegalStateException("markitdown-lambda 応答の JSON 解析に失敗しました。", e);
