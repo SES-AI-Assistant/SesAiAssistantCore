@@ -1,13 +1,14 @@
 package copel.sesproductpackage.core.database;
 
-import copel.sesproductpackage.core.database.base.EntityLotBase;
-import copel.sesproductpackage.core.unit.Gender;
-import copel.sesproductpackage.core.unit.Money;
-import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import copel.sesproductpackage.core.database.base.EntityLotBase;
+import copel.sesproductpackage.core.unit.Gender;
+import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
 
 /**
  * ウォッチ・案件・要員を結合したEntityのLotクラス.
@@ -29,11 +30,11 @@ public class SES_AI_T_WATCH_JOB_PERSONLot extends EntityLotBase<SES_AI_T_WATCH_J
    */
   private static final String SELECT_BASE_SQL_FOR_PAGED_QUERY =
       "SELECT w.user_id, w.target_id, w.target_type, w.memo, w.register_date, w.register_user, w.ttl, w.tenant_id, "
-          + "j.title AS job_title, j.from_name AS job_from_name, j.content_summary AS job_content_summary, "
+          + "j.title AS job_title, j.from_name AS job_from_name, j.mail_subject AS job_mail_subject, j.content_summary AS job_content_summary, "
           + "j.raw_content AS job_raw_content, "
           + "j.start_date AS job_start_date, j.office_requirements AS job_office_requirements, "
           + "j.unit_price AS job_unit_price, j.place AS job_place, j.area AS job_area, "
-          + "p.name AS person_name, p.from_name AS person_from_name, p.content_summary AS person_content_summary, "
+          + "p.name AS person_name, p.from_name AS person_from_name, p.mail_subject AS person_mail_subject, p.content_summary AS person_content_summary, "
           + "p.raw_content AS person_raw_content, "
           + "p.age AS person_age, p.gender AS person_gender, p.start_date AS person_start_date, "
           + "p.office_availability AS person_office_availability, p.unit_price AS person_unit_price, "
@@ -107,6 +108,7 @@ public class SES_AI_T_WATCH_JOB_PERSONLot extends EntityLotBase<SES_AI_T_WATCH_J
     // SES_AI_T_JOB のフィールド（LEFT JOIN による NULL 安全処理）
     entity.setJobTitle(resultSet.getString("job_title"));
     entity.setJobFromName(resultSet.getString("job_from_name"));
+    entity.setJobMailSubject(resultSet.getString("job_mail_subject"));
     entity.setJobContentSummary(resultSet.getString("job_content_summary"));
     entity.setJobRawContent(resultSet.getString("job_raw_content"));
     String jobStartDateStr = resultSet.getString("job_start_date");
@@ -123,6 +125,7 @@ public class SES_AI_T_WATCH_JOB_PERSONLot extends EntityLotBase<SES_AI_T_WATCH_J
     // SES_AI_T_PERSON のフィールド（LEFT JOIN による NULL 安全処理）
     entity.setPersonName(resultSet.getString("person_name"));
     entity.setPersonFromName(resultSet.getString("person_from_name"));
+    entity.setPersonMailSubject(resultSet.getString("person_mail_subject"));
     entity.setPersonContentSummary(resultSet.getString("person_content_summary"));
     entity.setPersonRawContent(resultSet.getString("person_raw_content"));
     entity.setPersonAge(

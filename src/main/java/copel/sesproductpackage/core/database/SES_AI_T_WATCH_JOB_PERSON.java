@@ -1,12 +1,13 @@
 package copel.sesproductpackage.core.database;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
-import java.sql.Connection;
-import java.sql.SQLException;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -66,6 +67,10 @@ public class SES_AI_T_WATCH_JOB_PERSON extends EntityBase {
   @Column(physicalName = "job_from_name", logicalName = "案件送信者名")
   private String jobFromName;
 
+  /** 案件メール件名 / job_mail_subject */
+  @Column(physicalName = "job_mail_subject", logicalName = "案件メール件名")
+  protected String jobMailSubject;
+
   /** 案件要約 / job_content_summary */
   @Column(physicalName = "job_content_summary", logicalName = "案件要約")
   private String jobContentSummary;
@@ -105,6 +110,10 @@ public class SES_AI_T_WATCH_JOB_PERSON extends EntityBase {
   /** 要員送信者名 / person_from_name */
   @Column(physicalName = "person_from_name", logicalName = "要員送信者名")
   private String personFromName;
+
+  /** 要員メール件名 / person_mail_subject */
+  @Column(physicalName = "person_mail_subject", logicalName = "要員メール件名")
+  protected String personMailSubject;
 
   /** 要員要約 / person_content_summary */
   @Column(physicalName = "person_content_summary", logicalName = "要員要約")

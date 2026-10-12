@@ -1,10 +1,5 @@
 package copel.sesproductpackage.core.database;
 
-import copel.sesproductpackage.core.database.base.Column;
-import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
-import copel.sesproductpackage.core.unit.Area;
-import copel.sesproductpackage.core.unit.Money;
-import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -13,6 +8,12 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+
+import copel.sesproductpackage.core.database.base.Column;
+import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
+import copel.sesproductpackage.core.unit.Area;
+import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -37,15 +38,15 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
   // ================================
   /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_JOB (job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, vector_data, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_T_JOB (job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, vector_data, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
-      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, vector_data, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl FROM SES_AI_T_JOB WHERE job_id = ?";
+      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, vector_data, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl FROM SES_AI_T_JOB WHERE job_id = ?";
 
   /** UPDATE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_T_JOB SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, content_summary = ?, unit_price = ?, vector_data = ?::vector, title = ?, overview = ?, must_skills = ?, want_skills = ?, start_date = ?, place = ?, area = ?, office_requirements = ?, other_requirements = ?, ttl = ? WHERE job_id = ?";
+      "UPDATE SES_AI_T_JOB SET from_group = ?, from_id = ?, from_name = ?, mail_subject = ?, raw_content = ?, content_summary = ?, unit_price = ?, vector_data = ?::vector, title = ?, overview = ?, must_skills = ?, want_skills = ?, start_date = ?, place = ?, area = ?, office_requirements = ?, other_requirements = ?, ttl = ? WHERE job_id = ?";
 
   /** 重複チェック用SQL. */
   private static final String CHECK_SQL =
@@ -203,22 +204,23 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
           stmt.setString(2, this.fromGroup);
           stmt.setString(3, this.fromId);
           stmt.setString(4, this.fromName);
-          stmt.setString(5, this.rawContent);
-          stmt.setString(6, this.contentSummary);
-          stmt.setObject(7, this.unitPrice == null ? null : this.unitPrice.getValue());
-          stmt.setString(8, this.vectorData == null ? null : this.vectorData.toString());
-          stmt.setString(9, this.title);
-          stmt.setString(10, this.overview);
-          stmt.setString(11, this.mustSkills);
-          stmt.setString(12, this.wantSkills);
-          stmt.setTimestamp(13, this.startDate == null ? null : this.startDate.toTimestamp());
-          stmt.setString(14, this.place);
-          stmt.setString(15, this.area == null ? null : this.area.toString());
-          stmt.setObject(16, this.officeRequirements);
-          stmt.setString(17, this.otherRequirements);
-          stmt.setTimestamp(18, this.registerDate == null ? null : this.registerDate.toTimestamp());
-          stmt.setString(19, this.registerUser);
-          stmt.setTimestamp(20, this.ttl == null ? null : this.ttl.toTimestamp());
+          stmt.setString(5, this.mailSubject);
+          stmt.setString(6, this.rawContent);
+          stmt.setString(7, this.contentSummary);
+          stmt.setObject(8, this.unitPrice == null ? null : this.unitPrice.getValue());
+          stmt.setString(9, this.vectorData == null ? null : this.vectorData.toString());
+          stmt.setString(10, this.title);
+          stmt.setString(11, this.overview);
+          stmt.setString(12, this.mustSkills);
+          stmt.setString(13, this.wantSkills);
+          stmt.setTimestamp(14, this.startDate == null ? null : this.startDate.toTimestamp());
+          stmt.setString(15, this.place);
+          stmt.setString(16, this.area == null ? null : this.area.toString());
+          stmt.setObject(17, this.officeRequirements);
+          stmt.setString(18, this.otherRequirements);
+          stmt.setTimestamp(19, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(20, this.registerUser);
+          stmt.setTimestamp(21, this.ttl == null ? null : this.ttl.toTimestamp());
         },
         "SES_AI_T_JOB.insert");
   }
@@ -243,6 +245,7 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
           this.fromGroup = rs.getString("from_group");
           this.fromId = rs.getString("from_id");
           this.fromName = rs.getString("from_name");
+          this.mailSubject = rs.getString("mail_subject");
           this.rawContent = rs.getString("raw_content");
           this.contentSummary = rs.getString("content_summary");
           BigDecimal unitPriceValue = rs.getBigDecimal("unit_price");
@@ -285,21 +288,22 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
           stmt.setString(1, this.fromGroup);
           stmt.setString(2, this.fromId);
           stmt.setString(3, this.fromName);
-          stmt.setString(4, this.rawContent);
-          stmt.setString(5, this.contentSummary);
-          stmt.setObject(6, this.unitPrice == null ? null : this.unitPrice.getValue());
-          stmt.setString(7, this.vectorData == null ? null : this.vectorData.toString());
-          stmt.setString(8, this.title);
-          stmt.setString(9, this.overview);
-          stmt.setString(10, this.mustSkills);
-          stmt.setString(11, this.wantSkills);
-          stmt.setTimestamp(12, this.startDate == null ? null : this.startDate.toTimestamp());
-          stmt.setString(13, this.place);
-          stmt.setString(14, this.area == null ? null : this.area.toString());
-          stmt.setObject(15, this.officeRequirements);
-          stmt.setString(16, this.otherRequirements);
-          stmt.setTimestamp(17, this.ttl == null ? null : this.ttl.toTimestamp());
-          stmt.setString(18, this.jobId);
+          stmt.setString(4, this.mailSubject);
+          stmt.setString(5, this.rawContent);
+          stmt.setString(6, this.contentSummary);
+          stmt.setObject(7, this.unitPrice == null ? null : this.unitPrice.getValue());
+          stmt.setString(8, this.vectorData == null ? null : this.vectorData.toString());
+          stmt.setString(9, this.title);
+          stmt.setString(10, this.overview);
+          stmt.setString(11, this.mustSkills);
+          stmt.setString(12, this.wantSkills);
+          stmt.setTimestamp(13, this.startDate == null ? null : this.startDate.toTimestamp());
+          stmt.setString(14, this.place);
+          stmt.setString(15, this.area == null ? null : this.area.toString());
+          stmt.setObject(16, this.officeRequirements);
+          stmt.setString(17, this.otherRequirements);
+          stmt.setTimestamp(18, this.ttl == null ? null : this.ttl.toTimestamp());
+          stmt.setString(19, this.jobId);
         },
         "SES_AI_T_JOB.updateByPk");
   }
