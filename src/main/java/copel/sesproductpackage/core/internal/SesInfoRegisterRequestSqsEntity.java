@@ -45,6 +45,13 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
   /** 原文. */
   private String rawContent;
 
+  /**
+   * メール件名（メール由来のリクエストのみ設定される。件名ヘッダが無い場合は null）.
+   *
+   * <p>JSON キーは {@code mail_subject}。登録先の SES_AI_T_JOB / SES_AI_T_PERSON の mail_subject に反映される。
+   */
+  private String mailSubject;
+
   /** スキルシートID(このリクエストがMessageであり、かつファイルが紐づているなら使用される). */
   private String fileId;
 
