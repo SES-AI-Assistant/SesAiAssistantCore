@@ -165,6 +165,8 @@ class MoneyTest {
   void testIsNegotiable() {
     assertTrue(Money.NEGOTIABLE_PRICE.isNegotiable());
     assertTrue(new Money(9_990_000L).isNegotiable());
+    // DB(NUMERIC(10,2))から読み出した scale=2 の値でもスキル見合いと判定されること
+    assertTrue(new Money(new BigDecimal("9990000.00")).isNegotiable());
     assertTrue(Money.toSesUnitFromMan(new BigDecimal("999")).isNegotiable());
     assertTrue(Money.toSesUnitFromMan(new BigDecimal("9990000")).isNegotiable());
     assertTrue(new Money(-1L).isNegotiable());

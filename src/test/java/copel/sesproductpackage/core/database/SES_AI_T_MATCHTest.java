@@ -184,6 +184,10 @@ class SES_AI_T_MATCHTest {
     match.setProfit(Money.NEGOTIABLE_PRICE, new Money(800_000L));
     assertNull(match.getProfit());
 
+    // 案件単価がDBから読み出したスキル見合い（scale=2: 9990000.00）: null
+    match.setProfit(new Money(new BigDecimal("9990000.00")), new Money(800_000L));
+    assertNull(match.getProfit());
+
     // 要員単価が単価不問（応相談・0円）: null
     match.setProfit(new Money(800_000L), new Money(0L));
     assertNull(match.getProfit());

@@ -85,7 +85,9 @@ public class Money implements Comparable<Money> {
     if (isEmpty()) {
       return false;
     }
-    return NEGOTIABLE_PRICE.equals(this) || isConsultation();
+    // DB(NUMERIC(10,2))から読み出した値は scale=2（9990000.00）となり、BigDecimal#equals では
+    // scale まで比較されて一致しないため、数値としての大小比較（compareTo）で判定する
+    return this.value.compareTo(NEGOTIABLE_PRICE.value) == 0 || isConsultation();
   }
 
   /**
