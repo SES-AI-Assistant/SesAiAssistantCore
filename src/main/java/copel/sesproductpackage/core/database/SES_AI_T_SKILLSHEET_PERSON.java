@@ -1,12 +1,11 @@
 package copel.sesproductpackage.core.database;
 
-import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.List;
-
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
 import copel.sesproductpackage.core.unit.Money;
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
 import lombok.Data;
 
 /**

@@ -1,14 +1,13 @@
 package copel.sesproductpackage.core.database.base;
 
+import copel.sesproductpackage.core.api.gpt.Transformer;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.unit.Vector;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
-import copel.sesproductpackage.core.api.gpt.Transformer;
-import copel.sesproductpackage.core.unit.OriginalDateTime;
-import copel.sesproductpackage.core.unit.Vector;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;

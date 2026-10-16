@@ -1,11 +1,5 @@
 package copel.sesproductpackage.core.database;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-
 import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.search.FulltextCondition;
 import copel.sesproductpackage.core.search.FulltextConditionsWhereClause;
@@ -15,6 +9,11 @@ import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 【Entityクラス】 案件情報(SES_AI_T_JOB)テーブルのLotクラス.
@@ -812,7 +811,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
 
     // (3) ベクトル検索SQLを構築
     String sql =
-        "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id "
+        "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id "
             + "FROM SES_AI_T_JOB "
             + "WHERE "
             + whereClause.toString()
