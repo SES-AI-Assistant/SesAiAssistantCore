@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 import com.amazonaws.regions.Regions;
 import copel.sesproductpackage.core.api.line.LineMessagingAPI;
 import copel.sesproductpackage.core.unit.RequestType;
+import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import copel.sesproductpackage.core.util.Properties;
 import copel.sesproductpackage.core.util.SsmParameterKey;
 import java.io.IOException;
@@ -62,6 +63,50 @@ class SesInfoRegisterRequestSqsEntityTest {
     assertNotNull(json);
     assertTrue(json.contains("\"request_type\""));
     assertTrue(json.contains("\"from_group\""));
+  }
+
+  @Test
+  @DisplayName("mailSubject が mail_subject キーでシリアライズされる")
+  void testGetMessageBodyContainsMailSubject() throws Exception {
+    entity.setRequestType(RequestType.EmailMessage);
+    entity.setMailSubject("案件のご紹介");
+
+    String json = entity.getMessageBody();
+    assertTrue(json.contains("\"mail_subject\":\"案件のご紹介\""));
+    assertFalse(json.contains("\"mailSubject\""));
+  }
+
+  @Test
+  @DisplayName("mailSubject が null の場合は mail_subject が null としてシリアライズされる")
+  void testGetMessageBodyMailSubjectNull() throws Exception {
+    entity.setRequestType(RequestType.EmailMessage);
+    entity.setMailSubject(null);
+
+    String json = entity.getMessageBody();
+    assertTrue(json.contains("\"mail_subject\":null"));
+  }
+
+  @Test
+  @DisplayName("mail_subject を含む JSON をデシリアライズすると mailSubject に設定される")
+  void testDeserializeMailSubject() throws Exception {
+    String json =
+        "{\"request_type\":\"EmailMessage\",\"from_id\":\"user1\",\"raw_content\":\"本文\","
+            + "\"mail_subject\":\"件名テスト\"}";
+
+    SesInfoRegisterRequestSqsEntity parsed =
+        ObjectMapperFactory.OBJECT_MAPPER.readValue(json, SesInfoRegisterRequestSqsEntity.class);
+    assertEquals("件名テスト", parsed.getMailSubject());
+    assertEquals("本文", parsed.getRawContent());
+  }
+
+  @Test
+  @DisplayName("mail_subject キーが無い JSON をデシリアライズすると mailSubject は null")
+  void testDeserializeWithoutMailSubject() throws Exception {
+    String json = "{\"request_type\":\"ScreenMessage\",\"from_id\":\"user1\"}";
+
+    SesInfoRegisterRequestSqsEntity parsed =
+        ObjectMapperFactory.OBJECT_MAPPER.readValue(json, SesInfoRegisterRequestSqsEntity.class);
+    assertNull(parsed.getMailSubject());
   }
 
   @Test
