@@ -34,14 +34,14 @@ class ChooseBestInfoResponseSchemaTest {
   }
 
   @Test
-  @DisplayName("getBestResult: 必須スキルがPartiallyMet（類似経験の明記あり）の候補も選出対象となること")
-  void testGetBestResult_PartiallyMetIncluded() {
+  @DisplayName("getBestResult: 必須スキルがPartiallyMet（類似経験のみ明記）の候補は選出されないこと")
+  void testGetBestResult_PartiallyMetExcluded() {
     ChooseBestInfoResponseSchema schema =
         new ChooseBestInfoResponseSchema(
             List.of(
                 candidate("P000000001", 60, EvaluateType.FullyMet),
                 candidate("P000000002", 80, EvaluateType.PartiallyMet)));
-    assertEquals("P000000002", schema.getBestResult().getId());
+    assertEquals("P000000001", schema.getBestResult().getId());
   }
 
   @Test

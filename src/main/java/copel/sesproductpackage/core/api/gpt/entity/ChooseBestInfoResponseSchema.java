@@ -40,13 +40,8 @@ public class ChooseBestInfoResponseSchema {
         // 各評価フラグがすべて true である要素のみに絞り込み
         .filter(r -> r.isPersonMonthsEvaluateResult())
         .filter(r -> r.isOtherConstraintsResult())
-        // 必須スキル評価が FullyMet または PartiallyMet（類似経験の明記あり）の要素のみに絞り込み
-        // 必須スキルの通過基準のみ後続のマッチ評価（MatchEvaluateResponseSchema#isMatch）と揃える（条件面は後続のisMatchで判定する）
-        // なお getFilteredSortedResults() の既定ルール（FilteringRules#createDefault）は FullyMet のみ通過のまま
-        .filter(
-            r ->
-                EvaluateType.FullyMet.equals(r.getMustSkillEvaluateResult())
-                    || EvaluateType.PartiallyMet.equals(r.getMustSkillEvaluateResult()))
+        // 必須スキル評価が FullyMet の要素のみに絞り込み
+        .filter(r -> EvaluateType.FullyMet.equals(r.getMustSkillEvaluateResult()))
         // マッチ度の最大値（同点の場合は任意で1つ）を取得
         .max((r1, r2) -> r1.compareTo(r2))
         .orElse(null);

@@ -80,15 +80,10 @@ public class MatchEvaluateResponseSchema {
     if (this.mustList == null || this.priceResult == null || this.officeResult == null) {
       return false;
     }
-    // 2. 必須条件：NotMet・Unknown・未設定が1つでもあればNG
-    // PartiallyMet はプロンプトで「代替可能な類似経験が明記されている場合のみ」とLLMに指示している（実装での保証ではない）。
-    // 営業提案の余地があるものとして通過させ、スコアで減点する
+    // 2. 必須条件：1つでも FullyMet 以外があればNG
+    // PartiallyMet（類似経験のみ明記）は必須スキルを満たすとは言えないため対象外とし、スコアと評価文にのみ反映する
     boolean isAllMustMet =
-        this.mustList.stream()
-            .allMatch(
-                must ->
-                    must.getResult() == EvaluateType.FullyMet
-                        || must.getResult() == EvaluateType.PartiallyMet);
+        this.mustList.stream().allMatch(must -> must.getResult() == EvaluateType.FullyMet);
     if (!isAllMustMet) {
       return false;
     }

@@ -52,9 +52,9 @@ class MatchEvaluateResponseSchemaTest {
   }
 
   @Test
-  @DisplayName("isMatch: 必須スキルにPartiallyMet（類似経験の明記あり）が含まれる場合もtrue")
+  @DisplayName("isMatch: 必須スキルにPartiallyMet（類似経験のみ明記）が含まれる場合はfalse")
   void testIsMatch_PartiallyMet() {
-    assertTrue(createSchema(EvaluateType.FullyMet, EvaluateType.PartiallyMet).isMatch());
+    assertFalse(createSchema(EvaluateType.FullyMet, EvaluateType.PartiallyMet).isMatch());
   }
 
   @Test
