@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
@@ -237,5 +238,128 @@ class PersonInfoSchemaTest {
           PersonInfoSchema.class.getDeclaredField(fieldName).getAnnotation(Schema.class);
       assertEquals(-1, schema.minItems(), fieldName);
     }
+  }
+
+  // ================================================
+  // getStartDateAsOriginalDateTime の検証
+  // ================================================
+
+  @Test
+  @DisplayName("getStartDateAsOriginalDateTime: rawContent に「即日」を含む場合、当月が返ること")
+  void testGetStartDateAsOriginalDateTime_ImmediateInRawContent() {
+    OriginalDateTime now = new OriginalDateTime();
+    int currentYear = now.toLocalDate().getYear();
+    int currentMonth = now.toLocalDate().getMonthValue();
+
+    PersonInfoSchema schema = new PersonInfoSchema();
+    schema.setStartYearMonth((currentYear + 1) + "/10");
+
+    OriginalDateTime result = schema.getStartDateAsOriginalDateTime("要員情報です。【即日】稼働可能");
+    assertNotNull(result);
+    assertEquals(currentYear, result.toLocalDate().getYear());
+    assertEquals(currentMonth, result.toLocalDate().getMonthValue());
+  }
+
+  @Test
+  @DisplayName(
+      "getStartDateAsOriginalDateTime: startYearMonth が過去年月（2024/06, 2023/11）の場合、当月へフォールバックすること")
+  void testGetStartDateAsOriginalDateTime_PastYearMonth_FallbackToCurrent() {
+    OriginalDateTime now = new OriginalDateTime();
+    int currentYear = now.toLocalDate().getYear();
+    int currentMonth = now.toLocalDate().getMonthValue();
+
+    PersonInfoSchema schema1 = new PersonInfoSchema();
+    schema1.setStartYearMonth("2024/06");
+
+    OriginalDateTime result1 = schema1.getStartDateAsOriginalDateTime("通常要員本文");
+    assertNotNull(result1);
+    assertEquals(currentYear, result1.toLocalDate().getYear());
+    assertEquals(currentMonth, result1.toLocalDate().getMonthValue());
+
+    PersonInfoSchema schema2 = new PersonInfoSchema();
+    schema2.setStartYearMonth("2023/11");
+
+    OriginalDateTime result2 = schema2.getStartDateAsOriginalDateTime();
+    assertNotNull(result2);
+    assertEquals(currentYear, result2.toLocalDate().getYear());
+    assertEquals(currentMonth, result2.toLocalDate().getMonthValue());
+  }
+
+  @Test
+  @DisplayName("getStartDateAsOriginalDateTime: startYearMonth が未来年月の場合、指定年月がそのまま返ること")
+  void testGetStartDateAsOriginalDateTime_FutureYearMonth() {
+    OriginalDateTime now = new OriginalDateTime();
+    int currentYear = now.toLocalDate().getYear();
+    int futureYear = currentYear + 1;
+
+    PersonInfoSchema schema = new PersonInfoSchema();
+    schema.setStartYearMonth(futureYear + "/05");
+
+    OriginalDateTime result = schema.getStartDateAsOriginalDateTime("通常要員本文");
+    assertNotNull(result);
+    assertEquals(futureYear, result.toLocalDate().getYear());
+    assertEquals(5, result.toLocalDate().getMonthValue());
+  }
+
+  @Test
+  @DisplayName("getStartDateAsOriginalDateTime: startYearMonth が null または空文字の場合、当月が返ること")
+  void testGetStartDateAsOriginalDateTime_NullOrBlank() {
+    OriginalDateTime now = new OriginalDateTime();
+    int currentYear = now.toLocalDate().getYear();
+    int currentMonth = now.toLocalDate().getMonthValue();
+
+    PersonInfoSchema schemaNull = new PersonInfoSchema();
+    schemaNull.setStartYearMonth(null);
+    OriginalDateTime resultNull = schemaNull.getStartDateAsOriginalDateTime();
+    assertNotNull(resultNull);
+    assertEquals(currentYear, resultNull.toLocalDate().getYear());
+    assertEquals(currentMonth, resultNull.toLocalDate().getMonthValue());
+
+    PersonInfoSchema schemaEmpty = new PersonInfoSchema();
+    schemaEmpty.setStartYearMonth("");
+    OriginalDateTime resultEmpty = schemaEmpty.getStartDateAsOriginalDateTime();
+    assertNotNull(resultEmpty);
+    assertEquals(currentYear, resultEmpty.toLocalDate().getYear());
+    assertEquals(currentMonth, resultEmpty.toLocalDate().getMonthValue());
+
+    PersonInfoSchema schemaBlank = new PersonInfoSchema();
+    schemaBlank.setStartYearMonth("   ");
+    OriginalDateTime resultBlank = schemaBlank.getStartDateAsOriginalDateTime();
+    assertNotNull(resultBlank);
+    assertEquals(currentYear, resultBlank.toLocalDate().getYear());
+    assertEquals(currentMonth, resultBlank.toLocalDate().getMonthValue());
+  }
+
+  @Test
+  @DisplayName("getStartDateAsOriginalDateTime: startYearMonth が不正形式の場合、当月が返ること")
+  void testGetStartDateAsOriginalDateTime_InvalidFormat() {
+    OriginalDateTime now = new OriginalDateTime();
+    int currentYear = now.toLocalDate().getYear();
+    int currentMonth = now.toLocalDate().getMonthValue();
+
+    PersonInfoSchema schema = new PersonInfoSchema();
+    schema.setStartYearMonth("invalid_date");
+    OriginalDateTime result = schema.getStartDateAsOriginalDateTime();
+    assertNotNull(result);
+    assertEquals(currentYear, result.toLocalDate().getYear());
+    assertEquals(currentMonth, result.toLocalDate().getMonthValue());
+
+    schema.setStartYearMonth("2026/abc");
+    OriginalDateTime resultNumberFormat = schema.getStartDateAsOriginalDateTime();
+    assertNotNull(resultNumberFormat);
+    assertEquals(currentYear, resultNumberFormat.toLocalDate().getYear());
+    assertEquals(currentMonth, resultNumberFormat.toLocalDate().getMonthValue());
+
+    schema.setStartYearMonth((currentYear + 1) + "/13");
+    OriginalDateTime resultMonth13 = schema.getStartDateAsOriginalDateTime();
+    assertNotNull(resultMonth13);
+    assertEquals(currentYear, resultMonth13.toLocalDate().getYear());
+    assertEquals(currentMonth, resultMonth13.toLocalDate().getMonthValue());
+
+    schema.setStartYearMonth((currentYear + 1) + "/00");
+    OriginalDateTime resultMonth00 = schema.getStartDateAsOriginalDateTime();
+    assertNotNull(resultMonth00);
+    assertEquals(currentYear, resultMonth00.toLocalDate().getYear());
+    assertEquals(currentMonth, resultMonth00.toLocalDate().getMonthValue());
   }
 }
