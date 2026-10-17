@@ -65,6 +65,17 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
   @JsonProperty("is_watching")
   private boolean isWatching = false;
 
+  /**
+   * ウォッチ期間（日数）.
+   *
+   * <p>JSON キーは {@code watch_period}。値は 1〜14 の整数、または未指定（null）。画面登録（API_040）で
+   * ユーザーが指定した値をそのまま載せる。範囲外の値の扱い（既定値へのフォールバック）は Register Lambda 側で行う。
+   *
+   * <p>未指定時は null のまま送信され、Register Lambda が既定値（SES_AI_T_JOB_TTL / SES_AI_T_PERSON_TTL）を適用する。
+   */
+  @JsonProperty("watch_period")
+  private Integer watchPeriod;
+
   /** 画面登録由来の種別（Web API の info_type と同一）。未指定時は null。値は JOB / PERSON のみ有効。 */
   private String infoType;
 
