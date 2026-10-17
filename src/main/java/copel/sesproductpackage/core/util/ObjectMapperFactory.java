@@ -27,6 +27,13 @@ public class ObjectMapperFactory {
         new JsonDeserializer<String>() {
           @Override
           public String deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+            // 配列・オブジェクトはgetValueAsStringがトークンを消費せずにnullを返し、後続の項目まで
+            // 読み飛ばされて欠落するため、中身を読み捨てて当該項目のみnullとする。
+            // 生成AIの出力が文字列項目に配列を返しても、解析全体を失敗させないよう例外にはしない。
+            if (!p.currentToken().isScalarValue()) {
+              p.skipChildren();
+              return null;
+            }
             String value = p.getValueAsString();
             if (value == null) return null;
             String trimmed = value.trim();
