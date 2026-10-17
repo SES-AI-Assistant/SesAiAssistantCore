@@ -40,8 +40,12 @@ public class ChooseBestInfoResponseSchema {
         // 各評価フラグがすべて true である要素のみに絞り込み
         .filter(r -> r.isPersonMonthsEvaluateResult())
         .filter(r -> r.isOtherConstraintsResult())
-        // 必須スキル評価が FullyMet の要素のみに絞り込み
-        .filter(r -> EvaluateType.FullyMet.equals(r.getMustSkillEvaluateResult()))
+        // 必須スキル評価が FullyMet または PartiallyMet（類似経験の明記あり）の要素のみに絞り込み
+        // 後続のマッチ評価（MatchEvaluateResponseSchema#isMatch）と通過基準を揃えるため
+        .filter(
+            r ->
+                EvaluateType.FullyMet.equals(r.getMustSkillEvaluateResult())
+                    || EvaluateType.PartiallyMet.equals(r.getMustSkillEvaluateResult()))
         // マッチ度の最大値（同点の場合は任意で1つ）を取得
         .max((r1, r2) -> r1.compareTo(r2))
         .orElse(null);
@@ -111,7 +115,7 @@ public class ChooseBestInfoResponseSchema {
 
     @Schema(
         title = "マッチ度（点）",
-        description = "要員と案件のマッチ度合いを示した数値",
+        description = "要員と案件のマッチ度合いを示した数値。要員・案件の情報に明記された内容のみを根拠とし、記載の無いスキルや経験を推測で加点しないこと。",
         required = true,
         gt = -1,
         lt = 100)
@@ -119,7 +123,8 @@ public class ChooseBestInfoResponseSchema {
 
     @Schema(
         title = "必須スキル評価",
-        description = "案件の求める必須スキル項目を要員が満たしているかどうかを3段階で表現した結果",
+        description =
+            "案件情報に明記された必須スキルを、要員情報に明記された実務経験のみで判定した結果。FullyMet=全ての必須スキルについて同一の経験が明記されている。PartiallyMet=一部の必須スキルが同一ではないが、代替可能な類似経験が具体的に明記されている。NotMet=同一・類似いずれの記載も無い必須スキルがある。職種や他スキルからの推測で経験ありとしてはならない。",
         itemType = EvaluateType.class,
         required = true,
         example = "FullyMet")
@@ -127,7 +132,8 @@ public class ChooseBestInfoResponseSchema {
 
     @Schema(
         title = "尚可スキル評価",
-        description = "案件の求める尚可スキル項目を要員が満たしているかどうかを3段階で表現した結果。案件に尚可スキルの要求記載が無ければ一律FullyMet",
+        description =
+            "案件情報に明記された尚可スキルを、要員情報に明記された実務経験のみで判定した結果。判定基準は必須スキル評価と同じ。案件に尚可スキルの要求記載が無ければ一律FullyMet",
         itemType = EvaluateType.class,
         required = true,
         example = "FullyMet")

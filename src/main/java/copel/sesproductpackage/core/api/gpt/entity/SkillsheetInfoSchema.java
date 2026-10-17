@@ -25,7 +25,8 @@ public class SkillsheetInfoSchema {
 
   @Schema(
       title = "スキル一覧",
-      description = "スキル、経験のリスト。各プロジェクトで使用されたスキルについて、各プロジェクトの期間（開始年月～終了年月）から月数を算出し、スキル毎に合算したもの。",
+      description =
+          "スキルシートに明記されたスキル、経験のリスト。各プロジェクトで使用されたスキルについて、各プロジェクトの期間（開始年月～終了年月）から月数を算出し、スキル毎に合算したもの。スキルシートに記載の無いスキルを、担当工程や職種から推測して追加しないこと。",
       itemType = Experience.class,
       minItems = 1,
       maxItems = 20)
@@ -96,7 +97,7 @@ public class SkillsheetInfoSchema {
   public static class Experience {
     @Schema(
         title = "要求項目",
-        description = "経験、スキル、観点など",
+        description = "スキルシートに明記された経験、スキル、観点など。記載の表現を言い換えたり一般化したりせず、記載どおりに抽出すること。",
         maxLength = 30,
         required = true,
         example = "SpringBootによるWEBアプリ開発")
