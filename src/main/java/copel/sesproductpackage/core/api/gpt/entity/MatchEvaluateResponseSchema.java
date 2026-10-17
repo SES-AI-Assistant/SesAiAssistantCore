@@ -81,7 +81,8 @@ public class MatchEvaluateResponseSchema {
       return false;
     }
     // 2. 必須条件：NotMet・Unknown・未設定が1つでもあればNG
-    // PartiallyMet は「代替可能な類似経験が明記されている」場合のみ出力させているため、営業提案の余地があるものとして通過させる（スコアは減点される）
+    // PartiallyMet はプロンプトで「代替可能な類似経験が明記されている場合のみ」とLLMに指示している（実装での保証ではない）。
+    // 営業提案の余地があるものとして通過させ、スコアで減点する
     boolean isAllMustMet =
         this.mustList.stream()
             .allMatch(
@@ -413,7 +414,7 @@ public class MatchEvaluateResponseSchema {
     @Schema(
         title = "評価結果",
         description =
-            "要員情報に明記された実務経験のみで判定する。FullyMet=評価項目と同一のスキル・経験が明記されている。PartiallyMet=同一ではないが、代替可能な類似スキル・経験（例: 要求がSpring Bootで記載がSpring Framework、要求がAWSで記載がGCP）が具体的に明記されている。NotMet=同一・類似いずれの記載も無い。職種や他スキルからの推測（例: Javaエンジニアだから SQL も経験があるはず）でFullyMet/PartiallyMetにしてはならない。",
+            "要員情報に明記された実務経験のみで判定する。FullyMet=評価項目と同一のスキル・経験が明記されている。PartiallyMet=同一ではないが、代替可能な類似スキル・経験（同一製品の版違いや、記載内容から同等の作業と言えるもの。例: 要求がSpring Bootで記載がSpring Framework）が具体的に明記されている。別製品・別サービスは原則として類似とみなさない。NotMet=同一・類似いずれの記載も無い。職種や他スキルからの推測（例: Javaエンジニアだから SQL も経験があるはず）でFullyMet/PartiallyMetにしてはならない。",
         itemType = EvaluateType.class,
         required = true,
         example = "FullyMet")
@@ -421,7 +422,7 @@ public class MatchEvaluateResponseSchema {
 
     @Schema(
         title = "評価コメント",
-        description = "判定根拠。FullyMet/PartiallyMetの場合は根拠とした要員情報の記載を引用し、NotMetの場合は記載が無い旨を書くこと。",
+        description = "判定根拠。FullyMet/PartiallyMetの場合は根拠とした要員情報の記載を30字以内で抜粋し、NotMetの場合は記載が無い旨を書くこと。",
         maxLength = 50,
         example = "スキルシートに『時系列データ分析』の記載がないためNotMet")
     private String comment;

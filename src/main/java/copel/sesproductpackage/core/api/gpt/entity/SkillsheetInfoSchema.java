@@ -28,15 +28,13 @@ public class SkillsheetInfoSchema {
       description =
           "スキルシートに明記されたスキル、経験のリスト。各プロジェクトで使用されたスキルについて、各プロジェクトの期間（開始年月～終了年月）から月数を算出し、スキル毎に合算したもの。スキルシートに記載の無いスキルを、担当工程や職種から推測して追加しないこと。",
       itemType = Experience.class,
-      minItems = 1,
       maxItems = 20)
   private List<Experience> experiences = null;
 
   @Schema(
       title = "PJ経験一覧",
-      description = "直近のPJ経験",
+      description = "スキルシートに明記された直近のPJ経験。記載が無い場合は空リストとする。",
       itemType = ProjectExperience.class,
-      minItems = 1,
       maxItems = 10)
   private List<ProjectExperience> projectExperiences = null;
 

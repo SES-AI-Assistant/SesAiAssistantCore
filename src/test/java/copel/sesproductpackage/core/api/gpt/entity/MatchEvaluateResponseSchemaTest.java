@@ -161,4 +161,13 @@ class MatchEvaluateResponseSchemaTest {
       assertEquals(-1, schema.minItems(), fieldName);
     }
   }
+
+  @Test
+  @DisplayName("toNotificationSummary/toEvaluiationText: 必須スキルのPartiallyMetが〇で表示されること")
+  void testText_PartiallyMet() {
+    MatchEvaluateResponseSchema schema =
+        createSchema(EvaluateType.FullyMet, EvaluateType.PartiallyMet);
+    assertTrue(schema.toNotificationSummary().contains("・必須スキル：〇"));
+    assertTrue(schema.toEvaluiationText().contains("・Java：〇(根拠)"));
+  }
 }

@@ -124,7 +124,7 @@ public class ChooseBestInfoResponseSchema {
     @Schema(
         title = "必須スキル評価",
         description =
-            "案件情報に明記された必須スキルを、要員情報に明記された実務経験のみで判定した結果。FullyMet=全ての必須スキルについて同一の経験が明記されている。PartiallyMet=一部の必須スキルが同一ではないが、代替可能な類似経験が具体的に明記されている。NotMet=同一・類似いずれの記載も無い必須スキルがある。職種や他スキルからの推測で経験ありとしてはならない。",
+            "案件情報に明記された必須スキルを、要員情報に明記された実務経験のみで判定した結果。FullyMet=全ての必須スキルについて同一の経験が明記されている。PartiallyMet=一部の必須スキルが同一ではないが、代替可能な類似経験が具体的に明記されている。NotMet=同一・類似いずれの記載も無い必須スキルが1つでもある（PartiallyMetより優先）。案件に必須スキルの記載が無ければ一律FullyMet。別製品・別サービスは原則として類似とみなさず、職種や他スキルからの推測で経験ありとしてはならない。",
         itemType = EvaluateType.class,
         required = true,
         example = "FullyMet")

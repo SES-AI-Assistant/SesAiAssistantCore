@@ -68,4 +68,24 @@ class ChooseBestInfoResponseSchemaTest {
                     "P000000002", 90, EvaluateType.FullyMet, EvaluateType.FullyMet, true, false)));
     assertNull(schema.getBestResult());
   }
+
+  @Test
+  @DisplayName("Schema: 必須スキル評価に集約ルールと必須記載なし時の扱いが指示されていること")
+  void testSchema_MustSkillDescription() throws NoSuchFieldException {
+    copel.sesproductpackage.core.api.gpt.schema.Schema schema =
+        CandidateEvaluationResult.class
+            .getDeclaredField("mustSkillEvaluateResult")
+            .getAnnotation(copel.sesproductpackage.core.api.gpt.schema.Schema.class);
+    assertTrue(schema.description().contains("PartiallyMetより優先"));
+    assertTrue(schema.description().contains("必須スキルの記載が無ければ一律FullyMet"));
+  }
+
+  @Test
+  @DisplayName("toEvaluiationText: 必須スキルがPartiallyMetの場合は〇で表示されること")
+  void testToEvaluiationText_PartiallyMet() {
+    assertTrue(
+        candidate("P000000001", 70, EvaluateType.PartiallyMet)
+            .toEvaluiationText()
+            .contains("■必須スキル: 〇"));
+  }
 }

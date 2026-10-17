@@ -224,4 +224,18 @@ class PersonInfoSchemaTest {
     assertNull(schema.getExperiences().get(1).getDurationMonths());
     assertEquals("Java: 1年6ヶ月\nPMO", schema.getExperiencesAsString());
   }
+
+  // ================================================
+  // 推測抑止: 記載の無い項目の捏造を誘発する最低件数指定が無いこと
+  // ================================================
+
+  @Test
+  @DisplayName("Schema: リスト項目に最低件数（minItems）が設定されていないこと")
+  void testSchema_NoMinItems() throws NoSuchFieldException {
+    for (String fieldName : List.of("experiences")) {
+      Schema schema =
+          PersonInfoSchema.class.getDeclaredField(fieldName).getAnnotation(Schema.class);
+      assertEquals(-1, schema.minItems(), fieldName);
+    }
+  }
 }
