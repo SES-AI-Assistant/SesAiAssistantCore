@@ -42,7 +42,7 @@ public class PersonInfoSchema {
 
   @Schema(
       title = "国籍",
-      description = "紹介されている要員本人の国籍。未記載の場合は「日本」とする）",
+      description = "紹介されている要員本人の国籍。未記載の場合は「日本」とする",
       maxLength = 10,
       required = true,
       example = "日本")
@@ -104,10 +104,9 @@ public class PersonInfoSchema {
 
   @Schema(
       title = "経歴",
-      description = "箇条書き形式の経歴のリスト",
+      description = "本文に明記された経験・スキルのみを箇条書き形式で抽出したリスト。職種や他のスキルから推測した経験を追加しないこと。記載が無い場合は空リストとする。",
       itemType = Experience.class,
       required = true,
-      minItems = 1,
       maxItems = 10)
   private List<Experience> experiences = null;
 
@@ -268,7 +267,7 @@ public class PersonInfoSchema {
   public static class Experience {
     @Schema(
         title = "スキル",
-        description = "経験、スキル、観点など",
+        description = "本文に明記された経験、スキル、観点など。本文の表現を言い換えたり一般化したりせず、記載どおりに抽出すること。",
         maxLength = 30,
         required = true,
         example = "SpringBootによるWEBアプリ開発")

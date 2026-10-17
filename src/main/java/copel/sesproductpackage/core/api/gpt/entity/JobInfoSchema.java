@@ -38,18 +38,16 @@ public class JobInfoSchema {
 
   @Schema(
       title = "必須スキル",
-      description = "案件が要求する必須経験、スキル等のリスト",
+      description = "本文に必須として明記された経験、スキル等のリスト。本文に記載のない要件を推測で追加しないこと。必須要件の記載が無い場合は空リストとする。",
       itemType = Requirements.class,
       required = true,
-      minItems = 1,
       maxItems = 10)
   private List<Requirements> mustList;
 
   @Schema(
       title = "尚可スキル",
-      description = "案件が要求する尚可経験、スキル等のリスト",
+      description = "本文に尚可（歓迎）として明記された経験、スキル等のリスト。本文に記載のない要件を推測で追加しないこと。",
       itemType = Requirements.class,
-      minItems = 1,
       maxItems = 10)
   private List<Requirements> wantList = null;
 
@@ -263,7 +261,7 @@ public class JobInfoSchema {
   public static class Requirements {
     @Schema(
         title = "要求項目",
-        description = "要求経験、スキル、観点など",
+        description = "本文に明記された要求経験、スキル、観点など。本文の表現を言い換えたり一般化したりせず、記載どおりに抽出すること。",
         maxLength = 30,
         required = true,
         example = "SpringBootを利用した開発経験")

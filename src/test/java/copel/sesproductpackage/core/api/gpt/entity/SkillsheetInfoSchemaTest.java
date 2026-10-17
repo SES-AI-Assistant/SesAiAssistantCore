@@ -303,4 +303,18 @@ class SkillsheetInfoSchemaTest {
     assertEquals(1000, result.length());
     assertTrue(result.startsWith("■スキル・経験\n・スキル項目名あいうえおかきくけこさしすせそたちつてとなにぬねの0"));
   }
+
+  // ================================================
+  // 推測抑止: 記載の無い項目の捏造を誘発する最低件数指定が無いこと
+  // ================================================
+
+  @Test
+  @DisplayName("Schema: リスト項目に最低件数（minItems）が設定されていないこと")
+  void testSchema_NoMinItems() throws NoSuchFieldException {
+    for (String fieldName : List.of("experiences", "projectExperiences")) {
+      Schema schema =
+          SkillsheetInfoSchema.class.getDeclaredField(fieldName).getAnnotation(Schema.class);
+      assertEquals(-1, schema.minItems(), fieldName);
+    }
+  }
 }
