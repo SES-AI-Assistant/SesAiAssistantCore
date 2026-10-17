@@ -414,7 +414,7 @@ public class MatchEvaluateResponseSchema {
     @Schema(
         title = "評価結果",
         description =
-            "要員情報に明記された実務経験のみで判定する。FullyMet=評価項目と同一のスキル・経験が明記されている。PartiallyMet=同一ではないが、代替可能な類似スキル・経験（同一製品の版違いや、記載内容から同等の作業と言えるもの。例: 要求がSpring Bootで記載がSpring Framework）が具体的に明記されている。別製品・別サービスは原則として類似とみなさない。NotMet=同一・類似いずれの記載も無い。職種や他スキルからの推測（例: Javaエンジニアだから SQL も経験があるはず）でFullyMet/PartiallyMetにしてはならない。",
+            "要員情報に明記された実務経験のみで判定する。FullyMet=評価項目と同一のスキル・経験が明記されている。PartiallyMet=同一ではないが、代替可能な類似スキル・経験（同一の技術基盤上にあり、記載された経験を要求にそのまま転用できるもの。例: 要求がSpring Bootで記載がSpring Framework）が具体的に明記されている。技術基盤が異なる製品・サービス（例: 要求がAWSで記載がGCP）は類似とみなさない。NotMet=同一・類似いずれの記載も無い。職種や他スキルからの推測（例: Javaエンジニアだから SQL も経験があるはず）でFullyMet/PartiallyMetにしてはならない。",
         itemType = EvaluateType.class,
         required = true,
         example = "FullyMet")

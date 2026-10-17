@@ -41,7 +41,8 @@ public class ChooseBestInfoResponseSchema {
         .filter(r -> r.isPersonMonthsEvaluateResult())
         .filter(r -> r.isOtherConstraintsResult())
         // 必須スキル評価が FullyMet または PartiallyMet（類似経験の明記あり）の要素のみに絞り込み
-        // 後続のマッチ評価（MatchEvaluateResponseSchema#isMatch）と通過基準を揃えるため
+        // 必須スキルの通過基準のみ後続のマッチ評価（MatchEvaluateResponseSchema#isMatch）と揃える（条件面は後続のisMatchで判定する）
+        // なお getFilteredSortedResults() の既定ルール（FilteringRules#createDefault）は FullyMet のみ通過のまま
         .filter(
             r ->
                 EvaluateType.FullyMet.equals(r.getMustSkillEvaluateResult())
@@ -124,7 +125,7 @@ public class ChooseBestInfoResponseSchema {
     @Schema(
         title = "必須スキル評価",
         description =
-            "案件情報に明記された必須スキルを、要員情報に明記された実務経験のみで判定した結果。FullyMet=全ての必須スキルについて同一の経験が明記されている。PartiallyMet=一部の必須スキルが同一ではないが、代替可能な類似経験が具体的に明記されている。NotMet=同一・類似いずれの記載も無い必須スキルが1つでもある（PartiallyMetより優先）。案件に必須スキルの記載が無ければ一律FullyMet。別製品・別サービスは原則として類似とみなさず、職種や他スキルからの推測で経験ありとしてはならない。",
+            "案件情報に明記された必須スキルを、要員情報に明記された実務経験のみで判定した結果。FullyMet=全ての必須スキルについて同一の経験が明記されている。PartiallyMet=一部の必須スキルが同一ではないが、代替可能な類似経験が具体的に明記されている。NotMet=同一・類似いずれの記載も無い必須スキルが1つでもある（PartiallyMetより優先）。案件に必須スキルの記載が無ければ一律FullyMet。技術基盤が異なる製品・サービスは類似とみなさず、職種や他スキルからの推測で経験ありとしてはならない。",
         itemType = EvaluateType.class,
         required = true,
         example = "FullyMet")
