@@ -162,6 +162,49 @@ class JobInfoSchemaTest {
   }
 
   // ================================================
+  // 必須・尚可（要求月数）の出力検証
+  // ================================================
+
+  @Test
+  @DisplayName(
+      "toSummaryText/getMustSkillsAsString/getWantSkillsAsString: 要求月数は年月表記で出力され、未設定の場合は項目名のみ出力されること")
+  void testRequirementsWithDurationMonths() {
+    JobInfoSchema schema = new JobInfoSchema();
+    schema.setTitle("テスト案件");
+    schema.setOverview("テスト概要");
+    schema.setMustList(
+        List.of(
+            new JobInfoSchema.Requirements("PMO経験", null),
+            new JobInfoSchema.Requirements("Java", 36)));
+    schema.setWantList(
+        List.of(
+            new JobInfoSchema.Requirements("Big4出身", null),
+            new JobInfoSchema.Requirements("Python", 6)));
+
+    assertEquals("PMO経験\nJava: 3年", schema.getMustSkillsAsString());
+    assertEquals("Big4出身\nPython: 6ヶ月", schema.getWantSkillsAsString());
+
+    String summaryText = schema.toSummaryText();
+    assertTrue(summaryText.contains("・PMO経験\n"));
+    assertTrue(summaryText.contains("・Java: 3年\n"));
+    assertTrue(summaryText.contains("・Big4出身\n"));
+    assertTrue(summaryText.contains("・Python：6ヶ月\n"));
+  }
+
+  // ================================================
+  // 推測抑止: 記載の無い項目の捏造を誘発する最低件数指定が無いこと
+  // ================================================
+
+  @Test
+  @DisplayName("Schema: リスト項目に最低件数（minItems）が設定されていないこと")
+  void testSchema_NoMinItems() throws NoSuchFieldException {
+    for (String fieldName : List.of("mustList", "wantList")) {
+      Schema schema = JobInfoSchema.class.getDeclaredField(fieldName).getAnnotation(Schema.class);
+      assertEquals(-1, schema.minItems(), fieldName);
+    }
+  }
+
+  // ================================================
   // isValid の動作検証
   // ================================================
 
@@ -171,7 +214,7 @@ class JobInfoSchemaTest {
     JobInfoSchema job = new JobInfoSchema();
     job.setTitle("大手ECサイト刷新に伴うバックエンド開発");
     job.setOverview("Java/SpringBootを用いたマイクロサービスの設計・開発");
-    job.setMustList(List.of(new Requirements("Java開発経験3年以上", "3年")));
+    job.setMustList(List.of(new Requirements("Java開発経験3年以上", 36)));
 
     assertTrue(job.isValid());
   }
@@ -193,7 +236,7 @@ class JobInfoSchemaTest {
     JobInfoSchema job = new JobInfoSchema();
     job.setTitle("金融機関向けインフラ構築保守");
     job.setOverview(null);
-    job.setMustList(List.of(new Requirements("Linux/RHEL環境の運用構築経験", "2年")));
+    job.setMustList(List.of(new Requirements("Linux/RHEL環境の運用構築経験", 24)));
 
     assertTrue(job.isValid());
   }
@@ -204,7 +247,7 @@ class JobInfoSchemaTest {
     JobInfoSchema job = new JobInfoSchema();
     job.setTitle(null);
     job.setOverview("概要文");
-    job.setMustList(List.of(new Requirements("スキル", "1年")));
+    job.setMustList(List.of(new Requirements("スキル", 12)));
 
     assertFalse(job.isValid());
   }
@@ -216,7 +259,7 @@ class JobInfoSchemaTest {
     JobInfoSchema job = new JobInfoSchema();
     job.setTitle(invalidTitle);
     job.setOverview("概要文");
-    job.setMustList(List.of(new Requirements("スキル", "1年")));
+    job.setMustList(List.of(new Requirements("スキル", 12)));
 
     assertFalse(job.isValid());
   }

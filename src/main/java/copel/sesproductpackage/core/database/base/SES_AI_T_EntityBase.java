@@ -38,6 +38,10 @@ public abstract class SES_AI_T_EntityBase extends EntityBase {
   @Column(physicalName = "from_name", logicalName = "送信者名")
   protected String fromName;
 
+  /** メール件名 / mail_subject */
+  @Column(physicalName = "mail_subject", logicalName = "メール件名")
+  protected String mailSubject;
+
   /** OpenAIベクトルデータ / vector_data. */
   @Column(physicalName = "vector_data", logicalName = "OpenAIベクトルデータ")
   protected Vector vectorData;

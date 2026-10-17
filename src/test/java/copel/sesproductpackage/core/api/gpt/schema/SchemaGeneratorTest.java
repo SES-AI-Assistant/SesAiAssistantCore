@@ -369,6 +369,38 @@ class SchemaGeneratorTest {
   }
 
   @Test
+  void testGenerate_XDataSource() {
+    Map<String, Object> schema = SchemaGenerator.generate(ResponseWithXDataSource.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> jobIdSchema = (Map<String, Object>) properties.get("job_id");
+
+    assertEquals("string", jobIdSchema.get("type"));
+    assertEquals("SES_AI_T_JOB.job_id", jobIdSchema.get("x-data-source"));
+  }
+
+  @Test
+  void testGenerate_XDataSource_NotSetWhenEmpty() {
+    Map<String, Object> schema = SchemaGenerator.generate(SimpleResponse.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> nameSchema = (Map<String, Object>) properties.get("name");
+
+    assertFalse(nameSchema.containsKey("x-data-source"));
+  }
+
+  /** テスト用のx-data-sourceを含むレスポンス. */
+  static class ResponseWithXDataSource {
+    @Schema(description = "案件ID", xDataSource = "SES_AI_T_JOB.job_id")
+    @JsonProperty("job_id")
+    public String jobId;
+  }
+
+  @Test
   void testGenerate_SchemaIgnore() {
     Map<String, Object> schema = SchemaGenerator.generate(ResponseWithSchemaIgnore.class);
 
@@ -608,5 +640,92 @@ class SchemaGeneratorTest {
     @JsonProperty("custom_name")
     @Schema(description = "表示名")
     public String displayName;
+  }
+
+  @Test
+  void testGenerate_InheritedFields_IncludesParentAndChildFields() {
+    Map<String, Object> schema = SchemaGenerator.generate(ChildWithInheritedFields.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+
+    assertTrue(properties.containsKey("base_field"), "親クラスのフィールドが含まれること");
+    assertTrue(properties.containsKey("child_field"), "自クラスのフィールドが含まれること");
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> baseFieldSchema = (Map<String, Object>) properties.get("base_field");
+    assertEquals("親クラスのフィールド", baseFieldSchema.get("description"));
+
+    @SuppressWarnings("unchecked")
+    List<String> required = (List<String>) schema.get("required");
+    assertTrue(required.contains("base_field"), "親クラスのrequired=trueフィールドも収集されること");
+  }
+
+  @Test
+  void testGenerate_InheritedFields_SchemaIgnoreOnParentIsRespected() {
+    Map<String, Object> schema = SchemaGenerator.generate(ChildWithInheritedFields.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    assertFalse(properties.containsKey("internal_base_field"), "親クラスの@SchemaIgnoreフィールドは除外されること");
+  }
+
+  @Test
+  void testGenerate_SetType_IsTreatedAsArray() {
+    Map<String, Object> schema = SchemaGenerator.generate(ResponseWithSetField.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> tagsSchema = (Map<String, Object>) properties.get("tags");
+
+    assertEquals("array", tagsSchema.get("type"));
+    @SuppressWarnings("unchecked")
+    Map<String, Object> items = (Map<String, Object>) tagsSchema.get("items");
+    assertEquals("string", items.get("type"));
+  }
+
+  /** テスト用の継承元クラス. */
+  static class ParentWithFields {
+    @Schema(description = "親クラスのフィールド", required = true)
+    public String baseField;
+
+    @copel.sesproductpackage.core.api.gpt.schema.SchemaIgnore public String internalBaseField;
+  }
+
+  /** テスト用の継承先クラス. */
+  static class ChildWithInheritedFields extends ParentWithFields {
+    @Schema(description = "自クラスのフィールド")
+    public String childField;
+  }
+
+  /** テスト用のSet型フィールドを含むレスポンス. */
+  static class ResponseWithSetField {
+    @Schema(description = "タグ一覧", itemType = String.class)
+    public java.util.Set<String> tags;
+  }
+
+  @Test
+  void testGenerateYaml_ReturnsYamlString() {
+    String yaml = SchemaGenerator.generateYaml(SimpleResponse.class);
+
+    assertNotNull(yaml);
+    assertTrue(yaml.contains("type: \"object\""));
+    assertTrue(yaml.contains("name:"));
+    assertTrue(yaml.contains("description: \"人物の名前\""));
+    assertFalse(yaml.trim().startsWith("---"), "ドキュメント区切り行が出力されないこと");
+  }
+
+  @Test
+  void testToYaml_ArbitraryMap() {
+    Map<String, Object> data = new java.util.LinkedHashMap<>();
+    data.put("openapi", "3.0.0");
+    data.put("paths", Map.of());
+
+    String yaml = SchemaGenerator.toYaml(data);
+
+    assertNotNull(yaml);
+    assertTrue(yaml.contains("openapi: \"3.0.0\""));
+    assertTrue(yaml.contains("paths:"));
   }
 }

@@ -23,42 +23,42 @@ import java.util.List;
 public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   /** 全文検索SQL. */
   private static final String SELECT_LIKE_SQL =
-      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, vector_data, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE raw_content LIKE ?";
+      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, vector_data, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE raw_content LIKE ?";
 
   /** 複合条件全文検索用 SELECT 接頭辞（末尾に WHERE を含む）. */
   private static final String SELECT_RAW_CONTENT_FOR_FULLTEXT =
-      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, vector_data, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE ";
+      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, vector_data, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE ";
 
   /** 検索SQL. */
   private static final String SELECT_SQL =
-      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, vector_data, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE ";
+      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, vector_data, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE ";
 
   /** 全件検索SQL. */
   private static final String SELECT_ALL_SQL =
-      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB ORDER BY register_date DESC";
+      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB ORDER BY register_date DESC";
 
   /** ベクトル検索のカウント用SQL. */
   private static final String COUNT_SQL_FOR_RETRIEVE = "SELECT COUNT(*) FROM SES_AI_T_JOB";
 
   /** 類似度閾値ベクトル検索用SQL（ページング用・LIMIT/OFFSET除外）. */
   private static final String RETRIEVE_WITH_THRESHOLD_SQL_WITHOUT_LIMIT =
-      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
+      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
 
   /** ベクトル検索＋価格・開始日フィルタ用SQL（ページング用・LIMIT/OFFSET除外）. */
   private static final String RETRIEVE_WITH_FILTER_2_VALUES_SQL_WITHOUT_LIMIT =
-      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date <= ? AND 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
+      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date <= ? AND 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
 
   /** ベクトル検索＋価格・開始日・オフィス要件・エリアフィルタ用SQL（ページング用・LIMIT/OFFSET除外）. */
   private static final String RETRIEVE_WITH_FILTER_4_VALUES_SQL_WITHOUT_LIMIT =
-      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date <= ? AND office_requirements <= ? AND area = ? AND 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
+      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date <= ? AND office_requirements <= ? AND area = ? AND 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
 
   /** 全文検索＋価格・開始日フィルタ用SQL. */
   private static final String SELECT_RAW_CONTENT_WITH_FILTER_2_VALUES_FOR_FULLTEXT =
-      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date <= ? AND raw_content LIKE ?";
+      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date <= ? AND raw_content LIKE ?";
 
   /** 全文検索＋価格・開始日・オフィス要件・エリアフィルタ用SQL. */
   private static final String SELECT_RAW_CONTENT_WITH_FILTER_4_VALUES_FOR_FULLTEXT =
-      "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date <= ? AND office_requirements <= ? AND area = ? AND raw_content LIKE ?";
+      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date <= ? AND office_requirements <= ? AND area = ? AND raw_content LIKE ?";
 
   /** コンストラクタ. */
   public SES_AI_T_JOBLot() {
@@ -811,7 +811,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
 
     // (3) ベクトル検索SQLを構築
     String sql =
-        "SELECT job_id, from_group, from_id, from_name, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id "
+        "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id "
             + "FROM SES_AI_T_JOB "
             + "WHERE "
             + whereClause.toString()
@@ -980,6 +980,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
     sesAiTJob.setFromGroup(resultSet.getString("from_group"));
     sesAiTJob.setFromId(resultSet.getString("from_id"));
     sesAiTJob.setFromName(resultSet.getString("from_name"));
+    sesAiTJob.setMailSubject(resultSet.getString("mail_subject"));
     sesAiTJob.setRawContent(resultSet.getString("raw_content"));
     sesAiTJob.setContentSummary(resultSet.getString("content_summary"));
     java.math.BigDecimal unitPriceValue = resultSet.getBigDecimal("unit_price");

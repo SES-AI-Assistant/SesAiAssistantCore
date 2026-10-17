@@ -405,7 +405,7 @@ class ContentParseSchemaTest {
   }
 
   @Test
-  @DisplayName("InformationType: Enum 値の定義と valueOf が正常動作すること")
+  @DisplayName("InformationType: Enum 値の定義、valueOf、および fromJson が正常動作すること")
   void testInformationTypeEnum() {
     assertEquals(InformationType.JOB, InformationType.valueOf("JOB"));
     assertEquals(InformationType.PERSON, InformationType.valueOf("PERSON"));
@@ -413,5 +413,12 @@ class ContentParseSchemaTest {
 
     InformationType[] values = InformationType.values();
     assertEquals(3, values.length);
+
+    // fromJson の境界値・大小文字・空白・不明値・null 検証
+    assertEquals(InformationType.JOB, InformationType.fromJson("job"));
+    assertEquals(InformationType.PERSON, InformationType.fromJson(" person "));
+    assertEquals(InformationType.Unknown, InformationType.fromJson("UNKNOWN"));
+    assertEquals(InformationType.Unknown, InformationType.fromJson("invalid"));
+    assertEquals(InformationType.Unknown, InformationType.fromJson(null));
   }
 }

@@ -18,18 +18,17 @@ import lombok.NoArgsConstructor;
 public class MatchEvaluateResponseSchema {
   @Schema(
       title = "必須スキル評価",
-      description = "案件の必須要求項目の評価結果リスト",
+      description =
+          "案件情報に必須要件として明記されている項目の評価結果リスト。案件情報に記載のない項目を推測で追加しないこと。必須要件の記載が無い場合は空リストとする。評価は要員情報に明記された内容のみを根拠とし、記載から推測・補完して判断しないこと。",
       itemType = SkillEvaluateResult.class,
       required = true,
-      minItems = 1,
       maxItems = 10)
   private List<SkillEvaluateResult> mustList;
 
   @Schema(
       title = "尚可スキル評価",
-      description = "案件の尚可要求項目の評価結果リスト",
+      description = "案件情報に尚可要件として明記されている項目の評価結果リスト。案件情報に記載のない項目を推測で追加しないこと。尚可要件の記載が無い場合は空リストとする。",
       itemType = SkillEvaluateResult.class,
-      minItems = 1,
       maxItems = 10)
   private List<SkillEvaluateResult> wantList;
 
@@ -62,9 +61,9 @@ public class MatchEvaluateResponseSchema {
 
   @Schema(
       title = "その他の評価",
-      description = "その他の案件、要員が求める条件に対するマッチ評価結果",
+      description =
+          "単価・場所・出社・人月工数以外で、案件または要員の情報に明記されている条件（年齢、商流、国籍など）に対するマッチ評価結果。明記された条件が無い場合は空リストとする。",
       itemType = OtherEvaluateResult.class,
-      minItems = 1,
       maxItems = 10)
   private List<OtherEvaluateResult> otherList;
 
@@ -82,6 +81,7 @@ public class MatchEvaluateResponseSchema {
       return false;
     }
     // 2. 必須条件：1つでも FullyMet 以外があればNG
+    // PartiallyMet（類似経験のみ明記）は必須スキルを満たすとは言えないため対象外とし、スコアと評価文にのみ反映する
     boolean isAllMustMet =
         this.mustList.stream().allMatch(must -> must.getResult() == EvaluateType.FullyMet);
     if (!isAllMustMet) {
@@ -400,7 +400,7 @@ public class MatchEvaluateResponseSchema {
   public static class SkillEvaluateResult {
     @Schema(
         title = "評価項目",
-        description = "案件が求める評価項目。スキル評価は『記載された実務経験』のみを対象。",
+        description = "案件情報に記載された要求項目。案件情報の表現をそのまま用いること。",
         required = true,
         maxLength = 50,
         example = "時系列データ分析")
@@ -408,7 +408,8 @@ public class MatchEvaluateResponseSchema {
 
     @Schema(
         title = "評価結果",
-        description = "FullyMet=記載あり、PartiallyMet=関連スキルのみ、NotMet=記載なし",
+        description =
+            "要員情報に明記された実務経験のみで判定する。FullyMet=評価項目と同一のスキル・経験が明記されている。PartiallyMet=同一ではないが、代替可能な類似スキル・経験（同一の技術基盤上にあり、記載された経験を要求にそのまま転用できるもの。例: 要求がSpring Bootで記載がSpring Framework）が具体的に明記されている。技術基盤が異なる製品・サービス（例: 要求がAWSで記載がGCP）は類似とみなさない。NotMet=同一・類似いずれの記載も無い。職種や他スキルからの推測（例: Javaエンジニアだから SQL も経験があるはず）でFullyMet/PartiallyMetにしてはならない。",
         itemType = EvaluateType.class,
         required = true,
         example = "FullyMet")
@@ -416,7 +417,7 @@ public class MatchEvaluateResponseSchema {
 
     @Schema(
         title = "評価コメント",
-        description = "判定根拠",
+        description = "判定根拠。FullyMet/PartiallyMetの場合は根拠とした要員情報の記載を30字以内で抜粋し、NotMetの場合は記載が無い旨を書くこと。",
         maxLength = 50,
         example = "スキルシートに『時系列データ分析』の記載がないためNotMet")
     private String comment;
@@ -507,7 +508,7 @@ public class MatchEvaluateResponseSchema {
   public static class OtherEvaluateResult {
     @Schema(
         title = "評価項目",
-        description = "案件または要員が求める評価項目",
+        description = "案件または要員の情報に明記されている条件",
         required = true,
         maxLength = 50,
         example = "成長できる環境であること")
@@ -515,7 +516,8 @@ public class MatchEvaluateResponseSchema {
 
     @Schema(
         title = "評価結果",
-        description = "案件または要員が求める項目を案件または要員が満たすかどうかを3段階で表現した評価結果",
+        description =
+            "明記された条件を相手側が満たすかどうか。相手側の情報に明記された内容のみで判定し、推測しないこと。FullyMet=満たすことが明記されている、または相手側に該当する記載が無く違反が確認できない。PartiallyMet=一部のみ満たす記載がある。NotMet=条件に反する記載がある。",
         itemType = EvaluateType.class,
         required = true,
         example = "FullyMet")
@@ -530,8 +532,8 @@ public class MatchEvaluateResponseSchema {
   }
 
   public static enum EvaluateType {
-    FullyMet, // 記載された実務経験あり
-    PartiallyMet, // 関連スキルのみ（記載スキルと異なる）
+    FullyMet, // 同一の実務経験が明記されている
+    PartiallyMet, // 代替可能な類似の実務経験が明記されている
     NotMet, // 記載なし
     Unknown; // 不明
 

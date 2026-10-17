@@ -2,6 +2,7 @@ package copel.sesproductpackage.core.api.gpt.entity;
 
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.unit.Area;
+import copel.sesproductpackage.core.unit.ExperienceDuration;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.math.BigDecimal;
@@ -37,18 +38,16 @@ public class JobInfoSchema {
 
   @Schema(
       title = "必須スキル",
-      description = "案件が要求する必須経験、スキル等のリスト",
+      description = "本文に必須として明記された経験、スキル等のリスト。本文に記載のない要件を推測で追加しないこと。必須要件の記載が無い場合は空リストとする。",
       itemType = Requirements.class,
       required = true,
-      minItems = 1,
       maxItems = 10)
   private List<Requirements> mustList;
 
   @Schema(
       title = "尚可スキル",
-      description = "案件が要求する尚可経験、スキル等のリスト",
+      description = "本文に尚可（歓迎）として明記された経験、スキル等のリスト。本文に記載のない要件を推測で追加しないこと。",
       itemType = Requirements.class,
-      minItems = 1,
       maxItems = 10)
   private List<Requirements> wantList = null;
 
@@ -124,7 +123,7 @@ public class JobInfoSchema {
       for (Requirements must : this.mustList) {
         sb.append("・")
             .append(must.getPerspective())
-            .append(must.getDuration() != null ? ": " + must.getDuration() : "")
+            .append(new ExperienceDuration(must.getDurationMonths()).toSuffix(": "))
             .append("\n");
       }
     }
@@ -134,7 +133,7 @@ public class JobInfoSchema {
       for (Requirements must : this.wantList) {
         sb.append("・")
             .append(must.getPerspective())
-            .append(must.getDuration() != null ? "：" + must.getDuration() : "")
+            .append(new ExperienceDuration(must.getDurationMonths()).toSuffix("："))
             .append("\n");
       }
     }
@@ -215,10 +214,8 @@ public class JobInfoSchema {
       if (sb.length() > 0) {
         sb.append("\n");
       }
-      sb.append(req.getPerspective());
-      if (req.getDuration() != null) {
-        sb.append(": ").append(req.getDuration());
-      }
+      sb.append(req.getPerspective())
+          .append(new ExperienceDuration(req.getDurationMonths()).toSuffix(": "));
     }
     return sb.toString();
   }
@@ -237,10 +234,8 @@ public class JobInfoSchema {
       if (sb.length() > 0) {
         sb.append("\n");
       }
-      sb.append(req.getPerspective());
-      if (req.getDuration() != null) {
-        sb.append(": ").append(req.getDuration());
-      }
+      sb.append(req.getPerspective())
+          .append(new ExperienceDuration(req.getDurationMonths()).toSuffix(": "));
     }
     return sb.toString();
   }
@@ -290,18 +285,19 @@ public class JobInfoSchema {
   public static class Requirements {
     @Schema(
         title = "要求項目",
-        description = "要求経験、スキル、観点など",
+        description = "本文に明記された要求経験、スキル、観点など。本文の表現を言い換えたり一般化したりせず、記載どおりに抽出すること。",
         maxLength = 30,
         required = true,
         example = "SpringBootを利用した開発経験")
     private String perspective;
 
     @Schema(
-        title = "要求期間",
+        title = "要求月数",
         description =
-            "要求される経験年数や期間（例: 「3年」）。本文中に明確な年数や期間の記載がない場合は、推測せず必ずnullにすること。（「不明」「未記載」「なし」などの文字列は絶対に設定しないこと）",
-        maxLength = 30,
-        example = "3年")
-    private String duration = null;
+            "本文に明記された要求経験年数や期間を月数に換算した整数（例: 「3年以上」→36、「半年」→6）。「2〜3年」のような範囲表記は下限、「約5年」は記載の数値で換算すること。本文中に明確な年数や期間の記載がない場合は、推測せず出力しないこと",
+        type = "integer",
+        gt = 0,
+        example = "36")
+    private Integer durationMonths = null;
   }
 }

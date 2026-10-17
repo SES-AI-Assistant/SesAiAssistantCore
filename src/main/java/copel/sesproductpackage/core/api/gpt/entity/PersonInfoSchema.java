@@ -2,6 +2,7 @@ package copel.sesproductpackage.core.api.gpt.entity;
 
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.unit.Area;
+import copel.sesproductpackage.core.unit.ExperienceDuration;
 import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
@@ -74,7 +75,7 @@ public class PersonInfoSchema {
 
   @Schema(
       title = "国籍",
-      description = "紹介されている要員本人の国籍。未記載の場合は「日本」とする）",
+      description = "紹介されている要員本人の国籍。未記載の場合は「日本」とする",
       maxLength = 10,
       required = true,
       example = "日本")
@@ -92,7 +93,7 @@ public class PersonInfoSchema {
   @Schema(
       title = "希望単価（万円）",
       description =
-          "月額希望単価を万円単位の数値で設定。例: 80万/800,000円/800K→80、65.5万→65.5、時給2500円(160h)→40。幅がある場合は希望下限。スキル見合い・未記載は999。",
+          "月額希望単価を万円単位の数値で設定。例: 80万/800,000円/800K→80、65.5万→65.5、時給2500円(160h)→40。幅がある場合は希望下限。スキル見合い・応相談・未記載は0。",
       required = true,
       type = "number",
       example = "80")
@@ -136,10 +137,9 @@ public class PersonInfoSchema {
 
   @Schema(
       title = "経歴",
-      description = "箇条書き形式の経歴のリスト",
+      description = "本文に明記された経験・スキルのみを箇条書き形式で抽出したリスト。職種や他のスキルから推測した経験を追加しないこと。記載が無い場合は空リストとする。",
       itemType = Experience.class,
       required = true,
-      minItems = 1,
       maxItems = 10)
   private List<Experience> experiences = null;
 
@@ -217,7 +217,7 @@ public class PersonInfoSchema {
       for (Experience experience : this.experiences) {
         sb.append("・")
             .append(experience.getPerspective())
-            .append(experience.getDuration() != null ? ": " + experience.getDuration() : "")
+            .append(new ExperienceDuration(experience.getDurationMonths()).toSuffix(": "))
             .append("\n");
       }
     }
@@ -285,10 +285,8 @@ public class PersonInfoSchema {
       if (sb.length() > 0) {
         sb.append("\n");
       }
-      sb.append(exp.getPerspective());
-      if (exp.getDuration() != null) {
-        sb.append(": ").append(exp.getDuration());
-      }
+      sb.append(exp.getPerspective())
+          .append(new ExperienceDuration(exp.getDurationMonths()).toSuffix(": "));
     }
     return sb.toString();
   }
@@ -331,19 +329,20 @@ public class PersonInfoSchema {
   public static class Experience {
     @Schema(
         title = "スキル",
-        description = "経験、スキル、観点など",
+        description = "本文に明記された経験、スキル、観点など。本文の表現を言い換えたり一般化したりせず、記載どおりに抽出すること。",
         maxLength = 30,
         required = true,
         example = "SpringBootによるWEBアプリ開発")
     private String perspective;
 
     @Schema(
-        title = "経験年数",
+        title = "経験月数",
         description =
-            "経験年数や期間（例: 「3年」）。本文中に明確な年数や期間の記載がない場合は、推測せず必ずnullにすること。（「不明」「未記載」「なし」などの文字列は絶対に設定しないこと）",
-        maxLength = 30,
-        example = "3年")
-    private String duration = null;
+            "本文に明記された経験年数や期間を月数に換算した整数（例: 「3年」→36、「1年半」→18、「6ヶ月」→6）。「2〜3年」のような範囲表記は下限、「約5年」は記載の数値で換算すること。本文中に明確な年数や期間の記載がない場合は、推測せず出力しないこと",
+        type = "integer",
+        gt = 0,
+        example = "36")
+    private Integer durationMonths = null;
   }
 
   /**

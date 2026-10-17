@@ -4,6 +4,14 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import copel.sesproductpackage.core.search.FulltextCondition;
+import copel.sesproductpackage.core.search.JobDetailFilterCondition;
+import copel.sesproductpackage.core.unit.Area;
+import copel.sesproductpackage.core.unit.LogicalOperators;
+import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
+import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.unit.Vector;
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -14,19 +22,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-
-import copel.sesproductpackage.core.search.FulltextCondition;
-import copel.sesproductpackage.core.search.JobDetailFilterCondition;
-import copel.sesproductpackage.core.unit.Area;
-import copel.sesproductpackage.core.unit.LogicalOperators;
-import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
-import copel.sesproductpackage.core.unit.Money;
-import copel.sesproductpackage.core.unit.OriginalDateTime;
-import copel.sesproductpackage.core.unit.Vector;
 
 class SES_AI_T_JOBLotTest {
 
@@ -255,7 +253,8 @@ class SES_AI_T_JOBLotTest {
     assertEquals(1, lot.size());
 
     SES_AI_T_JOBLot empty = new SES_AI_T_JOBLot();
-    empty.retrieveWithFilter(null, "test-tenant", testVector, price, startDate, 3, Area.関東_首都圏, 0.5, 5);
+    empty.retrieveWithFilter(
+        null, "test-tenant", testVector, price, startDate, 3, Area.関東_首都圏, 0.5, 5);
     assertTrue(empty.isEmpty());
   }
 
@@ -279,12 +278,7 @@ class SES_AI_T_JOBLotTest {
     assertDoesNotThrow(
         () ->
             lot.searchByJobWithDetailFilter(
-                mockConn,
-                "test-tenant",
-                List.of(condition1, condition2),
-                detailFilter,
-                1,
-                10));
+                mockConn, "test-tenant", List.of(condition1, condition2), detailFilter, 1, 10));
   }
 
   @Test
@@ -298,12 +292,7 @@ class SES_AI_T_JOBLotTest {
     assertDoesNotThrow(
         () ->
             lot.searchByJobWithDetailFilter(
-                mockConn,
-                "test-tenant",
-                List.of(condition),
-                null,
-                1,
-                10));
+                mockConn, "test-tenant", List.of(condition), null, 1, 10));
   }
 
   @Test
@@ -323,13 +312,7 @@ class SES_AI_T_JOBLotTest {
     assertDoesNotThrow(
         () ->
             lot.retrieveByJobVectorWithDetailFilter(
-                mockConn,
-                "test-tenant",
-                testVector,
-                0.5,
-                detailFilter,
-                1,
-                10));
+                mockConn, "test-tenant", testVector, 0.5, detailFilter, 1, 10));
   }
 
   @Test
@@ -343,13 +326,7 @@ class SES_AI_T_JOBLotTest {
     assertDoesNotThrow(
         () ->
             lot.retrieveByJobVectorWithDetailFilter(
-                mockConn,
-                "test-tenant",
-                testVector,
-                0.5,
-                null,
-                1,
-                10));
+                mockConn, "test-tenant", testVector, 0.5, null, 1, 10));
   }
 
   @Test
@@ -406,12 +383,14 @@ class SES_AI_T_JOBLotTest {
 
     SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
 
-    lot.searchByJobWithDetailFilter(mockConn, "test-tenant", List.of(condition), detailFilter, 1, 10);
+    lot.searchByJobWithDetailFilter(
+        mockConn, "test-tenant", List.of(condition), detailFilter, 1, 10);
 
     ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
     verify(mockConn, atLeastOnce()).prepareStatement(sqlCaptor.capture());
     for (String executedSql : sqlCaptor.getAllValues()) {
-      assertFalse(executedSql.contains("j.unit_price"), "WHERE句にテーブルエイリアス j が付与されていないこと: " + executedSql);
+      assertFalse(
+          executedSql.contains("j.unit_price"), "WHERE句にテーブルエイリアス j が付与されていないこと: " + executedSql);
     }
   }
 
@@ -428,13 +407,16 @@ class SES_AI_T_JOBLotTest {
     SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
     Vector testVector = createTestVector();
 
-    lot.retrieveByJobVectorWithDetailFilter(mockConn, "test-tenant", testVector, 0.5, detailFilter, 1, 10);
+    lot.retrieveByJobVectorWithDetailFilter(
+        mockConn, "test-tenant", testVector, 0.5, detailFilter, 1, 10);
 
     ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
     verify(mockConn, atLeastOnce()).prepareStatement(sqlCaptor.capture());
     for (String executedSql : sqlCaptor.getAllValues()) {
-      assertFalse(executedSql.contains("j.unit_price"), "WHERE句にテーブルエイリアス j が付与されていないこと: " + executedSql);
-      assertFalse(executedSql.contains("j.start_date"), "WHERE句にテーブルエイリアス j が付与されていないこと: " + executedSql);
+      assertFalse(
+          executedSql.contains("j.unit_price"), "WHERE句にテーブルエイリアス j が付与されていないこと: " + executedSql);
+      assertFalse(
+          executedSql.contains("j.start_date"), "WHERE句にテーブルエイリアス j が付与されていないこと: " + executedSql);
     }
   }
 }

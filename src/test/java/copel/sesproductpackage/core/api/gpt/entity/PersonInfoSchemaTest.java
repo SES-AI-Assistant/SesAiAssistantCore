@@ -8,6 +8,7 @@ import copel.sesproductpackage.core.api.gpt.entity.PersonInfoSchema.Experience;
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.util.List;
@@ -69,6 +70,21 @@ class PersonInfoSchemaTest {
   }
 
   @Test
+  @DisplayName("getPrice: priceInMan が応相談（0）の場合、0円の Money が返り isConsultation が true となること")
+  void testGetPrice_Zero() {
+    PersonInfoSchema schema = new PersonInfoSchema();
+    schema.setPriceInMan(BigDecimal.ZERO);
+
+    Money price = schema.getPrice();
+    assertNotNull(price);
+    assertFalse(price.isEmpty());
+    assertEquals(0L, price.toYenValue());
+    assertTrue(price.isConsultation());
+    assertTrue(price.isNegotiable());
+    assertEquals("0万円", price.toJapaneseFormat());
+  }
+
+  @Test
   @DisplayName("getPrice: priceInMan が null の場合、Money.empty が返ること")
   void testGetPrice_Null() {
     PersonInfoSchema schema = new PersonInfoSchema();
@@ -93,6 +109,20 @@ class PersonInfoSchemaTest {
     assertNotNull(schema);
     assertEquals(new BigDecimal("80"), schema.getPriceInMan());
     assertEquals(800000L, schema.getPrice().toYenValue());
+  }
+
+  @Test
+  @DisplayName("Jackson: JSONから priceInMan が応相談（0）としてデシリアライズされること")
+  void testJacksonDeserialize_ZeroPrice_Consultation() throws Exception {
+    String json = "{\"name\":\"T.T\",\"priceInMan\":0}";
+    PersonInfoSchema schema = objectMapper.readValue(json, PersonInfoSchema.class);
+
+    assertNotNull(schema);
+    assertEquals(new BigDecimal("0"), schema.getPriceInMan());
+    assertEquals(0L, schema.getPrice().toYenValue());
+    assertTrue(schema.getPrice().isConsultation());
+    assertTrue(schema.getPrice().isNegotiable());
+    assertEquals("0万円", schema.getPrice().toJapaneseFormat());
   }
 
   @Test
@@ -160,6 +190,56 @@ class PersonInfoSchemaTest {
     assertEquals("number", schemaAnnotation.type());
     assertEquals("80", schemaAnnotation.example());
     assertTrue(schemaAnnotation.description().contains("月額希望単価を万円単位の数値で設定"));
+    assertTrue(schemaAnnotation.description().contains("スキル見合い・応相談・未記載は0"));
+  }
+
+  // ================================================
+  // 経歴（経験月数）の出力検証
+  // ================================================
+
+  @Test
+  @DisplayName("toSummaryText/getExperiencesAsString: 経験月数は年月表記で出力され、未設定の場合はスキル名のみ出力されること")
+  void testExperiencesWithDurationMonths() {
+    PersonInfoSchema schema = new PersonInfoSchema();
+    schema.setName("H.M");
+    schema.setGender(Gender.Woman);
+    schema.setExperiences(
+        List.of(
+            new PersonInfoSchema.Experience("PMO経験", null),
+            new PersonInfoSchema.Experience("Java", 36)));
+
+    assertEquals("PMO経験\nJava: 3年", schema.getExperiencesAsString());
+
+    String summaryText = schema.toSummaryText();
+    assertTrue(summaryText.contains("・PMO経験\n"));
+    assertTrue(summaryText.contains("・Java: 3年"));
+  }
+
+  @Test
+  @DisplayName("JSON: 本番のObjectMapper（SNAKE_CASE）で duration_months が数値としてデシリアライズされること")
+  void testDeserializeDurationMonths() throws Exception {
+    PersonInfoSchema schema =
+        ObjectMapperFactory.OBJECT_MAPPER.readValue(
+            "{\"experiences\":[{\"perspective\":\"Java\",\"duration_months\":18},{\"perspective\":\"PMO\"}]}",
+            PersonInfoSchema.class);
+
+    assertEquals(18, schema.getExperiences().get(0).getDurationMonths());
+    assertNull(schema.getExperiences().get(1).getDurationMonths());
+    assertEquals("Java: 1年6ヶ月\nPMO", schema.getExperiencesAsString());
+  }
+
+  // ================================================
+  // 推測抑止: 記載の無い項目の捏造を誘発する最低件数指定が無いこと
+  // ================================================
+
+  @Test
+  @DisplayName("Schema: リスト項目に最低件数（minItems）が設定されていないこと")
+  void testSchema_NoMinItems() throws NoSuchFieldException {
+    for (String fieldName : List.of("experiences")) {
+      Schema schema =
+          PersonInfoSchema.class.getDeclaredField(fieldName).getAnnotation(Schema.class);
+      assertEquals(-1, schema.minItems(), fieldName);
+    }
   }
 
   @Test
@@ -196,7 +276,7 @@ class PersonInfoSchemaTest {
     person.setName("山田太郎");
     person.setAge(30);
     person.setPriceInMan(new BigDecimal("80"));
-    person.setExperiences(List.of(new Experience("Java開発", "3年")));
+    person.setExperiences(List.of(new Experience("Java開発", 36)));
 
     assertTrue(person.isValid());
   }
@@ -209,14 +289,14 @@ class PersonInfoSchemaTest {
     person1.setName("鈴木二郎");
     person1.setAge(-1);
     person1.setPriceInMan(new BigDecimal("999"));
-    person1.setExperiences(List.of(new Experience("React開発", "2年")));
+    person1.setExperiences(List.of(new Experience("React開発", 24)));
 
     // 単価未記載（0）、年齢不明（-1）
     PersonInfoSchema person2 = new PersonInfoSchema();
     person2.setName("佐藤一郎");
     person2.setAge(-1);
     person2.setPriceInMan(BigDecimal.ZERO);
-    person2.setExperiences(List.of(new Experience("Python開発", "1年")));
+    person2.setExperiences(List.of(new Experience("Python開発", 12)));
 
     assertAll(
         "年齢不明または単価未記載でも氏名とスキルがあれば正当な要員",
@@ -232,7 +312,7 @@ class PersonInfoSchemaTest {
     person.setName(initialName);
     person.setAge(35);
     person.setPriceInMan(new BigDecimal("70"));
-    person.setExperiences(List.of(new Experience("AWS設計", "5年")));
+    person.setExperiences(List.of(new Experience("AWS設計", 60)));
 
     assertTrue(person.isValid());
   }
@@ -244,7 +324,7 @@ class PersonInfoSchemaTest {
     person.setName(null);
     person.setAge(30);
     person.setPriceInMan(new BigDecimal("80"));
-    person.setExperiences(List.of(new Experience("Java開発", "3年")));
+    person.setExperiences(List.of(new Experience("Java開発", 36)));
 
     assertFalse(person.isValid());
   }
@@ -257,7 +337,7 @@ class PersonInfoSchemaTest {
     person.setName(invalidName);
     person.setAge(30);
     person.setPriceInMan(new BigDecimal("80"));
-    person.setExperiences(List.of(new Experience("Java開発", "3年")));
+    person.setExperiences(List.of(new Experience("Java開発", 36)));
 
     assertFalse(person.isValid());
   }
@@ -293,7 +373,7 @@ class PersonInfoSchemaTest {
     person.setName(placeholderName);
     person.setAge(30);
     person.setPriceInMan(new BigDecimal("80"));
-    person.setExperiences(List.of(new Experience("Java開発", "3年")));
+    person.setExperiences(List.of(new Experience("Java開発", 36)));
 
     assertFalse(person.isValid());
   }
@@ -306,7 +386,7 @@ class PersonInfoSchemaTest {
     person.setName(symbol);
     person.setAge(30);
     person.setPriceInMan(new BigDecimal("80"));
-    person.setExperiences(List.of(new Experience("Java開発", "3年")));
+    person.setExperiences(List.of(new Experience("Java開発", 36)));
 
     assertFalse(person.isValid());
   }
@@ -319,7 +399,7 @@ class PersonInfoSchemaTest {
     person.setName(digits);
     person.setAge(30);
     person.setPriceInMan(new BigDecimal("80"));
-    person.setExperiences(List.of(new Experience("Java開発", "3年")));
+    person.setExperiences(List.of(new Experience("Java開発", 36)));
 
     assertFalse(person.isValid());
   }
