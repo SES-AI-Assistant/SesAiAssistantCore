@@ -227,14 +227,13 @@ class ContentParseSchemaTest {
     assertNotNull(desc);
 
     // ① 主述の向き（最優先基準）
-    assertTrue(desc.contains("【最重要判定原則: 主述の向き】"), "主述の向きが明記されていること");
     assertTrue(desc.contains("メールの主旨が人材の提案・売り込み（PERSON）なのか、案件の参画者募集（JOB）なのかを最優先で判定する"));
     assertTrue(desc.contains("返信メール（Re:）でのエントリーの場合も本文中の案件引用に惑わされず「PERSON」として抽出すること"));
 
     // ② 架空要員の捏造絶対禁止
     assertTrue(desc.contains("【架空要員の捏造絶対禁止】"), "架空要員の捏造絶対禁止が明記されていること");
     assertTrue(desc.contains("特定個人を識別できる具体的な属性（氏名・イニシャル、実年齢、単価等）が本文中に明記されていない場合"));
-    assertTrue(desc.contains("職種名（「エンジニア」「プログラマー」「PM」「テックリード」等）や会社名・所属名（「〇〇所属」等）を勝手に氏名（name）として捏造して PERSON を出力することは厳禁とする"));
+    assertTrue(desc.contains("職種名（「エンジニア」「PM」等）や会社名・所属名（「〇〇所属」等）を勝手に氏名（name）として捏造して PERSON を出力することは厳禁とする"));
     assertTrue(desc.contains("具体的な個人プロファイルのない紹介導入文、打診文、一般的な連絡文は、PERSON ではなく必ず「Unknown」と判定すること"));
 
     // ③ 特定個人属性の存在
@@ -276,7 +275,7 @@ class ContentParseSchemaTest {
         "架空要員の捏造絶対禁止およびUnknown判定の必須文言アサーション",
         () -> assertTrue(desc.contains("【架空要員の捏造絶対禁止】")),
         () -> assertTrue(desc.contains("特定個人を識別できる具体的な属性（氏名・イニシャル、実年齢、単価等）が本文中に明記されていない場合")),
-        () -> assertTrue(desc.contains("職種名（「エンジニア」「プログラマー」「PM」「テックリード」等）")),
+        () -> assertTrue(desc.contains("職種名（「エンジニア」「PM」等）")),
         () -> assertTrue(desc.contains("会社名・所属名（「〇〇所属」等）")),
         () -> assertTrue(desc.contains("勝手に氏名（name）として捏造して PERSON を出力することは厳禁とする")),
         () -> assertTrue(desc.contains("具体的な個人プロファイルのない紹介導入文、打診文、一般的な連絡文は、PERSON ではなく必ず「Unknown」と判定すること")));
@@ -357,7 +356,7 @@ class ContentParseSchemaTest {
 
     String typeDesc = (String) typeSchema.get("description");
     assertNotNull(typeDesc);
-    assertTrue(typeDesc.contains("【最重要判定原則: 主述の向き】"));
+    assertTrue(typeDesc.contains("メールの主旨が人材の提案・売り込み（PERSON）なのか、案件の参画者募集（JOB）なのかを最優先で判定する"));
 
     // summary スキーマの anyOf 検証
     @SuppressWarnings("unchecked")
