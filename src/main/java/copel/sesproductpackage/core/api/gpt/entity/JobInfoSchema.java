@@ -2,6 +2,7 @@ package copel.sesproductpackage.core.api.gpt.entity;
 
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.unit.Area;
+import copel.sesproductpackage.core.unit.ExperienceDuration;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.math.BigDecimal;
@@ -124,7 +125,7 @@ public class JobInfoSchema {
       for (Requirements must : this.mustList) {
         sb.append("・")
             .append(must.getPerspective())
-            .append(must.getDuration() != null ? ": " + must.getDuration() : "")
+            .append(new ExperienceDuration(must.getDurationMonths()).toSuffix(": "))
             .append("\n");
       }
     }
@@ -134,7 +135,7 @@ public class JobInfoSchema {
       for (Requirements must : this.wantList) {
         sb.append("・")
             .append(must.getPerspective())
-            .append(must.getDuration() != null ? "：" + must.getDuration() : "")
+            .append(new ExperienceDuration(must.getDurationMonths()).toSuffix("："))
             .append("\n");
       }
     }
@@ -215,10 +216,8 @@ public class JobInfoSchema {
       if (sb.length() > 0) {
         sb.append("\n");
       }
-      sb.append(req.getPerspective());
-      if (req.getDuration() != null) {
-        sb.append(": ").append(req.getDuration());
-      }
+      sb.append(req.getPerspective())
+          .append(new ExperienceDuration(req.getDurationMonths()).toSuffix(": "));
     }
     return sb.toString();
   }
@@ -237,10 +236,8 @@ public class JobInfoSchema {
       if (sb.length() > 0) {
         sb.append("\n");
       }
-      sb.append(req.getPerspective());
-      if (req.getDuration() != null) {
-        sb.append(": ").append(req.getDuration());
-      }
+      sb.append(req.getPerspective())
+          .append(new ExperienceDuration(req.getDurationMonths()).toSuffix(": "));
     }
     return sb.toString();
   }
@@ -273,11 +270,12 @@ public class JobInfoSchema {
     private String perspective;
 
     @Schema(
-        title = "要求期間",
+        title = "要求月数",
         description =
-            "要求される経験年数や期間（例: 「3年」）。本文中に明確な年数や期間の記載がない場合は、推測せず必ずnullにすること。（「不明」「未記載」「なし」などの文字列は絶対に設定しないこと）",
-        maxLength = 30,
-        example = "3年")
-    private String duration = null;
+            "本文に明記された要求経験年数や期間を月数に換算した整数（例: 「3年以上」→36、「半年」→6）。「2〜3年」のような範囲表記は下限、「約5年」は記載の数値で換算すること。本文中に明確な年数や期間の記載がない場合は、推測せず出力しないこと",
+        type = "integer",
+        gt = 0,
+        example = "36")
+    private Integer durationMonths = null;
   }
 }

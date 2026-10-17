@@ -2,6 +2,7 @@ package copel.sesproductpackage.core.api.gpt.entity;
 
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.unit.Area;
+import copel.sesproductpackage.core.unit.ExperienceDuration;
 import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
@@ -184,7 +185,7 @@ public class PersonInfoSchema {
       for (Experience experience : this.experiences) {
         sb.append("・")
             .append(experience.getPerspective())
-            .append(experience.getDuration() != null ? ": " + experience.getDuration() : "")
+            .append(new ExperienceDuration(experience.getDurationMonths()).toSuffix(": "))
             .append("\n");
       }
     }
@@ -252,10 +253,8 @@ public class PersonInfoSchema {
       if (sb.length() > 0) {
         sb.append("\n");
       }
-      sb.append(exp.getPerspective());
-      if (exp.getDuration() != null) {
-        sb.append(": ").append(exp.getDuration());
-      }
+      sb.append(exp.getPerspective())
+          .append(new ExperienceDuration(exp.getDurationMonths()).toSuffix(": "));
     }
     return sb.toString();
   }
@@ -276,12 +275,13 @@ public class PersonInfoSchema {
     private String perspective;
 
     @Schema(
-        title = "経験年数",
+        title = "経験月数",
         description =
-            "経験年数や期間（例: 「3年」）。本文中に明確な年数や期間の記載がない場合は、推測せず必ずnullにすること。（「不明」「未記載」「なし」などの文字列は絶対に設定しないこと）",
-        maxLength = 30,
-        example = "3年")
-    private String duration = null;
+            "本文に明記された経験年数や期間を月数に換算した整数（例: 「3年」→36、「1年半」→18、「6ヶ月」→6）。「2〜3年」のような範囲表記は下限、「約5年」は記載の数値で換算すること。本文中に明確な年数や期間の記載がない場合は、推測せず出力しないこと",
+        type = "integer",
+        gt = 0,
+        example = "36")
+    private Integer durationMonths = null;
   }
 
   /**

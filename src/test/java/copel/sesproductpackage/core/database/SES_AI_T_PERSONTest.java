@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.api.gpt.Transformer;
+import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
 import java.sql.Connection;
@@ -294,5 +295,19 @@ class SES_AI_T_PERSONTest {
     assertNotEquals(p1, p2);
     p1.setPersonId("id2");
     assertEquals(p1, p2);
+  }
+
+  @Test
+  void testGetSummaryWithTargetPrice_StartMonthNotDuplicated() {
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON("test-tenant");
+    person.setName("H.M");
+    person.setAge(31);
+    person.setOfficeAvailability(5);
+    person.setGender(Gender.Woman);
+    person.setStartDate(new OriginalDateTime(2026, 11, 1, 0, 0, 0));
+
+    String summary = person.getSummaryWithTargetPrice(null);
+    assertTrue(summary.contains("■開始: 11月\n"));
+    assertFalse(summary.contains("11月月"));
   }
 }

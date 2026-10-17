@@ -495,7 +495,7 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
     sb.append("■国籍: ").append(this.nationality).append("\n");
     // 4. 稼働開始可能月
     if (this.startDate != null && !this.startDate.isEmpty()) {
-      sb.append("■開始: ").append(this.startDate.month()).append("月\n");
+      sb.append("■開始: ").append(this.startDate.month()).append("\n");
     }
     // 5. 単価
     if (targetPrice != null && !targetPrice.isEmpty()) {
