@@ -110,6 +110,48 @@ class SesInfoRegisterRequestSqsEntityTest {
   }
 
   @Test
+  @DisplayName("watchPeriod が watch_period キーでシリアライズされる")
+  void testGetMessageBodyContainsWatchPeriod() throws Exception {
+    entity.setRequestType(RequestType.ScreenMessage);
+    entity.setWatchPeriod(14);
+
+    String json = entity.getMessageBody();
+    assertTrue(json.contains("\"watch_period\":14"));
+    assertFalse(json.contains("\"watchPeriod\""));
+  }
+
+  @Test
+  @DisplayName("watchPeriod が null の場合は watch_period が null としてシリアライズされる")
+  void testGetMessageBodyWatchPeriodNull() throws Exception {
+    entity.setRequestType(RequestType.ScreenMessage);
+    entity.setWatchPeriod(null);
+
+    String json = entity.getMessageBody();
+    assertTrue(json.contains("\"watch_period\":null"));
+  }
+
+  @Test
+  @DisplayName("watch_period を含む JSON をデシリアライズすると watchPeriod に設定される")
+  void testDeserializeWatchPeriod() throws Exception {
+    String json = "{\"request_type\":\"ScreenMessage\",\"is_watching\":true,\"watch_period\":3}";
+
+    SesInfoRegisterRequestSqsEntity parsed =
+        ObjectMapperFactory.OBJECT_MAPPER.readValue(json, SesInfoRegisterRequestSqsEntity.class);
+    assertEquals(Integer.valueOf(3), parsed.getWatchPeriod());
+    assertTrue(parsed.isWatching());
+  }
+
+  @Test
+  @DisplayName("watch_period キーが無い JSON をデシリアライズすると watchPeriod は null")
+  void testDeserializeWithoutWatchPeriod() throws Exception {
+    String json = "{\"request_type\":\"ScreenMessage\",\"from_id\":\"user1\"}";
+
+    SesInfoRegisterRequestSqsEntity parsed =
+        ObjectMapperFactory.OBJECT_MAPPER.readValue(json, SesInfoRegisterRequestSqsEntity.class);
+    assertNull(parsed.getWatchPeriod());
+  }
+
+  @Test
   @DisplayName("isValid() - LineMessage 正常系")
   void testIsValidLineMessageSuccess() {
     entity.setRequestType(RequestType.LineMessage);
