@@ -7,8 +7,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -186,5 +188,40 @@ class PersonInfoSchemaTest {
     assertEquals("80", schemaAnnotation.example());
     assertTrue(schemaAnnotation.description().contains("月額希望単価を万円単位の数値で設定"));
     assertTrue(schemaAnnotation.description().contains("スキル見合い・応相談・未記載は0"));
+  }
+
+  // ================================================
+  // 経歴（経験月数）の出力検証
+  // ================================================
+
+  @Test
+  @DisplayName("toSummaryText/getExperiencesAsString: 経験月数は年月表記で出力され、未設定の場合はスキル名のみ出力されること")
+  void testExperiencesWithDurationMonths() {
+    PersonInfoSchema schema = new PersonInfoSchema();
+    schema.setName("H.M");
+    schema.setGender(Gender.Woman);
+    schema.setExperiences(
+        List.of(
+            new PersonInfoSchema.Experience("PMO経験", null),
+            new PersonInfoSchema.Experience("Java", 36)));
+
+    assertEquals("PMO経験\nJava: 3年", schema.getExperiencesAsString());
+
+    String summaryText = schema.toSummaryText();
+    assertTrue(summaryText.contains("・PMO経験\n"));
+    assertTrue(summaryText.contains("・Java: 3年"));
+  }
+
+  @Test
+  @DisplayName("JSON: 本番のObjectMapper（SNAKE_CASE）で duration_months が数値としてデシリアライズされること")
+  void testDeserializeDurationMonths() throws Exception {
+    PersonInfoSchema schema =
+        ObjectMapperFactory.OBJECT_MAPPER.readValue(
+            "{\"experiences\":[{\"perspective\":\"Java\",\"duration_months\":18},{\"perspective\":\"PMO\"}]}",
+            PersonInfoSchema.class);
+
+    assertEquals(18, schema.getExperiences().get(0).getDurationMonths());
+    assertNull(schema.getExperiences().get(1).getDurationMonths());
+    assertEquals("Java: 1年6ヶ月\nPMO", schema.getExperiencesAsString());
   }
 }

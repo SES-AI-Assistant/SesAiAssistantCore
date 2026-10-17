@@ -8,6 +8,7 @@ import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.unit.Money;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -155,5 +156,35 @@ class JobInfoSchemaTest {
     assertEquals("number", schemaAnnotation.type());
     assertEquals("185", schemaAnnotation.example());
     assertTrue(schemaAnnotation.description().contains("月額単価を万円単位の数値で設定"));
+  }
+
+  // ================================================
+  // 必須・尚可（要求月数）の出力検証
+  // ================================================
+
+  @Test
+  @DisplayName(
+      "toSummaryText/getMustSkillsAsString/getWantSkillsAsString: 要求月数は年月表記で出力され、未設定の場合は項目名のみ出力されること")
+  void testRequirementsWithDurationMonths() {
+    JobInfoSchema schema = new JobInfoSchema();
+    schema.setTitle("テスト案件");
+    schema.setOverview("テスト概要");
+    schema.setMustList(
+        List.of(
+            new JobInfoSchema.Requirements("PMO経験", null),
+            new JobInfoSchema.Requirements("Java", 36)));
+    schema.setWantList(
+        List.of(
+            new JobInfoSchema.Requirements("Big4出身", null),
+            new JobInfoSchema.Requirements("Python", 6)));
+
+    assertEquals("PMO経験\nJava: 3年", schema.getMustSkillsAsString());
+    assertEquals("Big4出身\nPython: 6ヶ月", schema.getWantSkillsAsString());
+
+    String summaryText = schema.toSummaryText();
+    assertTrue(summaryText.contains("・PMO経験\n"));
+    assertTrue(summaryText.contains("・Java: 3年\n"));
+    assertTrue(summaryText.contains("・Big4出身\n"));
+    assertTrue(summaryText.contains("・Python：6ヶ月\n"));
   }
 }
