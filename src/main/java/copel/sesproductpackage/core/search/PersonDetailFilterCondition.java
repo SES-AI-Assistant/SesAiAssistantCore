@@ -33,7 +33,7 @@ public class PersonDetailFilterCondition {
   /** 年齢の上限。この年齢以下の要員を対象. */
   private Integer maxAge;
 
-  /** 性別（M=男性、F=女性）。この性別に一致する要員を対象. */
+  /** 性別（DB値: Man / Woman）。この性別に一致する要員を対象. */
   private String gender;
 
   /**
