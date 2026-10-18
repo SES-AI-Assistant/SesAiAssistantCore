@@ -269,7 +269,7 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
     detailFilter.setMinAge(25);
     detailFilter.setMaxAge(60);
     detailFilter.setArea(Area.関東_首都圏);
-    detailFilter.setGender("M");
+    detailFilter.setGender("Man");
 
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
 
