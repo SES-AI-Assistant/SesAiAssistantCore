@@ -6,12 +6,15 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import copel.sesproductpackage.core.api.gpt.entity.PersonInfoSchema.Experience;
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
+import copel.sesproductpackage.core.api.gpt.schema.SchemaGenerator;
+import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -172,6 +175,22 @@ class PersonInfoSchemaTest {
 
     String summaryText = schema.toSummaryText();
     assertTrue(summaryText.contains("■単価: 80万円"));
+  }
+
+  @Test
+  @DisplayName("toSummaryText: 場所が空文字・null の場合は場所の行を出力せず、値がある場合は出力すること")
+  void testToSummaryText_EmptyPlaceIsOmitted() {
+    PersonInfoSchema schema = new PersonInfoSchema();
+    schema.setGender(Gender.Man);
+
+    schema.setPlace("");
+    assertFalse(schema.toSummaryText().contains("■場所"));
+
+    schema.setPlace(null);
+    assertFalse(schema.toSummaryText().contains("■場所"));
+
+    schema.setPlace("広木駅");
+    assertTrue(schema.toSummaryText().contains("■場所: 広木駅"));
   }
 
   // ================================================
@@ -433,5 +452,63 @@ class PersonInfoSchemaTest {
         () -> assertFalse(person1.isValid()),
         () -> assertFalse(person2.isValid()),
         () -> assertFalse(person3.isValid()));
+  }
+
+  // ================================================
+  // 地域（area）の抽出指示
+  // ================================================
+
+  @Test
+  @DisplayName("@Schema: area は必須かつ、関東_首都圏への誘導や署名への言及を含まず推定を強制する説明であること")
+  void testAreaSchemaAnnotation() throws Exception {
+    Field field = PersonInfoSchema.class.getDeclaredField("area");
+    Schema schemaAnnotation = field.getAnnotation(Schema.class);
+
+    assertNotNull(schemaAnnotation);
+    assertTrue(schemaAnnotation.required());
+    assertFalse(schemaAnnotation.description().contains("関東_首都圏とする"));
+    assertTrue(schemaAnnotation.description().contains("確信が持てなくても最も可能性の高い地域を推定して必ず選ぶこと"));
+    assertFalse(schemaAnnotation.description().contains("署名"));
+    assertTrue(schemaAnnotation.description().contains("記載が一切無い場合のみその他とする"));
+  }
+
+  @Test
+  @DisplayName("@Schema: place は本文の見出し語に書かれた所在のみを記載させ、署名には言及しない説明であること")
+  void testPlaceSchemaAnnotation() throws Exception {
+    Field field = PersonInfoSchema.class.getDeclaredField("place");
+    Schema schemaAnnotation = field.getAnnotation(Schema.class);
+
+    assertNotNull(schemaAnnotation);
+    assertFalse(schemaAnnotation.required());
+    assertEquals(20, schemaAnnotation.maxLength());
+    assertTrue(schemaAnnotation.description().contains("「最寄駅」"));
+    assertFalse(schemaAnnotation.description().contains("署名"));
+    assertTrue(schemaAnnotation.description().contains("記載が無い場合は項目自体を省略する"));
+  }
+
+  @Test
+  @DisplayName("SchemaGenerator: 生成された JSON Schema の required に area が含まれること")
+  void testAreaIsRequiredInGeneratedSchema() {
+    Map<String, Object> schema = SchemaGenerator.generate(PersonInfoSchema.class);
+
+    assertTrue(((List<?>) schema.get("required")).contains("area"));
+  }
+
+  @Test
+  @DisplayName("Jackson: area キーが無い場合は関東_首都圏ではなくその他になること")
+  void testJacksonDeserialize_MissingArea() throws Exception {
+    PersonInfoSchema info =
+        ObjectMapperFactory.OBJECT_MAPPER.readValue("{}", PersonInfoSchema.class);
+
+    assertEquals(Area.その他, info.getArea());
+  }
+
+  @Test
+  @DisplayName("Jackson: area に地域名が設定されている場合はその地域になること")
+  void testJacksonDeserialize_Area() throws Exception {
+    PersonInfoSchema info =
+        ObjectMapperFactory.OBJECT_MAPPER.readValue("{\"area\":\"九州\"}", PersonInfoSchema.class);
+
+    assertEquals(Area.九州, info.getArea());
   }
 }

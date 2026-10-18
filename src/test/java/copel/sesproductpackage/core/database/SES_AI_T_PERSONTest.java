@@ -5,8 +5,10 @@ import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.api.gpt.Transformer;
 import copel.sesproductpackage.core.unit.Gender;
+import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -309,5 +311,102 @@ class SES_AI_T_PERSONTest {
     String summary = person.getSummaryWithTargetPrice(null);
     assertTrue(summary.contains("■開始: 11月\n"));
     assertFalse(summary.contains("11月月"));
+  }
+
+  @Test
+  void testSetPlace_WithinMaxLength() {
+    SES_AI_T_PERSON entity = new SES_AI_T_PERSON("test-tenant");
+
+    entity.setPlace("広木駅");
+    assertEquals("広木駅", entity.getPlace());
+
+    String exact = "あ".repeat(SES_AI_T_PERSON.PLACE_MAX_LENGTH);
+    entity.setPlace(exact);
+    assertEquals(exact, entity.getPlace());
+  }
+
+  @Test
+  void testSetPlace_TruncatedWhenExceedsMaxLength() {
+    SES_AI_T_PERSON entity = new SES_AI_T_PERSON("test-tenant");
+
+    // 最寄駅の記載が無いメールでLLMが場所に設定してきた実例（32文字）
+    entity.setPlace("フルリモート希望（初日出社・キャッチアップ・緊急時のみ出社OK）");
+
+    assertEquals("フルリモート希望（初日出社・キャッチアップ・緊急時のみ出社O", entity.getPlace());
+    assertEquals(SES_AI_T_PERSON.PLACE_MAX_LENGTH, entity.getPlace().length());
+  }
+
+  @Test
+  void testSetPlace_EmptyNormalizedToNull() {
+    SES_AI_T_PERSON entity = new SES_AI_T_PERSON("test-tenant");
+
+    entity.setPlace("");
+    assertNull(entity.getPlace());
+
+    entity.setPlace("   ");
+    assertNull(entity.getPlace());
+
+    entity.setPlace("null");
+    assertNull(entity.getPlace());
+  }
+
+  @Test
+  void testSetPlace_Null() {
+    SES_AI_T_PERSON entity = new SES_AI_T_PERSON("test-tenant");
+
+    entity.setPlace(null);
+
+    assertNull(entity.getPlace());
+  }
+
+  @Test
+  void testSelectByPk_PlaceNormalized() throws SQLException {
+    Connection connection = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(connection.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true);
+    // 修正前に登録された既存行には "null" 文字列が残っている可能性がある
+    when(rs.getString("place")).thenReturn("null");
+
+    SES_AI_T_PERSON entity = new SES_AI_T_PERSON("test-tenant");
+    entity.setPersonId("ID1");
+    entity.selectByPk(connection);
+
+    assertNull(entity.getPlace());
+  }
+
+  @Test
+  void testToNotificationInfo() {
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON("test-tenant");
+    person.setName("T.T");
+    person.setAge(41);
+    person.setGender(Gender.Man);
+    person.setUnitPrice(new Money(new BigDecimal("550000")));
+    assertEquals("T.T/41歳/男性/55万円", person.toNotificationInfo());
+
+    // 年齢不明はnullで保存されるため「null歳」と表示しないこと
+    person.setAge(null);
+    assertEquals("T.T/年齢不詳/男性/55万円", person.toNotificationInfo());
+
+    person.setAge(0);
+    assertEquals("T.T/年齢不詳/男性/55万円", person.toNotificationInfo());
+
+    person.setName("Unknown");
+    assertEquals("氏名不明/年齢不詳/男性/55万円", person.toNotificationInfo());
+
+    person.setName(null);
+    person.setGender(null);
+    assertEquals("氏名不明/年齢不詳/不詳/55万円", person.toNotificationInfo());
+  }
+
+  @Test
+  void testSetPlace_UnknownNormalizedToNull() {
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON("test-tenant");
+
+    person.setPlace("Unknown");
+
+    assertNull(person.getPlace());
   }
 }

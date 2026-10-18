@@ -5,6 +5,7 @@ import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
 import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.util.OriginalStringUtils;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -57,6 +58,9 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
 
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_T_JOB WHERE job_id = ?";
+
+  /** 場所 / place カラムの最大文字数（DDL の VARCHAR(30) に対応）. */
+  public static final int PLACE_MAX_LENGTH = 30;
 
   // ================================
   // メンバ
@@ -123,6 +127,71 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
    */
   public String to案件選出用文章() {
     return "案件ID：" + this.jobId + "内容：" + this.rawContent;
+  }
+
+  /**
+   * 場所を設定します.
+   *
+   * <p>場所はLLMの抽出結果をそのまま受け取ることが多く、スキーマの文字数指定（maxLength）が守られない場合がある
+   * （例: 最寄駅の記載が無いと「フルリモート希望（…）」のような通勤条件の文章が入る）。カラム長を超えるとINSERT/UPDATEが
+   * 失敗して案件情報の登録自体が失われるため、カラムの最大文字数で切り詰めて保持する.
+   *
+   * <p>また、LLMが「記載なし」を空文字や"null"・"Unknown"という文字列で返す場合があり、null判定のみの利用側（要約文や通知文）で
+   * 「不明」扱いにならず空欄表示になるため、空とみなせる値はnullに正規化する.
+   *
+   * @param place 場所
+   */
+  public void setPlace(final String place) {
+    this.place =
+        OriginalStringUtils.isUnspecified(place)
+            ? null
+            : OriginalStringUtils.truncateByCodePoints(place, PLACE_MAX_LENGTH);
+  }
+
+  /**
+   * 画面・通知に表示するための場所を取得します.
+   *
+   * <p>場所は記載が無ければnullになるため、文字列連結やString.formatにそのまま渡すと「null」と表示されてしまう。
+   * 要約文やプッシュ通知で表記を揃えるため、未設定の場合は「不明」を返す.
+   *
+   * @return 場所。未設定の場合は「不明」
+   */
+  public String getPlaceForDisplay() {
+    return OriginalStringUtils.isUnspecified(this.place) ? "不明" : this.place;
+  }
+
+  /**
+   * 画面・通知に表示するための案件名を取得します.
+   *
+   * <p>案件名はDB上nullを許容しており、そのまま通知文に埋め込むと「【null】」と表示されてしまうため、
+   * 未設定（LLMが返す「Unknown」を含む）の場合は「案件名不明」を返す.
+   *
+   * @return 案件名。未設定の場合は「案件名不明」
+   */
+  public String getTitleForDisplay() {
+    return OriginalStringUtils.isUnspecified(this.title) ? "案件名不明" : this.title;
+  }
+
+  /**
+   * 画面・通知に表示するための出社要件を取得します.
+   *
+   * <p>出社要求日数は0がフルリモート、5が常駐を意味するため（JobInfoSchemaの定義）、「週0日」のような
+   * 不自然な表示にならないよう要約文（getSummaryWithTargetPrice）と同じ表記に揃える。未設定（null）の場合も
+   * 「null」と表示されないよう「不明」を返す.
+   *
+   * @return 出社要件（例: 「フルリモート」「常駐（品川駅）」「週3日（品川駅）」「不明」）
+   */
+  public String getOfficeRequirementsForDisplay() {
+    if (this.officeRequirements == null) {
+      return "不明";
+    }
+    if (this.officeRequirements == 0) {
+      return "フルリモート";
+    }
+    if (this.officeRequirements == 5) {
+      return "常駐（" + this.getPlaceForDisplay() + "）";
+    }
+    return "週" + this.officeRequirements + "日（" + this.getPlaceForDisplay() + "）";
   }
 
   /**
@@ -254,7 +323,8 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
           this.mustSkills = rs.getString("must_skills");
           this.wantSkills = rs.getString("want_skills");
           this.startDate = new OriginalDateTime(rs.getString("start_date"));
-          this.place = rs.getString("place");
+          // 既存行に残る空文字や"null"文字列も表示されないよう、setPlaceで正規化して保持する
+          this.setPlace(rs.getString("place"));
           String areaStr = rs.getString("area");
           this.area = areaStr == null ? null : Area.valueOf(areaStr);
           this.officeRequirements =
@@ -419,10 +489,10 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
       sb.append("■出社要件: ").append("フルリモート\n");
     } else if (this.officeRequirements == 5) {
       sb.append("■出社要件: ").append("常駐").append("\n");
-      sb.append("■場所: ").append(this.place != null ? this.place : "不明").append("\n");
+      sb.append("■場所: ").append(this.getPlaceForDisplay()).append("\n");
     } else {
       sb.append("■出社要件: ").append("週").append(this.officeRequirements).append("\n");
-      sb.append("■場所: ").append(this.place != null ? this.place : "不明").append("\n");
+      sb.append("■場所: ").append(this.getPlaceForDisplay()).append("\n");
     }
     // 8. その他
     if (this.otherRequirements != null && !this.otherRequirements.isEmpty()) {

@@ -6,10 +6,14 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import copel.sesproductpackage.core.api.gpt.entity.JobInfoSchema.Requirements;
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
+import copel.sesproductpackage.core.api.gpt.schema.SchemaGenerator;
+import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -141,6 +145,23 @@ class JobInfoSchemaTest {
 
     String summaryText = schema.toSummaryText();
     assertTrue(summaryText.contains("■単価: 185万円"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {3, 5})
+  @DisplayName("toSummaryText: 出社ありで場所が空文字・null の場合は「■場所: 不明」となり、空欄や null 表記にならないこと")
+  void testToSummaryText_EmptyPlaceIsUnknown(int officeRequirements) {
+    JobInfoSchema schema = new JobInfoSchema();
+    schema.setOfficeRequirements(officeRequirements);
+
+    schema.setPlace("");
+    assertTrue(schema.toSummaryText().contains("■場所: 不明"));
+
+    schema.setPlace(null);
+    assertTrue(schema.toSummaryText().contains("■場所: 不明"));
+
+    schema.setPlace("品川駅");
+    assertTrue(schema.toSummaryText().contains("■場所: 品川駅"));
   }
 
   // ================================================
@@ -280,5 +301,62 @@ class JobInfoSchemaTest {
     assertAll(
         () -> assertFalse(job1.isValid()),
         () -> assertFalse(job2.isValid()));
+  }
+
+  // ================================================
+  // 地域（area）の抽出指示
+  // ================================================
+
+  @Test
+  @DisplayName("@Schema: area は必須かつ、関東_首都圏への誘導や署名への言及を含まず推定を強制する説明であること")
+  void testAreaSchemaAnnotation() throws Exception {
+    Field field = JobInfoSchema.class.getDeclaredField("area");
+    Schema schemaAnnotation = field.getAnnotation(Schema.class);
+
+    assertNotNull(schemaAnnotation);
+    assertTrue(schemaAnnotation.required());
+    assertFalse(schemaAnnotation.description().contains("関東_首都圏とする"));
+    assertTrue(schemaAnnotation.description().contains("確信が持てなくても最も可能性の高い地域を推定して必ず選ぶこと"));
+    assertFalse(schemaAnnotation.description().contains("署名"));
+    assertTrue(schemaAnnotation.description().contains("記載が一切無い場合のみその他とする"));
+  }
+
+  @Test
+  @DisplayName("@Schema: place は本文の見出し語に書かれた所在のみを記載させ、署名には言及しない説明であること")
+  void testPlaceSchemaAnnotation() throws Exception {
+    Field field = JobInfoSchema.class.getDeclaredField("place");
+    Schema schemaAnnotation = field.getAnnotation(Schema.class);
+
+    assertNotNull(schemaAnnotation);
+    assertFalse(schemaAnnotation.required());
+    assertEquals(20, schemaAnnotation.maxLength());
+    assertTrue(schemaAnnotation.description().contains("「最寄駅」"));
+    assertFalse(schemaAnnotation.description().contains("署名"));
+    assertTrue(schemaAnnotation.description().contains("記載が無い場合は項目自体を省略する"));
+  }
+
+  @Test
+  @DisplayName("SchemaGenerator: 生成された JSON Schema の required に area が含まれること")
+  void testAreaIsRequiredInGeneratedSchema() {
+    Map<String, Object> schema = SchemaGenerator.generate(JobInfoSchema.class);
+
+    assertTrue(((List<?>) schema.get("required")).contains("area"));
+  }
+
+  @Test
+  @DisplayName("Jackson: area キーが無い場合は関東_首都圏ではなくその他になること")
+  void testJacksonDeserialize_MissingArea() throws Exception {
+    JobInfoSchema info = ObjectMapperFactory.OBJECT_MAPPER.readValue("{}", JobInfoSchema.class);
+
+    assertEquals(Area.その他, info.getArea());
+  }
+
+  @Test
+  @DisplayName("Jackson: area に地域名が設定されている場合はその地域になること")
+  void testJacksonDeserialize_Area() throws Exception {
+    JobInfoSchema info =
+        ObjectMapperFactory.OBJECT_MAPPER.readValue("{\"area\":\"九州\"}", JobInfoSchema.class);
+
+    assertEquals(Area.九州, info.getArea());
   }
 }

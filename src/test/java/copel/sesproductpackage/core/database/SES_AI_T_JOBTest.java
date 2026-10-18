@@ -237,4 +237,125 @@ class SES_AI_T_JOBTest {
     assertEquals(obj1.hashCode(), obj2.hashCode());
     assertNotNull(obj1.toString());
   }
+
+  @Test
+  void testSetPlace_WithinMaxLength() {
+    SES_AI_T_JOB entity = new SES_AI_T_JOB("test-tenant");
+
+    entity.setPlace("広木駅");
+    assertEquals("広木駅", entity.getPlace());
+
+    String exact = "あ".repeat(SES_AI_T_JOB.PLACE_MAX_LENGTH);
+    entity.setPlace(exact);
+    assertEquals(exact, entity.getPlace());
+  }
+
+  @Test
+  void testSetPlace_TruncatedWhenExceedsMaxLength() {
+    SES_AI_T_JOB entity = new SES_AI_T_JOB("test-tenant");
+
+    // 最寄駅の記載が無いメールでLLMが場所に設定してきた実例（32文字）
+    entity.setPlace("フルリモート希望（初日出社・キャッチアップ・緊急時のみ出社OK）");
+
+    assertEquals("フルリモート希望（初日出社・キャッチアップ・緊急時のみ出社O", entity.getPlace());
+    assertEquals(SES_AI_T_JOB.PLACE_MAX_LENGTH, entity.getPlace().length());
+  }
+
+  @Test
+  void testSetPlace_EmptyNormalizedToNull() {
+    SES_AI_T_JOB entity = new SES_AI_T_JOB("test-tenant");
+
+    entity.setPlace("");
+    assertNull(entity.getPlace());
+
+    entity.setPlace("   ");
+    assertNull(entity.getPlace());
+
+    entity.setPlace("null");
+    assertNull(entity.getPlace());
+  }
+
+  @Test
+  void testSetPlace_Null() {
+    SES_AI_T_JOB entity = new SES_AI_T_JOB("test-tenant");
+
+    entity.setPlace(null);
+
+    assertNull(entity.getPlace());
+  }
+
+  @Test
+  void testSelectByPk_PlaceNormalized() throws SQLException {
+    Connection connection = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(connection.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true);
+    // 修正前に登録された既存行には "null" 文字列が残っている可能性がある
+    when(rs.getString("place")).thenReturn("null");
+
+    SES_AI_T_JOB entity = new SES_AI_T_JOB("test-tenant");
+    entity.setJobId("ID1");
+    entity.selectByPk(connection);
+
+    assertNull(entity.getPlace());
+  }
+
+  @Test
+  void testGetPlaceForDisplay() {
+    SES_AI_T_JOB job = new SES_AI_T_JOB("test-tenant");
+
+    job.setPlace(null);
+    assertEquals("不明", job.getPlaceForDisplay());
+
+    job.setPlace("宇宿駅");
+    assertEquals("宇宿駅", job.getPlaceForDisplay());
+  }
+
+  @Test
+  void testGetTitleForDisplay() {
+    SES_AI_T_JOB job = new SES_AI_T_JOB("test-tenant");
+
+    job.setTitle(null);
+    assertEquals("案件名不明", job.getTitleForDisplay());
+
+    job.setTitle("Unknown");
+    assertEquals("案件名不明", job.getTitleForDisplay());
+
+    job.setTitle("自治体向け業務システム改修");
+    assertEquals("自治体向け業務システム改修", job.getTitleForDisplay());
+  }
+
+  @Test
+  void testGetOfficeRequirementsForDisplay() {
+    SES_AI_T_JOB job = new SES_AI_T_JOB("test-tenant");
+
+    job.setOfficeRequirements(null);
+    assertEquals("不明", job.getOfficeRequirementsForDisplay());
+
+    // 0はフルリモートを意味するため「週0日」と表示しないこと
+    job.setOfficeRequirements(0);
+    assertEquals("フルリモート", job.getOfficeRequirementsForDisplay());
+
+    job.setOfficeRequirements(5);
+    job.setPlace("宇宿駅");
+    assertEquals("常駐（宇宿駅）", job.getOfficeRequirementsForDisplay());
+
+    job.setOfficeRequirements(3);
+    assertEquals("週3日（宇宿駅）", job.getOfficeRequirementsForDisplay());
+
+    // 場所が未設定でも「null」と表示しないこと
+    job.setPlace(null);
+    assertEquals("週3日（不明）", job.getOfficeRequirementsForDisplay());
+  }
+
+  @Test
+  void testSetPlace_UnknownNormalizedToNull() {
+    SES_AI_T_JOB job = new SES_AI_T_JOB("test-tenant");
+
+    job.setPlace("Unknown");
+
+    assertNull(job.getPlace());
+  }
 }

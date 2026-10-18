@@ -64,6 +64,9 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_T_PERSON WHERE person_id = ?";
 
+  /** 場所 / place カラムの最大文字数（DDL の VARCHAR(30) に対応）. */
+  public static final int PLACE_MAX_LENGTH = 30;
+
   /** file_id 一致で file_id のみ NULL に戻す（スキルシート削除前の参照解除用）. */
   private static final String CLEAR_FILE_ID_BY_FILE_ID_SQL =
       "UPDATE SES_AI_T_PERSON SET file_id = NULL WHERE file_id = ?";
@@ -153,6 +156,25 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
    */
   public String to要員選出用文章() {
     return "要員ID：" + this.personId + "内容：" + this.rawContent;
+  }
+
+  /**
+   * 場所を設定します.
+   *
+   * <p>場所はLLMの抽出結果をそのまま受け取ることが多く、スキーマの文字数指定（maxLength）が守られない場合がある
+   * （例: 最寄駅の記載が無いと「フルリモート希望（…）」のような通勤条件の文章が入る）。カラム長を超えるとINSERT/UPDATEが
+   * 失敗して要員情報の登録自体が失われるため、カラムの最大文字数で切り詰めて保持する.
+   *
+   * <p>また、LLMが「記載なし」を空文字や"null"・"Unknown"という文字列で返す場合があり、null判定のみの利用側（要約文や通知文）で
+   * 「不明」扱いにならず空欄表示になるため、空とみなせる値はnullに正規化する.
+   *
+   * @param place 場所
+   */
+  public void setPlace(final String place) {
+    this.place =
+        OriginalStringUtils.isUnspecified(place)
+            ? null
+            : OriginalStringUtils.truncateByCodePoints(place, PLACE_MAX_LENGTH);
   }
 
   /**
@@ -387,7 +409,8 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
           this.gender = genderStr == null ? null : Gender.valueOf(genderStr);
           this.nationality = rs.getString("nationality");
           this.startDate = new OriginalDateTime(rs.getString("start_date"));
-          this.place = rs.getString("place");
+          // 既存行に残る空文字や"null"文字列も表示されないよう、setPlaceで正規化して保持する
+          this.setPlace(rs.getString("place"));
           String areaStr = rs.getString("area");
           this.area = areaStr == null ? null : Area.valueOf(areaStr);
           this.officeAvailability =
@@ -429,10 +452,15 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
    *
    * <p>プッシュ通知のメッセージテキストで要員を簡潔に表示する際に、 複数の情報フィールドを単一文字列に統合してペイロードを効率化する.
    *
-   * @return フォーマットされた要員情報（例：「佐藤 一郎/32歳/男性/80万円」）
+   * <p>年齢は不明な場合にnullで保存されるため（Registerで0以下をnullに変換）、そのまま埋め込むと「null歳」と表示されてしまう。
+   * 氏名・年齢が未設定（氏名はLLMが返す「Unknown」を含む）の場合はそれぞれ「氏名不明」「年齢不詳」と表示する.
+   *
+   * @return フォーマットされた要員情報（例：「佐藤 一郎/32歳/男性/80万円」「T.T/年齢不詳/男性/80万円」）
    */
   public String toNotificationInfo() {
-    String nameAge = String.format("%s/%d歳", this.name, this.age);
+    String nameStr = OriginalStringUtils.isUnspecified(this.name) ? "氏名不明" : this.name;
+    String ageStr = this.age == null || this.age <= 0 ? "年齢不詳" : this.age + "歳";
+    String nameAge = nameStr + "/" + ageStr;
     String genderStr = this.gender != null ? this.gender.toJapanese() : "不詳";
     String price = String.format("%.0f万円", this.unitPrice.divide(10000.0).getValue().doubleValue());
     return String.format("%s/%s/%s", nameAge, genderStr, price);
