@@ -7,6 +7,11 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+/**
+ * {@link Gender} の単体テスト.
+ *
+ * @author Copel Co., Ltd.
+ */
 class GenderTest {
 
   @Test

@@ -33,7 +33,9 @@ public class PersonDetailFilterCondition {
   /** 年齢の上限。この年齢以下の要員を対象. */
   private Integer maxAge;
 
-  /** 性別（DB値: Man / Woman）。この性別に一致する要員を対象. */
+  /**
+   * 性別（DB値: Man / Woman / Unknown のみ。日本語表記は呼び出し側で Gender.fromJapanese により変換して渡す）。この性別に一致する要員を対象.
+   */
   private String gender;
 
   /**
