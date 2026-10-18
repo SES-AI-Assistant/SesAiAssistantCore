@@ -265,21 +265,8 @@ public final class SchemaGenerator {
       handleSimpleType(fieldSchema, fieldType, schema);
     }
 
-    if (schema != null) {
-      String baseDescription = schema.description();
-      if (schema.currentAndNextYearOnly()) {
-        LocalDate now = LocalDate.now(ZoneId.of("Asia/Tokyo"));
-        String currentYearMonth = String.format("%04d/%02d", now.getYear(), now.getMonthValue());
-        fieldSchema.put("example", currentYearMonth);
-        String dynamicNote =
-            String.format(
-                "（※現在年月は %s です。未記載や「即日」「随時」などの表現がされている場合は必ず「%s」に設定してください）",
-                currentYearMonth, currentYearMonth);
-        fieldSchema.put(
-            "description", baseDescription.isEmpty() ? dynamicNote : baseDescription + dynamicNote);
-      } else if (!baseDescription.isEmpty()) {
-        fieldSchema.put("description", baseDescription);
-      }
+    if (schema != null && !schema.description().isEmpty()) {
+      fieldSchema.put("description", resolvePlaceholders(schema.description()));
     }
 
     return fieldSchema;
@@ -351,7 +338,7 @@ public final class SchemaGenerator {
     fieldSchema.put("anyOf", anyOfSchemas);
 
     if (schema != null && !schema.description().isEmpty()) {
-      fieldSchema.put("description", schema.description());
+      fieldSchema.put("description", resolvePlaceholders(schema.description()));
     }
 
     return fieldSchema;
@@ -543,6 +530,24 @@ public final class SchemaGenerator {
   }
 
   /**
+   * スキーマ定義文字列中のプレースホルダー（${todayYearMonth} 等）を現在値に解決します.
+   *
+   * @param text 対象文字列（null可）
+   * @return プレースホルダー解決後の文字列。textがnullの場合はnull
+   */
+  private static String resolvePlaceholders(final String text) {
+    if (text == null) {
+      return null;
+    }
+    if (!text.contains("${todayYearMonth}")) {
+      return text;
+    }
+    LocalDate now = LocalDate.now(ZoneId.of("Asia/Tokyo"));
+    String currentYearMonth = String.format("%04d/%02d", now.getYear(), now.getMonthValue());
+    return text.replace("${todayYearMonth}", currentYearMonth);
+  }
+
+  /**
    * 共通の制約を追加します（デフォルト値、例など）.
    *
    * @param fieldSchema スキーマMap
@@ -551,10 +556,10 @@ public final class SchemaGenerator {
   private static void addCommonConstraints(
       final Map<String, Object> fieldSchema, final Schema schema) {
     if (!schema.defaultValue().isEmpty()) {
-      fieldSchema.put("default", schema.defaultValue());
+      fieldSchema.put("default", resolvePlaceholders(schema.defaultValue()));
     }
     if (!schema.example().isEmpty()) {
-      fieldSchema.put("example", schema.example());
+      fieldSchema.put("example", resolvePlaceholders(schema.example()));
     }
     if (!schema.title().isEmpty()) {
       fieldSchema.put("title", schema.title());

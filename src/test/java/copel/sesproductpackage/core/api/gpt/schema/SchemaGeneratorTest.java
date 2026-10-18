@@ -548,15 +548,11 @@ class SchemaGeneratorTest {
   }
 
   @Test
-  void testGenerate_CurrentAndNextYearOnly_DynamicExampleAndDescription() {
+  void testGenerate_PlaceholderResolution() {
     LocalDate now = LocalDate.now(ZoneId.of("Asia/Tokyo"));
     String currentYearMonth = String.format("%04d/%02d", now.getYear(), now.getMonthValue());
-    String expectedNote =
-        String.format(
-            "（※現在年月は %s です。未記載や「即日」「随時」などの表現がされている場合は必ず「%s」に設定してください）",
-            currentYearMonth, currentYearMonth);
 
-    // 1. JobInfoSchema の検証（既存の description に動的注記が追加され、example が動的現在年月になること）
+    // 1. JobInfoSchema の検証（example と description 内の ${todayYearMonth} が解決されること）
     Map<String, Object> jobSchema = SchemaGenerator.generate(JobInfoSchema.class);
     @SuppressWarnings("unchecked")
     Map<String, Object> jobProperties = (Map<String, Object>) jobSchema.get("properties");
@@ -566,10 +562,11 @@ class SchemaGeneratorTest {
 
     assertEquals(currentYearMonth, jobFieldSchema.get("example"));
     assertNotNull(jobFieldSchema.get("description"));
-    assertTrue(((String) jobFieldSchema.get("description")).contains(expectedNote));
-    assertTrue(((String) jobFieldSchema.get("description")).startsWith("案件の開始年月"));
+    String jobDesc = (String) jobFieldSchema.get("description");
+    assertTrue(jobDesc.contains("本日日付（" + currentYearMonth + "）にして。"));
+    assertFalse(jobDesc.contains("${todayYearMonth}"));
 
-    // 2. PersonInfoSchema の検証
+    // 2. PersonInfoSchema の検証（example と description 内の ${todayYearMonth} が解決されること）
     Map<String, Object> personSchema = SchemaGenerator.generate(PersonInfoSchema.class);
     @SuppressWarnings("unchecked")
     Map<String, Object> personProperties = (Map<String, Object>) personSchema.get("properties");
@@ -579,21 +576,23 @@ class SchemaGeneratorTest {
 
     assertEquals(currentYearMonth, personFieldSchema.get("example"));
     assertNotNull(personFieldSchema.get("description"));
-    assertTrue(((String) personFieldSchema.get("description")).contains(expectedNote));
-    assertTrue(((String) personFieldSchema.get("description")).startsWith("稼働開始が可能な年月"));
+    String personDesc = (String) personFieldSchema.get("description");
+    assertTrue(personDesc.contains("本日日付（" + currentYearMonth + "）にして。"));
+    assertFalse(personDesc.contains("${todayYearMonth}"));
 
-    // 3. description 未設定（空文字）のクラスにおける検証（動的注記のみが設定されること）
-    Map<String, Object> noPatternSchema =
-        SchemaGenerator.generate(ResponseWithCurrentAndNextYearNoPattern.class);
+    // 3. defaultValue, example, description すべてにプレースホルダーを含むクラスの検証
+    Map<String, Object> placeholderSchema =
+        SchemaGenerator.generate(ResponseWithPlaceholders.class);
     @SuppressWarnings("unchecked")
-    Map<String, Object> noPatternProperties =
-        (Map<String, Object>) noPatternSchema.get("properties");
+    Map<String, Object> placeholderProperties =
+        (Map<String, Object>) placeholderSchema.get("properties");
     @SuppressWarnings("unchecked")
-    Map<String, Object> noPatternFieldSchema =
-        (Map<String, Object>) noPatternProperties.get("start_year_month");
+    Map<String, Object> targetFieldSchema =
+        (Map<String, Object>) placeholderProperties.get("target_month");
 
-    assertEquals(currentYearMonth, noPatternFieldSchema.get("example"));
-    assertEquals(expectedNote, noPatternFieldSchema.get("description"));
+    assertEquals(currentYearMonth, targetFieldSchema.get("default"));
+    assertEquals(currentYearMonth, targetFieldSchema.get("example"));
+    assertEquals("当月は " + currentYearMonth + " です", targetFieldSchema.get("description"));
   }
 
   /**
@@ -640,6 +639,15 @@ class SchemaGeneratorTest {
   static class ResponseWithCurrentAndNextYearFalse {
     @Schema(pattern = "^\\d{4}/(0?[1-9]|1[0-2])$", currentAndNextYearOnly = false)
     public String startYearMonth;
+  }
+
+  /** テスト用のプレースホルダー解決検証用レスポンス. */
+  static class ResponseWithPlaceholders {
+    @Schema(
+        defaultValue = "${todayYearMonth}",
+        example = "${todayYearMonth}",
+        description = "当月は ${todayYearMonth} です")
+    public String targetMonth;
   }
 
   @Test

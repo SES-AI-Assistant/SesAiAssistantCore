@@ -191,6 +191,20 @@ class PersonInfoSchemaTest {
     assertTrue(schemaAnnotation.description().contains("スキル見合い・応相談・未記載は0"));
   }
 
+  @Test
+  @DisplayName("@Schema: startYearMonth に期待通りのアノテーションが設定されていること")
+  void testSchemaAnnotation_StartYearMonth() throws Exception {
+    Field field = PersonInfoSchema.class.getDeclaredField("startYearMonth");
+    Schema schemaAnnotation = field.getAnnotation(Schema.class);
+
+    assertNotNull(schemaAnnotation);
+    assertEquals("開始年月", schemaAnnotation.title());
+    assertTrue(schemaAnnotation.required());
+    assertEquals("${todayYearMonth}", schemaAnnotation.example());
+    assertTrue(schemaAnnotation.currentAndNextYearOnly());
+    assertTrue(schemaAnnotation.description().contains("（${todayYearMonth}）"));
+  }
+
   // ================================================
   // 経歴（経験月数）の出力検証
   // ================================================
@@ -245,22 +259,6 @@ class PersonInfoSchemaTest {
   // ================================================
 
   @Test
-  @DisplayName("getStartDateAsOriginalDateTime: rawContent に「即日」を含む場合、当月が返ること")
-  void testGetStartDateAsOriginalDateTime_ImmediateInRawContent() {
-    OriginalDateTime now = new OriginalDateTime();
-    int currentYear = now.toLocalDate().getYear();
-    int currentMonth = now.toLocalDate().getMonthValue();
-
-    PersonInfoSchema schema = new PersonInfoSchema();
-    schema.setStartYearMonth((currentYear + 1) + "/10");
-
-    OriginalDateTime result = schema.getStartDateAsOriginalDateTime("要員情報です。【即日】稼働可能");
-    assertNotNull(result);
-    assertEquals(currentYear, result.toLocalDate().getYear());
-    assertEquals(currentMonth, result.toLocalDate().getMonthValue());
-  }
-
-  @Test
   @DisplayName(
       "getStartDateAsOriginalDateTime: startYearMonth が過去年月（2024/06, 2023/11）の場合、当月へフォールバックすること")
   void testGetStartDateAsOriginalDateTime_PastYearMonth_FallbackToCurrent() {
@@ -271,7 +269,7 @@ class PersonInfoSchemaTest {
     PersonInfoSchema schema1 = new PersonInfoSchema();
     schema1.setStartYearMonth("2024/06");
 
-    OriginalDateTime result1 = schema1.getStartDateAsOriginalDateTime("通常要員本文");
+    OriginalDateTime result1 = schema1.getStartDateAsOriginalDateTime();
     assertNotNull(result1);
     assertEquals(currentYear, result1.toLocalDate().getYear());
     assertEquals(currentMonth, result1.toLocalDate().getMonthValue());
@@ -295,7 +293,7 @@ class PersonInfoSchemaTest {
     PersonInfoSchema schema = new PersonInfoSchema();
     schema.setStartYearMonth(futureYear + "/05");
 
-    OriginalDateTime result = schema.getStartDateAsOriginalDateTime("通常要員本文");
+    OriginalDateTime result = schema.getStartDateAsOriginalDateTime();
     assertNotNull(result);
     assertEquals(futureYear, result.toLocalDate().getYear());
     assertEquals(5, result.toLocalDate().getMonthValue());
