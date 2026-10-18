@@ -6,6 +6,7 @@ import copel.sesproductpackage.core.unit.ExperienceDuration;
 import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.util.OriginalStringUtils;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Locale;
@@ -108,14 +109,27 @@ public class PersonInfoSchema {
     return Money.toSesUnitFromMan(this.priceInMan);
   }
 
-  @Schema(title = "場所", description = "要員の在住地域や最寄駅名など", maxLength = 20, example = "品川")
+  // 署名欄の住所や通勤条件を名指しで除外する書き方では、かえってその住所を拾うことを検証で確認したため、
+  // 「署名」「住所」の語は使わず、本文中の見出し語に紐づけて肯定形で限定する
+  @Schema(
+      title = "場所",
+      description =
+          "要員の紹介文中で「最寄駅」「最寄り」「在住」「居住地」として書かれている値（駅名または市区町村名）のみ。該当する記載が無い場合は項目自体を省略する",
+      maxLength = 20,
+      example = "品川")
   private String place = null;
 
+  // 「判別が難しい場合は○○」のような逃げ道を示すと、知名度の低い駅（例: 鹿児島県の広木駅）でLLMが推定を放棄して
+  // その値を選んでしまうことを検証で確認したため、逃げ道は「所在の記載が一切無い場合」に限定し、required で省略も禁止する。
+  // なお「署名欄の情報は使わない」と書くと署名に注意が向いて判定が不安定になったため、署名には言及しない。
+  // 所在の記載が無い場合は指示に反して関東_首都圏と推定されることが多いが、首都圏の案件・要員が大半のため許容している
   @Schema(
       title = "地域",
-      description = "要員の在住地域や最寄駅が属する地域。判別が難しい場合や未記載の場合は関東_首都圏とする",
+      description =
+          "要員本人の最寄駅または在住地が属する地域。駅名や地名が記載されている場合は、確信が持てなくても最も可能性の高い地域を推定して必ず選ぶこと。要員本人の所在に関する記載が一切無い場合のみその他とする",
+      required = true,
       example = "関東_首都圏")
-  private Area area = Area.関東_首都圏;
+  private Area area = Area.その他;
 
   @Schema(
       title = "出社可能頻度",
@@ -200,7 +214,7 @@ public class PersonInfoSchema {
       sb.append("■所属形態: ").append(this.organization.toDisplayString()).append("\n");
     }
     // 7. 場所
-    if (this.place != null) {
+    if (!OriginalStringUtils.isEmpty(this.place)) {
       sb.append("■場所: ").append(this.place).append("\n");
     }
     // 8. 出社可否
