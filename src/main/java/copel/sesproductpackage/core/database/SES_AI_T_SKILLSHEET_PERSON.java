@@ -1,12 +1,11 @@
 package copel.sesproductpackage.core.database;
 
-import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.List;
-
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
 import copel.sesproductpackage.core.unit.Money;
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
 import lombok.Data;
 
 /**
@@ -144,22 +143,22 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
   }
 
   private static final String SELECT_BY_PERSON_ID_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url "
           + "FROM SES_AI_T_PERSON p INNER JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
           + "WHERE p.person_id = ?";
 
   private static final String SELECT_BY_FILE_ID_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url "
           + "FROM SES_AI_T_PERSON p INNER JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
           + "WHERE s.file_id = ?";
 
   private static final String SELECT_OUTER_JOIN_BY_PERSON_ID_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url "
           + "FROM SES_AI_T_PERSON p LEFT JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
           + "WHERE p.person_id = ?";
 
   private static final String SELECT_OUTER_JOIN_BY_FILE_ID_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.raw_content, p.content_summary, p.unit_price, s.register_date, s.register_user, COALESCE(s.from_group, p.from_group) AS from_group, COALESCE(s.from_id, p.from_id) AS from_id, COALESCE(s.from_name, p.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.unit_price, s.register_date, s.register_user, COALESCE(s.from_group, p.from_group) AS from_group, COALESCE(s.from_id, p.from_id) AS from_id, COALESCE(s.from_name, p.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url "
           + "FROM SES_AI_T_SKILLSHEET s LEFT JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
           + "WHERE s.file_id = ?";
 
@@ -273,6 +272,7 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
     this.fileName = resultSet.getString("file_name");
     this.fileContentSummary = resultSet.getString("file_content_summary");
     this.personId = resultSet.getString("person_id");
+    this.mailSubject = resultSet.getString("mail_subject");
     this.rawContent = resultSet.getString("raw_content");
     this.contentSummary = resultSet.getString("content_summary");
     BigDecimal unitPriceValue = resultSet.getBigDecimal("unit_price");
@@ -288,7 +288,8 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
     this.name = resultSet.getString("name");
     this.age = resultSet.getObject("age") != null ? resultSet.getInt("age") : null;
     String genderStr = resultSet.getString("gender");
-    this.gender = genderStr == null ? null : copel.sesproductpackage.core.unit.Gender.valueOf(genderStr);
+    this.gender =
+        genderStr == null ? null : copel.sesproductpackage.core.unit.Gender.valueOf(genderStr);
     this.nationality = resultSet.getString("nationality");
     String startDateStr = resultSet.getString("start_date");
     if (startDateStr != null) {
@@ -297,7 +298,10 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
     this.place = resultSet.getString("place");
     String areaStr = resultSet.getString("area");
     this.area = areaStr == null ? null : copel.sesproductpackage.core.unit.Area.valueOf(areaStr);
-    this.officeAvailability = resultSet.getObject("office_availability") != null ? resultSet.getInt("office_availability") : null;
+    this.officeAvailability =
+        resultSet.getObject("office_availability") != null
+            ? resultSet.getInt("office_availability")
+            : null;
     this.organization = resultSet.getString("organization");
     this.experiences = resultSet.getString("experiences");
     this.otherRequirements = resultSet.getString("other_requirements");
@@ -335,7 +339,9 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
    * @return その他条件リスト
    */
   public List<String> getOtherRequirementsAsList() {
-    return this.otherRequirements == null ? Arrays.asList() : Arrays.asList(this.otherRequirements.split("\n"));
+    return this.otherRequirements == null
+        ? Arrays.asList()
+        : Arrays.asList(this.otherRequirements.split("\n"));
   }
 
   /**
@@ -344,6 +350,8 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
    * @return NG条件リスト
    */
   public List<String> getNgRequirementsAsList() {
-    return this.ngRequirements == null ? Arrays.asList() : Arrays.asList(this.ngRequirements.split("\n"));
+    return this.ngRequirements == null
+        ? Arrays.asList()
+        : Arrays.asList(this.ngRequirements.split("\n"));
   }
 }

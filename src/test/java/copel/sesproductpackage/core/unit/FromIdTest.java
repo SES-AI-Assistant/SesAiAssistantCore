@@ -96,13 +96,16 @@ class FromIdTest {
   @Test
   @DisplayName("isSameSenderOrDomain: メールアドレスとLINE IDは false を返す")
   void testIsSameSenderOrDomain_EmailAndLineId() {
-    assertFalse(FromId.isSameSenderOrDomain("user@example.com", "U1234567890abcdef1234567890abcdef"));
+    assertFalse(
+        FromId.isSameSenderOrDomain("user@example.com", "U1234567890abcdef1234567890abcdef"));
   }
 
   @Test
   @DisplayName("isSameSenderOrDomain: 両方LINE IDは false を返す")
   void testIsSameSenderOrDomain_BothLineId() {
-    assertFalse(FromId.isSameSenderOrDomain("U1234567890abcdef1234567890abcdef", "U9876543210fedcba9876543210fedcba"));
+    assertFalse(
+        FromId.isSameSenderOrDomain(
+            "U1234567890abcdef1234567890abcdef", "U9876543210fedcba9876543210fedcba"));
   }
 
   @Test

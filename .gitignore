@@ -17,6 +17,9 @@ local.properties
 /.apt_generated/
 /.apt_generated_tests/
 
+# maven-shade-plugin がビルドごとに再生成するため追跡対象外とする
+/dependency-reduced-pom.xml
+
 # AI Agent
 CLAUDE.md
 GEMINI.md

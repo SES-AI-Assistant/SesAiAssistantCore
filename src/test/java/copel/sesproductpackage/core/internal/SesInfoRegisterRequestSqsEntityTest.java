@@ -3,21 +3,19 @@ package copel.sesproductpackage.core.internal;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.amazonaws.regions.Regions;
+import copel.sesproductpackage.core.api.line.LineMessagingAPI;
+import copel.sesproductpackage.core.unit.RequestType;
+import copel.sesproductpackage.core.util.ObjectMapperFactory;
+import copel.sesproductpackage.core.util.Properties;
+import copel.sesproductpackage.core.util.SsmParameterKey;
 import java.io.IOException;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import com.amazonaws.regions.Regions;
-
-import copel.sesproductpackage.core.api.line.LineMessagingAPI;
-import copel.sesproductpackage.core.unit.RequestType;
-import copel.sesproductpackage.core.util.Properties;
-import copel.sesproductpackage.core.util.SsmParameterKey;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SesInfoRegisterRequestSqsEntity テスト")
@@ -65,6 +63,92 @@ class SesInfoRegisterRequestSqsEntityTest {
     assertNotNull(json);
     assertTrue(json.contains("\"request_type\""));
     assertTrue(json.contains("\"from_group\""));
+  }
+
+  @Test
+  @DisplayName("mailSubject が mail_subject キーでシリアライズされる")
+  void testGetMessageBodyContainsMailSubject() throws Exception {
+    entity.setRequestType(RequestType.EmailMessage);
+    entity.setMailSubject("案件のご紹介");
+
+    String json = entity.getMessageBody();
+    assertTrue(json.contains("\"mail_subject\":\"案件のご紹介\""));
+    assertFalse(json.contains("\"mailSubject\""));
+  }
+
+  @Test
+  @DisplayName("mailSubject が null の場合は mail_subject が null としてシリアライズされる")
+  void testGetMessageBodyMailSubjectNull() throws Exception {
+    entity.setRequestType(RequestType.EmailMessage);
+    entity.setMailSubject(null);
+
+    String json = entity.getMessageBody();
+    assertTrue(json.contains("\"mail_subject\":null"));
+  }
+
+  @Test
+  @DisplayName("mail_subject を含む JSON をデシリアライズすると mailSubject に設定される")
+  void testDeserializeMailSubject() throws Exception {
+    String json =
+        "{\"request_type\":\"EmailMessage\",\"from_id\":\"user1\",\"raw_content\":\"本文\","
+            + "\"mail_subject\":\"件名テスト\"}";
+
+    SesInfoRegisterRequestSqsEntity parsed =
+        ObjectMapperFactory.OBJECT_MAPPER.readValue(json, SesInfoRegisterRequestSqsEntity.class);
+    assertEquals("件名テスト", parsed.getMailSubject());
+    assertEquals("本文", parsed.getRawContent());
+  }
+
+  @Test
+  @DisplayName("mail_subject キーが無い JSON をデシリアライズすると mailSubject は null")
+  void testDeserializeWithoutMailSubject() throws Exception {
+    String json = "{\"request_type\":\"ScreenMessage\",\"from_id\":\"user1\"}";
+
+    SesInfoRegisterRequestSqsEntity parsed =
+        ObjectMapperFactory.OBJECT_MAPPER.readValue(json, SesInfoRegisterRequestSqsEntity.class);
+    assertNull(parsed.getMailSubject());
+  }
+
+  @Test
+  @DisplayName("watchPeriod が watch_period キーでシリアライズされる")
+  void testGetMessageBodyContainsWatchPeriod() throws Exception {
+    entity.setRequestType(RequestType.ScreenMessage);
+    entity.setWatchPeriod(14);
+
+    String json = entity.getMessageBody();
+    assertTrue(json.contains("\"watch_period\":14"));
+    assertFalse(json.contains("\"watchPeriod\""));
+  }
+
+  @Test
+  @DisplayName("watchPeriod が null の場合は watch_period が null としてシリアライズされる")
+  void testGetMessageBodyWatchPeriodNull() throws Exception {
+    entity.setRequestType(RequestType.ScreenMessage);
+    entity.setWatchPeriod(null);
+
+    String json = entity.getMessageBody();
+    assertTrue(json.contains("\"watch_period\":null"));
+  }
+
+  @Test
+  @DisplayName("watch_period を含む JSON をデシリアライズすると watchPeriod に設定される")
+  void testDeserializeWatchPeriod() throws Exception {
+    String json = "{\"request_type\":\"ScreenMessage\",\"is_watching\":true,\"watch_period\":3}";
+
+    SesInfoRegisterRequestSqsEntity parsed =
+        ObjectMapperFactory.OBJECT_MAPPER.readValue(json, SesInfoRegisterRequestSqsEntity.class);
+    assertEquals(Integer.valueOf(3), parsed.getWatchPeriod());
+    assertTrue(parsed.isWatching());
+  }
+
+  @Test
+  @DisplayName("watch_period キーが無い JSON をデシリアライズすると watchPeriod は null")
+  void testDeserializeWithoutWatchPeriod() throws Exception {
+    String json = "{\"request_type\":\"ScreenMessage\",\"from_id\":\"user1\"}";
+
+    SesInfoRegisterRequestSqsEntity parsed =
+        ObjectMapperFactory.OBJECT_MAPPER.readValue(json, SesInfoRegisterRequestSqsEntity.class);
+    assertNull(parsed.getWatchPeriod());
   }
 
   @Test
@@ -122,7 +206,6 @@ class SesInfoRegisterRequestSqsEntityTest {
 
     assertFalse(entity.isValid());
   }
-
 
   @Test
   @DisplayName("isValid() - LineFile 正常系")

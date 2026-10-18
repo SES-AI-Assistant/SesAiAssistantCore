@@ -1,5 +1,12 @@
 package copel.sesproductpackage.core.database;
 
+import copel.sesproductpackage.core.database.base.Column;
+import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
+import copel.sesproductpackage.core.unit.Area;
+import copel.sesproductpackage.core.unit.Gender;
+import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.util.OriginalStringUtils;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -8,14 +15,6 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-
-import copel.sesproductpackage.core.database.base.Column;
-import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
-import copel.sesproductpackage.core.unit.Area;
-import copel.sesproductpackage.core.unit.Gender;
-import copel.sesproductpackage.core.unit.Money;
-import copel.sesproductpackage.core.unit.OriginalDateTime;
-import copel.sesproductpackage.core.util.OriginalStringUtils;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -40,15 +39,15 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
   // ================================
   /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_PERSON (person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_T_PERSON (person_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
-      "SELECT person_id, from_group, from_id, from_name, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE person_id = ?";
+      "SELECT person_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE person_id = ?";
 
   /** UPDATE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_T_PERSON SET from_group = ?, from_id = ?, from_name = ?, raw_content = ?, content_summary = ?, file_id = ?, unit_price = ?, vector_data = ?::vector, name = ?, age = ?, gender = ?, nationality = ?, start_date = ?, place = ?, area = ?, office_availability = ?, organization = ?, experiences = ?, ng_requirements = ?, other_requirements = ?, url = ?, ttl = ? WHERE person_id = ?";
+      "UPDATE SES_AI_T_PERSON SET from_group = ?, from_id = ?, from_name = ?, mail_subject = ?, raw_content = ?, content_summary = ?, file_id = ?, unit_price = ?, vector_data = ?::vector, name = ?, age = ?, gender = ?, nationality = ?, start_date = ?, place = ?, area = ?, office_availability = ?, organization = ?, experiences = ?, ng_requirements = ?, other_requirements = ?, url = ?, ttl = ? WHERE person_id = ?";
 
   /** UPDATE文(file_idのみ). */
   private static final String UPDATE_FILE_ID_SQL =
@@ -285,27 +284,28 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
           stmt.setString(2, this.fromGroup);
           stmt.setString(3, this.fromId);
           stmt.setString(4, this.fromName);
-          stmt.setString(5, this.rawContent);
-          stmt.setString(6, this.contentSummary);
-          stmt.setString(7, this.fileId);
-          stmt.setObject(8, this.unitPrice == null ? null : this.unitPrice.getValue());
-          stmt.setString(9, this.vectorData == null ? null : this.vectorData.toString());
-          stmt.setString(10, this.name);
-          stmt.setObject(11, this.age);
-          stmt.setString(12, this.gender == null ? null : this.gender.toString());
-          stmt.setString(13, this.nationality);
-          stmt.setTimestamp(14, this.startDate == null ? null : this.startDate.toTimestamp());
-          stmt.setString(15, this.place);
-          stmt.setString(16, this.area == null ? null : this.area.toString());
-          stmt.setObject(17, this.officeAvailability);
-          stmt.setString(18, this.organization);
-          stmt.setString(19, this.experiences);
-          stmt.setString(20, this.ngRequirements);
-          stmt.setString(21, this.otherRequirements);
-          stmt.setString(22, this.url);
-          stmt.setTimestamp(23, this.registerDate == null ? null : this.registerDate.toTimestamp());
-          stmt.setString(24, this.registerUser);
-          stmt.setTimestamp(25, this.ttl == null ? null : this.ttl.toTimestamp());
+          stmt.setString(5, this.mailSubject);
+          stmt.setString(6, this.rawContent);
+          stmt.setString(7, this.contentSummary);
+          stmt.setString(8, this.fileId);
+          stmt.setObject(9, this.unitPrice == null ? null : this.unitPrice.getValue());
+          stmt.setString(10, this.vectorData == null ? null : this.vectorData.toString());
+          stmt.setString(11, this.name);
+          stmt.setObject(12, this.age);
+          stmt.setString(13, this.gender == null ? null : this.gender.toString());
+          stmt.setString(14, this.nationality);
+          stmt.setTimestamp(15, this.startDate == null ? null : this.startDate.toTimestamp());
+          stmt.setString(16, this.place);
+          stmt.setString(17, this.area == null ? null : this.area.toString());
+          stmt.setObject(18, this.officeAvailability);
+          stmt.setString(19, this.organization);
+          stmt.setString(20, this.experiences);
+          stmt.setString(21, this.ngRequirements);
+          stmt.setString(22, this.otherRequirements);
+          stmt.setString(23, this.url);
+          stmt.setTimestamp(24, this.registerDate == null ? null : this.registerDate.toTimestamp());
+          stmt.setString(25, this.registerUser);
+          stmt.setTimestamp(26, this.ttl == null ? null : this.ttl.toTimestamp());
         },
         "SES_AI_T_PERSON.insert");
   }
@@ -330,26 +330,27 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
           stmt.setString(1, this.fromGroup);
           stmt.setString(2, this.fromId);
           stmt.setString(3, this.fromName);
-          stmt.setString(4, this.rawContent);
-          stmt.setString(5, this.contentSummary);
-          stmt.setString(6, this.fileId);
-          stmt.setObject(7, this.unitPrice == null ? null : this.unitPrice.getValue());
-          stmt.setString(8, this.vectorData == null ? null : this.vectorData.toString());
-          stmt.setString(9, this.name);
-          stmt.setObject(10, this.age);
-          stmt.setString(11, this.gender == null ? null : this.gender.toString());
-          stmt.setString(12, this.nationality);
-          stmt.setTimestamp(13, this.startDate == null ? null : this.startDate.toTimestamp());
-          stmt.setString(14, this.place);
-          stmt.setString(15, this.area == null ? null : this.area.toString());
-          stmt.setObject(16, this.officeAvailability);
-          stmt.setString(17, this.organization);
-          stmt.setString(18, this.experiences);
-          stmt.setString(19, this.ngRequirements);
-          stmt.setString(20, this.otherRequirements);
-          stmt.setString(21, this.url);
-          stmt.setTimestamp(22, this.ttl == null ? null : this.ttl.toTimestamp());
-          stmt.setString(23, this.personId);
+          stmt.setString(4, this.mailSubject);
+          stmt.setString(5, this.rawContent);
+          stmt.setString(6, this.contentSummary);
+          stmt.setString(7, this.fileId);
+          stmt.setObject(8, this.unitPrice == null ? null : this.unitPrice.getValue());
+          stmt.setString(9, this.vectorData == null ? null : this.vectorData.toString());
+          stmt.setString(10, this.name);
+          stmt.setObject(11, this.age);
+          stmt.setString(12, this.gender == null ? null : this.gender.toString());
+          stmt.setString(13, this.nationality);
+          stmt.setTimestamp(14, this.startDate == null ? null : this.startDate.toTimestamp());
+          stmt.setString(15, this.place);
+          stmt.setString(16, this.area == null ? null : this.area.toString());
+          stmt.setObject(17, this.officeAvailability);
+          stmt.setString(18, this.organization);
+          stmt.setString(19, this.experiences);
+          stmt.setString(20, this.ngRequirements);
+          stmt.setString(21, this.otherRequirements);
+          stmt.setString(22, this.url);
+          stmt.setTimestamp(23, this.ttl == null ? null : this.ttl.toTimestamp());
+          stmt.setString(24, this.personId);
         },
         "SES_AI_T_PERSON.updateByPk");
   }
@@ -374,6 +375,7 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
           this.fromGroup = rs.getString("from_group");
           this.fromId = rs.getString("from_id");
           this.fromName = rs.getString("from_name");
+          this.mailSubject = rs.getString("mail_subject");
           this.rawContent = rs.getString("raw_content");
           this.contentSummary = rs.getString("content_summary");
           this.fileId = rs.getString("file_id");
@@ -388,7 +390,8 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
           this.place = rs.getString("place");
           String areaStr = rs.getString("area");
           this.area = areaStr == null ? null : Area.valueOf(areaStr);
-          this.officeAvailability = rs.getObject("office_availability") == null ? null : rs.getInt("office_availability");
+          this.officeAvailability =
+              rs.getObject("office_availability") == null ? null : rs.getInt("office_availability");
           this.organization = rs.getString("organization");
           this.experiences = rs.getString("experiences");
           this.otherRequirements = rs.getString("other_requirements");
@@ -424,8 +427,7 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
   /**
    * 要員情報を「名前/年齢歳/性別/単価万円」形式で返す.
    *
-   * プッシュ通知のメッセージテキストで要員を簡潔に表示する際に、
-   * 複数の情報フィールドを単一文字列に統合してペイロードを効率化する.
+   * <p>プッシュ通知のメッセージテキストで要員を簡潔に表示する際に、 複数の情報フィールドを単一文字列に統合してペイロードを効率化する.
    *
    * @return フォーマットされた要員情報（例：「佐藤 一郎/32歳/男性/80万円」）
    */
@@ -451,7 +453,9 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
    * @return その他条件リスト
    */
   public List<String> getOtherRequirementsAsList() {
-    return this.otherRequirements == null ? Arrays.asList() : Arrays.asList(this.otherRequirements.split("\n"));
+    return this.otherRequirements == null
+        ? Arrays.asList()
+        : Arrays.asList(this.otherRequirements.split("\n"));
   }
 
   /**
@@ -460,13 +464,14 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
    * @return NG条件リスト
    */
   public List<String> getNgRequirementsAsList() {
-    return this.ngRequirements == null ? Arrays.asList() : Arrays.asList(this.ngRequirements.split("\n"));
+    return this.ngRequirements == null
+        ? Arrays.asList()
+        : Arrays.asList(this.ngRequirements.split("\n"));
   }
 
   /**
    * 指定した単価に書き換えた要員サマリを作成する。提案用のため、その他条件やNG条件は除外する。
-   * 指定された単価がスキル見合い単価である場合、要員の単価に指定された乗数をかけた金額を記載する。（未指定の場合は1.1倍）
-   * 単価が未指定の場合は単価未記載のサマリを作成する。
+   * 指定された単価がスキル見合い単価である場合、要員の単価に指定された乗数をかけた金額を記載する。（未指定の場合は1.1倍） 単価が未指定の場合は単価未記載のサマリを作成する。
    *
    * @param targetPrice 指定単価
    * @param multiplier 単価倍率
@@ -475,6 +480,7 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
   public String getSummaryWithTargetPrice(Money targetPrice) {
     return getSummaryWithTargetPrice(targetPrice, 1.1);
   }
+
   public String getSummaryWithTargetPrice(Money targetPrice, double multiplier) {
     StringBuilder sb = new StringBuilder();
     // 1. 名前
@@ -489,14 +495,16 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
     sb.append("■国籍: ").append(this.nationality).append("\n");
     // 4. 稼働開始可能月
     if (this.startDate != null && !this.startDate.isEmpty()) {
-      sb.append("■開始: ").append(this.startDate.month()).append("月\n");
+      sb.append("■開始: ").append(this.startDate.month()).append("\n");
     }
     // 5. 単価
     if (targetPrice != null && !targetPrice.isEmpty()) {
       if (targetPrice.isNegotiable()) {
-        sb.append("■単価: ").append(this.unitPrice.multiply(multiplier).toJapaneseFormat()).append("\n");
+        sb.append("■単価: ")
+            .append(this.unitPrice.multiply(multiplier).toJapaneseFormat())
+            .append("\n");
       } else {
-        sb.append("■単価: ").append(targetPrice.toJapaneseFormat()).append("\n");        
+        sb.append("■単価: ").append(targetPrice.toJapaneseFormat()).append("\n");
       }
     }
     // 6. 所属形態

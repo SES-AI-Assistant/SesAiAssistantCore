@@ -6,8 +6,13 @@
   <name>SesAiAssistantCore</name>
 
   <properties>
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
+    <!-- source/target ではなく release を指定することで、ローカルのJDKがJava 17より新しい場合でも
+         Java 17に存在しないAPIを誤って参照できないようにする（CIはJDK 17で動作する） -->
+    <maven.compiler.release>17</maven.compiler.release>
+    <!-- Lombokはアノテーション処理でコンパイラ内部APIを使用するため、新しいJDKでは対応版が必要。
+         バージョンが古いと、ローカルのJDKが新しい環境でgetterやコンストラクタが生成されず
+         大量のコンパイルエラーになる -->
+    <lombok.version>1.18.48</lombok.version>
   </properties>
 
   <!-- GitHub Packages へ mvn deploy する際のリポジトリ（SesAiAssitantWebAppBackend の repository と同一） -->
@@ -130,6 +135,13 @@
       <version>2.15.2</version>
     </dependency>
 
+    <!-- Jackson YAML (OpenAPI仕様等のYAML出力用) -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
+      <version>2.15.2</version>
+    </dependency>
+
     <!-- SLF4J API -->
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -148,7 +160,7 @@
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
-      <version>1.18.30</version>
+      <version>${lombok.version}</version>
     </dependency>
 
     <!-- PostgreSQL JDBC ドライバ -->
@@ -168,6 +180,12 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
+      <version>5.9.3</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-params</artifactId>
       <version>5.9.3</version>
       <scope>test</scope>
     </dependency>
@@ -216,7 +234,54 @@
       </resources>
 
       <plugins>
-          <!-- Maven Compiler Plugin to exclude shadowing files in Eclipse? No. -->
+          <!-- JDKバージョンチェックプラグイン -->
+          <!-- MavenがCI（JDK 17）と異なるJDKで動作していた場合に、分かりやすいエラーで即座に停止させる。
+               特にHomebrewでMavenを導入した環境では、JAVA_HOME未設定時にMavenが自身の依存JDK
+               （シェルの java とは別物）を使うため、気付かないままビルドされてしまう。
+               JDK 23以降ではテスト実行時にMockito/ByteBuddyがエージェントをアタッチできず
+               大量のテストエラーになるため、上限を23未満としている。 -->
+          <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-enforcer-plugin</artifactId>
+              <version>3.4.1</version>
+              <executions>
+                  <execution>
+                      <id>enforce-java-version</id>
+                      <goals>
+                          <goal>enforce</goal>
+                      </goals>
+                      <configuration>
+                          <rules>
+                              <requireJavaVersion>
+                                  <version>[17,23)</version>
+                                  <message>MavenがJava 17以上23未満で動作している必要があります。JAVA_HOME を対応JDKに設定してください（例: export JAVA_HOME=$(/usr/libexec/java_home -v 18)）。現在のバージョンは mvn -version で確認できます。</message>
+                              </requireJavaVersion>
+                          </rules>
+                      </configuration>
+                  </execution>
+              </executions>
+          </plugin>
+
+          <!-- コンパイルプラグイン -->
+          <!-- JDK 23以降の javac はクラスパス上のアノテーションプロセッサを暗黙的に実行しないため、
+               Lombok を annotationProcessorPaths に明示する。
+               明示しない場合、警告もエラーも出ないままLombokが無効化され、
+               getterやコンストラクタが生成されず大量のコンパイルエラーになる。 -->
+          <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-compiler-plugin</artifactId>
+              <version>3.13.0</version>
+              <configuration>
+                  <annotationProcessorPaths>
+                      <path>
+                          <groupId>org.projectlombok</groupId>
+                          <artifactId>lombok</artifactId>
+                          <version>${lombok.version}</version>
+                      </path>
+                  </annotationProcessorPaths>
+              </configuration>
+          </plugin>
+
           <!-- シェードプラグインで JAR を作成 -->
           <plugin>
               <groupId>org.apache.maven.plugins</groupId>

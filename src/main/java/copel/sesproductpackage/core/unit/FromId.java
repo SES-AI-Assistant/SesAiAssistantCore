@@ -3,8 +3,7 @@ package copel.sesproductpackage.core.unit;
 /**
  * FromId（送信者ID）ユーティリティ.
  *
- * FromIdはメールアドレスまたはLINE ID形式の送信者識別子。
- * 本クラスはFromId関連の操作（形式判定、ドメイン抽出、重複チェック）を提供する。
+ * <p>FromIdはメールアドレスまたはLINE ID形式の送信者識別子。 本クラスはFromId関連の操作（形式判定、ドメイン抽出、重複チェック）を提供する。
  *
  * @author Copel Co., Ltd.
  */
@@ -36,9 +35,7 @@ public class FromId {
   /**
    * 2つのFromIdが同じ送信者ID またはメールドメインが同じか判定する.
    *
-   * 以下の場合に true を返す:
-   * - FromId が完全一致する場合
-   * - 両方がメールアドレス形式で、ドメイン部分が同じ場合
+   * <p>以下の場合に true を返す: - FromId が完全一致する場合 - 両方がメールアドレス形式で、ドメイン部分が同じ場合
    *
    * @param fromId1 FromId1
    * @param fromId2 FromId2

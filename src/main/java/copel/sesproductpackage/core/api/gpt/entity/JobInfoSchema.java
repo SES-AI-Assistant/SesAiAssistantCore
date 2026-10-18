@@ -1,11 +1,12 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
-import java.util.List;
-
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.unit.Area;
+import copel.sesproductpackage.core.unit.ExperienceDuration;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import java.math.BigDecimal;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -37,36 +38,54 @@ public class JobInfoSchema {
 
   @Schema(
       title = "必須スキル",
-      description = "案件が要求する必須経験、スキル等のリスト",
+      description = "本文に必須として明記された経験、スキル等のリスト。本文に記載のない要件を推測で追加しないこと。必須要件の記載が無い場合は空リストとする。",
       itemType = Requirements.class,
       required = true,
-      minItems = 1,
       maxItems = 10)
   private List<Requirements> mustList;
 
   @Schema(
       title = "尚可スキル",
-      description = "案件が要求する尚可経験、スキル等のリスト",
+      description = "本文に尚可（歓迎）として明記された経験、スキル等のリスト。本文に記載のない要件を推測で追加しないこと。",
       itemType = Requirements.class,
-      minItems = 1,
       maxItems = 10)
   private List<Requirements> wantList = null;
 
-  @Schema(title = "開始年月", description = "案件の開始年月。必ずyyyy/MM形式で設定してください。未記載の場合や即日、などの表現がされている場合は本日日付にして。", pattern = "^\\d{4}/(0?[1-9]|1[0-2])$", required = true, example = "2026/06")
+  @Schema(
+      title = "開始年月",
+      description = "案件の開始年月。必ずyyyy/MM形式で設定してください。未記載の場合や即日、などの表現がされている場合は本日日付にして。",
+      pattern = "^\\d{4}/(0?[1-9]|1[0-2])$",
+      required = true,
+      example = "2026/06",
+      currentAndNextYearOnly = true)
   private String startYearMonth;
 
   @Schema(title = "場所", description = "案件の場所、オフィスの最寄り駅など", maxLength = 20, example = "品川")
   private String place;
 
-  @Schema(title = "地域", description = "案件の場所やオフィスの最寄駅が属する地域。判別が難しい場合や未記載の場合は関東_首都圏とする", example = "関東_首都圏")
+  @Schema(
+      title = "地域",
+      description = "案件の場所やオフィスの最寄駅が属する地域。判別が難しい場合や未記載の場合は関東_首都圏とする",
+      example = "関東_首都圏")
   private Area area = Area.関東_首都圏;
 
   @Schema(
-      title = "単価（円）",
-      description = "案件の単価/月。幅がある場合は最大値を設定。時給や日給が設定されている場合は1ヵ月(160h)に換算する。スキル見合いの場合は999万円とする。",
+      title = "単価（万円）",
+      description =
+          "月額単価を万円単位の数値で設定。例: 185万→185、80万/800,000円/800K→80、65.5万→65.5、時給3000円(160h)→48。幅がある場合は上限。スキル見合い・応相談・未記載は999。",
       required = true,
-      itemType = Money.class)
-  private Money price;
+      type = "number",
+      example = "185")
+  private BigDecimal priceInMan;
+
+  /**
+   * 単価を Money 値オブジェクト（円単位）で取得します.
+   *
+   * @return 円単位の Money インスタンス
+   */
+  public Money getPrice() {
+    return Money.toSesUnitFromMan(this.priceInMan);
+  }
 
   @Schema(
       title = "出社要件",
@@ -104,7 +123,7 @@ public class JobInfoSchema {
       for (Requirements must : this.mustList) {
         sb.append("・")
             .append(must.getPerspective())
-            .append(must.getDuration() != null ? ": " + must.getDuration() : "")
+            .append(new ExperienceDuration(must.getDurationMonths()).toSuffix(": "))
             .append("\n");
       }
     }
@@ -114,7 +133,7 @@ public class JobInfoSchema {
       for (Requirements must : this.wantList) {
         sb.append("・")
             .append(must.getPerspective())
-            .append(must.getDuration() != null ? "：" + must.getDuration() : "")
+            .append(new ExperienceDuration(must.getDurationMonths()).toSuffix("："))
             .append("\n");
       }
     }
@@ -123,7 +142,7 @@ public class JobInfoSchema {
       sb.append("■開始: ").append(this.startYearMonth.replace("/", "年")).append("月\n");
     }
     // 6. 単価
-    sb.append("■単価: ").append(this.price).append("\n");
+    sb.append("■単価: ").append(this.getPrice()).append("\n");
     // 7. 出社要件、場所
     if (this.officeRequirements == 0) {
       sb.append("■出社要件: ").append("フルリモート\n");
@@ -161,7 +180,8 @@ public class JobInfoSchema {
   public OriginalDateTime getStartDateAsOriginalDateTime() {
     if (this.startYearMonth == null) {
       OriginalDateTime now = new OriginalDateTime();
-      return OriginalDateTime.fromMonth(now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
+      return OriginalDateTime.fromMonth(
+          now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
     }
     String[] parts = this.startYearMonth.split("/");
     if (parts.length == 2) {
@@ -171,11 +191,13 @@ public class JobInfoSchema {
         return OriginalDateTime.fromMonth(year, month);
       } catch (NumberFormatException e) {
         OriginalDateTime now = new OriginalDateTime();
-        return OriginalDateTime.fromMonth(now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
+        return OriginalDateTime.fromMonth(
+            now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
       }
     }
     OriginalDateTime now = new OriginalDateTime();
-    return OriginalDateTime.fromMonth(now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
+    return OriginalDateTime.fromMonth(
+        now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
   }
 
   /**
@@ -192,10 +214,8 @@ public class JobInfoSchema {
       if (sb.length() > 0) {
         sb.append("\n");
       }
-      sb.append(req.getPerspective());
-      if (req.getDuration() != null) {
-        sb.append(": ").append(req.getDuration());
-      }
+      sb.append(req.getPerspective())
+          .append(new ExperienceDuration(req.getDurationMonths()).toSuffix(": "));
     }
     return sb.toString();
   }
@@ -214,10 +234,8 @@ public class JobInfoSchema {
       if (sb.length() > 0) {
         sb.append("\n");
       }
-      sb.append(req.getPerspective());
-      if (req.getDuration() != null) {
-        sb.append(": ").append(req.getDuration());
-      }
+      sb.append(req.getPerspective())
+          .append(new ExperienceDuration(req.getDurationMonths()).toSuffix(": "));
     }
     return sb.toString();
   }
@@ -234,6 +252,30 @@ public class JobInfoSchema {
     return String.join("\n", this.otherRequirements);
   }
 
+  /**
+   * 案件情報のデータ構造妥当性を検証する.
+   *
+   * <p>タイトルが空である場合や、募集実体のない案件を遮断します。
+   *
+   * @return 妥当な場合はtrue、不正な場合はfalse
+   * @author Copel Co., Ltd.
+   */
+  public boolean isValid() {
+    // タイトルのチェック
+    if (this.title == null || this.title.strip().isEmpty()) {
+      return false;
+    }
+
+    // 募集実体のチェック（概要も必須スキルも存在しない場合は実体なしと判定）
+    boolean hasOverview =
+        this.overview != null && !this.overview.strip().isEmpty();
+    boolean hasMustSkills = this.mustList != null && !this.mustList.isEmpty();
+    if (!hasOverview && !hasMustSkills) {
+      return false;
+    }
+    return true;
+  }
+
   // ================================================
   // フィールド用のクラス
   // ================================================
@@ -243,18 +285,19 @@ public class JobInfoSchema {
   public static class Requirements {
     @Schema(
         title = "要求項目",
-        description = "要求経験、スキル、観点など",
+        description = "本文に明記された要求経験、スキル、観点など。本文の表現を言い換えたり一般化したりせず、記載どおりに抽出すること。",
         maxLength = 30,
         required = true,
         example = "SpringBootを利用した開発経験")
     private String perspective;
 
     @Schema(
-        title = "要求期間",
+        title = "要求月数",
         description =
-            "要求される経験年数や期間（例: 「3年」）。本文中に明確な年数や期間の記載がない場合は、推測せず必ずnullにすること。（「不明」「未記載」「なし」などの文字列は絶対に設定しないこと）",
-        maxLength = 30,
-        example = "3年")
-    private String duration = null;
+            "本文に明記された要求経験年数や期間を月数に換算した整数（例: 「3年以上」→36、「半年」→6）。「2〜3年」のような範囲表記は下限、「約5年」は記載の数値で換算すること。本文中に明確な年数や期間の記載がない場合は、推測せず出力しないこと",
+        type = "integer",
+        gt = 0,
+        example = "36")
+    private Integer durationMonths = null;
   }
 }

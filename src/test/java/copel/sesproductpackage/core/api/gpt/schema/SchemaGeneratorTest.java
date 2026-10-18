@@ -2,6 +2,11 @@ package copel.sesproductpackage.core.api.gpt.schema;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import copel.sesproductpackage.core.api.gpt.entity.JobInfoSchema;
+import copel.sesproductpackage.core.api.gpt.entity.PersonInfoSchema;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -364,6 +369,38 @@ class SchemaGeneratorTest {
   }
 
   @Test
+  void testGenerate_XDataSource() {
+    Map<String, Object> schema = SchemaGenerator.generate(ResponseWithXDataSource.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> jobIdSchema = (Map<String, Object>) properties.get("job_id");
+
+    assertEquals("string", jobIdSchema.get("type"));
+    assertEquals("SES_AI_T_JOB.job_id", jobIdSchema.get("x-data-source"));
+  }
+
+  @Test
+  void testGenerate_XDataSource_NotSetWhenEmpty() {
+    Map<String, Object> schema = SchemaGenerator.generate(SimpleResponse.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> nameSchema = (Map<String, Object>) properties.get("name");
+
+    assertFalse(nameSchema.containsKey("x-data-source"));
+  }
+
+  /** テスト用のx-data-sourceを含むレスポンス. */
+  static class ResponseWithXDataSource {
+    @Schema(description = "案件ID", xDataSource = "SES_AI_T_JOB.job_id")
+    @JsonProperty("job_id")
+    public String jobId;
+  }
+
+  @Test
   void testGenerate_SchemaIgnore() {
     Map<String, Object> schema = SchemaGenerator.generate(ResponseWithSchemaIgnore.class);
 
@@ -408,5 +445,287 @@ class SchemaGeneratorTest {
     public String name;
 
     @SchemaIgnore public String internalId;
+  }
+
+  @Test
+  void testGenerate_CurrentAndNextYearOnly_WithPattern() {
+    int currentYear = LocalDate.now(ZoneId.of("Asia/Tokyo")).getYear();
+    int nextYear = currentYear + 1;
+    String expectedPattern = "^(" + currentYear + "|" + nextYear + ")/(0?[1-9]|1[0-2])$";
+
+    Map<String, Object> schema =
+        SchemaGenerator.generate(ResponseWithCurrentAndNextYearPatternDigits.class);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("start_year_month");
+
+    String pattern = (String) fieldSchema.get("pattern");
+    assertEquals(expectedPattern, pattern);
+    assertYearMonthPatternMatches(pattern, currentYear, nextYear, "/");
+  }
+
+  @Test
+  void testGenerate_CurrentAndNextYearOnly_WithBracketDigitsPattern() {
+    int currentYear = LocalDate.now(ZoneId.of("Asia/Tokyo")).getYear();
+    int nextYear = currentYear + 1;
+    String expectedPattern = "^(" + currentYear + "|" + nextYear + ")-(0?[1-9]|1[0-2])$";
+
+    Map<String, Object> schema =
+        SchemaGenerator.generate(ResponseWithCurrentAndNextYearPatternBracketDigits.class);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("start_year_month");
+
+    String pattern = (String) fieldSchema.get("pattern");
+    assertEquals(expectedPattern, pattern);
+    assertYearMonthPatternMatches(pattern, currentYear, nextYear, "-");
+  }
+
+  @Test
+  void testGenerate_CurrentAndNextYearOnly_WithoutPattern() {
+    int currentYear = LocalDate.now(ZoneId.of("Asia/Tokyo")).getYear();
+    int nextYear = currentYear + 1;
+    String expectedPattern = "^(" + currentYear + "|" + nextYear + ")/(0?[1-9]|1[0-2])$";
+
+    Map<String, Object> schema =
+        SchemaGenerator.generate(ResponseWithCurrentAndNextYearNoPattern.class);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("start_year_month");
+
+    String pattern = (String) fieldSchema.get("pattern");
+    assertEquals(expectedPattern, pattern);
+    assertYearMonthPatternMatches(pattern, currentYear, nextYear, "/");
+  }
+
+  @Test
+  void testGenerate_CurrentAndNextYearOnly_False() {
+    Map<String, Object> schema =
+        SchemaGenerator.generate(ResponseWithCurrentAndNextYearFalse.class);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("start_year_month");
+
+    assertEquals("^\\d{4}/(0?[1-9]|1[0-2])$", fieldSchema.get("pattern"));
+  }
+
+  @Test
+  void testGenerate_JobInfoSchema_StartYearMonthPattern() {
+    int currentYear = LocalDate.now(ZoneId.of("Asia/Tokyo")).getYear();
+    int nextYear = currentYear + 1;
+    String expectedPattern = "^(" + currentYear + "|" + nextYear + ")/(0?[1-9]|1[0-2])$";
+
+    Map<String, Object> schema = SchemaGenerator.generate(JobInfoSchema.class);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("start_year_month");
+
+    String pattern = (String) fieldSchema.get("pattern");
+    assertEquals(expectedPattern, pattern);
+    assertYearMonthPatternMatches(pattern, currentYear, nextYear, "/");
+  }
+
+  @Test
+  void testGenerate_PersonInfoSchema_StartYearMonthPattern() {
+    int currentYear = LocalDate.now(ZoneId.of("Asia/Tokyo")).getYear();
+    int nextYear = currentYear + 1;
+    String expectedPattern = "^(" + currentYear + "|" + nextYear + ")/(0?[1-9]|1[0-2])$";
+
+    Map<String, Object> schema = SchemaGenerator.generate(PersonInfoSchema.class);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("start_year_month");
+
+    String pattern = (String) fieldSchema.get("pattern");
+    assertEquals(expectedPattern, pattern);
+    assertYearMonthPatternMatches(pattern, currentYear, nextYear, "/");
+  }
+
+  /**
+   * 年月正規表現パターンの振る舞いを検証するヘルパーメソッド.
+   *
+   * @param pattern 検証対象の正規表現パターン
+   * @param currentYear 実行年
+   * @param nextYear 翌年
+   * @param separator 年と月の区切り文字（例: "/" または "-"）
+   */
+  private static void assertYearMonthPatternMatches(
+      String pattern, int currentYear, int nextYear, String separator) {
+    // 正常系: 当年・翌年の有効月
+    assertTrue((currentYear + separator + "01").matches(pattern));
+    assertTrue((currentYear + separator + "12").matches(pattern));
+    assertTrue((nextYear + separator + "06").matches(pattern));
+
+    // 異常系: 過去年、2年後以降、無効月
+    assertFalse(((currentYear - 1) + separator + "12").matches(pattern));
+    assertFalse(((nextYear + 1) + separator + "01").matches(pattern));
+    assertFalse((currentYear + separator + "00").matches(pattern));
+    assertFalse((currentYear + separator + "13").matches(pattern));
+  }
+
+  /** テスト用のcurrentAndNextYearOnly検証用レスポンス（patternあり: \\d{4}）. */
+  static class ResponseWithCurrentAndNextYearPatternDigits {
+    @Schema(pattern = "^\\d{4}/(0?[1-9]|1[0-2])$", currentAndNextYearOnly = true)
+    public String startYearMonth;
+  }
+
+  /** テスト用のcurrentAndNextYearOnly検証用レスポンス（patternあり: [0-9]{4}）. */
+  static class ResponseWithCurrentAndNextYearPatternBracketDigits {
+    @Schema(pattern = "^[0-9]{4}-(0?[1-9]|1[0-2])$", currentAndNextYearOnly = true)
+    public String startYearMonth;
+  }
+
+  /** テスト用のcurrentAndNextYearOnly検証用レスポンス（patternなし）. */
+  static class ResponseWithCurrentAndNextYearNoPattern {
+    @Schema(currentAndNextYearOnly = true)
+    public String startYearMonth;
+  }
+
+  /** テスト用のcurrentAndNextYearOnly=false検証用レスポンス. */
+  static class ResponseWithCurrentAndNextYearFalse {
+    @Schema(pattern = "^\\d{4}/(0?[1-9]|1[0-2])$", currentAndNextYearOnly = false)
+    public String startYearMonth;
+  }
+
+  @Test
+  void testGenerate_CamelCaseFieldName_ConvertsToSnakeCase() {
+    Map<String, Object> schema = SchemaGenerator.generate(ResponseWithCamelCaseField.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    assertTrue(properties.containsKey("match_score"));
+    assertFalse(properties.containsKey("matchScore"));
+  }
+
+  @Test
+  void testGenerate_ConsecutiveUpperCaseFieldName_ConvertsToSnakeCase() {
+    Map<String, Object> schema = SchemaGenerator.generate(ResponseWithConsecutiveUpperCase.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    assertTrue(properties.containsKey("user_id"));
+    assertFalse(properties.containsKey("userID"));
+  }
+
+  @Test
+  void testGenerate_JsonPropertyAnnotation_OverridesFieldName() {
+    Map<String, Object> schema = SchemaGenerator.generate(ResponseWithJsonPropertyName.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    assertTrue(properties.containsKey("custom_name"));
+    assertFalse(properties.containsKey("displayName"));
+  }
+
+  /** テスト用のキャメルケースフィールドを含むレスポンス. */
+  static class ResponseWithCamelCaseField {
+    @Schema(description = "マッチ度")
+    public int matchScore;
+  }
+
+  /** テスト用の大文字が連続するフィールドを含むレスポンス. */
+  static class ResponseWithConsecutiveUpperCase {
+    @Schema(description = "ユーザーID")
+    public String userID;
+  }
+
+  /** テスト用の@JsonProperty指定フィールドを含むレスポンス. */
+  static class ResponseWithJsonPropertyName {
+    @JsonProperty("custom_name")
+    @Schema(description = "表示名")
+    public String displayName;
+  }
+
+  @Test
+  void testGenerate_InheritedFields_IncludesParentAndChildFields() {
+    Map<String, Object> schema = SchemaGenerator.generate(ChildWithInheritedFields.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+
+    assertTrue(properties.containsKey("base_field"), "親クラスのフィールドが含まれること");
+    assertTrue(properties.containsKey("child_field"), "自クラスのフィールドが含まれること");
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> baseFieldSchema = (Map<String, Object>) properties.get("base_field");
+    assertEquals("親クラスのフィールド", baseFieldSchema.get("description"));
+
+    @SuppressWarnings("unchecked")
+    List<String> required = (List<String>) schema.get("required");
+    assertTrue(required.contains("base_field"), "親クラスのrequired=trueフィールドも収集されること");
+  }
+
+  @Test
+  void testGenerate_InheritedFields_SchemaIgnoreOnParentIsRespected() {
+    Map<String, Object> schema = SchemaGenerator.generate(ChildWithInheritedFields.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    assertFalse(properties.containsKey("internal_base_field"), "親クラスの@SchemaIgnoreフィールドは除外されること");
+  }
+
+  @Test
+  void testGenerate_SetType_IsTreatedAsArray() {
+    Map<String, Object> schema = SchemaGenerator.generate(ResponseWithSetField.class);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> tagsSchema = (Map<String, Object>) properties.get("tags");
+
+    assertEquals("array", tagsSchema.get("type"));
+    @SuppressWarnings("unchecked")
+    Map<String, Object> items = (Map<String, Object>) tagsSchema.get("items");
+    assertEquals("string", items.get("type"));
+  }
+
+  /** テスト用の継承元クラス. */
+  static class ParentWithFields {
+    @Schema(description = "親クラスのフィールド", required = true)
+    public String baseField;
+
+    @copel.sesproductpackage.core.api.gpt.schema.SchemaIgnore public String internalBaseField;
+  }
+
+  /** テスト用の継承先クラス. */
+  static class ChildWithInheritedFields extends ParentWithFields {
+    @Schema(description = "自クラスのフィールド")
+    public String childField;
+  }
+
+  /** テスト用のSet型フィールドを含むレスポンス. */
+  static class ResponseWithSetField {
+    @Schema(description = "タグ一覧", itemType = String.class)
+    public java.util.Set<String> tags;
+  }
+
+  @Test
+  void testGenerateYaml_ReturnsYamlString() {
+    String yaml = SchemaGenerator.generateYaml(SimpleResponse.class);
+
+    assertNotNull(yaml);
+    assertTrue(yaml.contains("type: \"object\""));
+    assertTrue(yaml.contains("name:"));
+    assertTrue(yaml.contains("description: \"人物の名前\""));
+    assertFalse(yaml.trim().startsWith("---"), "ドキュメント区切り行が出力されないこと");
+  }
+
+  @Test
+  void testToYaml_ArbitraryMap() {
+    Map<String, Object> data = new java.util.LinkedHashMap<>();
+    data.put("openapi", "3.0.0");
+    data.put("paths", Map.of());
+
+    String yaml = SchemaGenerator.toYaml(data);
+
+    assertNotNull(yaml);
+    assertTrue(yaml.contains("openapi: \"3.0.0\""));
+    assertTrue(yaml.contains("paths:"));
   }
 }

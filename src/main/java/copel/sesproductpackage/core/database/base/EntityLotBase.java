@@ -1,6 +1,7 @@
 package copel.sesproductpackage.core.database.base;
 
 import copel.sesproductpackage.core.unit.LogicalOperators;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -686,19 +687,21 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param size 1ページあたりの件数
    * @throws SQLException
    */
-  protected <T extends java.math.BigDecimal, U extends java.time.temporal.Temporal, V extends Enum<?>> void selectByDynamicWhereWithFilterPaged(
-      final Connection connection,
-      final String tenantId,
-      final String selectSqlPrefix,
-      final String whereClauseWithoutWhere,
-      final List<String> likeParams,
-      final Object price,
-      final Object startDate,
-      final Integer integerFilter,
-      final Enum<?> areaFilter,
-      final int page,
-      final int size)
-      throws SQLException {
+  protected <
+          T extends java.math.BigDecimal, U extends java.time.temporal.Temporal, V extends Enum<?>>
+      void selectByDynamicWhereWithFilterPaged(
+          final Connection connection,
+          final String tenantId,
+          final String selectSqlPrefix,
+          final String whereClauseWithoutWhere,
+          final List<String> likeParams,
+          final Object price,
+          final Object startDate,
+          final Integer integerFilter,
+          final Enum<?> areaFilter,
+          final int page,
+          final int size)
+          throws SQLException {
     this.entityLot = new ArrayList<>();
     if (connection == null || selectSqlPrefix == null || whereClauseWithoutWhere == null) {
       return;
@@ -859,7 +862,11 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       return;
     }
 
-    // (2) ページング用 SQL（tenantId フィルターなし）
+    // (2) ページング用 SQL（tenantId フィルター追加）
+    // addTenantIdFilter は "AND tenant_id = ?" を LIMIT/OFFSET より前に挿入するため、
+    // executeQuery（tenant_id を末尾バインドする前提のテンプレート）は使用できない。
+    // そのため、COUNT SQL と同様に事前にフィルター適用済みSQLを組み立て、
+    // tenant_id を LIMIT/OFFSET より前の正しい位置でバインドする。
     final String pagedSql = fullSelect + " LIMIT ? OFFSET ?";
     final String filteredPagedSql = addTenantIdFilter(pagedSql, tenantId);
 
@@ -883,10 +890,12 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
                   bindParameter(stmt, idx++, param);
                 }
               }
-              stmt.setString(idx++, tenantId);
+              // tenant_id をバインド（WHERE句内、LIMIT/OFFSETより前の位置）
+              setTenantIdParameter(stmt, idx++, tenantId);
+              // LIMIT と OFFSET をバインド
               stmt.setInt(idx++, size);
-              stmt.setInt(idx, (page - 1) * size);
-              return idx + 1;
+              stmt.setInt(idx++, (page - 1) * size);
+              return idx;
             });
     this.entityLot.addAll(results);
   }
@@ -900,12 +909,16 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @throws SQLException
    */
   protected void bindParameter(
-      final PreparedStatement stmt, final int paramIndex, final Object param)
-      throws SQLException {
+      final PreparedStatement stmt, final int paramIndex, final Object param) throws SQLException {
     if (param instanceof java.math.BigDecimal) {
       stmt.setBigDecimal(paramIndex, (java.math.BigDecimal) param);
     } else if (param instanceof java.sql.Timestamp) {
       stmt.setTimestamp(paramIndex, (java.sql.Timestamp) param);
+    } else if (param instanceof OriginalDateTime) {
+      // OriginalDateTime は独自の日時ラッパー型のため、JDBCドライバが型推論できる
+      // java.sql.Timestamp に変換してからバインドする必要がある（さもないと
+      // 「Can't infer the SQL type」エラーになる）。
+      stmt.setTimestamp(paramIndex, ((OriginalDateTime) param).toTimestamp());
     } else if (param instanceof Enum<?>) {
       stmt.setString(paramIndex, ((Enum<?>) param).name());
     } else if (param instanceof Integer) {
@@ -1023,13 +1036,25 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     }
 
     // (2) ページング SQL 構築（tenantId フィルターなし）
-    StringBuilder sql = new StringBuilder(baseSql);
-    boolean hasWhereClause = baseSql.toUpperCase().contains("WHERE");
+    // baseSql に ORDER BY / GROUP BY / HAVING が含まれる場合、
+    // WHERE/AND条件はそれらの句より前に挿入しないと構文エラーになるため、挿入位置を検出する。
+    final String upperBaseSql = baseSql.toUpperCase();
+    int clauseInsertPosition = baseSql.length();
+    for (final String keyword : new String[] {" ORDER BY", " GROUP BY", " HAVING"}) {
+      final int keywordIndex = upperBaseSql.indexOf(keyword);
+      if (keywordIndex >= 0 && keywordIndex < clauseInsertPosition) {
+        clauseInsertPosition = keywordIndex;
+      }
+    }
+    final String beforeClause = baseSql.substring(0, clauseInsertPosition);
+    final String afterClause = baseSql.substring(clauseInsertPosition);
+    boolean hasWhereClause = beforeClause.toUpperCase().contains("WHERE");
 
+    StringBuilder conditionBuilder = new StringBuilder();
     if (query != null && !query.isEmpty()) {
       boolean isFirst = true;
       if (!hasWhereClause) {
-        sql.append(" WHERE ");
+        conditionBuilder.append(" WHERE ");
         hasWhereClause = true;
       } else {
         isFirst = false;
@@ -1037,14 +1062,16 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
 
       for (final String columnName : query.keySet()) {
         if (isFirst) {
-          sql.append(columnName).append(" = ?");
+          conditionBuilder.append(columnName).append(" = ?");
           isFirst = false;
         } else {
-          sql.append(isAnd ? " AND " : " OR ").append(columnName).append(" = ?");
+          conditionBuilder.append(isAnd ? " AND " : " OR ").append(columnName).append(" = ?");
         }
       }
     }
 
+    StringBuilder sql =
+        new StringBuilder(beforeClause).append(conditionBuilder).append(afterClause);
     sql.append(" LIMIT ? OFFSET ?");
 
     if (connection == null) {
@@ -1391,6 +1418,8 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     try (PreparedStatement stmt = conn.prepareStatement(sql)) {
       binder.bind(stmt, 1);
 
+      logSql(sql);
+
       List<E> results = new ArrayList<>();
       try (ResultSet rs = stmt.executeQuery()) {
         while (rs.next()) {
@@ -1525,7 +1554,8 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
 
     // COUNT クエリを実行（COUNT SQL 用の binder を使用）
     this.totalCount =
-        getCountByVectorForCount(conn, baseQuerySql, tenantId, vectorValue, similarityThreshold, countBinder);
+        getCountByVectorForCount(
+            conn, baseQuerySql, tenantId, vectorValue, similarityThreshold, countBinder);
 
     // データ取得クエリにLIMIT/OFFSETを追加
     final String pagedSql = filteredSql + " LIMIT ? OFFSET ?";

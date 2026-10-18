@@ -25,10 +25,8 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 
 /**
  * テナント別月次受信集計情報テーブル（SES_AI_TENANT_MONTHLY_INGEST_COUNT）のエンティティクラス.
- * <p>
- * テナントごと・年月別・チャネル別のメッセージ受信件数を集計・管理します。
- * 各テナントの月間受信上限チェックや利用状況モニタリングなどの用途で利用されます。
- * </p>
+ *
+ * <p>テナントごと・年月別・チャネル別のメッセージ受信件数を集計・管理します。 各テナントの月間受信上限チェックや利用状況モニタリングなどの用途で利用されます。
  *
  * @author Copel Co., Ltd.
  */
@@ -50,10 +48,7 @@ public class SES_AI_TENANT_MONTHLY_INGEST_COUNT
   /** 【PK】 年月（YYYYMM形式）. */
   private String yearMonth;
 
-  /**
-   * 【SK】 チャネル種別（EMAIL / LINE）.
-   * 文字列ではなくEnumを使用することで型安全性を確保し、不正なチャネル名の混入を防止します。
-   */
+  /** 【SK】 チャネル種別（EMAIL / LINE）. 文字列ではなくEnumを使用することで型安全性を確保し、不正なチャネル名の混入を防止します。 */
   private ChannelType channelType;
 
   /** 受信カウント. */
@@ -194,8 +189,7 @@ public class SES_AI_TENANT_MONTHLY_INGEST_COUNT
   }
 
   /**
-   * 指定年月のメッセージ受信カウントをアトミックに加算します.
-   * チャネル種別にChannelType Enumを使用することで型安全性を確保し、不正なチャネル名の混入を防止します.
+   * 指定年月のメッセージ受信カウントをアトミックに加算します. チャネル種別にChannelType Enumを使用することで型安全性を確保し、不正なチャネル名の混入を防止します.
    *
    * @param tenantId テナントID
    * @param yearMonth 年月（YYYYMM）
@@ -238,7 +232,8 @@ public class SES_AI_TENANT_MONTHLY_INGEST_COUNT
         ":now", AttributeValue.builder().s(Instant.now().toString()).build());
     expressionAttributeValues.put(":tid", AttributeValue.builder().s(tenantId).build());
     expressionAttributeValues.put(":ym", AttributeValue.builder().s(yearMonth).build());
-    expressionAttributeValues.put(":ct", AttributeValue.builder().s(channelType.getValue()).build());
+    expressionAttributeValues.put(
+        ":ct", AttributeValue.builder().s(channelType.getValue()).build());
     expressionAttributeValues.put(
         ":inc", AttributeValue.builder().n(String.valueOf(amount)).build());
 

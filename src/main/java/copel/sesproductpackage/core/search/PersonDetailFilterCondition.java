@@ -8,13 +8,16 @@ import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * 要員検索の詳細フィルター条件を保持するクラス.
- * 各フィールドが null の場合、そのフィルター条件は適用されません。
- */
+/** 要員検索の詳細フィルター条件を保持するクラス. 各フィールドが null の場合、そのフィルター条件は適用されません。 */
 @Getter
 @Setter
 public class PersonDetailFilterCondition {
+  /** 国籍フィルターの特別な値：「日本以外」を表す. */
+  private static final String NATIONALITY_OTHER = "日本以外";
+
+  /** nationality カラムが「日本国籍」を表す際の実際の格納値. */
+  private static final String NATIONALITY_JAPAN = "日本";
+
   /** 開始月（yyyy/MM形式）。この日付以降の開始月を持つ要員を対象. */
   private OriginalDateTime startDate;
 
@@ -30,10 +33,15 @@ public class PersonDetailFilterCondition {
   /** 年齢の上限。この年齢以下の要員を対象. */
   private Integer maxAge;
 
-  /** 性別（M=男性、F=女性）。この性別に一致する要員を対象. */
+  /**
+   * 性別（DB値: Man / Woman / Unknown のみ。日本語表記は呼び出し側で Gender.fromJapanese により変換して渡す）。この性別に一致する要員を対象.
+   */
   private String gender;
 
-  /** 国籍（JP=日本、OTHER=日本以外）。この国籍に一致する要員を対象. */
+  /**
+   * 国籍。nationality カラムの格納値（例："日本"）と完全一致する文字列を指定する。 「日本以外」を検索したい場合のみ特別な値 "日本以外"
+   * を指定する（nationalityカラムが "日本" 以外の値を持つ要員が対象になる）.
+   */
   private String nationality;
 
   /** エリア（地域コード）。このエリアに一致する要員を対象. */
@@ -117,13 +125,22 @@ public class PersonDetailFilterCondition {
       params.add(this.gender);
     }
 
-    // 国籍フィルター
+    // 国籍フィルター（"日本以外" は「nationalityが"日本"ではない」ことを表す特別な値）
     if (this.nationality != null && !this.nationality.isEmpty()) {
       if (whereClause.length() > 0) {
         whereClause.append(" AND ");
       }
-      whereClause.append(prefix).append("nationality = ?");
-      params.add(this.nationality);
+      if (NATIONALITY_OTHER.equals(this.nationality)) {
+        whereClause
+            .append(prefix)
+            .append("nationality IS NOT NULL AND ")
+            .append(prefix)
+            .append("nationality <> ?");
+        params.add(NATIONALITY_JAPAN);
+      } else {
+        whereClause.append(prefix).append("nationality = ?");
+        params.add(this.nationality);
+      }
     }
 
     // エリアフィルター
@@ -147,7 +164,9 @@ public class PersonDetailFilterCondition {
     // 所属フィルター（organizationは「N社先形態」フォーマット）
     // companiesTierNumber と employmentType の両方が指定されている場合、
     // 「N社先形態」という文字列全体で一致検索
-    if (this.companiesTierNumber != null && this.employmentType != null && !this.employmentType.isEmpty()) {
+    if (this.companiesTierNumber != null
+        && this.employmentType != null
+        && !this.employmentType.isEmpty()) {
       if (whereClause.length() > 0) {
         whereClause.append(" AND ");
       }
@@ -190,8 +209,7 @@ public class PersonDetailFilterCondition {
 
     /** WHERE句が空でないかを確認します. */
     public boolean isEmpty() {
-      return whereClauseWithoutWhereKeyword == null
-          || whereClauseWithoutWhereKeyword.isEmpty();
+      return whereClauseWithoutWhereKeyword == null || whereClauseWithoutWhereKeyword.isEmpty();
     }
   }
 }

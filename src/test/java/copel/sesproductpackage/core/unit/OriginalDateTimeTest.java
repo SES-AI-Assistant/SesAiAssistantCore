@@ -37,6 +37,28 @@ class OriginalDateTimeTest {
   }
 
   @Test
+  void testConstructorWithYearMonthPatterns() {
+    // yyyy-MM形式のテスト（検索APIの開始月フィルターで使用）
+    OriginalDateTime dateWithHyphen = new OriginalDateTime("2026-10");
+    assertNotNull(dateWithHyphen.toLocalDateTime());
+    assertEquals(LocalDateTime.of(2026, 10, 1, 0, 0, 0), dateWithHyphen.toLocalDateTime());
+    assertEquals("2026-10-01", dateWithHyphen.getYyyy_MM_dd());
+
+    // yyyy/MM形式のテスト（検索APIの開始月フィルターで使用）
+    OriginalDateTime dateWithSlash = new OriginalDateTime("2026/10");
+    assertNotNull(dateWithSlash.toLocalDateTime());
+    assertEquals(LocalDateTime.of(2026, 10, 1, 0, 0, 0), dateWithSlash.toLocalDateTime());
+    assertEquals("2026/10/01", dateWithSlash.getYyyyMMdd());
+
+    // 複数の月でのテスト
+    OriginalDateTime jan = new OriginalDateTime("2025-01");
+    assertEquals(LocalDateTime.of(2025, 1, 1, 0, 0, 0), jan.toLocalDateTime());
+
+    OriginalDateTime dec = new OriginalDateTime("2025/12");
+    assertEquals(LocalDateTime.of(2025, 12, 1, 0, 0, 0), dec.toLocalDateTime());
+  }
+
+  @Test
   void testConstructorWithSqlDate() {
     OriginalDateTime fromNull = new OriginalDateTime((Date) null);
     assertTrue(fromNull.isEmpty());

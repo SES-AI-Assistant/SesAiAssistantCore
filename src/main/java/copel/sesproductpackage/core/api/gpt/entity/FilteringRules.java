@@ -20,9 +20,6 @@ public class FilteringRules {
   /** 尚好スキルの要求レベル。nullの場合は無視。 */
   private EvaluateType wantSkillLevel;
 
-  /** 出社要件の検証が必須かどうか。 */
-  private boolean officeRequired;
-
   /** その他制約条件の検証が必須かどうか。 */
   private boolean otherConstraintsRequired;
 
@@ -35,7 +32,6 @@ public class FilteringRules {
     FilteringRules rules = new FilteringRules();
     rules.setMustSkillLevel(EvaluateType.FullyMet);
     rules.setWantSkillLevel(EvaluateType.FullyMet);
-    rules.setOfficeRequired(true);
     rules.setOtherConstraintsRequired(true);
     return rules;
   }

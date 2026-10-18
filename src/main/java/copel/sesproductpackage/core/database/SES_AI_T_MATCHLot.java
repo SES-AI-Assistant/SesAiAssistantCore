@@ -103,7 +103,7 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
     }
     java.util.Map<String, String> query = new java.util.HashMap<>();
     query.put("job_id", jobId);
-    this.selectByQueryPaged(connection, tenantId, SELECT_ALL_SQL, query, true, page, size);
+    this.selectByQueryPaged(connection, tenantId, SELECT_SQL, query, true, page, size);
   }
 
   /**
@@ -124,7 +124,7 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
     }
     java.util.Map<String, String> query = new java.util.HashMap<>();
     query.put("person_id", personId);
-    this.selectByQueryPaged(connection, tenantId, SELECT_ALL_SQL, query, true, page, size);
+    this.selectByQueryPaged(connection, tenantId, SELECT_SQL, query, true, page, size);
   }
 
   @Override

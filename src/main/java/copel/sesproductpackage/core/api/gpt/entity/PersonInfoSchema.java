@@ -1,12 +1,15 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
-import java.util.List;
-
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.unit.Area;
+import copel.sesproductpackage.core.unit.ExperienceDuration;
 import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,9 +23,40 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PersonInfoSchema {
+  // ================================================
+  // 定数
+  // ================================================
+  /**
+   * 架空要員名・プレースホルダーとして除外する名称一覧.
+   *
+   * @author Copel Co., Ltd.
+   */
+  public static final Set<String> INVALID_PERSON_NAMES =
+      Set.of(
+          "unknown",
+          "n/a",
+          "na",
+          "none",
+          "不明",
+          "なし",
+          "未定",
+          "要員様",
+          "要員",
+          "エンジニア",
+          "技術者",
+          "プロパー",
+          "メンバー",
+          "様",
+          "さん",
+          "担当",
+          "営業");
   @Schema(
       title = "氏名",
-      description = "紹介されている要員本人の名前またはイニシャル",
+      description =
+          "紹介されている要員本人の氏名またはイニシャル（例: 山田太郎、T.T、YM等）。"
+              + "職種名（エンジニア、プログラマー、PM等）や所属名（〇〇所属、弊社プロパー等）、"
+              + "一般名詞・プレースホルダー（要員様、N/A、担当者等）を設定することは厳禁。"
+              + "特定個人の名前・イニシャルが記載されていない場合は架空の要員として出力せず、必ず Unknown と判定すること。",
       maxLength = 10,
       required = true,
       example = "T.T")
@@ -41,26 +75,46 @@ public class PersonInfoSchema {
 
   @Schema(
       title = "国籍",
-      description = "紹介されている要員本人の国籍。未記載の場合は「日本」とする）",
+      description = "紹介されている要員本人の国籍。未記載の場合は「日本」とする",
       maxLength = 10,
       required = true,
       example = "日本")
   private String nationality = "日本";
 
-  @Schema(title = "開始年月", description = "稼働開始が可能な年月。必ずyyyy/MM形式で設定してください。未記載の場合や即日、などの表現がされている場合は本日日付にして。", pattern = "^\\d{4}/(0?[1-9]|1[0-2])$", required = true, example = "2026/6")
+  @Schema(
+      title = "開始年月",
+      description = "稼働開始が可能な年月。必ずyyyy/MM形式で設定してください。未記載の場合や即日、などの表現がされている場合は本日日付にして。",
+      pattern = "^\\d{4}/(0?[1-9]|1[0-2])$",
+      required = true,
+      example = "2026/6",
+      currentAndNextYearOnly = true)
   private String startYearMonth;
 
   @Schema(
-      title = "単価（円）",
-      description = "希望する単価。幅がある場合は最小値を設定。",
+      title = "希望単価（万円）",
+      description =
+          "月額希望単価を万円単位の数値で設定。例: 80万/800,000円/800K→80、65.5万→65.5、時給2500円(160h)→40。幅がある場合は希望下限。スキル見合い・応相談・未記載は0。",
       required = true,
-      itemType = Money.class)
-  private Money price;
+      type = "number",
+      example = "80")
+  private BigDecimal priceInMan;
+
+  /**
+   * 希望単価を Money 値オブジェクト（円単位）で取得します.
+   *
+   * @return 円単位の Money インスタンス
+   */
+  public Money getPrice() {
+    return Money.toSesUnitFromMan(this.priceInMan);
+  }
 
   @Schema(title = "場所", description = "要員の在住地域や最寄駅名など", maxLength = 20, example = "品川")
   private String place = null;
 
-  @Schema(title = "地域", description = "要員の在住地域や最寄駅が属する地域。判別が難しい場合や未記載の場合は関東_首都圏とする", example = "関東_首都圏")
+  @Schema(
+      title = "地域",
+      description = "要員の在住地域や最寄駅が属する地域。判別が難しい場合や未記載の場合は関東_首都圏とする",
+      example = "関東_首都圏")
   private Area area = Area.関東_首都圏;
 
   @Schema(
@@ -82,24 +136,28 @@ public class PersonInfoSchema {
   private Organization organization = null;
 
   @Schema(
-	title = "経歴", 
-	description = "箇条書き形式の経歴のリスト", 
-	itemType = Experience.class,
-    required = true,
-    minItems = 1,
-    maxItems = 10)
+      title = "経歴",
+      description = "本文に明記された経験・スキルのみを箇条書き形式で抽出したリスト。職種や他のスキルから推測した経験を追加しないこと。記載が無い場合は空リストとする。",
+      itemType = Experience.class,
+      required = true,
+      maxItems = 10)
   private List<Experience> experiences = null;
 
   @Schema(
-	title = "NG条件", 
-	description = "要員都合のNG条件のリスト", 
-	itemType = String.class,
-    required = true,
-    minItems = 0,
-    maxItems = 10)
+      title = "NG条件",
+      description = "要員都合のNG条件のリスト",
+      itemType = String.class,
+      required = true,
+      minItems = 0,
+      maxItems = 10)
   private List<String> ngRequirements = null;
 
-  @Schema(title = "その他", description = "その他、備考などの事項", itemType = String.class, minItems = 0, maxItems = 10)
+  @Schema(
+      title = "その他",
+      description = "その他、備考などの事項",
+      itemType = String.class,
+      minItems = 0,
+      maxItems = 10)
   private List<String> otherRequirements = null;
 
   @Schema(
@@ -136,7 +194,7 @@ public class PersonInfoSchema {
       sb.append("■開始: ").append(this.startYearMonth.replace("/", "年")).append("月\n");
     }
     // 5. 単価
-    sb.append("■単価: ").append(this.price).append("\n");
+    sb.append("■単価: ").append(this.getPrice()).append("\n");
     // 6. 所属形態
     if (this.organization != null) {
       sb.append("■所属形態: ").append(this.organization.toDisplayString()).append("\n");
@@ -159,7 +217,7 @@ public class PersonInfoSchema {
       for (Experience experience : this.experiences) {
         sb.append("・")
             .append(experience.getPerspective())
-            .append(experience.getDuration() != null ? ": " + experience.getDuration() : "")
+            .append(new ExperienceDuration(experience.getDurationMonths()).toSuffix(": "))
             .append("\n");
       }
     }
@@ -193,7 +251,8 @@ public class PersonInfoSchema {
   public OriginalDateTime getStartDateAsOriginalDateTime() {
     if (this.startYearMonth == null) {
       OriginalDateTime now = new OriginalDateTime();
-      return OriginalDateTime.fromMonth(now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
+      return OriginalDateTime.fromMonth(
+          now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
     }
     String[] parts = this.startYearMonth.split("/");
     if (parts.length == 2) {
@@ -203,11 +262,13 @@ public class PersonInfoSchema {
         return OriginalDateTime.fromMonth(year, month);
       } catch (NumberFormatException e) {
         OriginalDateTime now = new OriginalDateTime();
-        return OriginalDateTime.fromMonth(now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
+        return OriginalDateTime.fromMonth(
+            now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
       }
     }
     OriginalDateTime now = new OriginalDateTime();
-    return OriginalDateTime.fromMonth(now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
+    return OriginalDateTime.fromMonth(
+        now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
   }
 
   /**
@@ -224,12 +285,39 @@ public class PersonInfoSchema {
       if (sb.length() > 0) {
         sb.append("\n");
       }
-      sb.append(exp.getPerspective());
-      if (exp.getDuration() != null) {
-        sb.append(": ").append(exp.getDuration());
-      }
+      sb.append(exp.getPerspective())
+          .append(new ExperienceDuration(exp.getDurationMonths()).toSuffix(": "));
     }
     return sb.toString();
+  }
+
+  /**
+   * 要員情報のデータ構造妥当性を検証する（第3層物理ガードレール）.
+   *
+   * <p>氏名未記載、架空要員名、実体プロファイル（スキル経歴）のないデータを物理的に遮断します。
+   *
+   * @return 妥当な場合はtrue、不正な場合はfalse
+   * @author Copel Co., Ltd.
+   */
+  public boolean isValid() {
+    // 氏名のチェック
+    if (this.name == null || this.name.strip().isEmpty()) {
+      return false;
+    }
+    String trimmedName = this.name.strip();
+    // 架空要員名・プレースホルダーの除外（unknown, n/a, none, 不明, なし, 未定 等）
+    if (INVALID_PERSON_NAMES.contains(trimmedName.toLowerCase(Locale.ROOT))) {
+      return false;
+    }
+    // 文字（漢字・ひらがな・カタカナ・アルファベット等）が1文字も含まれない（記号のみ・数字のみ等）場合は除外
+    if (!trimmedName.matches(".*\\p{L}.*")) {
+      return false;
+    }
+    // 実体プロファイル（スキル経歴）の存在チェック（スキルが1件も存在しない場合は実体なしとして除外）
+    if (this.experiences == null || this.experiences.isEmpty()) {
+      return false;
+    }
+    return true;
   }
 
   // ================================================
@@ -241,19 +329,20 @@ public class PersonInfoSchema {
   public static class Experience {
     @Schema(
         title = "スキル",
-        description = "経験、スキル、観点など",
+        description = "本文に明記された経験、スキル、観点など。本文の表現を言い換えたり一般化したりせず、記載どおりに抽出すること。",
         maxLength = 30,
         required = true,
         example = "SpringBootによるWEBアプリ開発")
     private String perspective;
 
     @Schema(
-        title = "経験年数",
+        title = "経験月数",
         description =
-            "経験年数や期間（例: 「3年」）。本文中に明確な年数や期間の記載がない場合は、推測せず必ずnullにすること。（「不明」「未記載」「なし」などの文字列は絶対に設定しないこと）",
-        maxLength = 30,
-        example = "3年")
-    private String duration = null;
+            "本文に明記された経験年数や期間を月数に換算した整数（例: 「3年」→36、「1年半」→18、「6ヶ月」→6）。「2〜3年」のような範囲表記は下限、「約5年」は記載の数値で換算すること。本文中に明確な年数や期間の記載がない場合は、推測せず出力しないこと",
+        type = "integer",
+        gt = 0,
+        example = "36")
+    private Integer durationMonths = null;
   }
 
   /**
