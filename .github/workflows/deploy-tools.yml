@@ -1,0 +1,43 @@
+name: Build and Deploy Tools to GitHub Packages（SesAiAssistantCore tools）
+
+on:
+  push:
+    branches:
+      - main  # main ブランチへの push のうち、tools 配下に変更があった場合だけ実行
+    paths:
+      - 'tools/**'
+  workflow_dispatch:  # 手動でも実行できるようにする
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: コードをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: JDK をセットアップ
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      # nectar-ut-spec-plugin は nectar-bom を参照するため、先に BOM を配布する
+      - name: nectar-bom をビルドしてデプロイ
+        working-directory: tools/nectar-bom
+        run: mvn -B deploy --settings ${GITHUB_WORKSPACE}/.github/maven-settings.xml
+        env:
+          GITHUB_ACTOR: ${{ secrets.GITHUB_ACTOR }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+
+      # ツール自身の UT は skip しない（検査とカバレッジに通ったものだけを配布する）
+      - name: nectar-ut-spec-plugin をビルドしてデプロイ
+        working-directory: tools/nectar-ut-spec-plugin
+        run: mvn -B deploy --settings ${GITHUB_WORKSPACE}/.github/maven-settings.xml
+        env:
+          GITHUB_ACTOR: ${{ secrets.GITHUB_ACTOR }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}

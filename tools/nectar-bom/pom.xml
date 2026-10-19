@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.github.SES-AI-Assistant</groupId>
+  <artifactId>nectar-bom</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>Nectar BOM</name>
+  <description>Nectar の Java リポジトリ・ツールで使う依存ライブラリのバージョンを統一する BOM</description>
+
+  <properties>
+    <!-- JUnit 5 系の最新安定版（JDK 17 から 22 で動作する） -->
+    <junit.version>5.14.4</junit.version>
+    <!-- Mockito 5 系の最新安定版。mockito-inline は使わない（Mockito 5 は既定でインライン方式） -->
+    <mockito.version>5.24.0</mockito.version>
+    <!-- AssertJ 3 系の最新安定版（4.x は未リリースの M1 のみのため対象外） -->
+    <assertj.version>3.27.7</assertj.version>
+    <!-- JavaParser（nectar-ut-spec-plugin が Java ソースの解析に使用する） -->
+    <javaparser.version>3.28.2</javaparser.version>
+    <maven.compiler.release>17</maven.compiler.release>
+  </properties>
+
+  <!-- GitHub Packages へ mvn deploy する際のリポジトリ（Core の pom と同一） -->
+  <distributionManagement>
+    <repository>
+      <id>github</id>
+      <url>https://maven.pkg.github.com/SES-AI-Assistant/SesAiAssistantCore</url>
+    </repository>
+    <snapshotRepository>
+      <id>github</id>
+      <url>https://maven.pkg.github.com/SES-AI-Assistant/SesAiAssistantCore</url>
+    </snapshotRepository>
+  </distributionManagement>
+
+  <!--
+    拡張方針:
+    今後、aws-lambda-java-events や jackson などの依存を統一する場合は、
+    dependencyManagement に同じ書式（version プロパティ + dependency）で追記する。
+    本 BOM を import した側は version を書かずに済む。
+  -->
+  <dependencyManagement>
+    <dependencies>
+      <!-- JUnit 5（junit-jupiter-api / engine / params の版を揃える） -->
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- Mockito 5 系（mockito-core / mockito-junit-jupiter の版を揃える） -->
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-bom</artifactId>
+        <version>${mockito.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- AssertJ（BOM ではないため個別に版を指定する） -->
+      <dependency>
+        <groupId>org.assertj</groupId>
+        <artifactId>assertj-core</artifactId>
+        <version>${assertj.version}</version>
+      </dependency>
+      <!-- JavaParser（Java ソースの構文解析） -->
+      <dependency>
+        <groupId>com.github.javaparser</groupId>
+        <artifactId>javaparser-core</artifactId>
+        <version>${javaparser.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+</project>

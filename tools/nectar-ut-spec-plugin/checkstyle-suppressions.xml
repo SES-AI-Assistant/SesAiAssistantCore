@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+    "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+    "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+<!--
+  checkstyle の抑止設定。
+  日本語の JavaDoc は要約文を「。」で終えるため、英語の「.」を要求する SummaryJavadoc は
+  この仕様と両立しない。文末の規則は Java_UT仕様（UT-10）で検査するため、この規則だけを抑止する。
+-->
+<suppressions>
+  <suppress checks="SummaryJavadoc" files=".*"/>
+</suppressions>
