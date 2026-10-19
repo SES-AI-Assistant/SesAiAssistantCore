@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SpotBugs の除外設定。範囲を限定して、必要な箇所だけを除外する。
+  検査器（TextRuleChecker、TestNameChecker、JavadocChecker）が受け取る UtSpecRules は、
+  生成後に変更しない語彙と判定の定義であり、内部表現の暴露として扱う必要がない。
+-->
+<FindBugsFilter>
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+    <Or>
+      <Class name="copel.sesproductpackage.tools.utspec.TextRuleChecker"/>
+      <Class name="copel.sesproductpackage.tools.utspec.TestNameChecker"/>
+      <Class name="copel.sesproductpackage.tools.utspec.JavadocChecker"/>
+    </Or>
+  </Match>
+</FindBugsFilter>

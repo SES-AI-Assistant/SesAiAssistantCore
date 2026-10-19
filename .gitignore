@@ -27,3 +27,6 @@ TODO.md
 ./cursor
 ./gemini
 ./claude
+
+# nectar-ut-spec-plugin などのツールのビルド成果物
+/tools/*/target/

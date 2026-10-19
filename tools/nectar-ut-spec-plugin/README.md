@@ -1,0 +1,259 @@
+# nectar-ut-spec-plugin
+
+UT（単体テスト）コードを検査し、テスト仕様書 HTML を出力する Maven プラグインです。
+仕様は `.claude/.log/Java_UT仕様.md` の第3.6章（検査）と第9章（仕様書）に従います。
+
+- 対象: Java 17 のリポジトリ（JDK 17 以上 23 未満で実行）
+- 解析: JavaParser（Java ソースの構文解析）
+- 配布: GitHub Packages（`com.github.SES-AI-Assistant:nectar-ut-spec-plugin`）
+- ゴール: `nectar-ut-spec:check`（既定のフェーズは `verify`）
+
+## 1. 対象リポジトリでの使い方
+
+### 1.1 pom.xml への追加
+
+`jacoco-maven-plugin` の `report` の後に、本プラグインを `verify` フェーズで実行します。
+`report` は `test` フェーズで実行されるため、本プラグインは必ず JaCoCo の CSV を読める状態になります。
+
+```xml
+<build>
+  <plugins>
+    <!-- 1. JaCoCo（report は test フェーズで jacoco.csv を出力する） -->
+    <plugin>
+      <groupId>org.jacoco</groupId>
+      <artifactId>jacoco-maven-plugin</artifactId>
+      <version>0.8.15</version>
+      <executions>
+        <execution>
+          <goals>
+            <goal>prepare-agent</goal>
+          </goals>
+        </execution>
+        <execution>
+          <id>report</id>
+          <phase>test</phase>
+          <goals>
+            <goal>report</goal>
+          </goals>
+          <configuration>
+            <formats>
+              <format>HTML</format>
+              <format>CSV</format>
+            </formats>
+          </configuration>
+        </execution>
+      </executions>
+    </plugin>
+
+    <!-- 2. UT 仕様の検査と仕様書出力（verify フェーズで jacoco:report の後に1回実行される） -->
+    <plugin>
+      <groupId>com.github.SES-AI-Assistant</groupId>
+      <artifactId>nectar-ut-spec-plugin</artifactId>
+      <version>0.0.1-SNAPSHOT</version>
+      <executions>
+        <execution>
+          <id>nectar-ut-spec</id>
+          <goals>
+            <goal>check</goal>
+          </goals>
+        </execution>
+      </executions>
+    </plugin>
+  </plugins>
+</build>
+```
+
+- JaCoCo の `prepare-agent` と `report` は必ず本プラグインより前に宣言する。
+- 本プラグインは `verify` フェーズに束縛されるため、`mvn verify`（または `mvn install`、`mvn deploy`）で実行される。
+- `mvn test` では実行されない。
+
+### 1.2 パラメータ
+
+| パラメータ | プロパティ | 既定値 | 内容 |
+| :--- | :--- | :--- | :--- |
+| `skip` | `nectar.ut.skip` | `false` | `true` の場合は検査も仕様書の出力も行わない |
+| `failOnViolation` | `nectar.ut.failOnViolation` | `true` | `true` の場合、違反があるとビルドを失敗させる。`false` の場合は警告だけにする |
+| `sourceDirectory` | — | `${project.build.sourceDirectory}` | 本体ソースのディレクトリ |
+| `testSourceDirectory` | — | `${project.build.testSourceDirectory}` | テストソースのディレクトリ |
+| `jacocoCsv` | — | `${project.build.directory}/site/jacoco/jacoco.csv` | JaCoCo の CSV レポート |
+| `surefireReportsDirectory` | — | `${project.build.directory}/surefire-reports` | surefire のレポートのディレクトリ |
+| `outputDirectory` | — | `${project.build.directory}/nectar-ut-spec` | 仕様書 HTML の出力先 |
+
+除外のリストを指定するパラメータはありません。除外は本体クラスやメソッドに `@CoverageExcludedGenerated(reason = "...")` を付けて行います。
+
+### 1.3 実行の流れ
+
+1. JaCoCo が `jacoco.csv` を出力する（`test` フェーズ）。
+2. 本プラグインが本体ソースとテストソースを読み、検査を行う（`verify` フェーズ）。
+3. 違反があれば、違反を `ファイル:行 [ルール番号] 内容` の形式で全件ログに出し、ビルドを失敗させる。仕様書は出力しない。
+4. 違反が無ければ、`target/nectar-ut-spec/index.html` を出力する。
+
+## 2. 検査ルール
+
+ルールの語彙（禁止語、括弧、装飾記号、期待結果の語尾、第2階層の種類、枕詞、文字数上限）は
+`UtSpecRules` の1か所にまとめています。調整する場合はそこだけを変更します。
+
+| ルール | 内容 | 仕様の項目 |
+| :--- | :--- | :--- |
+| UT-00 | テストと本体のソースを構文解析できない | — |
+| UT-01 | 数えるコードを持つ本体クラスに、対応するテストクラス（`本体名Test`）がない | 1対1 |
+| UT-02 | 対応する本体クラスがないテストクラス | 1対1 |
+| UT-03 | 1ファイル1クラスで、クラス名がファイル名と同じ、かつ本体名 + Test になっていない | ファイル配置 |
+| UT-04 | テストクラスの JavaDoc に、対象クラスを解決できる `{@link}` がない（同じパッケージの単純名、または対象の完全修飾名。別クラスを import して同名になる場合は不可） | テストクラスの JavaDoc |
+| UT-05 | 第1階層の名前が、対象クラスのメソッド・コンストラクタに存在しない | @Nested 第1階層 |
+| UT-06 | 第2階層が「正常系、異常系、境界値、認可、テナント隔離」以外、または順番が違う | @Nested 第2階層 |
+| UT-07 | `@Test` / `@ParameterizedTest` が第2階層の `@Nested` クラス以外にある。`@Nested` が第1・第2階層以外にある。未対応のテストアノテーションを使っている | @Nested 階層 |
+| UT-08 | テスト名が `{条件}場合_{期待結果}` の形になっていない | テスト名 |
+| UT-09 | 期待結果の語尾が許可された一覧にない | テスト名 |
+| UT-10 | JavaDoc の本文が2文でない、1文目が「ことを確かめる。」で終わらない、文末が「。」でない、JavaDoc がない | JavaDoc |
+| UT-11 | JavaDoc の本文2文目が枕詞（なぜ、理由、目的、背景、意図）で始まる。または2文目の文末が「ため。」で終わる（理由は言い切りで書く） | JavaDoc |
+| UT-12 | `@given` / `@when` / `@then` が無い、重複する、空である、または1文でない | JavaDoc |
+| UT-13 | 1文が100文字を超える（文末の「。」を含む。@given / @when / @then の内容も対象） | 文字数 |
+| UT-14 | 禁止語（正しい、正しく、正常に、適切に、など、うまく）を使っている | 文章 |
+| UT-15 | 括弧（（）()【】［］[]「」『』）を使っている。`{@link}` と `{@code}` の中は対象外 | 文章 |
+| UT-16 | 絵文字または装飾記号（※ → ★ ● など）を使っている | 文章 |
+| UT-17 | `@DisplayName` は使わない（テストクラス、第1・第2階層、テストメソッドのすべて） | テスト名 |
+| UT-18 | 除外（`@CoverageExcludedGenerated`）に、理由（`reason = "..."` の空でない文字列）がない。単一値の書き方や空文字・空白だけも違反 | 除外 |
+
+禁止語、括弧、装飾記号はテスト名と JavaDoc の両方を検査します。
+
+括弧は JavaDoc とテスト名で使えない（UT-15）。`@when` などで呼び出し式を書く場合は、`{@code add(1, 2)}` のように `{@code}` で囲む。`{@code}` と `{@link}` の中は括弧の検査の対象外。
+
+### 2.1 テスト名の書き方
+
+- 形は `{条件}場合_{期待結果}`。区切りは最初の「場合_」とする。条件は「場合」で終える（「の場合」「ない場合」のどちらも可）。
+- 期待結果は次のいずれかの語尾で終える。
+  - `〜を返す`、`〜例外を投げる`、`XxxExceptionを投げる`、`〜を登録する`、`〜を更新する`、`〜を削除する`、`〜を送信する`、`〜を呼ばない`、`何もしない`
+- 期待結果の語尾の表記ゆれは次のとおり扱う。
+  - 「〜例外を投げる」と「XxxExceptionを投げる」の両方を許可する（XxxException は英字で始まる型名）。
+  - 語尾の前に内容が無い場合（例: `を返す` だけ）は許可しない。
+
+例: `プランがFREEの場合_403を返す`、`DBからユーザーを取得できない場合_503を返す`
+
+### 2.2 JavaDoc の書き方
+
+```java
+/**
+ * 対象の振る舞いを主語つきで書き、ことを確かめる。
+ * このテストを行う理由を1文で書く。
+ *
+ * @given 前提を1文で書く
+ * @when 操作を1文で書く
+ * @then 期待結果を1文で書く
+ */
+```
+
+- 本文は2文。1文目は「ことを確かめる。」で終える。2文目は枕詞（なぜ、理由、目的、背景、意図）で始めない。
+- 各タグは1つだけ書き、1文にする（「。」を含めない）。
+- 1文は100文字以内（文末の「。」を含む）。@given / @when / @then の内容も同じ上限で検査する。
+- 整形ツール（google-java-format）が空行の後の段落に挿入する段落タグ（`<p>`）は、文分割の前に取り除く。段落タグは大文字・小文字を区別しない。`<br>` と `<br/>` も空白として扱う。全角の空白（U+3000）は通常の空白と同じに扱う。
+- 本文2文目は理由を言い切りで書く。文末が「ため。」で終わる形（例: ×「〜を拒否する必要があるため。」）は UT-11 の違反になる。文中で「ため、」を使う形（例: 「〇〇のため、△△する。」）は可。
+  例: ×「null の時計では現在時刻を取得する必要があるため。」 ○「null の時計では現在時刻を取得できない。」
+
+## 3. メソッド名（第1階層）の表記規則
+
+第1階層の名前には、宣言されたメソッド・コンストラクタに加えて、record の構成要素（アクセサ）の名前も含める。
+Lombok が生成するメソッド（`@Getter` など）は本体のソースに無いため、第1階層の対象外になる。対象にしたい場合は手で宣言する。
+
+
+第1階層の名前は、本体クラスの宣言（private を含む）から次の規則で決まります。
+
+| 対象 | 名前 |
+| :--- | :--- |
+| オーバーロードされていないメソッド | メソッド名（例: `generate`） |
+| オーバーロードされたメソッド | `メソッド名_引数型`（例: `generate_String_double`）。引数が無い版は `メソッド名` |
+| コンストラクタ（宣言が1つ、または宣言が無い） | `コンストラクタ` |
+| コンストラクタ（宣言が複数） | `コンストラクタ_引数型`。引数が無い版は `コンストラクタ` |
+
+引数型の表記は次のとおりです。
+
+- 型は単純名を使う（`java.util.Map<String, Integer>` は `Map`）。ジェネリクスの型引数は含めない。
+- 配列は次元ごとに `Array` を付ける（`String[]` は `StringArray`、`String[][]` は `StringArrayArray`）。
+- 可変長引数は `Varargs` を付ける（`String...` は `StringVarargs`）。
+
+## 4. 第2階層の書き方
+
+第2階層（種類）は次の5つだけで、この順番で書きます。該当するものだけを作ります。
+
+正常系、異常系、境界値、認可、テナント隔離
+
+- 第2階層に置いたクラスの中にだけ `@Test` / `@ParameterizedTest` を書きます。
+- 第2階層の中に `@Nested` を置くことはできません（階層は3段以上にしない）。
+- テストクラスの直下や第1階層に、テストメソッドを直接置くことはできません。
+- テストに関係しない変数や補助クラスは、第1階層・第2階層の中に置けます（テストメソッドを持たない場合）。
+
+## 5. パラメータ付きテストの展開
+
+仕様書では、パラメータ付きテストを**パラメータの組ごとに1行**に展開します。
+
+- 対応するソース: `@CsvSource`、`@ValueSource`（値を並べたもの）。
+- `@ParameterizedTest(name = "...")` の書式は次の置き換えに対応します。
+  - `{index}`: 1から始まる組の番号
+  - `{arguments}`: パラメータの値
+- 未対応のソース（`@MethodSource` など）は展開せず、「未展開のソース」と書いた1行で出します。
+
+## 6. テスト仕様書 HTML
+
+`target/nectar-ut-spec/index.html` の1ファイルです（外部依存なし）。
+
+- サマリ: リポジトリ名、コミットハッシュ、実行日時、テストケース数（成功、失敗、スキップ）、カバレッジ（命令・分岐）、種類別の件数
+- 除外クラス一覧: `@CoverageExcludedGenerated` の対象と除外理由
+- テスト仕様: クラス → 第1階層（対象メソッド） → 種類 → テストケースの順に折りたたみで表示
+  - 列: No、テストケース名、何を確かめるか、理由、前提、操作、期待結果、結果、コード
+  - 絞り込み: 種類、結果、クラス名の一部
+- コード列: コミットハッシュ固定の GitHub の行リンク
+
+リンクの URL とコミットは次の順に取得します。取得できない場合は行リンクを作らず、ファイル名と行番号だけを出します。
+
+取得した origin の URL は、認証情報（`user:token@` や `git@`）を取り除き、ssh の URL は https に変換してから使います。
+
+1. 環境変数 `GITHUB_SERVER_URL` と `GITHUB_REPOSITORY`（URL）、`GITHUB_SHA`（コミット）
+2. git コマンド（`remote.origin.url`、`HEAD`）
+
+結果（成功、失敗、スキップ、未実行）は surefire のレポート（`TEST-*.xml`）と、テストクラス名・メソッド名で突き合わせます。
+
+HTML に出す値は、すべて HTML としてエスケープします。
+
+## 7. 除外
+
+テストの対象から外すコードには `@CoverageExcludedGenerated(reason = "...")` を付けます。
+
+- 本プラグインは単純名 `CoverageExcludedGenerated` と `reason` 属性で検出します。アノテーションの定義（完全修飾名）は参照しません。
+- `reason` は必ず `reason = "除外の理由"` の形式で、空でない文字列を書きます。`reason` が無い、空や空白だけ、単一値の書き方のいずれも UT-18 の違反です。
+- クラスに付けた場合は、そのクラスはテストが無くても 1対1 の違反にしません。
+- メソッドやコンストラクタに付けた場合は、除外の一覧に `クラス名#メソッド名` で出します。
+- 除外は仕様書の「除外クラス一覧」に理由と一緒に出るため、理由を必ず書きます。
+
+## 8. 注意事項
+
+- `target/surefire-reports` に古いレポートが残っていると、削除したテストの結果が仕様書に混ざることがあります。検査の前に `mvn clean` を実行してください。
+- JaCoCo の `jacoco.csv` が無い場合は、検査を行わずにビルドを失敗させます（先に `jacoco:report` が実行されていることを確認します）。
+- 1ファイルに書けるテストクラスは1つだけです。本体クラスと同じパッケージに `本体名Test` を置きます。
+- テストファイルの名前は必ず `Test` で終えます。それ以外の名前のファイルは UT-03 の違反になります。
+
+## 9. 開発者向け
+
+### 9.1 ビルドとテスト
+
+```bash
+export JAVA_HOME=$(/usr/libexec/java_home -v 18)   # Maven が JDK 17 以上 23 未満で動くこと
+mvn clean verify
+```
+
+- `mvn verify` で、単体テストの実行、JaCoCo の 100% 検査（命令と分岐）が行われます。
+- 依存する `nectar-bom` を先に `mvn install` しておく必要があります（`tools/nectar-bom`）。
+
+### 9.2 自分自身への適用（ドッグフーディング）
+
+```bash
+mvn -B clean install                                  # 本プラグインを ~/.m2 に配布（ローカル）
+mvn -B com.github.SES-AI-Assistant:nectar-ut-spec-plugin:0.0.1-SNAPSHOT:check
+```
+
+2つ目のコマンドは、直前の `verify` の結果（`target/site/jacoco/jacoco.csv` と `target/surefire-reports`）を使って検査します。
+違反が無ければ `target/nectar-ut-spec/index.html` を出力します。
+
+### 9.3 配布
+
+`.github/workflows/deploy-tools.yml` が、`main` への push のうち `tools/**` に変更があった場合と、手動実行で配布します。
+配布の順番は `nectar-bom`、`nectar-ut-spec-plugin` です。

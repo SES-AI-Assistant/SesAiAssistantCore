@@ -1,0 +1,55 @@
+name: Build and Deploy Tools to GitHub Packages（SesAiAssistantCore tools）
+
+on:
+  push:
+    branches:
+      - main  # main ブランチへの push のうち、tools 配下に変更があった場合だけ実行
+    paths:
+      - 'tools/**'
+  workflow_dispatch:  # 手動でも実行できるようにする
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: コードをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: JDK をセットアップ
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      # nectar-ut-spec-plugin は nectar-bom を参照するため、先に BOM を配布する
+      - name: nectar-bom をビルドしてデプロイ
+        working-directory: tools/nectar-bom
+        run: mvn -B deploy --settings ${GITHUB_WORKSPACE}/.github/maven-settings.xml
+        env:
+          GITHUB_ACTOR: ${{ secrets.GITHUB_ACTOR }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+
+      # ツール自身の UT は skip しない（検査とカバレッジに通ったものだけを配布する）
+      - name: nectar-ut-spec-plugin をビルドしてデプロイ
+        working-directory: tools/nectar-ut-spec-plugin
+        run: mvn -B deploy --settings ${GITHUB_WORKSPACE}/.github/maven-settings.xml
+        env:
+          GITHUB_ACTOR: ${{ secrets.GITHUB_ACTOR }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+
+      # nectar-test-support は Core（provided）と nectar-ut-spec-plugin（build 時の検査）を使うため、
+      # それらを GitHub Packages から取得できた後に配布する。Core は settings.xml の認証で取得する。
+      # 前提: Core の feat/ut-foundation-config（ConfigSource、ApplicationClock、Properties.putForTest、
+      # DBConnection.setConnectionFactoryForTest 等）が配布済みであること。配布前は本ステップのコンパイルが失敗する。
+      # 条件分岐は入れていない。自身の UT は skip しない（検査とカバレッジに通ったものだけを配布する）
+      - name: nectar-test-support をビルドしてデプロイ（前提は Core の feat/ut-foundation-config の API が配布済みであること）
+        working-directory: tools/nectar-test-support
+        run: mvn -B deploy --settings ${GITHUB_WORKSPACE}/.github/maven-settings.xml
+        env:
+          GITHUB_ACTOR: ${{ secrets.GITHUB_ACTOR }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
