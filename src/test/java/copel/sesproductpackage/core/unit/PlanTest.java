@@ -30,7 +30,25 @@ class PlanTest {
     assertEquals("プレミアムプラン", Plan.PREMIUM.getName());
     Set<Permission> perms = Plan.PREMIUM.getPermissions();
     assertNotNull(perms);
-    assertEquals(Set.of(Permission.values()).size(), perms.size());
-    assertTrue(perms.contains(Permission.MANAGE_USERS));
+    assertEquals(
+        Set.of(
+            Permission.VIEW_MATCHING_LIST,
+            Permission.VIEW_JOB_LIST,
+            Permission.DOWNLOAD_SKILLSHEET,
+            Permission.EXEC_AI_MATCHING,
+            Permission.REGISTER_INFO_LIST_IMPORT,
+            Permission.MANAGE_WATCH),
+        perms);
+  }
+
+  /** プレミアムプランは管理系権限（ユーザー・マスタ・送信者・送信元グループ・利用履歴）を持たないことを確認する. */
+  @Test
+  void testPremiumPlanHasNoAdminPermissions() {
+    Set<Permission> perms = Plan.PREMIUM.getPermissions();
+    assertFalse(perms.contains(Permission.MANAGE_USERS));
+    assertFalse(perms.contains(Permission.MANAGE_MASTER_DATA));
+    assertFalse(perms.contains(Permission.MANAGE_SENDER));
+    assertFalse(perms.contains(Permission.MANAGE_FROM_GROUP));
+    assertFalse(perms.contains(Permission.VIEW_USAGE_HISTORY));
   }
 }

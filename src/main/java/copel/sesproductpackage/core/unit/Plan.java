@@ -13,7 +13,20 @@ public enum Plan {
       "00",
       "フリープラン",
       EnumSet.of(Permission.VIEW_MATCHING_LIST, Permission.VIEW_JOB_LIST, Permission.MANAGE_WATCH)),
-  PREMIUM("10", "プレミアムプラン", EnumSet.allOf(Permission.class));
+  /**
+   * プレミアムプラン. 管理系の権限（MANAGE_SENDER / MANAGE_FROM_GROUP / VIEW_USAGE_HISTORY / MANAGE_USERS /
+   * MANAGE_MASTER_DATA）はプランではなくロールのみで付与するため、ここには含めない.
+   */
+  PREMIUM(
+      "10",
+      "プレミアムプラン",
+      EnumSet.of(
+          Permission.VIEW_MATCHING_LIST,
+          Permission.VIEW_JOB_LIST,
+          Permission.DOWNLOAD_SKILLSHEET,
+          Permission.EXEC_AI_MATCHING,
+          Permission.REGISTER_INFO_LIST_IMPORT,
+          Permission.MANAGE_WATCH));
 
   /** コード値. */
   private final String code;

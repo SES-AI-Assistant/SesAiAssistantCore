@@ -2,6 +2,7 @@ package copel.sesproductpackage.core.database;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.unit.OriginalDateTime;
@@ -140,5 +141,36 @@ class SES_AI_T_WATCHTest {
     assertNotNull(w1.toString());
     assertNotEquals(w1, null);
     assertNotEquals(w1, new Object());
+  }
+
+  /**
+   * 主キー2列（user_id, target_id）の操作で、テナントIDが第3パラメータにバインドされ第2主キーを上書きしないことを確認する.
+   *
+   * @throws Exception
+   */
+  @Test
+  void testPkOperationsBindTenantIdAsThirdParameter() throws Exception {
+    Connection conn = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(conn.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(ps.executeUpdate()).thenReturn(1);
+    when(rs.next()).thenReturn(true);
+    when(rs.getBoolean(1)).thenReturn(true);
+
+    SES_AI_T_WATCH watch = new SES_AI_T_WATCH("test-tenant");
+    watch.setUserId("user1");
+    watch.setTargetId("target1");
+
+    assertTrue(watch.isExist(conn));
+    verify(ps).setString(1, "user1");
+    verify(ps).setString(2, "target1");
+    verify(ps).setString(3, "test-tenant");
+
+    assertTrue(watch.deleteByPk(conn));
+    verify(ps, times(2)).setString(2, "target1");
+    verify(ps, times(2)).setString(3, "test-tenant");
+    verify(ps, never()).setString(eq(2), eq("test-tenant"));
   }
 }

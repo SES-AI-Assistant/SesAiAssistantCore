@@ -93,28 +93,6 @@ class SES_AI_T_SKILLSHEETLotTest {
   }
 
   @Test
-  void testRetrieve() throws Exception {
-    setupDefaultResultSet();
-    when(mockRs.getLong(1)).thenReturn(1L);
-    when(mockRs.next()).thenReturn(true, true, false);
-    SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
-    lot.retrieve(mockConn, "test-tenant", createTestVector(), 10);
-    assertEquals(1, lot.size());
-    assertEquals(0.5, lot.get(0).getDistance());
-
-    SES_AI_T_SKILLSHEETLot lotForNull = new SES_AI_T_SKILLSHEETLot();
-    lotForNull.retrieve(null, "test-tenant", null, 0);
-    assertTrue(lotForNull.isEmpty());
-
-    setupDefaultResultSet();
-    when(mockRs.getLong(1)).thenReturn(1L);
-    when(mockRs.next()).thenReturn(true, true, false);
-    SES_AI_T_SKILLSHEETLot lot2 = new SES_AI_T_SKILLSHEETLot();
-    lot2.retrieve(mockConn, "test-tenant", createTestVector(), 1);
-    assertEquals(1, lot2.size());
-  }
-
-  @Test
   void testSelectLike() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
@@ -190,7 +168,7 @@ class SES_AI_T_SKILLSHEETLotTest {
     when(mockRs.getLong(1)).thenReturn(1L);
     when(mockRs.next()).thenReturn(true, true, false);
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
-    lot.retrieve(mockConn, "test-tenant", createTestVector());
+    lot.retrieveWithThreshold(mockConn, "test-tenant", createTestVector(), 0.0, 5);
     assertEquals(1, lot.size());
     assertEquals(0.5, lot.get(0).getDistance());
 

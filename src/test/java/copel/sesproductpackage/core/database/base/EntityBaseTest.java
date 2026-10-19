@@ -1,9 +1,13 @@
 package copel.sesproductpackage.core.database.base;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Iterator;
@@ -122,5 +126,109 @@ class EntityBaseTest {
     String str = lot.toString();
     assertTrue(str.contains("(0)TestEntity"));
     assertTrue(str.contains("(1)TestEntity"));
+  }
+
+  /**
+   * 主キーが2列のSQLに対し、SELECT-by-PK テンプレートが tenant_id を第3パラメータ（元SQLのプレースホルダ数+1）にバインドすることを確認する.
+   *
+   * <p>以前は tenant_id を第2パラメータに固定バインドしており、第2主キーが上書きされていた。
+   *
+   * @throws SQLException
+   */
+  @Test
+  void testExecuteSelectByPkBindsTenantIdAfterAllPlaceholders() throws SQLException {
+    Connection conn = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(conn.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true);
+    TestEntity entity = new TestEntity();
+
+    boolean found =
+        entity.executeSelectByPk(
+            conn,
+            "SELECT * FROM T WHERE k1 = ? AND k2 = ?",
+            "test-tenant",
+            stmt -> {
+              stmt.setString(1, "key1");
+              stmt.setString(2, "key2");
+            },
+            rs2 -> {},
+            "label");
+
+    assertTrue(found);
+    verify(ps).setString(1, "key1");
+    verify(ps).setString(2, "key2");
+    verify(ps).setString(3, "test-tenant");
+    verify(ps, never()).setString(eq(2), eq("test-tenant"));
+  }
+
+  /**
+   * 主キーが2列のSQLに対し、EXISTS テンプレートが tenant_id を括弧内末尾（第3パラメータ）にバインドすることを確認する.
+   *
+   * @throws SQLException
+   */
+  @Test
+  void testExecuteExistsBindsTenantIdAfterAllPlaceholders() throws SQLException {
+    Connection conn = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(conn.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true);
+    when(rs.getBoolean(1)).thenReturn(true);
+    TestEntity entity = new TestEntity();
+
+    boolean exists =
+        entity.executeExists(
+            conn,
+            "SELECT EXISTS (SELECT 1 FROM T WHERE k1 = ? AND k2 = ?)",
+            "test-tenant",
+            stmt -> {
+              stmt.setString(1, "key1");
+              stmt.setString(2, "key2");
+            },
+            "label");
+
+    assertTrue(exists);
+    verify(conn)
+        .prepareStatement(
+            "SELECT EXISTS (SELECT 1 FROM T WHERE k1 = ? AND k2 = ? AND tenant_id = ?)");
+    verify(ps).setString(1, "key1");
+    verify(ps).setString(2, "key2");
+    verify(ps).setString(3, "test-tenant");
+    verify(ps, never()).setString(eq(2), eq("test-tenant"));
+  }
+
+  /**
+   * 主キーが2列のSQLに対し、DELETE-by-PK テンプレートが tenant_id を第3パラメータにバインドすることを確認する.
+   *
+   * @throws SQLException
+   */
+  @Test
+  void testExecuteDeleteByPkBindsTenantIdAfterAllPlaceholders() throws SQLException {
+    Connection conn = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    when(conn.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeUpdate()).thenReturn(1);
+    TestEntity entity = new TestEntity();
+
+    boolean deleted =
+        entity.executeDeleteByPk(
+            conn,
+            "DELETE FROM T WHERE k1 = ? AND k2 = ?",
+            "test-tenant",
+            stmt -> {
+              stmt.setString(1, "key1");
+              stmt.setString(2, "key2");
+            },
+            "label");
+
+    assertTrue(deleted);
+    verify(ps).setString(1, "key1");
+    verify(ps).setString(2, "key2");
+    verify(ps).setString(3, "test-tenant");
+    verify(ps, never()).setString(eq(2), eq("test-tenant"));
   }
 }

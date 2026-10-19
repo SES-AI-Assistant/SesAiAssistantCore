@@ -1,7 +1,6 @@
 package copel.sesproductpackage.core.database;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.search.FulltextCondition;
@@ -79,21 +78,6 @@ class SES_AI_T_JOBLotTest {
     SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
     lot.selectAllWithoutTenantFilter(mockConn);
     assertEquals(1, lot.size());
-  }
-
-  @Test
-  void testRetrieve() throws Exception {
-    setupDefaultResultSet();
-    when(mockRs.getLong(1)).thenReturn(1L);
-    when(mockRs.next()).thenReturn(true, true, false);
-    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    lot.retrieve(mockConn, "test-tenant", createTestVector(), 10);
-    assertEquals(1, lot.size());
-    assertEquals(0.5, lot.get(0).getDistance());
-
-    SES_AI_T_JOBLot lotForNull = new SES_AI_T_JOBLot();
-    lotForNull.retrieve(null, "test-tenant", null, 0);
-    assertTrue(lotForNull.isEmpty());
   }
 
   @Test
@@ -185,7 +169,7 @@ class SES_AI_T_JOBLotTest {
     when(mockRs.getLong(1)).thenReturn(1L);
     when(mockRs.next()).thenReturn(true, true, false);
     SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    lot.retrieve(mockConn, "test-tenant", createTestVector());
+    lot.retrieveWithThreshold(mockConn, "test-tenant", createTestVector(), 0.0, 5);
     assertEquals(1, lot.size());
     assertEquals(0.5, lot.get(0).getDistance());
 

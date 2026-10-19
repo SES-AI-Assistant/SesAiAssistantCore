@@ -12,7 +12,13 @@ public enum Role {
   システム利用不可("00", EnumSet.noneOf(Permission.class)),
   システムユーザー("10", EnumSet.of(Permission.MANAGE_WATCH)),
   開発("20", EnumSet.of(Permission.MANAGE_WATCH)),
-  運用("30", EnumSet.of(Permission.MANAGE_WATCH)),
+  運用(
+      "30",
+      EnumSet.of(
+          Permission.MANAGE_WATCH,
+          Permission.MANAGE_SENDER,
+          Permission.MANAGE_FROM_GROUP,
+          Permission.MANAGE_USERS)),
   システム管理者("99", EnumSet.allOf(Permission.class));
 
   /** コード値. */

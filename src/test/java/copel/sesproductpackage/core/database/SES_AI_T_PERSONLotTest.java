@@ -176,27 +176,6 @@ class SES_AI_T_PERSONLotTest {
   }
 
   @Test
-  void testRetrieve() throws Exception {
-    setupDefaultResultSet();
-    // retrievePaged は先に COUNT(*) し、続けて本検索するため 2 回 executeQuery する
-    when(mockRs.getLong(1)).thenReturn(1L);
-    when(mockRs.next()).thenReturn(true, true, false);
-    SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
-    lot.retrieve(mockConn, "test-tenant", createTestVector(), 10);
-    assertEquals(1, lot.size());
-    assertEquals(0.5, lot.get(0).getDistance());
-
-    SES_AI_T_PERSONLot lotForNull = new SES_AI_T_PERSONLot();
-    lotForNull.retrieve(null, "test-tenant", null, 0);
-    assertTrue(lotForNull.isEmpty());
-
-    when(mockRs.next()).thenReturn(false);
-    SES_AI_T_PERSONLot lotEmpty = new SES_AI_T_PERSONLot();
-    lotEmpty.retrieve(mockConn, "test-tenant", createTestVector(), 10);
-    assertTrue(lotEmpty.isEmpty());
-  }
-
-  @Test
   void testSearchByRawContentSingle() throws SQLException {
     setupDefaultResultSet();
     SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
@@ -302,7 +281,7 @@ class SES_AI_T_PERSONLotTest {
     when(mockRs.getLong(1)).thenReturn(1L);
     when(mockRs.next()).thenReturn(true, true, false);
     SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
-    lot.retrieve(mockConn, "test-tenant", createTestVector());
+    lot.retrieveWithThreshold(mockConn, "test-tenant", createTestVector(), 0.0, 5);
     assertEquals(1, lot.size());
     assertEquals(0.5, lot.get(0).getDistance());
 

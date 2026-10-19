@@ -208,7 +208,9 @@ public abstract class EntityBase implements Comparable<EntityBase> {
 
     try (PreparedStatement stmt = conn.prepareStatement(filteredSql)) {
       paramBinder.bind(stmt);
-      setTenantIdParameter(stmt, 2, tenantId); // 通常は PK が第1パラメータなので、tenantId は第2
+      // tenant_id 条件は addTenantIdFilter により SQL 末尾（EXISTS の場合は括弧内末尾）に付加されるため、
+      // バインド位置は元SQLのプレースホルダ数 + 1 となる（PK が複数列でも取り違えないため）
+      setTenantIdParameter(stmt, countParameterPlaceholders(baseSql) + 1, tenantId);
 
       try (ResultSet rs = stmt.executeQuery()) {
         if (rs.next()) {
@@ -289,7 +291,8 @@ public abstract class EntityBase implements Comparable<EntityBase> {
 
     try (PreparedStatement stmt = conn.prepareStatement(filteredSql)) {
       paramBinder.bind(stmt);
-      setTenantIdParameter(stmt, 2, tenantId); // 通常は PK が第1パラメータなので、tenantId は第2
+      // tenant_id 条件の位置は元SQLのプレースホルダ数 + 1（PK が複数列でも第2列を上書きしないため）
+      setTenantIdParameter(stmt, countParameterPlaceholders(baseSql) + 1, tenantId);
       try (ResultSet rs = stmt.executeQuery()) {
         if (rs.next()) {
           return rs.getBoolean(1);
@@ -430,7 +433,8 @@ public abstract class EntityBase implements Comparable<EntityBase> {
 
     try (PreparedStatement stmt = conn.prepareStatement(filteredSql)) {
       paramBinder.bind(stmt);
-      setTenantIdParameter(stmt, 2, tenantId); // DELETE の場合、通常は PK が第1なので tenantId は第2
+      // tenant_id 条件の位置は元SQLのプレースホルダ数 + 1（PK が複数列でも第2列を上書きしないため）
+      setTenantIdParameter(stmt, countParameterPlaceholders(baseSql) + 1, tenantId);
 
       return stmt.executeUpdate() > 0;
     }
