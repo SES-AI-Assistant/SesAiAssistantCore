@@ -109,8 +109,7 @@ public class ContentParseSchema {
      * JSON文字列から InformationType を解決する.
      *
      * <p>前後の空白と大文字小文字の違いを許容し、解決できない値・null は {@link #Unknown} として扱う。
-     * 例外を投げないことで、リクエストのデシリアライズ自体は成功させ、値の妥当性判定（不正なら400を返す等）を
-     * 呼び出し側の業務ロジックに委ねる。
+     * 例外を投げないことで、リクエストのデシリアライズ自体は成功させ、値の妥当性判定（不正なら400を返す等）を 呼び出し側の業務ロジックに委ねる。
      *
      * @param value JSON上の値
      * @return 対応する InformationType。解決できない場合は {@link #Unknown}

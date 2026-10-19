@@ -65,8 +65,7 @@ public class JobInfoSchema {
   // 「署名」「住所」の語は使わず、本文中の見出し語に紐づけて肯定形で限定する
   @Schema(
       title = "場所",
-      description =
-          "案件内容の中で「場所」「勤務地」「作業場所」「最寄駅」として書かれている値（駅名または市区町村名）のみ。該当する記載が無い場合は項目自体を省略する",
+      description = "案件内容の中で「場所」「勤務地」「作業場所」「最寄駅」として書かれている値（駅名または市区町村名）のみ。該当する記載が無い場合は項目自体を省略する",
       maxLength = 20,
       example = "品川")
   private String place;
@@ -285,8 +284,7 @@ public class JobInfoSchema {
     }
 
     // 募集実体のチェック（概要も必須スキルも存在しない場合は実体なしと判定）
-    boolean hasOverview =
-        this.overview != null && !this.overview.strip().isEmpty();
+    boolean hasOverview = this.overview != null && !this.overview.strip().isEmpty();
     boolean hasMustSkills = this.mustList != null && !this.mustList.isEmpty();
     if (!hasOverview && !hasMustSkills) {
       return false;

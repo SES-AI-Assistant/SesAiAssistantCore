@@ -34,23 +34,9 @@ public class PersonInfoSchema {
    */
   public static final Set<String> INVALID_PERSON_NAMES =
       Set.of(
-          "unknown",
-          "n/a",
-          "na",
-          "none",
-          "不明",
-          "なし",
-          "未定",
-          "要員様",
-          "要員",
-          "エンジニア",
-          "技術者",
-          "プロパー",
-          "メンバー",
-          "様",
-          "さん",
-          "担当",
-          "営業");
+          "unknown", "n/a", "na", "none", "不明", "なし", "未定", "要員様", "要員", "エンジニア", "技術者", "プロパー",
+          "メンバー", "様", "さん", "担当", "営業");
+
   @Schema(
       title = "氏名",
       description =
@@ -113,8 +99,7 @@ public class PersonInfoSchema {
   // 「署名」「住所」の語は使わず、本文中の見出し語に紐づけて肯定形で限定する
   @Schema(
       title = "場所",
-      description =
-          "要員の紹介文中で「最寄駅」「最寄り」「在住」「居住地」として書かれている値（駅名または市区町村名）のみ。該当する記載が無い場合は項目自体を省略する",
+      description = "要員の紹介文中で「最寄駅」「最寄り」「在住」「居住地」として書かれている値（駅名または市区町村名）のみ。該当する記載が無い場合は項目自体を省略する",
       maxLength = 20,
       example = "品川")
   private String place = null;

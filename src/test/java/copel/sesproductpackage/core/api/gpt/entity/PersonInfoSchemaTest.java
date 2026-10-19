@@ -281,7 +281,8 @@ class PersonInfoSchemaTest {
         () -> assertTrue(desc.contains("職種名（エンジニア、プログラマー、PM等）")),
         () -> assertTrue(desc.contains("所属名（〇〇所属、弊社プロパー等）")),
         () -> assertTrue(desc.contains("一般名詞・プレースホルダー（要員様、N/A、担当者等）を設定することは厳禁")),
-        () -> assertTrue(desc.contains("特定個人の名前・イニシャルが記載されていない場合は架空の要員として出力せず、必ず Unknown と判定すること")));
+        () ->
+            assertTrue(desc.contains("特定個人の名前・イニシャルが記載されていない場合は架空の要員として出力せず、必ず Unknown と判定すること")));
   }
 
   // ================================================
@@ -364,27 +365,8 @@ class PersonInfoSchemaTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
-        "unknown",
-        "Unknown",
-        "UNKNOWN",
-        "n/a",
-        "na",
-        "none",
-        "N/A",
-        "None",
-        "不明",
-        "なし",
-        "未定",
-        "要員様",
-        "要員",
-        "エンジニア",
-        "技術者",
-        "プロパー",
-        "メンバー",
-        "様",
-        "さん",
-        "担当",
-        "営業"
+        "unknown", "Unknown", "UNKNOWN", "n/a", "na", "none", "N/A", "None", "不明", "なし", "未定",
+        "要員様", "要員", "エンジニア", "技術者", "プロパー", "メンバー", "様", "さん", "担当", "営業"
       })
   @DisplayName("isValid: 異常系（架空要員名・プレースホルダー）")
   void isValid_abnormal_placeholderNames(String placeholderName) {

@@ -21,9 +21,8 @@ import org.junit.jupiter.api.Test;
 /**
  * ContentParseSchema の単体テスト.
  *
- * <p>AIによるメール本文・文章のパース結果エンティティに対する
- * Jacksonデシリアライズ、@Schemaメタデータ定義、およびSchemaGeneratorによる
- * JSON Schema生成の動作を網羅的に検証します。
+ * <p>AIによるメール本文・文章のパース結果エンティティに対する Jacksonデシリアライズ、@Schemaメタデータ定義、およびSchemaGeneratorによる JSON
+ * Schema生成の動作を網羅的に検証します。
  *
  * @author Copel Co., Ltd.
  */
@@ -233,7 +232,9 @@ class ContentParseSchemaTest {
     // ② 架空要員の捏造絶対禁止
     assertTrue(desc.contains("【架空要員の捏造絶対禁止】"), "架空要員の捏造絶対禁止が明記されていること");
     assertTrue(desc.contains("特定個人を識別できる具体的な属性（氏名・イニシャル、実年齢、単価等）が本文中に明記されていない場合"));
-    assertTrue(desc.contains("職種名（「エンジニア」「PM」等）や会社名・所属名（「〇〇所属」等）を勝手に氏名（name）として捏造して PERSON を出力することは厳禁とする"));
+    assertTrue(
+        desc.contains(
+            "職種名（「エンジニア」「PM」等）や会社名・所属名（「〇〇所属」等）を勝手に氏名（name）として捏造して PERSON を出力することは厳禁とする"));
     assertTrue(desc.contains("具体的な個人プロファイルのない紹介導入文、打診文、一般的な連絡文は、PERSON ではなく必ず「Unknown」と判定すること"));
 
     // ③ 特定個人属性の存在
@@ -263,7 +264,8 @@ class ContentParseSchemaTest {
 
   @Test
   @DisplayName("@Schema: InfoSchema.type に「架空要員の捏造絶対禁止」および「Unknown判定」の制約が全件アサートされること")
-  void testSchemaAnnotation_InfoSchemaType_ProhibitionOfFictitiousPersonConstraint() throws Exception {
+  void testSchemaAnnotation_InfoSchemaType_ProhibitionOfFictitiousPersonConstraint()
+      throws Exception {
     Field field = InfoSchema.class.getDeclaredField("type");
     Schema schema = field.getAnnotation(Schema.class);
 
@@ -278,7 +280,9 @@ class ContentParseSchemaTest {
         () -> assertTrue(desc.contains("職種名（「エンジニア」「PM」等）")),
         () -> assertTrue(desc.contains("会社名・所属名（「〇〇所属」等）")),
         () -> assertTrue(desc.contains("勝手に氏名（name）として捏造して PERSON を出力することは厳禁とする")),
-        () -> assertTrue(desc.contains("具体的な個人プロファイルのない紹介導入文、打診文、一般的な連絡文は、PERSON ではなく必ず「Unknown」と判定すること")));
+        () ->
+            assertTrue(
+                desc.contains("具体的な個人プロファイルのない紹介導入文、打診文、一般的な連絡文は、PERSON ではなく必ず「Unknown」と判定すること")));
   }
 
   @Test
