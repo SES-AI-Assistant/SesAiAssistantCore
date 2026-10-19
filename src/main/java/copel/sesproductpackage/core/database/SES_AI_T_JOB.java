@@ -195,6 +195,43 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
   }
 
   /**
+   * プッシュ通知に表示するための出社要件を取得します.
+   *
+   * <p>通知は1行あたりの表示幅が狭いため、{@link #getOfficeRequirementsForDisplay()} と異なり場所を付けずに短く表記する。
+   * また「不明」の表示は情報量が無く行を圧迫するだけなので、未設定（null）の場合はnullを返し、呼び出し側で項目ごと省略させる.
+   *
+   * @return 出社要件（例: 「フルリモート」「常駐」「週3出社」）。未設定の場合はnull
+   * @author Copel Co., Ltd.
+   */
+  public String getOfficeRequirementsForNotification() {
+    if (this.officeRequirements == null) {
+      return null;
+    }
+    if (this.officeRequirements == 0) {
+      return "フルリモート";
+    }
+    if (this.officeRequirements == 5) {
+      return "常駐";
+    }
+    return "週" + this.officeRequirements + "出社";
+  }
+
+  /**
+   * 案件情報を「案件名｜単価」形式で返す.
+   *
+   * <p>プッシュ通知の本文で案件を1行で表示するために使用する。単価が未設定の場合は「｜」以降を省略する.
+   *
+   * @return フォーマットされた案件情報（例：「Salesforce導入支援｜79万円」「案件名不明｜スキル見合い」）
+   * @author Copel Co., Ltd.
+   */
+  public String toNotificationInfo() {
+    String priceLabel = this.unitPrice == null ? null : this.unitPrice.toPriceLabel();
+    return priceLabel == null
+        ? this.getTitleForDisplay()
+        : this.getTitleForDisplay() + "｜" + priceLabel;
+  }
+
+  /**
    * URLを除外したテキストで類似レコードを検索し、存在する場合はそのレコードのIDと単価を返す.
    *
    * @param connection DBコネクション
@@ -398,21 +435,24 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
   }
 
   /**
-   * 案件概要を指定文字数で短縮した形で返す.
+   * 案件概要を1行に整形し、指定文字数で短縮した形で返す.
    *
-   * <p>プッシュ通知のメッセージテキストで案件情報を表示する際、長い概要テキストを ペイロード制限内に収めるため、指定文字数以内に収めて末尾に省略記号を付ける.
+   * <p>プッシュ通知の本文で案件概要を表示する際に使用する。概要に含まれる改行をそのまま渡すと通知の行構成が崩れるため、
+   * 連続する空白・改行は半角スペース1つにまとめる。また、OSに省略を任せると端末によって途中で切れたり省略記号が付かなかったりするため、
+   * 指定文字数（コードポイント数）で切って末尾に「…」を付ける.
    *
-   * @param maxLength 最大文字数
-   * @return 短縮された案件概要。maxLength以下の場合はそのまま返す。超過時は末尾に「...」を付ける
+   * @param maxLength 最大文字数（省略記号を除く）
+   * @return 短縮された案件概要。maxLength以下の場合はそのまま返す。超過時は末尾に「…」を付ける。未設定の場合は空文字
+   * @author Copel Co., Ltd.
    */
   public String getTruncatedOverview(int maxLength) {
-    if (this.overview == null || this.overview.isEmpty()) {
+    if (OriginalStringUtils.isUnspecified(this.overview)) {
       return "";
     }
-    if (this.overview.length() <= maxLength) {
-      return this.overview;
-    }
-    return this.overview.substring(0, maxLength) + "...";
+    // Javaの\sは全角スペースを含まないため明示的に対象に加える
+    String singleLine = this.overview.strip().replaceAll("[\\s\\u3000]+", " ");
+    String truncated = OriginalStringUtils.truncateByCodePoints(singleLine, maxLength);
+    return truncated.equals(singleLine) ? singleLine : truncated + "…";
   }
 
   /**

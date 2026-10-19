@@ -351,6 +351,66 @@ class SES_AI_T_JOBTest {
   }
 
   @Test
+  void testGetOfficeRequirementsForNotification() {
+    SES_AI_T_JOB job = new SES_AI_T_JOB("test-tenant");
+    job.setPlace("宇宿駅");
+
+    // 未設定の場合は項目ごと省略させるためnullを返すこと
+    assertNull(job.getOfficeRequirementsForNotification());
+
+    job.setOfficeRequirements(0);
+    assertEquals("フルリモート", job.getOfficeRequirementsForNotification());
+
+    // 通知では場所を付けずに短く表記すること
+    job.setOfficeRequirements(5);
+    assertEquals("常駐", job.getOfficeRequirementsForNotification());
+
+    job.setOfficeRequirements(1);
+    assertEquals("週1出社", job.getOfficeRequirementsForNotification());
+  }
+
+  @Test
+  void testToNotificationInfo() {
+    SES_AI_T_JOB job = new SES_AI_T_JOB("test-tenant");
+    job.setTitle("Salesforce導入支援");
+    job.setUnitPrice(new Money(790000));
+    assertEquals("Salesforce導入支援｜79万円", job.toNotificationInfo());
+
+    // スキル見合いの仕様値を「999万円」と表示しないこと
+    job.setUnitPrice(Money.NEGOTIABLE_PRICE);
+    assertEquals("Salesforce導入支援｜スキル見合い", job.toNotificationInfo());
+
+    // 単価が未設定の場合は「｜」以降を省略すること
+    job.setTitle(null);
+    job.setUnitPrice(Money.empty());
+    assertEquals("案件名不明", job.toNotificationInfo());
+
+    job.setUnitPrice(null);
+    assertEquals("案件名不明", job.toNotificationInfo());
+  }
+
+  @Test
+  void testGetTruncatedOverview() {
+    SES_AI_T_JOB job = new SES_AI_T_JOB("test-tenant");
+    assertEquals("", job.getTruncatedOverview(10));
+
+    job.setOverview("Unknown");
+    assertEquals("", job.getTruncatedOverview(10));
+
+    // 改行や連続する空白は通知の行構成を崩さないよう半角スペース1つにまとめること
+    job.setOverview(" 要件定義\n\n設計　担当 ");
+    assertEquals("要件定義 設計 担当", job.getTruncatedOverview(10));
+
+    // 指定文字数ちょうどの場合は省略記号を付けないこと
+    job.setOverview("0123456789");
+    assertEquals("0123456789", job.getTruncatedOverview(10));
+
+    // 超過時は指定文字数で切って「…」を付けること
+    job.setOverview("01234567890");
+    assertEquals("0123456789…", job.getTruncatedOverview(10));
+  }
+
+  @Test
   void testSetPlace_UnknownNormalizedToNull() {
     SES_AI_T_JOB job = new SES_AI_T_JOB("test-tenant");
 
