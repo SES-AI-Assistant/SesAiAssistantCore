@@ -31,9 +31,8 @@ class ApplicationClockTest {
   /** テストの前に設定読み込み元のプロパティを退避して memory に設定し、時計を既定のシステム時計に戻す。 前のテストの差し替えが残らないようにする。 */
   @BeforeEach
   void setUp() {
-    originalConfigSource = System.getProperty(ApplicationClock.CONFIG_SOURCE_PROPERTY);
-    System.setProperty(
-        ApplicationClock.CONFIG_SOURCE_PROPERTY, ApplicationClock.CONFIG_SOURCE_MEMORY);
+    originalConfigSource = System.getProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
+    System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, ConfigSource.CONFIG_SOURCE_MEMORY);
     ApplicationClock.INSTANCE.resetToDefault();
   }
 
@@ -41,9 +40,9 @@ class ApplicationClockTest {
   @AfterEach
   void tearDown() {
     if (originalConfigSource == null) {
-      System.clearProperty(ApplicationClock.CONFIG_SOURCE_PROPERTY);
+      System.clearProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
     } else {
-      System.setProperty(ApplicationClock.CONFIG_SOURCE_PROPERTY, originalConfigSource);
+      System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, originalConfigSource);
     }
     ApplicationClock.INSTANCE.resetToDefault();
   }
@@ -111,8 +110,7 @@ class ApplicationClockTest {
        */
       @Test
       void 引数が固定時計の場合_渡した時計を返す() {
-        System.setProperty(
-            ApplicationClock.CONFIG_SOURCE_PROPERTY, ApplicationClock.CONFIG_SOURCE_MEMORY);
+        System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, ConfigSource.CONFIG_SOURCE_MEMORY);
         ApplicationClock.INSTANCE.setClock(FIXED_CLOCK);
 
         assertSame(FIXED_CLOCK, ApplicationClock.INSTANCE.clock());
@@ -147,7 +145,7 @@ class ApplicationClockTest {
        */
       @Test
       void システムプロパティがmemory以外の場合_IllegalStateExceptionを投げる() {
-        System.setProperty(ApplicationClock.CONFIG_SOURCE_PROPERTY, "file");
+        System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, "file");
         Clock before = ApplicationClock.INSTANCE.clock();
 
         assertThrows(
@@ -165,7 +163,7 @@ class ApplicationClockTest {
        */
       @Test
       void システムプロパティが未設定の場合_IllegalStateExceptionを投げる() {
-        System.clearProperty(ApplicationClock.CONFIG_SOURCE_PROPERTY);
+        System.clearProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
         Clock before = ApplicationClock.INSTANCE.clock();
 
         assertThrows(
@@ -213,7 +211,7 @@ class ApplicationClockTest {
       @Test
       void システムプロパティがmemory以外の場合_システム時計を返す() {
         ApplicationClock.INSTANCE.setClock(FIXED_CLOCK);
-        System.setProperty(ApplicationClock.CONFIG_SOURCE_PROPERTY, "file");
+        System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, "file");
 
         ApplicationClock.INSTANCE.resetToDefault();
 
