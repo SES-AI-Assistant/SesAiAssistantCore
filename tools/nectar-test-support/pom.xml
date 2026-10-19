@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.github.SES-AI-Assistant</groupId>
+  <artifactId>nectar-test-support</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>jar</packaging>
+  <name>Nectar Test Support</name>
+  <description>Nectar の Java リポジトリで UT を書くための共通テスト部品（時刻の固定、設定値の差し替え、DB 接続のモック、ResultSet のモック）</description>
+
+  <properties>
+    <!-- source/target ではなく release を指定する（CI は JDK 17 で動作する） -->
+    <maven.compiler.release>17</maven.compiler.release>
+    <!-- ソースと成果物の文字コードを UTF-8 に固定する（日本語の JavaDoc と検査を文字化けさせないため） -->
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <!-- GitHub Packages へ mvn deploy する際のリポジトリ（Core の pom と同一） -->
+  <distributionManagement>
+    <repository>
+      <id>github</id>
+      <url>https://maven.pkg.github.com/SES-AI-Assistant/SesAiAssistantCore</url>
+    </repository>
+    <snapshotRepository>
+      <id>github</id>
+      <url>https://maven.pkg.github.com/SES-AI-Assistant/SesAiAssistantCore</url>
+    </snapshotRepository>
+  </distributionManagement>
+
+  <!--
+    nectar-bom と Core は GitHub Packages に配布されているため、そのリポジトリを参照する。
+    ビルドの認証は .github/maven-settings.xml の server id（github）で行われる。
+  -->
+  <repositories>
+    <repository>
+      <id>github</id>
+      <url>https://maven.pkg.github.com/SES-AI-Assistant/SesAiAssistantCore</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- 依存ライブラリの版は nectar-bom で統一する（先に nectar-bom を配布すること） -->
+      <dependency>
+        <groupId>com.github.SES-AI-Assistant</groupId>
+        <artifactId>nectar-bom</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!--
+      利用側のテストで使うライブラリ。利用側は nectar-test-support を test スコープで1つ宣言すれば、
+      これらも test スコープで揃う。
+    -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+    </dependency>
+    <!--
+      テスト対象の Core。利用側の Core を使うため provided とする。
+      Core の時計・設定値・DB 接続の差し替え口（ApplicationClock、Properties、DBConnection）を使う。
+    -->
+    <dependency>
+      <groupId>com.github.SES-AI-Assistant</groupId>
+      <artifactId>sesaiassistantcore</artifactId>
+      <version>0.0.1-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- JDKバージョンチェック（Core と同じ範囲。JDK 23 以降は Mockito/ByteBuddy が動かないため上限を設ける） -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>3.4.1</version>
+        <executions>
+          <execution>
+            <id>enforce-java-version</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireJavaVersion>
+                  <version>[17,23)</version>
+                  <message>MavenがJava 17以上23未満で動作している必要があります。JAVA_HOME を対応JDKに設定してください（例: export JAVA_HOME=$(/usr/libexec/java_home -v 18)）。現在のバージョンは mvn -version で確認できます。</message>
+                </requireJavaVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!--
+        テスト実行。利用側と同じ設定で memory に切り替える。
+        Properties・DBConnection・ApplicationClock の差し替え口は、この設定が memory のときだけ使える。
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+        <configuration>
+          <systemPropertyVariables>
+            <nectar.config.source>memory</nectar.config.source>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+
+      <!-- JaCoCo: 命令・分岐の両方で 100% を要求する（Java_UT仕様 第2章 要件1） -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.15</version>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>test</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+            <configuration>
+              <formats>
+                <format>HTML</format>
+                <format>CSV</format>
+                <format>XML</format>
+              </formats>
+            </configuration>
+          </execution>
+          <execution>
+            <id>check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>INSTRUCTION</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>1.00</minimum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>1.00</minimum>
+                    </limit>
+                  </limits>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!--
+        UT 仕様の検査と仕様書出力（ドッグフーディング）。
+        nectar-ut-spec-plugin は nectar-bom と同じ GitHub Packages から取得する。
+        CI では先に nectar-ut-spec-plugin を配布しておくこと。
+      -->
+      <plugin>
+        <groupId>com.github.SES-AI-Assistant</groupId>
+        <artifactId>nectar-ut-spec-plugin</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <executions>
+          <execution>
+            <id>nectar-ut-spec</id>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Checkstyle / PMD / SpotBugs / Spotless / OpenRewrite（Core と同じ設定） -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>3.3.1</version>
+        <configuration>
+          <configLocation>google_checks.xml</configLocation>
+          <!-- 日本語の JavaDoc に対する抑止（理由は checkstyle-suppressions.xml を参照） -->
+          <suppressionsLocation>checkstyle-suppressions.xml</suppressionsLocation>
+          <consoleOutput>true</consoleOutput>
+          <failsOnError>false</failsOnError>
+          <linkXRef>false</linkXRef>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-pmd-plugin</artifactId>
+        <version>3.21.2</version>
+        <configuration>
+          <printFailingErrors>true</printFailingErrors>
+          <linkXRef>false</linkXRef>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <version>4.8.3.1</version>
+        <configuration>
+          <effort>Max</effort>
+          <threshold>Low</threshold>
+          <xmlOutput>true</xmlOutput>
+          <!-- 除外は範囲を限定したファイルでのみ行う（理由はファイル内のコメントを参照） -->
+          <excludeFilterFile>spotbugs-exclude.xml</excludeFilterFile>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.openrewrite.maven</groupId>
+        <artifactId>rewrite-maven-plugin</artifactId>
+        <version>5.20.0</version>
+        <configuration>
+          <activeRecipes>
+            <!-- 未使用 import の削除のみ行う -->
+            <recipe>org.openrewrite.java.RemoveUnusedImports</recipe>
+          </activeRecipes>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.openrewrite.recipe</groupId>
+            <artifactId>rewrite-static-analysis</artifactId>
+            <version>1.2.1</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>2.43.0</version>
+        <configuration>
+          <java>
+            <googleJavaFormat>
+              <version>1.17.0</version>
+              <style>GOOGLE</style>
+            </googleJavaFormat>
+          </java>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SpotBugs の除外設定。範囲を限定して、必要な箇所だけを除外する。
+  JdbcMocks.stubQuery は、接続のモックに準備文と結果セットの応答を設定するだけで、実際の DB 資源を開かない。
+  JdbcMocks.stubStatement も同じ理由で、createStatement と executeQuery の呼び出しに対する警告を除外する（引数の文字列はテストの設定で、実行はされない）。
+  SpotBugs は prepareStatement や createStatement の呼び出しを資源の生成とみなすため、この2メソッドだけを除外する。
+-->
+<FindBugsFilter>
+  <Match>
+    <Class name="copel.sesproductpackage.tools.testsupport.db.JdbcMocks"/>
+    <Method name="stubQuery"/>
+    <Or>
+      <Bug pattern="OBL_UNSATISFIED_OBLIGATION"/>
+      <Bug pattern="SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING"/>
+    </Or>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.tools.testsupport.db.JdbcMocks"/>
+    <Method name="stubStatement"/>
+    <Or>
+      <Bug pattern="OBL_UNSATISFIED_OBLIGATION"/>
+      <Bug pattern="SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE"/>
+    </Or>
+  </Match>
+</FindBugsFilter>
