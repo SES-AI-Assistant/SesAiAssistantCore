@@ -2,11 +2,17 @@ package copel.sesproductpackage.core.unit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import copel.sesproductpackage.core.util.ApplicationClock;
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class OriginalDateTimeTest {
@@ -235,5 +241,38 @@ class OriginalDateTimeTest {
 
     OriginalDateTime dNull2 = new OriginalDateTime((String) null);
     assertFalse(dNull.equals(dNull2));
+  }
+
+  /** {@link OriginalDateTime} の引数なしのコンストラクタのテスト。 */
+  @Nested
+  class コンストラクタ {
+
+    /** 正常系のテスト。 */
+    @Nested
+    class 正常系 {
+
+      /** テストの後に時計を既定のシステム時計に戻す。後続のテストに固定時計が残らないようにする。 */
+      @AfterEach
+      void tearDown() {
+        ApplicationClock.INSTANCE.resetToDefault();
+      }
+
+      /**
+       * 引数なしのコンストラクタが現在時刻を時計から取得することを確かめる。 現在時刻の取得元を差し替えてテストで時刻を固定できることを保証する。
+       *
+       * @given 時計が UTC の "2026-01-15T03:04:05Z" と "Asia/Tokyo" のゾーンを持つ固定時計に設定されている
+       * @when OriginalDateTime の引数なしのコンストラクタを呼び出す
+       * @then toLocalDateTime が "2026-01-15T12:04:05" を返す
+       */
+      @Test
+      void 時計が固定時計に設定されている場合_固定時計の日時を返す() {
+        ApplicationClock.INSTANCE.setClock(
+            Clock.fixed(Instant.parse("2026-01-15T03:04:05Z"), ZoneId.of("Asia/Tokyo")));
+
+        OriginalDateTime actual = new OriginalDateTime();
+
+        assertEquals(LocalDateTime.of(2026, 1, 15, 12, 4, 5), actual.toLocalDateTime());
+      }
+    }
   }
 }

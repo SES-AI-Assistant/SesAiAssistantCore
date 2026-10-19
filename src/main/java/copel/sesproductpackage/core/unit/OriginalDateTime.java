@@ -1,9 +1,9 @@
 package copel.sesproductpackage.core.unit;
 
+import copel.sesproductpackage.core.util.ApplicationClock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Locale;
@@ -23,9 +23,13 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
   // ================================
   // コンストラクタ
   // ================================
-  /** 現在日時でこのオブジェクトを初期化 */
+  /**
+   * 現在日時でこのオブジェクトを初期化する.
+   *
+   * <p>現在時刻は {@link ApplicationClock} の時計から取得する。テストで時刻を固定できるようにするため。
+   */
   public OriginalDateTime() {
-    this.dateTime = LocalDateTime.now(ZoneId.of("Asia/Tokyo"));
+    this.dateTime = LocalDateTime.now(ApplicationClock.INSTANCE.clock());
   }
 
   /**

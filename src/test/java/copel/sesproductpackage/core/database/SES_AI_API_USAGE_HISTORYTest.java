@@ -5,10 +5,16 @@ import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.ApiType;
 import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.Provider;
+import copel.sesproductpackage.core.util.ApplicationClock;
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
@@ -269,5 +275,45 @@ class SES_AI_API_USAGE_HISTORYTest {
     assertNotNull(history.toString());
     assertNotNull(history.hashCode());
     assertTrue(history.equals(history));
+  }
+
+  /** {@link SES_AI_API_USAGE_HISTORY#save()} のテスト。 */
+  @Nested
+  class save {
+
+    /** 正常系のテスト。 */
+    @Nested
+    class 正常系 {
+
+      /** テストの後に時計を既定のシステム時計に戻す。後続のテストに固定時計が残らないようにする。 */
+      @AfterEach
+      void tearDown() {
+        ApplicationClock.INSTANCE.resetToDefault();
+      }
+
+      /**
+       * save が登録する利用履歴の更新時刻を時計から取得することを確かめる。 利用履歴の更新時刻が本番の現在時刻の取得元に従うことを保証する。
+       *
+       * @given 時計が固定時計 "2026-01-15T03:04:05Z" に設定され、provider が OpenAI、model が "gpt-4o-mini" である
+       * @when save を引数なしで呼び出す
+       * @then putItem に渡した利用履歴の timestamp が "2026-01-15T03:04:05Z" である
+       */
+      @Test
+      void 時計が固定時計に設定されている場合_固定時刻の利用履歴を登録する() {
+        ApplicationClock.INSTANCE.setClock(
+            Clock.fixed(Instant.parse("2026-01-15T03:04:05Z"), ZoneId.of("Asia/Tokyo")));
+        SES_AI_API_USAGE_HISTORY history = new SES_AI_API_USAGE_HISTORY();
+        history.setProvider(Provider.OpenAI);
+        history.setModel("gpt-4o-mini");
+        history.setUsageMonth("202601");
+
+        history.save();
+
+        ArgumentCaptor<SES_AI_API_USAGE_HISTORY> captor =
+            ArgumentCaptor.forClass(SES_AI_API_USAGE_HISTORY.class);
+        verify(mockTable, times(1)).putItem(captor.capture());
+        assertEquals("2026-01-15T03:04:05Z", captor.getValue().getTimestamp());
+      }
+    }
   }
 }

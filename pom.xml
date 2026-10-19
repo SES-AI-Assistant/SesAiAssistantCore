@@ -282,6 +282,22 @@
               </configuration>
           </plugin>
 
+          <!-- テスト実行プラグイン -->
+          <!-- 版は他リポジトリ（Backend など）と揃えて 3.2.5 に固定している。
+               systemPropertyVariables の nectar.config.source=memory は、テスト実行時だけ
+               ApplicationClock.setClock（テスト専用の時計差し替え）を許可するために渡す。
+               本番の実行では設定されないため、時計の差し替えは起きない。対象テストの範囲は既定のままにする。 -->
+          <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-surefire-plugin</artifactId>
+              <version>3.2.5</version>
+              <configuration>
+                  <systemPropertyVariables>
+                      <nectar.config.source>memory</nectar.config.source>
+                  </systemPropertyVariables>
+              </configuration>
+          </plugin>
+
           <!-- シェードプラグインで JAR を作成 -->
           <plugin>
               <groupId>org.apache.maven.plugins</groupId>

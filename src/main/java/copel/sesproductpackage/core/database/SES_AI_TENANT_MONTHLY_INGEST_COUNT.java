@@ -6,6 +6,7 @@ import copel.sesproductpackage.core.database.SES_AI_M_INGEST_ROUTE.ChannelType;
 import copel.sesproductpackage.core.database.base.DynamoDB;
 import copel.sesproductpackage.core.database.base.DynamoDbClientFactory;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.util.ApplicationClock;
 import copel.sesproductpackage.core.util.Properties;
 import copel.sesproductpackage.core.util.SsmParameterKey;
 import java.time.Instant;
@@ -121,7 +122,7 @@ public class SES_AI_TENANT_MONTHLY_INGEST_COUNT
       return;
     }
     // 親クラス DynamoDB の仕様に準拠し、最終更新日時（ISO-8601形式）を記録
-    this.timestamp = Instant.now().toString();
+    this.timestamp = Instant.now(ApplicationClock.INSTANCE.clock()).toString();
     this.table.putItem(this);
   }
 
@@ -229,7 +230,10 @@ public class SES_AI_TENANT_MONTHLY_INGEST_COUNT
 
     Map<String, AttributeValue> expressionAttributeValues = new HashMap<>();
     expressionAttributeValues.put(
-        ":now", AttributeValue.builder().s(Instant.now().toString()).build());
+        ":now",
+        AttributeValue.builder()
+            .s(Instant.now(ApplicationClock.INSTANCE.clock()).toString())
+            .build());
     expressionAttributeValues.put(":tid", AttributeValue.builder().s(tenantId).build());
     expressionAttributeValues.put(":ym", AttributeValue.builder().s(yearMonth).build());
     expressionAttributeValues.put(

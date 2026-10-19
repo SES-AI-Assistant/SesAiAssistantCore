@@ -5,10 +5,15 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import copel.sesproductpackage.core.api.gpt.entity.JobInfoSchema;
 import copel.sesproductpackage.core.api.gpt.entity.PersonInfoSchema;
+import copel.sesproductpackage.core.util.ApplicationClock;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -727,5 +732,44 @@ class SchemaGeneratorTest {
     assertNotNull(yaml);
     assertTrue(yaml.contains("openapi: \"3.0.0\""));
     assertTrue(yaml.contains("paths:"));
+  }
+
+  /** {@link SchemaGenerator#generate(Class)} のテスト。 */
+  @Nested
+  class generate {
+
+    /** 正常系のテスト。 */
+    @Nested
+    class 正常系 {
+
+      /** テストの後に時計を既定のシステム時計に戻す。後続のテストに固定時計が残らないようにする。 */
+      @AfterEach
+      void tearDown() {
+        ApplicationClock.INSTANCE.resetToDefault();
+      }
+
+      /**
+       * generate が currentAndNextYearOnly の pattern に時計の今年と翌年を使うことを確かめる。
+       * 年の判定が本番の現在時刻の取得元に従うことを保証する。
+       *
+       * @given 時計が UTC の "2026-01-15T03:04:05Z" の固定時計に設定されている
+       * @when generate を ResponseWithCurrentAndNextYearNoPattern の Class で呼び出す
+       * @then start_year_month の pattern として {@code "^(2026|2027)/(0?[1-9]|1[0-2])$"} を返す
+       */
+      @Test
+      void 時計が固定時計に設定されている場合_今年と翌年を含むpatternを返す() {
+        ApplicationClock.INSTANCE.setClock(
+            Clock.fixed(Instant.parse("2026-01-15T03:04:05Z"), ZoneId.of("Asia/Tokyo")));
+
+        Map<String, Object> schema =
+            SchemaGenerator.generate(ResponseWithCurrentAndNextYearNoPattern.class);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> fieldSchema = (Map<String, Object>) properties.get("start_year_month");
+
+        assertEquals("^(2026|2027)/(0?[1-9]|1[0-2])$", fieldSchema.get("pattern"));
+      }
+    }
   }
 }

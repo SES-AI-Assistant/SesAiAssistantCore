@@ -1,5 +1,6 @@
 package copel.sesproductpackage.core.api.storage;
 
+import copel.sesproductpackage.core.util.ApplicationClock;
 import copel.sesproductpackage.core.util.FileNameUtils;
 import java.io.IOException;
 import java.net.URI;
@@ -288,7 +289,7 @@ public class ExternalFileLink {
       log.debug("URLからのファイル名抽出に失敗しました: {}", e.getMessage());
     }
     // 3rd: タイムスタンプをつけたデフォルト名
-    return "skillsheet_" + System.currentTimeMillis();
+    return "skillsheet_" + ApplicationClock.INSTANCE.clock().millis();
   }
 
   /**

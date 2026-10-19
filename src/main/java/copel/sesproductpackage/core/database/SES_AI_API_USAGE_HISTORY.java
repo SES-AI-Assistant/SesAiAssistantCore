@@ -3,6 +3,7 @@ package copel.sesproductpackage.core.database;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import copel.sesproductpackage.core.database.base.DynamoDB;
+import copel.sesproductpackage.core.util.ApplicationClock;
 import copel.sesproductpackage.core.util.Properties;
 import copel.sesproductpackage.core.util.SsmParameterKey;
 import java.math.BigDecimal;
@@ -93,7 +94,7 @@ public class SES_AI_API_USAGE_HISTORY extends DynamoDB<SES_AI_API_USAGE_HISTORY>
         || this.usageMonth.isEmpty()) {
       return;
     } else {
-      this.timestamp = Instant.now().toString();
+      this.timestamp = Instant.now(ApplicationClock.INSTANCE.clock()).toString();
       this.table.putItem(this);
     }
   }
