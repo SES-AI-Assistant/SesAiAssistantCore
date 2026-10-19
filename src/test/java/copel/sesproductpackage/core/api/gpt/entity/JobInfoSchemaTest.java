@@ -298,9 +298,7 @@ class JobInfoSchemaTest {
     job2.setOverview("   ");
     job2.setMustList(List.of());
 
-    assertAll(
-        () -> assertFalse(job1.isValid()),
-        () -> assertFalse(job2.isValid()));
+    assertAll(() -> assertFalse(job1.isValid()), () -> assertFalse(job2.isValid()));
   }
 
   // ================================================

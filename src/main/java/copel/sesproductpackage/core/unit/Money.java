@@ -178,6 +178,28 @@ public class Money implements Comparable<Money> {
   }
 
   /**
+   * 通知表示用の単価ラベル：「100万円」「スキル見合い」「応相談」形式.
+   *
+   * <p>スキル見合いの仕様値（999万円）や応相談（0円以下）をそのまま {@link #toJapaneseFormat()} で表示すると
+   * 「999万円」「0万円」となり実際の単価と誤認されるため、意味を表すラベルに置き換える.
+   *
+   * @return 単価ラベル、未設定の場合はnull
+   * @author Copel Co., Ltd.
+   */
+  public String toPriceLabel() {
+    if (isEmpty()) {
+      return null;
+    }
+    if (isConsultation()) {
+      return "応相談";
+    }
+    if (isNegotiable()) {
+      return "スキル見合い";
+    }
+    return toJapaneseFormat();
+  }
+
+  /**
    * シンプル数値形式：「100」（万円単位）.
    *
    * @return 万円単位の数値文字列、またはnull

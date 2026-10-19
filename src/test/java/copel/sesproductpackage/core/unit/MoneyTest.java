@@ -34,6 +34,18 @@ class MoneyTest {
   }
 
   @Test
+  void testToPriceLabel() {
+    assertNull(Money.empty().toPriceLabel());
+    assertEquals("79万円", new Money(790000).toPriceLabel());
+    assertEquals("79.5万円", new Money(795000).toPriceLabel());
+    // 単価不問の値は金額として誤認されないようラベルで表示すること
+    assertEquals("応相談", new Money(0).toPriceLabel());
+    assertEquals("応相談", new Money(-1).toPriceLabel());
+    assertEquals("スキル見合い", Money.NEGOTIABLE_PRICE.toPriceLabel());
+    assertEquals("スキル見合い", new Money(new BigDecimal("9990000.00")).toPriceLabel());
+  }
+
+  @Test
   void testToManFormat() {
     Money money = new Money(1300000);
     assertEquals("130", money.toManFormat());

@@ -312,46 +312,32 @@ public class MatchEvaluateResponseSchema {
   }
 
   /**
-   * 評価結果を通知用のサマリーテキストに変換する.
+   * 評価結果を通知用の1行サマリーテキストに変換する.
    *
-   * <p>プッシュ通知のペイロード制限（iOS/Android 各 4KB）の中で、マッチング評価の主要な判定項目を
-   * コンパクトに表示するために、必須スキル・条件面・尚可スキル・その他条件をアイコンと 簡潔なテキストで表現する.
+   * <p>プッシュ通知の本文はスマホで表示できる行数が限られるため、マッチング評価の主要な判定項目（必須スキル・単価・出社・場所）を
+   * 「項目名＋判定アイコン」の組で1行に並べて表現する。評価されていない項目は省略する.
    *
-   * @return 評価サマリー（複数行のテキスト、各行は「・項目名：判定アイコン」形式）
+   * @return 評価サマリー（例：「必須◎ 単価◎ 出社〇 場所◎」）。評価項目が1つも無い場合は空文字
    */
   public String toNotificationSummary() {
     StringBuilder sb = new StringBuilder();
 
-    // 必須スキル評価サマリー
+    // 必須スキルは1件でも完全一致でなければ〇とし、個別の判定は詳細画面で確認させる
     if (this.mustList != null && !this.mustList.isEmpty()) {
       boolean allMet = this.mustList.stream().allMatch(m -> m.result == EvaluateType.FullyMet);
-      sb.append("・必須スキル：").append(allMet ? "◎" : "〇").append("\n");
+      sb.append(" 必須").append(allMet ? "◎" : "〇");
     }
-
-    // 単価評価
     if (this.priceResult != null) {
-      sb.append("・単価：").append(this.priceResult.result ? "◎" : "×").append("\n");
+      sb.append(" 単価").append(this.priceResult.result ? "◎" : "×");
     }
-
-    // 出社要件
-    if (this.officeResult != null) {
-      String icon = this.officeResult.result != null ? this.officeResult.result.getIcon() : "-";
-      sb.append("・出社要件：").append(icon).append("\n");
+    // 判定結果が未設定の項目に既定のアイコンを出すと、判定していないのに◎と誤認させるため項目ごと省略する
+    if (this.officeResult != null && this.officeResult.result != null) {
+      sb.append(" 出社").append(this.officeResult.result.getIcon());
     }
-
-    // 場所
-    if (this.placeResult != null) {
-      String icon = this.placeResult.result != null ? this.placeResult.result.getIcon() : "◎";
-      sb.append("・場所：").append(icon).append("\n");
+    if (this.placeResult != null && this.placeResult.result != null) {
+      sb.append(" 場所").append(this.placeResult.result.getIcon());
     }
-
-    // 尚可スキル（簡略版）
-    if (this.wantList != null && !this.wantList.isEmpty()) {
-      long metCount = this.wantList.stream().filter(w -> w.result == EvaluateType.FullyMet).count();
-      sb.append("・尚可スキル：").append(metCount).append("/").append(this.wantList.size()).append("\n");
-    }
-
-    return sb.toString();
+    return sb.toString().strip();
   }
 
   /**

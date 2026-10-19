@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
-
 import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import copel.sesproductpackage.core.util.Properties;
 import copel.sesproductpackage.core.util.SsmParameterKey;

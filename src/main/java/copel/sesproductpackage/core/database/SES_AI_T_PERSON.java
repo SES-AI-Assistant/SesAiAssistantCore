@@ -161,8 +161,8 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
   /**
    * 場所を設定します.
    *
-   * <p>場所はLLMの抽出結果をそのまま受け取ることが多く、スキーマの文字数指定（maxLength）が守られない場合がある
-   * （例: 最寄駅の記載が無いと「フルリモート希望（…）」のような通勤条件の文章が入る）。カラム長を超えるとINSERT/UPDATEが
+   * <p>場所はLLMの抽出結果をそのまま受け取ることが多く、スキーマの文字数指定（maxLength）が守られない場合がある （例:
+   * 最寄駅の記載が無いと「フルリモート希望（…）」のような通勤条件の文章が入る）。カラム長を超えるとINSERT/UPDATEが
    * 失敗して要員情報の登録自体が失われるため、カラムの最大文字数で切り詰めて保持する.
    *
    * <p>また、LLMが「記載なし」を空文字や"null"・"Unknown"という文字列で返す場合があり、null判定のみの利用側（要約文や通知文）で
@@ -448,22 +448,29 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
   }
 
   /**
-   * 要員情報を「名前/年齢歳/性別/単価万円」形式で返す.
+   * 要員情報を「名前 年齢歳 性別｜単価」形式で返す.
    *
-   * <p>プッシュ通知のメッセージテキストで要員を簡潔に表示する際に、 複数の情報フィールドを単一文字列に統合してペイロードを効率化する.
+   * <p>プッシュ通知の本文で要員を1行で表示するために使用する。スマホの通知は1行あたりの表示幅が狭く、
+   * 「年齢不詳」「不明」のような情報量の無い文字列で行が折り返されると要点が隠れてしまうため、年齢・性別・単価は
+   * 不明な場合に項目ごと省略する。氏名は要員を識別する起点となるため、未設定（LLMが返す「Unknown」を含む）でも「氏名不明」と表示する.
    *
-   * <p>年齢は不明な場合にnullで保存されるため（Registerで0以下をnullに変換）、そのまま埋め込むと「null歳」と表示されてしまう。
-   * 氏名・年齢が未設定（氏名はLLMが返す「Unknown」を含む）の場合はそれぞれ「氏名不明」「年齢不詳」と表示する.
-   *
-   * @return フォーマットされた要員情報（例：「佐藤 一郎/32歳/男性/80万円」「T.T/年齢不詳/男性/80万円」）
+   * @return フォーマットされた要員情報（例：「CSK 35歳 男性｜70万円」「T.T 男性」「氏名不明｜応相談」）
    */
   public String toNotificationInfo() {
-    String nameStr = OriginalStringUtils.isUnspecified(this.name) ? "氏名不明" : this.name;
-    String ageStr = this.age == null || this.age <= 0 ? "年齢不詳" : this.age + "歳";
-    String nameAge = nameStr + "/" + ageStr;
-    String genderStr = this.gender != null ? this.gender.toJapanese() : "不詳";
-    String price = String.format("%.0f万円", this.unitPrice.divide(10000.0).getValue().doubleValue());
-    return String.format("%s/%s/%s", nameAge, genderStr, price);
+    StringBuilder sb =
+        new StringBuilder(OriginalStringUtils.isUnspecified(this.name) ? "氏名不明" : this.name);
+    // 年齢は不明な場合にnullで保存される（Registerで0以下をnullに変換）が、旧データの0も考慮する
+    if (this.age != null && this.age > 0) {
+      sb.append(' ').append(this.age).append("歳");
+    }
+    if (this.gender != null && this.gender != Gender.Unknown) {
+      sb.append(' ').append(this.gender.toJapanese());
+    }
+    String priceLabel = this.unitPrice == null ? null : this.unitPrice.toPriceLabel();
+    if (priceLabel != null) {
+      sb.append('｜').append(priceLabel);
+    }
+    return sb.toString();
   }
 
   /**

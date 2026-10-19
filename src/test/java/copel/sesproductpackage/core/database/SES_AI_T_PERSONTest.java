@@ -384,21 +384,35 @@ class SES_AI_T_PERSONTest {
     person.setAge(41);
     person.setGender(Gender.Man);
     person.setUnitPrice(new Money(new BigDecimal("550000")));
-    assertEquals("T.T/41歳/男性/55万円", person.toNotificationInfo());
+    assertEquals("T.T 41歳 男性｜55万円", person.toNotificationInfo());
 
-    // 年齢不明はnullで保存されるため「null歳」と表示しないこと
+    // 年齢不明はnullで保存されるため「null歳」と表示せず、項目ごと省略すること
     person.setAge(null);
-    assertEquals("T.T/年齢不詳/男性/55万円", person.toNotificationInfo());
+    assertEquals("T.T 男性｜55万円", person.toNotificationInfo());
 
     person.setAge(0);
-    assertEquals("T.T/年齢不詳/男性/55万円", person.toNotificationInfo());
+    assertEquals("T.T 男性｜55万円", person.toNotificationInfo());
 
+    // 性別が不明の場合も項目ごと省略すること
+    person.setGender(Gender.Unknown);
+    assertEquals("T.T｜55万円", person.toNotificationInfo());
+
+    // 氏名は要員の識別に必要なため、未設定でも「氏名不明」と表示すること
     person.setName("Unknown");
-    assertEquals("氏名不明/年齢不詳/男性/55万円", person.toNotificationInfo());
-
-    person.setName(null);
     person.setGender(null);
-    assertEquals("氏名不明/年齢不詳/不詳/55万円", person.toNotificationInfo());
+    assertEquals("氏名不明｜55万円", person.toNotificationInfo());
+
+    // 単価不問の場合は金額ではなくラベルで表示すること
+    person.setUnitPrice(new Money(0));
+    assertEquals("氏名不明｜応相談", person.toNotificationInfo());
+
+    // 単価が未設定の場合は「｜」以降を省略すること
+    person.setName(null);
+    person.setUnitPrice(Money.empty());
+    assertEquals("氏名不明", person.toNotificationInfo());
+
+    person.setUnitPrice(null);
+    assertEquals("氏名不明", person.toNotificationInfo());
   }
 
   @Test

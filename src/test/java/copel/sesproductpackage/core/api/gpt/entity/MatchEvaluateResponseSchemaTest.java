@@ -167,7 +167,32 @@ class MatchEvaluateResponseSchemaTest {
   void testText_PartiallyMet() {
     MatchEvaluateResponseSchema schema =
         createSchema(EvaluateType.FullyMet, EvaluateType.PartiallyMet);
-    assertTrue(schema.toNotificationSummary().contains("・必須スキル：〇"));
+    assertEquals("必須〇 単価◎ 出社◎ 場所◎", schema.toNotificationSummary());
     assertTrue(schema.toEvaluiationText().contains("・Java：〇(根拠)"));
+  }
+
+  @Test
+  @DisplayName("toNotificationSummary: 主要な判定項目が1行に並び、評価されていない項目は省略されること")
+  void testToNotificationSummary() {
+    MatchEvaluateResponseSchema schema = createSchema(EvaluateType.FullyMet);
+    schema.setPriceResult(new PriceEvaluateResult(false, null));
+    schema.setOfficeResult(new OfficeEvaluateResult(EvaluateType.PartiallyMet, null));
+    schema.setPlaceResult(new PlaceEvaluateResult(EvaluateType.NotMet, null));
+    assertEquals("必須◎ 単価× 出社〇 場所×", schema.toNotificationSummary());
+
+    // 判定結果が未設定の項目は誤認を避けるため項目ごと省略すること
+    schema.setOfficeResult(new OfficeEvaluateResult(null, null));
+    schema.setPlaceResult(new PlaceEvaluateResult(null, null));
+    assertEquals("必須◎ 単価×", schema.toNotificationSummary());
+
+    // 必須スキルが空、他の項目が未評価の場合は空文字を返すこと
+    schema.setMustList(new ArrayList<>());
+    schema.setPriceResult(null);
+    schema.setOfficeResult(null);
+    schema.setPlaceResult(null);
+    assertEquals("", schema.toNotificationSummary());
+
+    schema.setMustList(null);
+    assertEquals("", schema.toNotificationSummary());
   }
 }

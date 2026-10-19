@@ -66,8 +66,8 @@ public class OriginalStringUtils {
   /**
    * 文字列を指定した文字数（コードポイント数）以内に切り詰める.
    *
-   * <p>PostgreSQLのVARCHAR長は文字（コードポイント）単位で数えるため、{@link String#length()}（UTF-16単位）で切ると
-   * サロゲートペア（例: 𠮷）を分断したり、上限より短く切りすぎたりする。DBカラム長に合わせる用途ではこのメソッドを使う.
+   * <p>PostgreSQLのVARCHAR長は文字（コードポイント）単位で数えるため、{@link String#length()}（UTF-16単位）で切ると サロゲートペア（例:
+   * 𠮷）を分断したり、上限より短く切りすぎたりする。DBカラム長に合わせる用途ではこのメソッドを使う.
    *
    * @param str 文字列
    * @param maxLength 最大文字数（コードポイント数）
