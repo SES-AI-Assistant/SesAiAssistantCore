@@ -4,15 +4,21 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import copel.sesproductpackage.core.util.ApplicationClock;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("unchecked")
@@ -413,5 +419,45 @@ class ExternalFileLinkTest {
     when(response.headers()).thenReturn(headers);
     when(response.uri()).thenReturn(URI.create("https://example.com/file"));
     return response;
+  }
+
+  /** {@link ExternalFileLink#extractFileName(HttpResponse, String)} のテスト。 */
+  @Nested
+  class extractFileName {
+
+    /** 異常系のテスト。 */
+    @Nested
+    class 異常系 {
+
+      /** テストの後に時計を既定のシステム時計に戻す。後続のテストに固定時計が残らないようにする。 */
+      @AfterEach
+      void tearDown() {
+        ApplicationClock.INSTANCE.resetToDefault();
+      }
+
+      /**
+       * extractFileName がファイル名を特定できない場合に、固定時刻のミリ秒を付けた名前を返すことを確かめる。
+       * ファイル名が重複しないように、時刻を付けた既定の名前を付ける仕様である。
+       *
+       * @given 時計が固定時計 "2026-01-15T03:04:05Z" に設定され、コンストラクタの URL が
+       *     "https://drive.google.com/file/d/ID/view"、レスポンスの Content-Type が
+       *     "application/pdf"、Content-Disposition が空である
+       * @when extractFileName を URL "https://example.com/" で呼び出す
+       * @then "skillsheet_" に固定時刻のミリ秒を連結した名前を返す
+       */
+      @Test
+      void ファイル名を特定できない場合_固定時刻のミリ秒を付けた名前を返す() throws Exception {
+        ApplicationClock.INSTANCE.setClock(
+            Clock.fixed(Instant.parse("2026-01-15T03:04:05Z"), ZoneId.of("Asia/Tokyo")));
+        ExternalFileLink link =
+            new ExternalFileLink("https://drive.google.com/file/d/ID/view", mockHttpClient);
+        HttpResponse<byte[]> response =
+            createMockByteResponse(200, new byte[0], "application/pdf", "");
+
+        String name = link.extractFileName(response, "https://example.com/");
+
+        assertEquals("skillsheet_" + Instant.parse("2026-01-15T03:04:05Z").toEpochMilli(), name);
+      }
+    }
   }
 }

@@ -8,9 +8,12 @@ import static org.mockito.Mockito.*;
 import copel.sesproductpackage.core.database.SES_AI_M_INGEST_ROUTE.ChannelType;
 import copel.sesproductpackage.core.database.base.DynamoDbClientFactory;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.util.ApplicationClock;
 import copel.sesproductpackage.core.util.Properties;
 import copel.sesproductpackage.core.util.SsmParameterKey;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -635,6 +638,82 @@ class SES_AI_TENANT_MONTHLY_INGEST_COUNTTest {
         assertSame(client1, client2);
         // キャッシュされているため create は1度しか呼ばれないこと
         mockedFactory.verify(DynamoDbClientFactory::create, times(1));
+      }
+    }
+  }
+
+  /** {@link SES_AI_TENANT_MONTHLY_INGEST_COUNT#save()} のテスト。 */
+  @Nested
+  class save {
+
+    /** 正常系のテスト。 */
+    @Nested
+    class 正常系 {
+
+      /** テストの後に時計を既定のシステム時計に戻す。後続のテストに固定時計が残らないようにする。 */
+      @AfterEach
+      void tearDown() {
+        ApplicationClock.INSTANCE.resetToDefault();
+      }
+
+      /**
+       * save が登録する最終更新日時を時計から取得することを確かめる。 集計の最終更新日時が本番の現在時刻の取得元に従うことを保証する。
+       *
+       * @given 時計が UTC の "2026-01-15T03:04:05Z" の固定時計に設定され、tenantId が "tenant-1" である
+       * @when save を引数なしで呼び出す
+       * @then putItem に渡したエンティティの timestamp が "2026-01-15T03:04:05Z" である
+       */
+      @Test
+      void 時計が固定時計に設定されている場合_固定時刻の集計を登録する() {
+        ApplicationClock.INSTANCE.setClock(
+            Clock.fixed(Instant.parse("2026-01-15T03:04:05Z"), ZoneId.of("Asia/Tokyo")));
+        SES_AI_TENANT_MONTHLY_INGEST_COUNT entity = new SES_AI_TENANT_MONTHLY_INGEST_COUNT();
+        entity.setTenantId("tenant-1");
+        entity.setYearMonth("202601");
+        entity.setChannelType(ChannelType.EMAIL);
+        entity.setCount(5L);
+
+        entity.save();
+
+        verify(mockTable, times(1)).putItem(entity);
+        assertEquals("2026-01-15T03:04:05Z", entity.getTimestamp());
+      }
+    }
+  }
+
+  /** {@link SES_AI_TENANT_MONTHLY_INGEST_COUNT#increment(String, ChannelType)} のテスト。 */
+  @Nested
+  class increment {
+
+    /** 正常系のテスト。 */
+    @Nested
+    class 正常系 {
+
+      /** テストの後に時計を既定のシステム時計に戻す。後続のテストに固定時計が残らないようにする。 */
+      @AfterEach
+      void tearDown() {
+        ApplicationClock.INSTANCE.resetToDefault();
+      }
+
+      /**
+       * increment が加算先の年月と更新日時を時計から取得することを確かめる。 集計の年月と更新日時が本番の現在時刻の取得元に従うことを保証する。
+       *
+       * @given 時計が UTC の "2026-01-15T03:04:05Z" の固定時計に設定されている
+       * @when increment を tenantId が "tenant-001"、channelType が EMAIL で呼び出す
+       * @then updateItem に渡したリクエストの Key が "tenant-001#202601" を持ち、:now が "2026-01-15T03:04:05Z" である
+       */
+      @Test
+      void 時計が固定時計に設定されている場合_固定時刻の年月の集計を更新する() {
+        ApplicationClock.INSTANCE.setClock(
+            Clock.fixed(Instant.parse("2026-01-15T03:04:05Z"), ZoneId.of("Asia/Tokyo")));
+
+        SES_AI_TENANT_MONTHLY_INGEST_COUNT.increment("tenant-001", ChannelType.EMAIL);
+
+        ArgumentCaptor<UpdateItemRequest> captor = ArgumentCaptor.forClass(UpdateItemRequest.class);
+        verify(mockDbClient, times(1)).updateItem(captor.capture());
+        UpdateItemRequest request = captor.getValue();
+        assertEquals("tenant-001#202601", request.key().get("partitionKey").s());
+        assertEquals("2026-01-15T03:04:05Z", request.expressionAttributeValues().get(":now").s());
       }
     }
   }

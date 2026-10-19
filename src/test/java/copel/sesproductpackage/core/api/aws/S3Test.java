@@ -4,11 +4,17 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import copel.sesproductpackage.core.util.ApplicationClock;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.util.Date;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import software.amazon.awssdk.core.ResponseInputStream;
@@ -135,6 +141,40 @@ class S3Test {
     try (MockedStatic<S3Presigner> mockedPresigner = mockStatic(S3Presigner.class)) {
       mockedPresigner.when(S3Presigner::builder).thenThrow(new RuntimeException("error"));
       assertNull(s3.createDownloadUrl());
+    }
+  }
+
+  /** {@link S3#save()} のテスト。 */
+  @Nested
+  class save {
+
+    /** 正常系のテスト。 */
+    @Nested
+    class 正常系 {
+
+      /** テストの後に時計を既定のシステム時計に戻す。後続のテストに固定時計が残らないようにする。 */
+      @AfterEach
+      void tearDown() {
+        ApplicationClock.INSTANCE.resetToDefault();
+      }
+
+      /**
+       * save が保存時点の更新日時を時計から取得することを確かめる。 S3 に保存した時点の更新日時が本番の現在時刻の取得元に従うことを保証する。
+       *
+       * @given 時計が UTC の "2026-01-15T03:04:05Z" の固定時計に設定され、データが "test data" のバイト列である
+       * @when save を引数なしで呼び出す
+       * @then getUpdateDate が "2026-01-15T03:04:05Z" に対応する Date を返す
+       */
+      @Test
+      void 時計が固定時計に設定されている場合_固定時刻の更新日時を返す() {
+        ApplicationClock.INSTANCE.setClock(
+            Clock.fixed(Instant.parse("2026-01-15T03:04:05Z"), ZoneId.of("Asia/Tokyo")));
+        s3.setData("test data".getBytes());
+
+        s3.save();
+
+        assertEquals(Date.from(Instant.parse("2026-01-15T03:04:05Z")), s3.getUpdateDate());
+      }
     }
   }
 }

@@ -5,10 +5,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
+import copel.sesproductpackage.core.util.ApplicationClock;
 import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -489,7 +489,7 @@ public final class SchemaGenerator {
       fieldSchema.put("maxLength", schema.maxLength());
     }
     if (schema.currentAndNextYearOnly()) {
-      int currentYear = LocalDate.now(ZoneId.of("Asia/Tokyo")).getYear();
+      int currentYear = LocalDate.now(ApplicationClock.INSTANCE.clock()).getYear();
       int nextYear = currentYear + 1;
       String yearRegex = "(" + currentYear + "|" + nextYear + ")";
       String pattern = schema.pattern();

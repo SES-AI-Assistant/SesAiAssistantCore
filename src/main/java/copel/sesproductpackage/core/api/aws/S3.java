@@ -1,5 +1,6 @@
 package copel.sesproductpackage.core.api.aws;
 
+import copel.sesproductpackage.core.util.ApplicationClock;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
@@ -74,7 +75,7 @@ public class S3 {
       log.info("S3にファイルを保存しました: " + this.objectKey);
 
       // 更新日時を現在時刻でセット
-      this.updateDate = new Date();
+      this.updateDate = Date.from(ApplicationClock.INSTANCE.clock().instant());
 
     } catch (Exception e) {
       log.error("【SesAiAssitantCore】S3へのファイル保存中にエラーが発生しました:{}", e.getMessage());
