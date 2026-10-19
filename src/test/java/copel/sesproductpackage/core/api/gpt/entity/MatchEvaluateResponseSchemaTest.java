@@ -180,10 +180,10 @@ class MatchEvaluateResponseSchemaTest {
     schema.setPlaceResult(new PlaceEvaluateResult(EvaluateType.NotMet, null));
     assertEquals("必須◎ 単価× 出社〇 場所×", schema.toNotificationSummary());
 
-    // 判定結果が未設定の項目は既定のアイコンで表示すること
+    // 判定結果が未設定の項目は誤認を避けるため項目ごと省略すること
     schema.setOfficeResult(new OfficeEvaluateResult(null, null));
     schema.setPlaceResult(new PlaceEvaluateResult(null, null));
-    assertEquals("必須◎ 単価× 出社- 場所◎", schema.toNotificationSummary());
+    assertEquals("必須◎ 単価×", schema.toNotificationSummary());
 
     // 必須スキルが空、他の項目が未評価の場合は空文字を返すこと
     schema.setMustList(new ArrayList<>());

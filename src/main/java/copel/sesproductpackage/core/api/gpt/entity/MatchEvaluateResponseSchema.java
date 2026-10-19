@@ -330,13 +330,12 @@ public class MatchEvaluateResponseSchema {
     if (this.priceResult != null) {
       sb.append(" 単価").append(this.priceResult.result ? "◎" : "×");
     }
-    if (this.officeResult != null) {
-      String icon = this.officeResult.result != null ? this.officeResult.result.getIcon() : "-";
-      sb.append(" 出社").append(icon);
+    // 判定結果が未設定の項目に既定のアイコンを出すと、判定していないのに◎と誤認させるため項目ごと省略する
+    if (this.officeResult != null && this.officeResult.result != null) {
+      sb.append(" 出社").append(this.officeResult.result.getIcon());
     }
-    if (this.placeResult != null) {
-      String icon = this.placeResult.result != null ? this.placeResult.result.getIcon() : "◎";
-      sb.append(" 場所").append(icon);
+    if (this.placeResult != null && this.placeResult.result != null) {
+      sb.append(" 場所").append(this.placeResult.result.getIcon());
     }
     return sb.toString().strip();
   }

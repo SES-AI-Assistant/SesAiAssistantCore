@@ -408,6 +408,14 @@ class SES_AI_T_JOBTest {
     // 超過時は指定文字数で切って「…」を付けること
     job.setOverview("01234567890");
     assertEquals("0123456789…", job.getTruncatedOverview(10));
+
+    // 切断位置が空白の場合は省略記号の直前に空白を残さないこと
+    job.setOverview("012345678 9");
+    assertEquals("012345678…", job.getTruncatedOverview(10));
+
+    // サロゲートペアの文字を分断せず1文字として数えること
+    job.setOverview("𠮷野家の店舗システム開発");
+    assertEquals("𠮷野家…", job.getTruncatedOverview(3));
   }
 
   @Test

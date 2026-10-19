@@ -450,7 +450,8 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
     // Javaの\sは全角スペースを含まないため明示的に対象に加える
     String singleLine = this.overview.strip().replaceAll("[\\s\\u3000]+", " ");
     String truncated = OriginalStringUtils.truncateByCodePoints(singleLine, maxLength);
-    return truncated.equals(singleLine) ? singleLine : truncated + "…";
+    // 切断位置が空白の場合に「語 …」とならないよう、省略記号の直前の空白を除く
+    return truncated.equals(singleLine) ? singleLine : truncated.stripTrailing() + "…";
   }
 
   /**
