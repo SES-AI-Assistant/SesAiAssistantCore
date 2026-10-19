@@ -1,6 +1,7 @@
 package copel.sesproductpackage.core.api.aws;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import copel.sesproductpackage.core.util.ApplicationClock;
 import copel.sesproductpackage.core.util.Properties;
 import java.util.HashMap;
 import java.util.Map;
@@ -78,7 +79,7 @@ public class SecretManager {
    * @throws Exception シークレット取得時のエラー
    */
   public void load() throws Exception {
-    long now = System.currentTimeMillis();
+    long now = ApplicationClock.INSTANCE.clock().millis();
     long cacheTTL = getCacheTTL();
     Long lastLoadTime = globalCacheTime.get(this.secretArn);
 

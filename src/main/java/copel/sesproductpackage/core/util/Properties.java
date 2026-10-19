@@ -8,6 +8,8 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.UnaryOperator;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
@@ -55,8 +57,25 @@ public class Properties {
   /** キャッシュ有効期限のデフォルト値（1日）. */
   private static final long DEFAULT_CACHE_TTL_MS = 86400000;
 
-  /* staticイニシャライザ. */
+  /* staticイニシャライザ. 読み込み元が memory のときは AWS に触れない。 */
   static {
+    initializeAtStartup();
+  }
+
+  /**
+   * クラス初期化時の設定読み込みを行います。
+   *
+   * <p>本番では、Parameter Store から読み込んでバケット名を解決し、そのバケットから S3 の設定ファイルを読み込む。この順番は、バケット名が Parameter Store
+   * の値に依存するため変えない。例外は握りつぶしてログに出す。Lambda のコールドスタートで一度だけ実行され、結果は static のキャッシュに残る。
+   *
+   * <p>読み込み元が memory のときは何もしない。AWS のクライアントを作らないため、オフラインでも即座に完了し、設定値は空から始まる。設定値はテストから {@link
+   * #putForTest(String, String)} で入れる。
+   */
+  static void initializeAtStartup() {
+    if (ConfigSource.INSTANCE.isMemory()) {
+      log.info("設定の読み込み元が memory のため、AWS からの設定読み込みを行いません。");
+      return;
+    }
     try {
       try (SsmClient ssmClient = buildSsmClientForConfigLoad()) {
         loadFromParameterStore(ssmClient);
@@ -113,8 +132,16 @@ public class Properties {
     return "dev";
   }
 
-  private static Region resolveS3Region() {
-    String r = trimOrNull(System.getenv(ENV_AWS_REGION));
+  /**
+   * 環境変数 AWS_REGION からリージョンを解決します。
+   *
+   * <p>未設定、空、または解決できない値は既定の ap-northeast-1 にする。環境変数の読み取りを引数で受け取り、テストで値を差し替えられるようにする。
+   *
+   * @param environment 環境変数を読む関数。本番では {@code System::getenv} を渡す
+   * @return 解決したリージョン
+   */
+  static Region resolveS3Region(final UnaryOperator<String> environment) {
+    String r = trimOrNull(environment.apply(ENV_AWS_REGION));
     if (r != null) {
       try {
         return Region.of(r);
@@ -125,9 +152,27 @@ public class Properties {
     return Region.AP_NORTHEAST_1;
   }
 
+  /**
+   * 設定ファイル読み込み用の S3 クライアントを、本番の環境変数で生成します。
+   *
+   * @return S3 クライアント
+   */
   static S3Client buildS3ClientForConfigLoad() {
-    Region region = resolveS3Region();
-    String endpointUrl = AwsEndpointUtil.resolveEndpointUrl();
+    return buildS3ClientForConfigLoad(System::getenv);
+  }
+
+  /**
+   * 設定ファイル読み込み用の S3 クライアントを生成します。
+   *
+   * <p>エンドポイント URL が有効なら、そのエンドポイントに向けて path-style で接続する。資格情報は環境変数の組、なければ固定値 test
+   * を使う。エンドポイントが無効な場合は既定の資格情報を使う。
+   *
+   * @param environment 環境変数を読む関数。本番では {@code System::getenv} を渡す
+   * @return S3 クライアント
+   */
+  static S3Client buildS3ClientForConfigLoad(final UnaryOperator<String> environment) {
+    Region region = resolveS3Region(environment);
+    String endpointUrl = AwsEndpointUtil.resolveEndpointUrl(environment);
     S3ClientBuilder b = S3Client.builder().region(region);
 
     if (endpointUrl != null) {
@@ -135,8 +180,8 @@ public class Properties {
         URI uri = URI.create(endpointUrl);
         b.endpointOverride(uri).forcePathStyle(true);
         log.info("Properties S3 はカスタムエンドポイントを使用します: {}", endpointUrl);
-        String ak = trimOrNull(System.getenv("AWS_ACCESS_KEY_ID"));
-        String sk = trimOrNull(System.getenv("AWS_SECRET_ACCESS_KEY"));
+        String ak = trimOrNull(environment.apply("AWS_ACCESS_KEY_ID"));
+        String sk = trimOrNull(environment.apply("AWS_SECRET_ACCESS_KEY"));
         if (ak != null && sk != null) {
           b.credentialsProvider(
               StaticCredentialsProvider.create(AwsBasicCredentials.create(ak, sk)));
@@ -154,9 +199,26 @@ public class Properties {
     return b.build();
   }
 
+  /**
+   * Parameter Store 読み込み用の SSM クライアントを、本番の環境変数で生成します。
+   *
+   * @return SSM クライアント
+   */
   static SsmClient buildSsmClientForConfigLoad() {
-    Region region = resolveS3Region();
-    String endpointUrl = AwsEndpointUtil.resolveEndpointUrl();
+    return buildSsmClientForConfigLoad(System::getenv);
+  }
+
+  /**
+   * Parameter Store 読み込み用の SSM クライアントを生成します。
+   *
+   * <p>S3 の場合と同じく、エンドポイント URL と資格情報の解決に環境変数の読み取りを使う。エンドポイントが無効な場合は既定の資格情報を使う。
+   *
+   * @param environment 環境変数を読む関数。本番では {@code System::getenv} を渡す
+   * @return SSM クライアント
+   */
+  static SsmClient buildSsmClientForConfigLoad(final UnaryOperator<String> environment) {
+    Region region = resolveS3Region(environment);
+    String endpointUrl = AwsEndpointUtil.resolveEndpointUrl(environment);
     SsmClientBuilder b = SsmClient.builder().region(region);
 
     if (endpointUrl != null) {
@@ -164,8 +226,8 @@ public class Properties {
         URI uri = URI.create(endpointUrl);
         b.endpointOverride(uri);
         log.info("Properties SSM はカスタムエンドポイントを使用します: {}", endpointUrl);
-        String ak = trimOrNull(System.getenv("AWS_ACCESS_KEY_ID"));
-        String sk = trimOrNull(System.getenv("AWS_SECRET_ACCESS_KEY"));
+        String ak = trimOrNull(environment.apply("AWS_ACCESS_KEY_ID"));
+        String sk = trimOrNull(environment.apply("AWS_SECRET_ACCESS_KEY"));
         if (ak != null && sk != null) {
           b.credentialsProvider(
               StaticCredentialsProvider.create(AwsBasicCredentials.create(ak, sk)));
@@ -189,7 +251,7 @@ public class Properties {
    * @param s3Client S3クライアント
    */
   static void load(S3Client s3Client) {
-    long now = System.currentTimeMillis();
+    long now = ApplicationClock.INSTANCE.clock().millis();
     long cacheTTL = getCacheTTL();
     if (lastS3LoadTime > 0 && (now - lastS3LoadTime) < cacheTTL) {
       log.debug("S3 プロパティファイル キャッシュが有効なため読み込みをスキップします。");
@@ -232,7 +294,7 @@ public class Properties {
    * @param ssmClient SSM クライアント
    */
   static void loadFromParameterStore(SsmClient ssmClient) {
-    long now = System.currentTimeMillis();
+    long now = ApplicationClock.INSTANCE.clock().millis();
     long cacheTTL = getCacheTTL();
     if (lastParameterStoreLoadTime > 0 && (now - lastParameterStoreLoadTime) < cacheTTL) {
       log.debug("Parameter Store キャッシュが有効なため読み込みをスキップします。");
@@ -321,5 +383,51 @@ public class Properties {
   public static String[] getAsArray(final String key) {
     String value = properties.get(key);
     return value != null ? value.split(",") : new String[0];
+  }
+
+  /**
+   * テスト用に設定値を1件登録します。読み込み元が memory の場合だけ許可されます。
+   *
+   * <p>テストで設定値を入れるための口である。同じキーが既にあれば値を置き換える。本番で設定値を書き換えると読み込み結果と食い違うため、memory 以外では拒否する。
+   *
+   * @param key キー。null は指定できない
+   * @param value 値。null は指定できない
+   * @throws IllegalStateException 読み込み元が memory 以外の場合
+   * @throws NullPointerException key または value が null の場合
+   */
+  public static void putForTest(final String key, final String value) {
+    ConfigSource.INSTANCE.requireMemory("設定値の登録");
+    properties.put(
+        Objects.requireNonNull(key, "キーにはnullを指定できません。"),
+        Objects.requireNonNull(value, "値にはnullを指定できません。"));
+  }
+
+  /**
+   * テスト用に設定値を1件削除します。読み込み元が memory の場合だけ許可されます。
+   *
+   * <p>テストで特定のキーを未設定の状態に戻すための口である。登録されていないキーを指定した場合は何もしない。
+   *
+   * @param key 削除するキー
+   * @throws IllegalStateException 読み込み元が memory 以外の場合
+   */
+  public static void removeForTest(final String key) {
+    ConfigSource.INSTANCE.requireMemory("設定値の削除");
+    properties.remove(key);
+  }
+
+  /**
+   * テスト用に設定値と読み込みの状態を初期化します。読み込み元が memory の場合だけ許可されます。
+   *
+   * <p>設定値をすべて消し、S3 のバケット名と Parameter Store と S3 の最終読み込み時刻を初期値に戻す。これにより、テストごとに TTL
+   * キャッシュの影響を受けずに読み込みを検証できる。
+   *
+   * @throws IllegalStateException 読み込み元が memory 以外の場合
+   */
+  public static void resetForTest() {
+    ConfigSource.INSTANCE.requireMemory("設定値の初期化");
+    properties.clear();
+    CONFIG_BUCKET = null;
+    lastParameterStoreLoadTime = 0;
+    lastS3LoadTime = 0;
   }
 }

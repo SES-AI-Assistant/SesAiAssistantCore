@@ -11,15 +11,14 @@ import java.util.concurrent.atomic.AtomicReference;
  * <p>既定は Asia/Tokyo のシステム時計であり、本番では現在時刻の取得結果を変えない。現在時刻は {@code Instant.now()} や {@link
  * System#currentTimeMillis()} を直接呼ばず、必ず {@link #clock()} が返す時計を経由して取得する。これにより単体テストで時刻を固定できる。
  *
- * <p>{@link #setClock(Clock)} はテスト実行時（システムプロパティ {@link #CONFIG_SOURCE_PROPERTY} が {@link
- * #CONFIG_SOURCE_MEMORY} のとき）だけ許可し、それ以外では {@link IllegalStateException}
- * を投げる。本番コードから時計を差し替えて現在時刻の挙動を変えることを防ぐ仕様である。 {@link #resetToDefault()}
+ * <p>{@link #setClock(Clock)} はテスト実行時、つまり {@link ConfigSource} の判定が memory のときだけ許可し、それ以外では {@link
+ * IllegalStateException} を投げる。本番コードから時計を差し替えて現在時刻の挙動を変えることを防ぐ仕様である。{@link #resetToDefault()}
  * は後始末に使うだけで現在時刻を固定しないので、制限を設けない。
  *
  * <p>時計は {@link AtomicReference} で保持するため、複数スレッドから同時に読み書きしても値が壊れない。
  *
- * <p>Properties と SecretManager の TTL 判定の {@code System.currentTimeMillis()} は、この時計を経由していない。
- * これらは段階0-2 の別 PR で対応する。
+ * <p>Properties と SecretManager の TTL 判定も、この時計を経由して現在時刻を取得する。本番では従来の {@code
+ * System.currentTimeMillis()} と同じ値になる。
  *
  * <p>単一インスタンスは列挙型で表現する。列挙型はシリアライズや反射に対しても単一インスタンスを保証する。
  *
@@ -32,17 +31,6 @@ public enum ApplicationClock {
   // ================================
   // 定数定義
   // ================================
-  /**
-   * 設定読み込み元を表すシステムプロパティのキーです。
-   *
-   * <p>テスト実行時の値を {@link #CONFIG_SOURCE_MEMORY} に固定し、時計の差し替えを許可する判定に使う。 段階0-2
-   * で設定の読み込み元の切り替えにも同じキーを使うため、定数にして一箇所で管理する。
-   */
-  public static final String CONFIG_SOURCE_PROPERTY = "nectar.config.source";
-
-  /** 設定読み込み元がメモリであることを表す値です。テスト実行時だけこの値を設定する。 */
-  public static final String CONFIG_SOURCE_MEMORY = "memory";
-
   /** 現在時刻の既定のタイムゾーン ID です。本番の挙動を変えないため Asia/Tokyo に固定する。 */
   private static final String DEFAULT_ZONE_ID = "Asia/Tokyo";
 
@@ -74,30 +62,23 @@ public enum ApplicationClock {
   /**
    * 現在時刻の取得に使う時計を差し替えます。テスト専用です。
    *
-   * <p>テストで時刻を固定するために使う。システムプロパティ {@link #CONFIG_SOURCE_PROPERTY} が {@link #CONFIG_SOURCE_MEMORY}
-   * でないときは差し替えを拒否する。本番で時計が差し替わると現在時刻の挙動が変わるためである。テスト終了時は {@link #resetToDefault()} で既定に戻すこと。
+   * <p>テストで時刻を固定するために使う。読み込み元が memory でないときは差し替えを拒否する。本番で時計が差し替わると現在時刻の挙動が変わるためである。テスト終了時は {@link
+   * #resetToDefault()} で既定に戻すこと。
    *
    * @param fixedClock 差し替える時計。null は指定できない
-   * @throws IllegalStateException システムプロパティが {@link #CONFIG_SOURCE_MEMORY} 以外の場合
+   * @throws IllegalStateException 読み込み元が memory 以外の場合
    * @throws NullPointerException fixedClock が null の場合
    */
   public void setClock(final Clock fixedClock) {
-    if (!CONFIG_SOURCE_MEMORY.equals(System.getProperty(CONFIG_SOURCE_PROPERTY))) {
-      throw new IllegalStateException(
-          "時計の差し替えはシステムプロパティ "
-              + CONFIG_SOURCE_PROPERTY
-              + " が "
-              + CONFIG_SOURCE_MEMORY
-              + " のときだけ許可されています。");
-    }
+    ConfigSource.INSTANCE.requireMemory("時計の差し替え");
     clock.set(Objects.requireNonNull(fixedClock, "時計にはnullを指定できません。"));
   }
 
   /**
    * 現在時刻の取得に使う時計を既定のシステム時計に戻します。テスト専用です。
    *
-   * <p>テストごとに時計が残らないようにするため、テストの後始末で呼び出す。既定は Asia/Tokyo のシステム時計である。
-   * 現在時刻を固定しない方向の操作であるため、システムプロパティによる制限は設けない。
+   * <p>テストごとに時計が残らないようにするため、テストの後始末で呼び出す。既定は Asia/Tokyo
+   * のシステム時計である。現在時刻を固定しない方向の操作であるため、システムプロパティによる制限は設けない。
    */
   public void resetToDefault() {
     clock.set(systemClock());
