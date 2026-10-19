@@ -10,8 +10,10 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
+import lombok.AccessLevel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Setter;
 import lombok.ToString;
 
 /**
@@ -78,6 +80,29 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
   private Plan plan;
 
   /**
+   * DB から行を取得できたか（登録済みか）を示すフラグ.
+   *
+   * <p>直近の SELECT（selectByPk / selectByPkWithoutTenantId）で行が見つかった場合 true、見つからなかった場合 false。DB
+   * 列ではないため Column は付与しない。
+   */
+  @Setter(AccessLevel.NONE)
+  private boolean registered;
+
+  /**
+   * 直近の SELECT で DB から行を取得できたか（登録済みユーザーか）を返します.
+   *
+   * <p>未登録ユーザー（行なし）と、登録済みでロールが null・定義外のユーザーを区別するために用いる。ロールの値だけでは両者を区別できない（どちらも role が
+   * null）ため、行の有無を明示的に保持する。
+   *
+   * <p>Lot 経由で取得したエンティティは false のまま（単体の SELECT を行っていないため）。
+   *
+   * @return 行が取得できていれば true、取得できていない・未検索であれば false
+   */
+  public boolean isRegistered() {
+    return this.registered;
+  }
+
+  /**
    * このユーザーがシステム利用可能であるかどうかを判定します.
    *
    * @return 利用可能であればtrue、不可であればfalse
@@ -89,9 +114,15 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
   /**
    * ユーザーが持つ全ての権限を取得します.
    *
-   * @return 権限セット
+   * <p>システム利用不可（ロール 00）または未設定（null・定義外）のユーザーは、プランに関係なく空集合を返します。ロール 00
+   * は業務機能を一切利用させないロールであり、プレミアムプランのプラン権限で業務機能が開放されてはならないためです。
+   *
+   * @return 権限セット（システム利用不可の場合は空集合）
    */
   public Set<Permission> getPermissions() {
+    if (!hasSystemUseAuth()) {
+      return new HashSet<>();
+    }
     Set<Permission> permissions = new HashSet<>();
     if (this.role != null) {
       permissions.addAll(this.role.getPermissions());
@@ -145,25 +176,28 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
   @Override
   public void selectByPk(Connection connection) throws SQLException {
     if (this.userId == null) {
+      // 検索しないため未登録扱いとする（registered は false のまま）
+      this.registered = false;
       return;
     }
-    executeSelectByPkWithoutTenantFilter(
-        connection,
-        SELECT_SQL,
-        (stmt) -> {
-          stmt.setString(1, this.userId);
-          stmt.setString(2, this.tenantId);
-        },
-        (rs) -> {
-          this.userId = rs.getString("user_id");
-          this.userName = rs.getString("user_name");
-          this.role = Role.getEnum(rs.getString("role_cd"));
-          this.plan = Plan.getEnum(rs.getString("plan_cd"));
-          this.registerDate = new OriginalDateTime(rs.getString("register_date"));
-          this.registerUser = rs.getString("register_user");
-          this.tenantId = rs.getString("tenant_id");
-        },
-        "SES_AI_WEBAPP_M_USER.selectByPk");
+    this.registered =
+        executeSelectByPkWithoutTenantFilter(
+            connection,
+            SELECT_SQL,
+            (stmt) -> {
+              stmt.setString(1, this.userId);
+              stmt.setString(2, this.tenantId);
+            },
+            (rs) -> {
+              this.userId = rs.getString("user_id");
+              this.userName = rs.getString("user_name");
+              this.role = Role.getEnum(rs.getString("role_cd"));
+              this.plan = Plan.getEnum(rs.getString("plan_cd"));
+              this.registerDate = new OriginalDateTime(rs.getString("register_date"));
+              this.registerUser = rs.getString("register_user");
+              this.tenantId = rs.getString("tenant_id");
+            },
+            "SES_AI_WEBAPP_M_USER.selectByPk");
   }
 
   /**
@@ -174,22 +208,25 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
    */
   public void selectByPkWithoutTenantId(Connection connection) throws SQLException {
     if (this.userId == null) {
+      // 検索しないため未登録扱いとする（registered は false のまま）
+      this.registered = false;
       return;
     }
-    executeSelectByPkWithoutTenantFilter(
-        connection,
-        SELECT_WITHOUT_TENANT_ID_SQL,
-        (stmt) -> stmt.setString(1, this.userId),
-        (rs) -> {
-          this.userId = rs.getString("user_id");
-          this.userName = rs.getString("user_name");
-          this.role = Role.getEnum(rs.getString("role_cd"));
-          this.plan = Plan.getEnum(rs.getString("plan_cd"));
-          this.registerDate = new OriginalDateTime(rs.getString("register_date"));
-          this.registerUser = rs.getString("register_user");
-          this.tenantId = rs.getString("tenant_id");
-        },
-        "SES_AI_WEBAPP_M_USER.selectByPkWithoutTenantId");
+    this.registered =
+        executeSelectByPkWithoutTenantFilter(
+            connection,
+            SELECT_WITHOUT_TENANT_ID_SQL,
+            (stmt) -> stmt.setString(1, this.userId),
+            (rs) -> {
+              this.userId = rs.getString("user_id");
+              this.userName = rs.getString("user_name");
+              this.role = Role.getEnum(rs.getString("role_cd"));
+              this.plan = Plan.getEnum(rs.getString("plan_cd"));
+              this.registerDate = new OriginalDateTime(rs.getString("register_date"));
+              this.registerUser = rs.getString("register_user");
+              this.tenantId = rs.getString("tenant_id");
+            },
+            "SES_AI_WEBAPP_M_USER.selectByPkWithoutTenantId");
   }
 
   @Override

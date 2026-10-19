@@ -61,9 +61,10 @@ class SES_AI_WEBAPP_M_USERTest {
     user.setPlan(null);
     assertFalse(user.getPermissions().isEmpty());
 
+    // role 未設定はプランに関係なく権限なし
     user.setRole(null);
     user.setPlan(Plan.FREE);
-    assertFalse(user.getPermissions().isEmpty());
+    assertTrue(user.getPermissions().isEmpty());
 
     user.setRole(Role.システムユーザー);
     user.setPlan(Plan.PREMIUM);
@@ -322,5 +323,77 @@ class SES_AI_WEBAPP_M_USERTest {
     user.setUserId("U1");
 
     assertFalse(user.deleteByPkWithoutTenantIdFilter(connection));
+  }
+
+  /** システム利用不可（ロール 00）はプレミアムプランであっても権限を一切持たないことを確認する. */
+  @Test
+  void testSystemUnusableRolePremiumHasNoPermissions() {
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
+    user.setRole(Role.システム利用不可);
+    user.setPlan(Plan.PREMIUM);
+    assertTrue(user.getPermissions().isEmpty());
+  }
+
+  /** ロール未設定（null）はプレミアムプランであっても権限を一切持たないことを確認する. */
+  @Test
+  void testNullRolePremiumHasNoPermissions() {
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
+    user.setRole(null);
+    user.setPlan(Plan.PREMIUM);
+    assertTrue(user.getPermissions().isEmpty());
+  }
+
+  /** 直近のSELECTで行が取得できなかった場合は未登録（isRegistered=false）であることを確認する. */
+  @Test
+  void testIsRegisteredFalseWhenRowNotFound() throws SQLException {
+    Connection connection = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(connection.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(false);
+
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
+    assertFalse(user.isRegistered());
+    user.setUserId("U1");
+    user.selectByPkWithoutTenantId(connection);
+    assertFalse(user.isRegistered());
+    assertNull(user.getRole());
+  }
+
+  /** 行が取得できた場合は登録済み（isRegistered=true）となり、ロールが null（role_cd 未設定）でも区別できることを確認する. */
+  @Test
+  void testIsRegisteredTrueWhenRowFoundWithNullRole() throws SQLException {
+    Connection connection = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(connection.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true);
+    when(rs.getString("role_cd")).thenReturn(null);
+
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
+    user.setUserId("U1");
+    user.selectByPkWithoutTenantId(connection);
+    assertTrue(user.isRegistered());
+    assertNull(user.getRole());
+  }
+
+  /** selectByPk（テナント条件あり）でも登録済みフラグが反映されることを確認する. */
+  @Test
+  void testIsRegisteredReflectsSelectByPk() throws SQLException {
+    Connection connection = mock(Connection.class);
+    PreparedStatement ps = mock(PreparedStatement.class);
+    ResultSet rs = mock(ResultSet.class);
+    when(connection.prepareStatement(anyString())).thenReturn(ps);
+    when(ps.executeQuery()).thenReturn(rs);
+    when(rs.next()).thenReturn(true, false);
+
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
+    user.setUserId("U1");
+    user.selectByPk(connection);
+    assertTrue(user.isRegistered());
+    user.selectByPk(connection);
+    assertFalse(user.isRegistered());
   }
 }
