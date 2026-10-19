@@ -28,6 +28,30 @@ class SES_AI_WEBAPP_M_USERTest {
     assertFalse(user.hasSystemUseAuth());
   }
 
+  /** システムユーザー×プレミアムは管理系権限を持たないことを確認する（ロール・プラン双方から付与されないこと）. */
+  @Test
+  void testSystemUserPremiumHasNoAdminPermissions() {
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
+    user.setRole(Role.システムユーザー);
+    user.setPlan(Plan.PREMIUM);
+    assertFalse(user.getPermissions().contains(Permission.MANAGE_MASTER_DATA));
+    assertFalse(user.getPermissions().contains(Permission.MANAGE_USERS));
+    assertFalse(user.getPermissions().contains(Permission.MANAGE_SENDER));
+    assertFalse(user.getPermissions().contains(Permission.MANAGE_FROM_GROUP));
+    assertFalse(user.getPermissions().contains(Permission.VIEW_USAGE_HISTORY));
+  }
+
+  /** 運用×フリーは送信元グループ・送信者・ユーザー管理の権限を持つことを確認する（ロール由来）. */
+  @Test
+  void testOperationFreeHasGroupSenderUserManagement() {
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
+    user.setRole(Role.運用);
+    user.setPlan(Plan.FREE);
+    assertTrue(user.getPermissions().contains(Permission.MANAGE_FROM_GROUP));
+    assertTrue(user.getPermissions().contains(Permission.MANAGE_SENDER));
+    assertTrue(user.getPermissions().contains(Permission.MANAGE_USERS));
+  }
+
   @Test
   void testGetPermissionsBranches() {
     SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");

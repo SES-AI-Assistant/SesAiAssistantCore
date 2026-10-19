@@ -37,9 +37,6 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   private static final String SELECT_ALL_SQL =
       "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB ORDER BY register_date DESC";
 
-  /** ベクトル検索のカウント用SQL. */
-  private static final String COUNT_SQL_FOR_RETRIEVE = "SELECT COUNT(*) FROM SES_AI_T_JOB";
-
   /** 類似度閾値ベクトル検索用SQL（ページング用・LIMIT/OFFSET除外）. */
   private static final String RETRIEVE_WITH_THRESHOLD_SQL_WITHOUT_LIMIT =
       "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
@@ -107,72 +104,6 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
         executeQueryWithoutTenantFilter(
             connection, SELECT_ALL_SQL, this::mapResultSet, (stmt, paramIndex) -> paramIndex);
     this.entityLot.addAll(results);
-  }
-
-  /**
-   * ベクトル検索を実行し結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param query 検索ベクトル
-   * @param limit 取得上限件数
-   * @throws SQLException
-   */
-  public void retrieve(Connection connection, String tenantId, Vector query, int limit)
-      throws SQLException {
-    this.retrievePaged(connection, tenantId, query, 1, limit);
-  }
-
-  /**
-   * ベクトル検索をページングで実行し結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param query 検索ベクトル
-   * @param page ページ番号(1-based)
-   * @param size 1ページあたりの件数
-   * @throws SQLException
-   */
-  public void retrievePaged(
-      Connection connection, String tenantId, Vector query, int page, int size)
-      throws SQLException {
-    if (connection == null || query == null) {
-      return;
-    }
-
-    executeVectorPagedQuery(
-        connection,
-        COUNT_SQL_FOR_RETRIEVE,
-        tenantId,
-        query.toString(),
-        0.0,
-        page,
-        size,
-        rs -> {
-          SES_AI_T_JOB entity = mapResultSet(rs);
-          try {
-            entity.setDistance(rs.getDouble("distance"));
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
-          return entity;
-        },
-        (stmt, paramIndex, vectorValue, similarityThreshold) -> {
-          stmt.setString(paramIndex, vectorValue);
-          return paramIndex + 1;
-        });
-  }
-
-  /**
-   * 類似度閾値を用いてベクトル検索を実行し結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param query 検索ベクトル
-   * @throws SQLException
-   */
-  public void retrieve(Connection connection, String tenantId, Vector query) throws SQLException {
-    this.retrieveWithThreshold(connection, tenantId, query, 0.0, 5);
   }
 
   /**

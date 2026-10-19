@@ -2,6 +2,7 @@ package copel.sesproductpackage.core.unit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.EnumSet;
 import org.junit.jupiter.api.Test;
 
 class RoleTest {
@@ -33,5 +34,33 @@ class RoleTest {
     assertEquals("XX", role.getCode());
     // Reset back
     role.setCode("00");
+  }
+
+  /** 運用ロールは送信者マスタ管理権限（MANAGE_SENDER）と従来のウォッチ管理権限を持つことを確認する. */
+  @Test
+  void testOperationRoleHasManageSenderAndManageWatch() {
+    assertTrue(Role.運用.getPermissions().contains(Permission.MANAGE_SENDER));
+    assertTrue(Role.運用.getPermissions().contains(Permission.MANAGE_WATCH));
+    assertTrue(Role.運用.getPermissions().contains(Permission.MANAGE_FROM_GROUP));
+    assertTrue(Role.運用.getPermissions().contains(Permission.MANAGE_USERS));
+    assertEquals(
+        EnumSet.of(
+            Permission.MANAGE_WATCH,
+            Permission.MANAGE_SENDER,
+            Permission.MANAGE_FROM_GROUP,
+            Permission.MANAGE_USERS),
+        Role.運用.getPermissions());
+  }
+
+  /** 開発ロールは送信者マスタ管理権限を持たないことを確認する（運用ロールのみ付与）. */
+  @Test
+  void testDevelopmentRoleHasNoManageSender() {
+    assertFalse(Role.開発.getPermissions().contains(Permission.MANAGE_SENDER));
+  }
+
+  /** システム管理者は全権限（MANAGE_SENDER を含む）を持つことを確認する. */
+  @Test
+  void testSystemAdminHasAllPermissions() {
+    assertEquals(EnumSet.allOf(Permission.class), Role.システム管理者.getPermissions());
   }
 }
