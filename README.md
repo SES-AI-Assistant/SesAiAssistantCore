@@ -28,7 +28,7 @@
 ### Domain Primitive（Value Object）
 
 プリミティブ型（String, int等）ではなく、`unit` パッケージのドメイン型を優先：
-- `Money`, `Currency`, `OriginalDateTime` など
+- `Money`, `OriginalDateTime` など
 
 ### API 抽象化層
 
