@@ -61,18 +61,6 @@ public class SecretManager {
     this(secretArn, Region.AP_NORTHEAST_1);
   }
 
-  private static long getCacheTtl() {
-    String ttlStr = Properties.get("CACHE_TTL_MS");
-    if (ttlStr != null && !ttlStr.isEmpty()) {
-      try {
-        return Long.parseLong(ttlStr.trim());
-      } catch (NumberFormatException e) {
-        log.warn("キャッシュTTLの値が不正です: {}", ttlStr);
-      }
-    }
-    return DEFAULT_CACHE_TTL_MS;
-  }
-
   /**
    * シークレット情報を取得します. キャッシュが有効な場合はスキップします（TTL: CACHE_TTL_MS プロパティで設定、デフォルト1日）。
    *
@@ -80,16 +68,22 @@ public class SecretManager {
    */
   public void load() throws Exception {
     long now = ApplicationClock.INSTANCE.clock().millis();
-    long cacheTtl = getCacheTtl();
+    long cacheTtl = DEFAULT_CACHE_TTL_MS;
+    String ttlStr = Properties.get("CACHE_TTL_MS");
+    if (!ttlStr.isEmpty()) {
+      try {
+        cacheTtl = Long.parseLong(ttlStr.trim());
+      } catch (NumberFormatException e) {
+        log.warn("キャッシュTTLの値が不正です: {}", ttlStr);
+      }
+    }
     Long lastLoadTime = globalCacheTime.get(this.secretArn);
 
+    // キャッシュの値と取得時刻は同時に保存するため、取得時刻がある場合はキャッシュの値も必ずある
     if (lastLoadTime != null && (now - lastLoadTime) < cacheTtl) {
-      Map<String, String> cachedValues = globalCache.get(this.secretArn);
-      if (cachedValues != null) {
-        this.secretValues.putAll(cachedValues);
-        log.debug("【SesAiAssitantCore】シークレットキャッシュを使用しました: {}", this.secretArn);
-        return;
-      }
+      this.secretValues.putAll(globalCache.get(this.secretArn));
+      log.debug("【SesAiAssitantCore】シークレットキャッシュを使用しました: {}", this.secretArn);
+      return;
     }
 
     try {
@@ -128,38 +122,8 @@ public class SecretManager {
     return this.secretValues.getOrDefault(key, "");
   }
 
-  /**
-   * シークレット値を取得します（存在しない場合はnull）.
-   *
-   * @param key キー
-   * @return 値
-   */
-  public String getOrNull(final String key) {
-    return this.secretValues.get(key);
-  }
-
-  /**
-   * すべてのシークレット値を取得します.
-   *
-   * @return シークレット値マップ
-   */
-  public Map<String, String> getAll() {
-    return new HashMap<>(this.secretValues);
-  }
-
-  /**
-   * シークレット情報が読み込まれているか確認します.
-   *
-   * @return 読み込み済みの場合 true
-   */
-  public boolean isLoaded() {
-    return !this.secretValues.isEmpty();
-  }
-
   /** リソースをクローズします. */
   public void close() {
-    if (this.client != null) {
-      this.client.close();
-    }
+    this.client.close();
   }
 }

@@ -41,17 +41,6 @@ public class ExternalFileLinkLot {
   }
 
   /**
-   * ダウンロード可能なリンクが1件以上あるかを返す.
-   *
-   * <p>内部でisDownloadable()を呼び出すため、HEADリクエストが発生する。
-   *
-   * @return ダウンロード可能なリンクが1件以上あればtrue
-   */
-  public boolean hasDownloadableLinks() {
-    return links.stream().anyMatch(ExternalFileLink::isDownloadable);
-  }
-
-  /**
    * 全リンクのダウンロードを試みる.
    *
    * <p>失敗したリンクはwarningログのみ出力してスキップし、処理を継続する。
@@ -75,14 +64,5 @@ public class ExternalFileLinkLot {
    */
   public List<ExternalFileLink> getDownloadedLinks() {
     return links.stream().filter(link -> link.getFileData() != null).collect(Collectors.toList());
-  }
-
-  /**
-   * 全リンク数を返す（テスト・デバッグ用）.
-   *
-   * @return 抽出されたURL総数
-   */
-  public int size() {
-    return links.size();
   }
 }

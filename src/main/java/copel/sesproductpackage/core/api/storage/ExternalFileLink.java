@@ -8,6 +8,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,10 @@ public class ExternalFileLink {
 
   /** ファイルサイズ上限（バイト）: 20MB. */
   static final long MAX_FILE_SIZE_BYTES = 20L * 1024L * 1024L;
+
+  /** 対応するストレージサービスのドメイン（ホスト名の完全一致またはサブドメイン）. */
+  static final List<String> SUPPORTED_DOMAINS =
+      List.of("drive.google.com", "docs.google.com", "dropbox.com", "sharepoint.com", "1drv.ms");
 
   /** HTTPタイムアウト（秒）. */
   static final int HTTP_TIMEOUT_SECONDS = 15;
@@ -238,11 +244,19 @@ public class ExternalFileLink {
     if (url == null) {
       return false;
     }
-    return url.contains("drive.google.com")
-        || url.contains("docs.google.com")
-        || url.contains("dropbox.com")
-        || url.contains("sharepoint.com")
-        || url.contains("1drv.ms");
+    String host;
+    try {
+      host = URI.create(url).getHost();
+    } catch (IllegalArgumentException e) {
+      return false;
+    }
+    if (host == null) {
+      return false;
+    }
+    // ホスト名が対応ドメインと一致するか、そのサブドメインである場合だけ対応とする
+    String lowerHost = host.toLowerCase(Locale.ROOT);
+    return SUPPORTED_DOMAINS.stream()
+        .anyMatch(domain -> lowerHost.equals(domain) || lowerHost.endsWith("." + domain));
   }
 
   /**
@@ -263,10 +277,8 @@ public class ExternalFileLink {
           Pattern.compile("filename\\*=(?:UTF-8'')?([^;\\s]+)", Pattern.CASE_INSENSITIVE);
       Matcher m = rfc5987.matcher(disposition);
       if (m.find()) {
-        String name = m.group(1).trim();
-        if (!name.isBlank()) {
-          return FileNameUtils.decode(name);
-        }
+        // 値は空白と ; を除く1文字以上なので、空白だけになることはない
+        return FileNameUtils.decode(m.group(1));
       }
       // filename= (通常)
       Pattern plain = Pattern.compile("filename=\"?([^\";]+)\"?", Pattern.CASE_INSENSITIVE);

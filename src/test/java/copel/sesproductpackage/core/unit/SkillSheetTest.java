@@ -8,6 +8,8 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import copel.sesproductpackage.core.util.Properties;
+import copel.sesproductpackage.core.util.SsmParameterKey;
 import copel.sesproductpackage.tools.testsupport.clock.FixedClock;
 import copel.sesproductpackage.tools.testsupport.config.TestProperty;
 import java.io.ByteArrayOutputStream;
@@ -54,11 +56,14 @@ class SkillSheetTest {
     when(builder.build()).thenReturn(lambdaClient);
     lambdaStatic = mockStatic(LambdaClient.class);
     lambdaStatic.when(LambdaClient::builder).thenReturn(builder);
+    // markitdown-lambda の関数名は呼び出し時に設定から読むため、テストでは名前を設定しておく
+    Properties.putForTest(SsmParameterKey.MARKITDOWN_NAME.getKey(), "markitdown-fn");
   }
 
   @AfterEach
   void Lambdaの差し替えを解除する() {
     lambdaStatic.close();
+    Properties.removeForTest(SsmParameterKey.MARKITDOWN_NAME.getKey());
   }
 
   /**

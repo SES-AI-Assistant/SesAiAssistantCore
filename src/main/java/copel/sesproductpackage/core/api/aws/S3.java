@@ -3,7 +3,6 @@ package copel.sesproductpackage.core.api.aws;
 import copel.sesproductpackage.core.util.ApplicationClock;
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.Duration;
 import java.util.Date;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -16,8 +15,6 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
 /**
  * Amazon S3操作クラス.
@@ -127,44 +124,6 @@ public class S3 {
 
     } catch (Exception e) {
       log.error("【SesAiAssitantCore】S3ファイルの削除中にエラーが発生しました: {}", e.getMessage());
-    }
-  }
-
-  /**
-   * S3ファイルの署名付きダウンロードURLを生成する（有効期限は1分）.
-   *
-   * @return 署名付きURL
-   */
-  public String createDownloadUrl() {
-    return this.createDownloadUrl(1);
-  }
-
-  /**
-   * 指定した有効期限（分）の署名付きダウンロードURLを生成します。
-   *
-   * @param expireMinutes 有効期限（分）
-   * @return 署名付きURL
-   */
-  public String createDownloadUrl(final long expireMinutes) {
-    try (S3Presigner presigner =
-        S3Presigner.builder()
-            .region(this.s3Client.serviceClientConfiguration().region())
-            .credentialsProvider(DefaultCredentialsProvider.create())
-            .build()) {
-
-      GetObjectRequest getObjectRequest =
-          GetObjectRequest.builder().bucket(this.bucketName).key(this.objectKey).build();
-
-      GetObjectPresignRequest presignRequest =
-          GetObjectPresignRequest.builder()
-              .signatureDuration(Duration.ofMinutes(expireMinutes))
-              .getObjectRequest(getObjectRequest)
-              .build();
-
-      return presigner.presignGetObject(presignRequest).url().toString();
-    } catch (Exception e) {
-      log.error("署名付きURL生成中にエラーが発生しました: {}", e.getMessage());
-      return null;
     }
   }
 }

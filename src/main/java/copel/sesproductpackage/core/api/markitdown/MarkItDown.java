@@ -2,7 +2,6 @@ package copel.sesproductpackage.core.api.markitdown;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import copel.sesproductpackage.core.util.Properties;
@@ -23,51 +22,40 @@ import software.amazon.awssdk.services.lambda.model.LambdaException;
 /**
  * markitdown-lambda を同期 invoke して Markdown 変換結果を取得するユーティリティ.
  *
- * <p>関数名は環境変数 {@value #ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME}、リージョンは {@value #ENV_AWS_REGION} （未設定時は
- * {@link Region#AP_NORTHEAST_1}）を使用する。
+ * <p>関数名は Properties のキー {@code MARKITDOWN_NAME} の値を、呼び出しのたびに読み込んで使う。 未設定（空）の場合は呼び出さず {@link
+ * IllegalStateException} を投げる。リージョンは環境変数 AWS_REGION （未設定または空白の場合は {@link
+ * Region#AP_NORTHEAST_1}）を使う。
  */
 @Slf4j
 public final class MarkItDown {
 
-  /** markitdown-lambda の関数名（ARN の最後のセグメントでも可）。 */
-  private static final String ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME =
-      Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey());
-
   private static final String ENV_AWS_REGION = "AWS_REGION";
-
-  /**
-   * UT 専用: {@code true} のとき、リクエストの JSON 化で {@link JsonProcessingException} を投げる（本番では常に {@code
-   * false}）。
-   */
-  static volatile boolean injectJsonProcessingExceptionOnSerializeForTest;
 
   private MarkItDown() {
     throw new UnsupportedOperationException("Utility class");
   }
 
-  /** UT 専用: テストで設定したフラグをリセットする. */
-  static void resetTestHooks() {
-    injectJsonProcessingExceptionOnSerializeForTest = false;
-  }
-
   /**
-   * {@code MARKITDOWN_LAMBDA_FUNCTION_NAME} で指定した Lambda を同期 invoke し、応答を {@link
+   * Properties の {@code MARKITDOWN_NAME} で指定した Lambda を同期 invoke し、応答を {@link
    * MarkitdownLambdaResponseEntity} にマッピングする.
    *
    * @param request 内部ペイロード（SPEC 3.1）
    * @return Lambda が返す JSON（SPEC 3.2）
-   * @throws IllegalStateException 環境変数未設定、JSON 化失敗、invoke 失敗、応答解析失敗、または Lambda の FunctionError 時
+   * @throws IllegalStateException 関数名が未設定（空）、JSON 化失敗、invoke 失敗、応答解析失敗、または Lambda の FunctionError 時
    */
   public static MarkitdownLambdaResponseEntity invoke(final MarkitdownLambdaRequestEntity request) {
+    // 関数名は使う時点で読む。未設定（空）の場合は呼び出さずに失敗させる
+    final String functionName = Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey());
+    if (functionName.isBlank()) {
+      throw new IllegalStateException(
+          "markitdown-lambda の関数名が未設定です（キー: " + SsmParameterKey.MARKITDOWN_NAME.getKey() + "）。");
+    }
     final String regionStr = System.getenv(ENV_AWS_REGION);
     final Region region =
         regionStr != null && !regionStr.isBlank() ? Region.of(regionStr) : Region.AP_NORTHEAST_1;
 
     final String payloadJson;
     try {
-      if (injectJsonProcessingExceptionOnSerializeForTest) {
-        throw new JsonParseException(null, "injected for test");
-      }
       payloadJson = ObjectMapperFactory.OBJECT_MAPPER.writeValueAsString(request);
     } catch (final JsonProcessingException e) {
       throw new IllegalStateException("markitdown-lambda 向けリクエストの JSON 化に失敗しました。", e);
@@ -82,7 +70,7 @@ public final class MarkItDown {
       final InvokeResponse response =
           client.invoke(
               InvokeRequest.builder()
-                  .functionName(ENV_MARKITDOWN_LAMBDA_FUNCTION_NAME)
+                  .functionName(functionName)
                   .payload(SdkBytes.fromUtf8String(payloadJson))
                   .build());
 

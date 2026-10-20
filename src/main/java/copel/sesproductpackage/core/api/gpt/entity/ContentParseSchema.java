@@ -7,6 +7,7 @@ import copel.sesproductpackage.core.api.gpt.schema.ConditionalCase;
 import copel.sesproductpackage.core.api.gpt.schema.ConditionalSchema;
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import java.util.List;
+import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -122,10 +123,8 @@ public class ContentParseSchema {
      */
     @JsonCreator
     public static InformationType fromJson(final String value) {
-      if (value == null) {
-        return Unknown;
-      }
-      String trimmed = value.trim();
+      // null は空文字として扱い、どの種別にも一致しないため Unknown を返す
+      String trimmed = Objects.toString(value, "").trim();
       for (InformationType informationType : values()) {
         if (informationType.name().equalsIgnoreCase(trimmed)) {
           return informationType;

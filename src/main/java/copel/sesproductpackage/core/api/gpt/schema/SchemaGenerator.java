@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import copel.sesproductpackage.core.util.ApplicationClock;
-import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -110,33 +109,6 @@ public final class SchemaGenerator {
       throw new RuntimeException(
           "Failed to generate schema for " + clazz.getName() + ": " + e.getMessage(), e);
     }
-  }
-
-  /**
-   * 指定されたクラスからJSON Schemaを生成し、整形されたJSON文字列として返します.
-   *
-   * @param clazz JSON Schema生成対象のクラス
-   * @return インデント整形されたJSON文字列
-   */
-  public static String displaySchemaJson(final Class<?> clazz) {
-    Map<String, Object> schema = generate(clazz);
-    try {
-      return ObjectMapperFactory.OBJECT_MAPPER
-          .writerWithDefaultPrettyPrinter()
-          .writeValueAsString(schema);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException("Failed to format schema to JSON: " + e.getMessage(), e);
-    }
-  }
-
-  /**
-   * 指定されたクラスからJSON Schemaを生成し、YAML文字列として返します.
-   *
-   * @param clazz JSON Schema生成対象のクラス
-   * @return YAML文字列
-   */
-  public static String generateYaml(final Class<?> clazz) {
-    return toYaml(generate(clazz));
   }
 
   /**
@@ -608,18 +580,9 @@ public final class SchemaGenerator {
    * @return 複雑な型の場合true
    */
   private static boolean isComplexType(final Class<?> clazz) {
-    return clazz != null
-        && !clazz.isPrimitive()
-        && !clazz.equals(String.class)
-        && !clazz.equals(Integer.class)
-        && !clazz.equals(Long.class)
-        && !clazz.equals(Double.class)
-        && !clazz.equals(Float.class)
-        && !clazz.equals(Boolean.class)
-        && !clazz.equals(List.class)
-        && !clazz.isArray()
-        && !clazz.isEnum()
-        && !clazz.getPackage().getName().startsWith("java.");
+    // 配列・enum・Collection・null は呼び出し側で先に処理されるため、ここでは判定しない。
+    // プリミティブと java.* の型（String・ラッパー型・java.math を含む）は単純型として扱う
+    return !clazz.isPrimitive() && !clazz.getPackage().getName().startsWith("java.");
   }
 
   /**
@@ -646,9 +609,6 @@ public final class SchemaGenerator {
     }
     if (fieldType == boolean.class || fieldType == Boolean.class) {
       return "boolean";
-    }
-    if (fieldType == List.class || fieldType.isArray()) {
-      return "array";
     }
     return "string";
   }

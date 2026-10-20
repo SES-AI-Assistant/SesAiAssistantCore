@@ -1,6 +1,7 @@
 package copel.sesproductpackage.core.unit;
 
 import copel.sesproductpackage.core.util.ApplicationClock;
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -312,6 +313,40 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
       return new OriginalDateTime();
     }
     return new OriginalDateTime(year, month, 1, 0, 0, 0);
+  }
+
+  /**
+   * 「年/月」の形式の文字列から OriginalDateTime を生成します.
+   *
+   * <p>年と月の区切り（/）が無い場合と、数字に変換できない場合、null の場合は現在の年月を返す。 年または月が範囲外の場合（例: 2026/13）は、現在の年月に補わず {@link
+   * DateTimeException} を投げる。
+   *
+   * @param yearMonthText 年月の文字列（例: 2026/4）。null も可
+   * @return 指定の年月の日時、または現在の年月
+   * @throws DateTimeException 年または月が範囲外の場合
+   */
+  public static OriginalDateTime fromYearMonthText(final String yearMonthText) {
+    if (yearMonthText != null) {
+      String[] parts = yearMonthText.split("/");
+      if (parts.length == 2) {
+        try {
+          return fromMonth(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
+        } catch (NumberFormatException e) {
+          return currentYearMonth();
+        }
+      }
+    }
+    return currentYearMonth();
+  }
+
+  /**
+   * 現在の年月を、日を1日とした OriginalDateTime で返します.
+   *
+   * @return 現在の年月
+   */
+  private static OriginalDateTime currentYearMonth() {
+    OriginalDateTime now = new OriginalDateTime();
+    return fromMonth(now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
   }
 
   /**
