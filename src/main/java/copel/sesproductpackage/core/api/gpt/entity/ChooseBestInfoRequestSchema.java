@@ -25,6 +25,7 @@ public class ChooseBestInfoRequestSchema {
   /** targetに対する選出対象となる候補リスト（targetが案件なら要員リスト、要員なら案件リスト） */
   private List<ResourceInformation> candidates;
 
+  /** マッチング対象（案件または要員）の情報を表すスキーマです。 */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor

@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SpotBugs の除外設定（Core 用）。範囲は「クラス」と「バグの種類」の両方で絞る。
+
+  1. EI_EXPOSE_REP / EI_EXPOSE_REP2（配列・コレクションの内部表現の露出）:
+     Lombok の @Data による DTO（OpenAI の API 応答、LLM 用スキーマ、内部 SQS 用 Entity など）が、
+     配列やリストをそのまま受け渡す設計のため。防御的コピーを入れると、既存の呼び出し側の挙動（参照の共有）が変わるため除外する。
+  2. その他: 挙動を変えずに直せないため、理由を付けて個別に除外する。いずれも次の作業で見直す対象（PR① では挙動変更を行わない）。
+     - MS_EXPOSE_REP / EI_EXPOSE_STATIC_REP2 / ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD: 静的な DynamoDB クライアントを共有インスタンスとして保持・返す設計（クライアントはスレッドセーフ）。
+     - CT_CONSTRUCTOR_THROW: 空の tenantId を生成時に拒否するための意図的な例外。
+     - RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE / WMI_WRONG_MAP_ITERATOR: 既存の検索処理の挙動を保つため、そのまま残す。
+     - CO_SELF_NO_OBJECT: 距離による比較を compareTo として提供している（Comparable は実装していない）。
+     - ME_ENUM_FIELD_SETTER: 列挙型の値（為替レート、ステータスのコード等）の更新を既存の呼び出し側が使っている。
+     - HE_EQUALS_USE_HASHCODE: OriginalDateTime は equals を持つが hashCode を持たない。hashCode の追加は HashSet・HashMap の
+       挙動（重複の扱い）を変えるため、この PR（基盤）では行わない。PR②（unit パッケージの UT 作り直し）で、
+       UT で振る舞いを固定したうえで追加する。
+     - NP_TOSTRING_COULD_RETURN_NULL: OriginalDateTime.toString は日時が未設定のとき null を返す。戻り値の仕様（null か空文字か）は
+       呼び出し側の期待に関わるため、この PR では変えず、仕様を決めてから別に扱う。
+     - DM_DEFAULT_ENCODING: Properties.load（static void load(S3Client)）は、S3 から取得した設定ファイルを
+       new InputStreamReader(inputStream) で読む（文字コードは実行環境の既定値）。UTF-8 を明示すると、既定値が UTF-8 でない
+       環境で読み込み結果が変わるため、この PR では読み込みを変えない（Properties の読み込み経路は変えない方針）。
+       文字コードの明示は、設定ファイルの文字コードを確認したうえで別の変更として行う。
+-->
+<FindBugsFilter>
+  <!-- 1. 配列・コレクションの露出（DTO）。対象クラスを列挙する -->
+  <Match>
+    <Class name="copel.sesproductpackage.core.api.aws.S3"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.api.gpt.OpenAI$Choice"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.api.gpt.OpenAI$EmbeddingData"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.api.gpt.OpenAI$OpenAiChatCompletionRequest"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.api.gpt.OpenAI$OpenAiChatCompletionResponse"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.api.gpt.OpenAI$OpenAiEmbeddingResponse"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.api.gpt.entity.ChooseBestInfoRequestSchema"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.api.gpt.entity.ChooseBestInfoResponseSchema"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.api.gpt.entity.ContentParseSchema"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.api.gpt.entity.JobInfoSchema"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateRequestSchema"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateResponseSchema"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.api.gpt.entity.PersonInfoSchema"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.api.gpt.entity.SkillsheetInfoSchema"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.api.gpt.entity.SkillsheetLinkJudgeRequestSchema"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.api.line.LineMessagingApi"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.api.markitdown.MarkItDown$MarkitdownLambdaRequestEntity"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.api.markitdown.MarkItDown$MarkitdownLambdaRequestEntity$MarkitdownLambdaRequestEntityBuilder"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.api.markitdown.MarkItDown$MarkitdownLambdaResponseEntity"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.api.markitdown.MarkItDown$MarkitdownLambdaResponseEntity$MarkitdownLambdaResponseEntityBuilder"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.database.SES_AI_TENANT_MONTHLY_INGEST_COUNT"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.database.SES_AI_T_SKILLSHEET"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.database.base.DynamoDb"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.database.base.SesAiTableEntityBase"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.internal.SesAiAssistantWebAppNotifierSqsEntity"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.internal.SesInfoRegisterRequestSqsEntity"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.unit.CustomCell"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.unit.Plan"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.unit.Role"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.unit.Vector"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <!-- 2. 挙動を変えずに直せないもの（理由は冒頭のコメント） -->
+  <Match>
+    <Class name="copel.sesproductpackage.core.database.SES_AI_TENANT_MONTHLY_INGEST_COUNT"/>
+    <Bug pattern="MS_EXPOSE_REP,EI_EXPOSE_STATIC_REP2,ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.database.base.EntityBase"/>
+    <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.database.base.EntityLotBase"/>
+    <Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE,WMI_WRONG_MAP_ITERATOR"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.database.base.SesAiTableEntityBase"/>
+    <Bug pattern="CO_SELF_NO_OBJECT"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.unit.Currency"/>
+    <Bug pattern="ME_ENUM_FIELD_SETTER"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.unit.MatchingStatus"/>
+    <Bug pattern="ME_ENUM_FIELD_SETTER"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.unit.Role"/>
+    <Bug pattern="ME_ENUM_FIELD_SETTER"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.unit.OriginalDateTime"/>
+    <Bug pattern="HE_EQUALS_USE_HASHCODE,NP_TOSTRING_COULD_RETURN_NULL"/>
+  </Match>
+  <Match>
+    <Class name="copel.sesproductpackage.core.util.Properties"/>
+    <Bug pattern="DM_DEFAULT_ENCODING"/>
+  </Match>
+</FindBugsFilter>

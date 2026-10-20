@@ -7,7 +7,7 @@ import copel.sesproductpackage.core.search.FulltextCondition;
 import copel.sesproductpackage.core.search.JobDetailFilterCondition;
 import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.LogicalOperators;
-import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
+import copel.sesproductpackage.core.unit.LogicalOperators.LogicalOperatorType;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
@@ -93,8 +93,8 @@ class SES_AI_T_JOBLotTest {
     setupDefaultResultSet();
     SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
     List<LogicalOperators> queries = new ArrayList<>();
-    queries.add(new LogicalOperators(論理演算子.AND, "val1"));
-    queries.add(new LogicalOperators(論理演算子.OR, "val2"));
+    queries.add(new LogicalOperators(LogicalOperatorType.AND, "val1"));
+    queries.add(new LogicalOperators(LogicalOperatorType.OR, "val2"));
     queries.add(null);
     lot.searchByRawContent(mockConn, "test-tenant", "first", queries);
     assertEquals(1, lot.size());
@@ -211,6 +211,8 @@ class SES_AI_T_JOBLotTest {
   @Test
   void testRetrieveWithFilter2Values() throws Exception {
     setupDefaultResultSet();
+    // 件数（COUNT）クエリが rs.next() を1回消費するため、件数分の戻り値を先に返す
+    when(mockRs.next()).thenReturn(true, true, false);
     SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
     Vector testVector = createTestVector();
     Money price = new Money(new java.math.BigDecimal("100.00"));
@@ -227,6 +229,8 @@ class SES_AI_T_JOBLotTest {
   @Test
   void testRetrieveWithFilter4Values() throws Exception {
     setupDefaultResultSet();
+    // 件数（COUNT）クエリが rs.next() を1回消費するため、件数分の戻り値を先に返す
+    when(mockRs.next()).thenReturn(true, true, false);
     SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
     Vector testVector = createTestVector();
     Money price = new Money(new java.math.BigDecimal("100.00"));

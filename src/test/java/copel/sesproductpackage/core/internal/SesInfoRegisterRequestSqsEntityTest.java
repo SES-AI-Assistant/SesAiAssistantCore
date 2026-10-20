@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.amazonaws.regions.Regions;
-import copel.sesproductpackage.core.api.line.LineMessagingAPI;
+import copel.sesproductpackage.core.api.line.LineMessagingApi;
 import copel.sesproductpackage.core.unit.RequestType;
 import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import copel.sesproductpackage.core.util.Properties;
@@ -512,12 +512,15 @@ class SesInfoRegisterRequestSqsEntityTest {
     entity.setFileId("file1");
     byte[] testData = "test content".getBytes();
 
-    LineMessagingAPI mockClient = mock(LineMessagingAPI.class);
-    when(mockClient.getFile("file1")).thenReturn(testData);
-
-    try (var mockLineAPI = mockStatic(LineMessagingAPI.class)) {
-      mockLineAPI.when(() -> new LineMessagingAPI("token")).thenReturn(mockClient);
-
+    // LineMessagingApi は class 初期化時に設定値を読むため、初期化より前に入れておく
+    Properties.putForTest("LINE_PUSH_MESSAGE_API_ENDPOINT", "https://example.com/push");
+    Properties.putForTest("LINE_BROADCAST_API_ENDPOINT", "https://example.com/broadcast");
+    Properties.putForTest("LINE_DONLOAD_FILE_API_ENDPOINT", "https://example.com/download/%s");
+    // 実装は downloadFileData の中で new LineMessagingApi(...) するため、コンストラクタの差し替えで検証する
+    try (var mockConstruction =
+        mockConstruction(
+            LineMessagingApi.class,
+            (mock, context) -> when(mock.getFile("file1")).thenReturn(testData))) {
       entity.downloadFileData("token");
       assertArrayEquals(testData, entity.getFileData());
     }

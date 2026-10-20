@@ -25,15 +25,22 @@ public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
 
   /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_WEBAPP_M_NOTIFICATION (notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_WEBAPP_M_NOTIFICATION (notification_id, user_id, device_type, "
+          + "device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, "
+          + "register_date, register_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文. */
   private static final String SELECT_SQL =
-      "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, p256dh, auth, enabled, notify_all_match, register_date, register_user FROM SES_AI_WEBAPP_M_NOTIFICATION WHERE notification_id = ?";
+      "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, "
+          + "p256dh, auth, enabled, notify_all_match, register_date, register_user FROM "
+          + "SES_AI_WEBAPP_M_NOTIFICATION WHERE notification_id = ?";
 
   /** UPDATE文. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_WEBAPP_M_NOTIFICATION SET notification_id = ?, user_id = ?, device_type = ?, device_name = ?, push_notification_endpoint = ?, p256dh = ?, auth = ?, enabled = ?, notify_all_match = ?, register_date = ?, register_user = ? WHERE notification_id = ?";
+      "UPDATE SES_AI_WEBAPP_M_NOTIFICATION SET notification_id = ?, user_id = ?, device_type = ?, "
+          + "device_name = ?, push_notification_endpoint = ?, p256dh = ?, auth = ?, enabled = ?, "
+          + "notify_all_match = ?, register_date = ?, register_user = ? WHERE notification_id "
+          + "= ?";
 
   /** DELETE文. */
   private static final String DELETE_SQL =

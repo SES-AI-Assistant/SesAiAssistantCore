@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,8 @@ public class GptAnswer {
    *
    * @param answer 回答
    */
+  // 既存の呼び出し側との互換性を保つため transformerClass は受け取るが使用しない
+  @SuppressWarnings("PMD.UnusedFormalParameter")
   public GptAnswer(final String answer, Class<?> transformerClass) {
     this.answer = answer != null ? answer.trim() : null;
   }
@@ -56,7 +59,7 @@ public class GptAnswer {
    *
    * @return YESを意味すればtrue、それ以外はfalse
    */
-  public boolean isYES() {
+  public boolean isYes() {
     for (final String word : YES_ARRAY) {
       if (word.startsWith(this.answer)) {
         return true;
@@ -70,7 +73,7 @@ public class GptAnswer {
    *
    * @return NOを意味すればtrue、それ以外はfalse
    */
-  public boolean isNO() {
+  public boolean isNo() {
     for (final String word : NO_ARRAY) {
       if (word.startsWith(this.answer)) {
         return true;
@@ -114,7 +117,7 @@ public class GptAnswer {
    * @return 一致するまたはNULL同士であればtrue、それ以外はfalse
    */
   public boolean equals(final String word) {
-    return word != null ? word.equals(this.answer) : word == this.answer;
+    return Objects.equals(word, this.answer);
   }
 
   /**
@@ -177,8 +180,8 @@ public class GptAnswer {
    * この回答を配列形式で取得します.
    *
    * @return 配列
-   * @throws JsonProcessingException
-   * @throws JsonMappingException
+   * @throws JsonProcessingException JSON の変換に失敗した場合
+   * @throws JsonMappingException 処理中に異常が発生した場合
    */
   @SuppressWarnings("unchecked")
   public List<String> getAsList() throws JsonMappingException, JsonProcessingException {
@@ -201,7 +204,7 @@ public class GptAnswer {
       // パースされた要素が必ずしもStringとは限らない（AIがJSONオブジェクトで返す場合がある）ため、
       // 盲目的に List<String> へキャストした際の ClassCastException 発生を防止。
       // 要素がStringでない場合は、再度JSON文字列に変換してリストに格納。
-      java.util.List<String> result = new java.util.ArrayList<>();
+      List<String> result = new java.util.ArrayList<>();
       for (Object obj : parsedList) {
         if (obj instanceof String) {
           result.add((String) obj);

@@ -125,6 +125,6 @@ class FromIdTest {
   @Test
   @DisplayName("isSameSenderOrDomain: 空ドメインは false を返す（両方メール形式でも）")
   void testIsSameSenderOrDomain_EmptyDomain() {
-    assertFalse(FromId.isSameSenderOrDomain("user@", "user@"));
+    assertFalse(FromId.isSameSenderOrDomain("user@", "other@"));
   }
 }

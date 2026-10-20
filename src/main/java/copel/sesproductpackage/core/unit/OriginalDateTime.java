@@ -100,7 +100,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
   /**
    * java.sql.Dateをjava.time.LocalDateTimeに変換
    *
-   * @param date
+   * @param date 変換元の日付（null の場合は空のオブジェクト）
    */
   public OriginalDateTime(java.sql.Date date) {
     if (date == null) {
@@ -113,7 +113,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
   /**
    * java.sql.Timestampをjava.time.LocalDateTimeに変換
    *
-   * @param timestamp
+   * @param timestamp 変換元の日時（null の場合は空のオブジェクト）
    */
   public OriginalDateTime(java.sql.Timestamp timestamp) {
     if (timestamp == null) {
@@ -158,7 +158,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
   /**
    * 引数のDateTimeオブジェクトとこのオブジェクトを比較し、日付の値が等しい場合はtrueを返却する
    *
-   * @param dateTime 比較対象のDateTimeオブジェクト
+   * @param obj 比較対象のオブジェクト
    * @return 比較結果
    */
   @Override
@@ -178,7 +178,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
    *
    * @return (月)などの形式の曜日文字列
    */
-  public String get曜日() {
+  public String getWeekdayLabel() {
     if (this.dateTime == null) {
       return null;
     }
@@ -193,7 +193,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
    *
    * @return MM/dd形式の日付を表す文字列
    */
-  public String getMMdd() {
+  public String getMmDd() {
     if (this.dateTime == null) {
       return null;
     }
@@ -221,7 +221,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
    *
    * @return YYYYMMDD形式の日付を表す文字列
    */
-  public String getYYYYMMDD() {
+  public String getYyyyMmDd() {
     if (this.dateTime == null) {
       return null;
     }
@@ -234,7 +234,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
    *
    * @return HH:mm形式の日付を表す文字列
    */
-  public String getHHmm() {
+  public String getHhmm() {
     if (this.dateTime == null) {
       return null;
     }
@@ -249,7 +249,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
    *
    * @return HH:mm形式の日付を表す文字列
    */
-  public String getHHmmss() {
+  public String getHhmmss() {
     if (this.dateTime == null) {
       return null;
     }
@@ -264,7 +264,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
    *
    * @return yyyy/MM/dd形式の日付を表す文字列
    */
-  public String getYyyyMMdd() {
+  public String getYyyySlashMmDd() {
     if (this.dateTime == null) {
       return null;
     }
@@ -279,7 +279,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
    *
    * @return yyyy-MM-dd形式の日付を表す文字列
    */
-  public String getYyyy_MM_dd() {
+  public String getYyyyHyphenMmDd() {
     if (this.dateTime == null) {
       return null;
     }
@@ -319,7 +319,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
   /**
    * 引数のOriginalDateTime - このオブジェクトで日付の差を出力します. 例：2024/1/8 - 2024/1/1 = 7、2024/1/1 - 2024/1/8 = -7
    *
-   * @param 比べたい日付
+   * @param date 比べたい日付
    * @return 日付の差の日数
    */
   public int betweenDays(OriginalDateTime date) {
@@ -340,7 +340,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
   /**
    * このオブジェクトが持つ日付と引数の日付の差の月数を返却します
    *
-   * @param 比べたい日付
+   * @param date 比べたい日付
    * @return 日付の差の月数（負の数が返却された場合はエラー）
    */
   public int betweenMonth(OriginalDateTime date) {
@@ -362,7 +362,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
   /**
    * このオブジェクトが持つ日付と引数の日付の差の年数を返却します
    *
-   * @param 比べたい日付
+   * @param date 比べたい日付
    * @return 日付の差の年数（負の数が返却された場合はエラー）
    */
   public int betweenYear(OriginalDateTime date) {

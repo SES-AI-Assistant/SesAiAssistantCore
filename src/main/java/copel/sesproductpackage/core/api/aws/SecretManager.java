@@ -61,7 +61,7 @@ public class SecretManager {
     this(secretArn, Region.AP_NORTHEAST_1);
   }
 
-  private static long getCacheTTL() {
+  private static long getCacheTtl() {
     String ttlStr = Properties.get("CACHE_TTL_MS");
     if (ttlStr != null && !ttlStr.isEmpty()) {
       try {
@@ -80,10 +80,10 @@ public class SecretManager {
    */
   public void load() throws Exception {
     long now = ApplicationClock.INSTANCE.clock().millis();
-    long cacheTTL = getCacheTTL();
+    long cacheTtl = getCacheTtl();
     Long lastLoadTime = globalCacheTime.get(this.secretArn);
 
-    if (lastLoadTime != null && (now - lastLoadTime) < cacheTTL) {
+    if (lastLoadTime != null && (now - lastLoadTime) < cacheTtl) {
       Map<String, String> cachedValues = globalCache.get(this.secretArn);
       if (cachedValues != null) {
         this.secretValues.putAll(cachedValues);

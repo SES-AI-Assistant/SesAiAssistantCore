@@ -47,7 +47,7 @@ public class OpenAI implements Transformer {
 
   static {
     String temp = Properties.get("OPEN_AI_COMPLETION_TEMPERATURE");
-    COMPLETION_TEMPERATURE = (temp != null && !temp.isEmpty()) ? Float.valueOf(temp) : 0.7f;
+    COMPLETION_TEMPERATURE = temp != null && !temp.isEmpty() ? Float.parseFloat(temp) : 0.7f;
   }
 
   /** OpenAIのAPIキー. */
@@ -119,8 +119,8 @@ public class OpenAI implements Transformer {
     conn.setDoOutput(true);
 
     log.info("【OpenAI】{}文字のエンベディング処理を実行しました", inputString.length());
-    OpenAIEmbeddingRequest embeddingRequest =
-        new OpenAIEmbeddingRequest(inputString, EMBEDDING_MODEL, "float", "SesAiAssitantCore");
+    OpenAiEmbeddingRequest embeddingRequest =
+        new OpenAiEmbeddingRequest(inputString, EMBEDDING_MODEL, "float", "SesAiAssitantCore");
     String jsonBody = ObjectMapperFactory.OBJECT_MAPPER.writeValueAsString(embeddingRequest);
     try (OutputStream os = conn.getOutputStream()) {
       byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
@@ -131,8 +131,8 @@ public class OpenAI implements Transformer {
     checkResponseCode(conn, responseCode);
 
     String response = readResponse(conn);
-    OpenAIEmbeddingResponse embeddingResponse =
-        ObjectMapperFactory.OBJECT_MAPPER.readValue(response, OpenAIEmbeddingResponse.class);
+    OpenAiEmbeddingResponse embeddingResponse =
+        ObjectMapperFactory.OBJECT_MAPPER.readValue(response, OpenAiEmbeddingResponse.class);
 
     float[] vectorValue = new float[embeddingResponse.getData().get(0).getEmbedding().size()];
     for (int i = 0; i < embeddingResponse.getData().get(0).getEmbedding().size(); i++) {
@@ -145,7 +145,7 @@ public class OpenAI implements Transformer {
     sesAiApiUsageHistory.setModel(EMBEDDING_MODEL);
     OriginalDateTime nowDt = new OriginalDateTime();
     sesAiApiUsageHistory.setUsageMonth(nowDt.getYYYYMM());
-    sesAiApiUsageHistory.setUsageDate(nowDt.getYYYYMMDD());
+    sesAiApiUsageHistory.setUsageDate(nowDt.getYyyyMmDd());
     sesAiApiUsageHistory.setUserId("SesAiAssitantCore");
     sesAiApiUsageHistory.setApiType(ApiType.Embedding);
     sesAiApiUsageHistory.fetch();
@@ -167,7 +167,7 @@ public class OpenAI implements Transformer {
    * @param prompt プロンプト
    * @param temperature 温度（回答のばらつき度を示す）
    * @return 回答
-   * @throws IOException
+   * @throws IOException 入出力（ファイル・ストリーム）の操作に失敗した場合
    */
   public GptAnswer generate(final String prompt, final Float temperature) throws IOException {
     if (temperature == null || prompt == null) {
@@ -181,8 +181,8 @@ public class OpenAI implements Transformer {
     conn.setDoOutput(true);
 
     Message userMessage = new Message("user", prompt);
-    OpenAIChatCompletionRequest chatRequest =
-        new OpenAIChatCompletionRequest(
+    OpenAiChatCompletionRequest chatRequest =
+        new OpenAiChatCompletionRequest(
             this.completionModel, List.of(userMessage), temperature, null);
     String jsonBody = ObjectMapperFactory.OBJECT_MAPPER.writeValueAsString(chatRequest);
     try (OutputStream os = conn.getOutputStream()) {
@@ -194,12 +194,12 @@ public class OpenAI implements Transformer {
     checkResponseCode(conn, responseCode);
 
     String response = readResponse(conn);
-    OpenAIChatCompletionResponse chatResponse =
-        ObjectMapperFactory.OBJECT_MAPPER.readValue(response, OpenAIChatCompletionResponse.class);
+    OpenAiChatCompletionResponse chatResponse =
+        ObjectMapperFactory.OBJECT_MAPPER.readValue(response, OpenAiChatCompletionResponse.class);
     String resultText =
-        (chatResponse.getChoices() != null
+        chatResponse.getChoices() != null
                 && !chatResponse.getChoices().isEmpty()
-                && chatResponse.getChoices().get(0).getMessage() != null)
+                && chatResponse.getChoices().get(0).getMessage() != null
             ? chatResponse.getChoices().get(0).getMessage().getContent()
             : null;
 
@@ -209,7 +209,7 @@ public class OpenAI implements Transformer {
     sesAiApiUsageHistory.setModel(this.completionModel);
     OriginalDateTime nowDtGen = new OriginalDateTime();
     sesAiApiUsageHistory.setUsageMonth(nowDtGen.getYYYYMM());
-    sesAiApiUsageHistory.setUsageDate(nowDtGen.getYYYYMMDD());
+    sesAiApiUsageHistory.setUsageDate(nowDtGen.getYyyyMmDd());
     sesAiApiUsageHistory.setUserId("SesAiAssitantCore");
     sesAiApiUsageHistory.setApiType(ApiType.Generate);
     sesAiApiUsageHistory.fetch();
@@ -224,7 +224,7 @@ public class OpenAI implements Transformer {
    * OpenAIにこのオブジェクトがもつcompletionModelに対するファインチューニングをリクエストする.
    *
    * @param trainingData ファインチューニング用データ（文字列形式）
-   * @throws IOException
+   * @throws IOException 入出力（ファイル・ストリーム）の操作に失敗した場合
    * @deprecated 現在のシステムでは使用されていません。将来的な実装に備えて保持されています。
    */
   @Deprecated
@@ -261,68 +261,62 @@ public class OpenAI implements Transformer {
    */
   private void checkResponseCode(HttpURLConnection conn, int responseCode) {
     switch (responseCode) {
-      case HttpURLConnection.HTTP_OK:
-        break;
-      case HttpURLConnection.HTTP_BAD_REQUEST:
-        {
-          String body = readErrorResponseBody(conn);
-          conn.disconnect();
-          throw new RuntimeException(
-              formatOpenAiHttpError("400 Bad Request: 無効なパラメータ、または不適切なリクエストフォーマットです", body));
-        }
-      case HttpURLConnection.HTTP_UNAUTHORIZED:
-        {
-          String body = readErrorResponseBody(conn);
-          conn.disconnect();
-          throw new RuntimeException(
-              formatOpenAiHttpError("401 Unauthorized: APIキーが無効、または提供されていないエラー", body));
-        }
-      case HttpURLConnection.HTTP_FORBIDDEN:
-        {
-          String body = readErrorResponseBody(conn);
-          conn.disconnect();
-          throw new RuntimeException(
-              formatOpenAiHttpError("403 Forbidden: アカウントの制限、または対象モデルが利用不可のエラー", body));
-        }
-      case HttpURLConnection.HTTP_NOT_FOUND:
-        {
-          String body = readErrorResponseBody(conn);
-          conn.disconnect();
-          throw new RuntimeException(
-              formatOpenAiHttpError("404 Not Found: APIのエンドポイントが間違っている、またはモデル名が無効のエラー", body));
-        }
-      case HttpURLConnection.HTTP_CLIENT_TIMEOUT:
-        {
-          String body = readErrorResponseBody(conn);
-          conn.disconnect();
-          throw new RuntimeException(
-              formatOpenAiHttpError("408 Request Timeout: リクエストが時間内に処理されなかったエラー", body));
-        }
-      case 429:
-        {
-          String body = readErrorResponseBody(conn);
-          conn.disconnect();
-          throw new RuntimeException(
-              formatOpenAiHttpError(
-                  "429 Too Many Requests（レート制限・利用枠・課金など。詳細は OpenAI レスポンス参照）", body));
-        }
-      case HttpURLConnection.HTTP_INTERNAL_ERROR:
-        {
-          String body = readErrorResponseBody(conn);
-          conn.disconnect();
-          throw new RuntimeException(
-              formatOpenAiHttpError("500 Internal Server Error: OpenAIのサーバーで問題が発生しました", body));
-        }
-      case HttpURLConnection.HTTP_UNAVAILABLE:
-        {
-          String body = readErrorResponseBody(conn);
-          conn.disconnect();
-          throw new RuntimeException(
-              formatOpenAiHttpError(
-                  "503 Service Unavailable: OpenAIのサーバーがメンテナンス中、または負荷が高い状態です", body));
-        }
-      default:
-        break;
+      case HttpURLConnection.HTTP_OK -> {
+        // 正常応答の場合は何もしない
+      }
+      case HttpURLConnection.HTTP_BAD_REQUEST -> {
+        String body = readErrorResponseBody(conn);
+        conn.disconnect();
+        throw new RuntimeException(
+            formatOpenAiHttpError("400 Bad Request: 無効なパラメータ、または不適切なリクエストフォーマットです", body));
+      }
+      case HttpURLConnection.HTTP_UNAUTHORIZED -> {
+        String body = readErrorResponseBody(conn);
+        conn.disconnect();
+        throw new RuntimeException(
+            formatOpenAiHttpError("401 Unauthorized: APIキーが無効、または提供されていないエラー", body));
+      }
+      case HttpURLConnection.HTTP_FORBIDDEN -> {
+        String body = readErrorResponseBody(conn);
+        conn.disconnect();
+        throw new RuntimeException(
+            formatOpenAiHttpError("403 Forbidden: アカウントの制限、または対象モデルが利用不可のエラー", body));
+      }
+      case HttpURLConnection.HTTP_NOT_FOUND -> {
+        String body = readErrorResponseBody(conn);
+        conn.disconnect();
+        throw new RuntimeException(
+            formatOpenAiHttpError("404 Not Found: APIのエンドポイントが間違っている、またはモデル名が無効のエラー", body));
+      }
+      case HttpURLConnection.HTTP_CLIENT_TIMEOUT -> {
+        String body = readErrorResponseBody(conn);
+        conn.disconnect();
+        throw new RuntimeException(
+            formatOpenAiHttpError("408 Request Timeout: リクエストが時間内に処理されなかったエラー", body));
+      }
+      case 429 -> {
+        String body = readErrorResponseBody(conn);
+        conn.disconnect();
+        throw new RuntimeException(
+            formatOpenAiHttpError(
+                "429 Too Many Requests（レート制限・利用枠・課金など。詳細は OpenAI レスポンス参照）", body));
+      }
+      case HttpURLConnection.HTTP_INTERNAL_ERROR -> {
+        String body = readErrorResponseBody(conn);
+        conn.disconnect();
+        throw new RuntimeException(
+            formatOpenAiHttpError("500 Internal Server Error: OpenAIのサーバーで問題が発生しました", body));
+      }
+      case HttpURLConnection.HTTP_UNAVAILABLE -> {
+        String body = readErrorResponseBody(conn);
+        conn.disconnect();
+        throw new RuntimeException(
+            formatOpenAiHttpError(
+                "503 Service Unavailable: OpenAIのサーバーがメンテナンス中、または負荷が高い状態です", body));
+      }
+      default -> {
+        // 想定外のコードは例外にせず、呼び出し元の応答処理に任せる
+      }
     }
   }
 
@@ -331,7 +325,7 @@ public class OpenAI implements Transformer {
    *
    * @param conn コネクション
    * @return レスポンス文字列
-   * @throws IOException
+   * @throws IOException 入出力（ファイル・ストリーム）の操作に失敗した場合
    */
   private String readResponse(HttpURLConnection conn) throws IOException {
     StringBuilder response = new StringBuilder();
@@ -347,11 +341,12 @@ public class OpenAI implements Transformer {
     return response.toString();
   }
 
+  /** 埋め込み（Embedding）APIへのリクエストを表します。 */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  public static class OpenAIEmbeddingRequest {
+  public static class OpenAiEmbeddingRequest {
     private String input;
 
     private String model;
@@ -362,6 +357,7 @@ public class OpenAI implements Transformer {
     private String user;
   }
 
+  /** 埋め込みAPIの応答に含まれる1件分のデータを表します。 */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
@@ -375,11 +371,12 @@ public class OpenAI implements Transformer {
     private String object;
   }
 
+  /** API の利用量（トークン数）を表します。 */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  public static class OpenAIUsageMetadata {
+  public static class OpenAiUsageMetadata {
     @JsonProperty("prompt_tokens")
     private Integer promptTokens;
 
@@ -390,21 +387,23 @@ public class OpenAI implements Transformer {
     private Integer totalTokens;
   }
 
+  /** 埋め込み（Embedding）APIからの応答を表します。 */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
   @JsonInclude(JsonInclude.Include.NON_NULL)
   @JsonIgnoreProperties(ignoreUnknown = true)
-  public static class OpenAIEmbeddingResponse {
+  public static class OpenAiEmbeddingResponse {
     private List<EmbeddingData> data;
 
     private String model;
 
     private String object;
 
-    private OpenAIUsageMetadata usage;
+    private OpenAiUsageMetadata usage;
   }
 
+  /** チャット補完APIのメッセージ（役割と内容）を表します。 */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
@@ -415,11 +414,12 @@ public class OpenAI implements Transformer {
     private String content;
   }
 
+  /** チャット補完APIへのリクエストを表します。 */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  public static class OpenAIChatCompletionRequest {
+  public static class OpenAiChatCompletionRequest {
     private String model;
 
     private List<Message> messages;
@@ -430,6 +430,7 @@ public class OpenAI implements Transformer {
     private Integer maxCompletionTokens;
   }
 
+  /** チャット補完APIの応答に含まれる選択肢1件を表します。 */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
@@ -444,12 +445,13 @@ public class OpenAI implements Transformer {
     private String finishReason;
   }
 
+  /** チャット補完APIからの応答を表します。 */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
   @JsonInclude(JsonInclude.Include.NON_NULL)
   @JsonIgnoreProperties(ignoreUnknown = true)
-  public static class OpenAIChatCompletionResponse {
+  public static class OpenAiChatCompletionResponse {
     private String id;
 
     private String object;
@@ -460,6 +462,6 @@ public class OpenAI implements Transformer {
 
     private List<Choice> choices;
 
-    private OpenAIUsageMetadata usage;
+    private OpenAiUsageMetadata usage;
   }
 }

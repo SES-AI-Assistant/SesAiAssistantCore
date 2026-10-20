@@ -10,8 +10,9 @@ import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
+/** DynamoDB のテーブルの1レコードを表す基底クラスです。パーティションキーとソートキーを持つ Entity の共通処理を提供します。 */
 @Data
-public abstract class DynamoDB<E> {
+public abstract class DynamoDb<E> {
   /** JSON変換用ObjectMapper（pretty print対応） */
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -33,7 +34,7 @@ public abstract class DynamoDB<E> {
    * @param tableName テーブル
    * @param clazz クラス
    */
-  public DynamoDB(final String tableName, final Class<E> clazz) {
+  public DynamoDb(final String tableName, final Class<E> clazz) {
     DynamoDbClient client = DynamoDbClientFactory.create();
     DynamoDbEnhancedClient enhancedClient =
         DynamoDbEnhancedClient.builder().dynamoDbClient(client).build();

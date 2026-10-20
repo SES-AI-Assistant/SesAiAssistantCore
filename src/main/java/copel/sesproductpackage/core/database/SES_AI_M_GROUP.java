@@ -25,15 +25,18 @@ public class SES_AI_M_GROUP extends EntityBase {
 
   /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_M_GROUP (from_group, group_name, register_date, register_user) VALUES (?, ?, ?, ?)";
+      "INSERT INTO SES_AI_M_GROUP (from_group, group_name, register_date, register_user) VALUES "
+          + "(?, ?, ?, ?)";
 
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
-      "SELECT from_group, group_name, register_date, register_user FROM SES_AI_M_GROUP WHERE from_group = ?";
+      "SELECT from_group, group_name, register_date, register_user FROM SES_AI_M_GROUP WHERE "
+          + "from_group = ?";
 
   /** UPDATE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_M_GROUP SET group_name = ?, register_date = ?, register_user = ? WHERE from_group = ?";
+      "UPDATE SES_AI_M_GROUP SET group_name = ?, register_date = ?, register_user = ? WHERE "
+          + "from_group = ?";
 
   /** DELETE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_M_GROUP WHERE from_group = ?";

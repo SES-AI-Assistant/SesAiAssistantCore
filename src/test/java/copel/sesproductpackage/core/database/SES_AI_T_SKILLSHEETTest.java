@@ -176,7 +176,7 @@ class SES_AI_T_SKILLSHEETTest {
     SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET("test-tenant");
     ss.setSkillSheet(new SkillSheet("F1", "file.pdf", "content"));
     ss.setFileContentSummary("summary");
-    assertEquals("ファイルID：F1内容：summary", ss.toスキルシート選出用文章());
+    assertEquals("ファイルID：F1内容：summary", ss.toSkillSheetSelectionText());
   }
 
   @Test

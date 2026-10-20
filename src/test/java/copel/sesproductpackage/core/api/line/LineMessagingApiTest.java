@@ -4,34 +4,34 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.util.Properties;
-import java.lang.reflect.Field;
 import java.net.http.HttpClient;
 import java.net.http.HttpResponse;
-import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
-class LineMessagingAPITest {
+class LineMessagingApiTest {
 
   private MockedStatic<HttpClient> mockedHttpClient;
   private HttpClient mockClient;
 
   @BeforeAll
-  @SuppressWarnings("unchecked")
-  static void setupProperties() throws Exception {
-    Field propertiesField = Properties.class.getDeclaredField("properties");
-    propertiesField.setAccessible(true);
-    Map<String, String> propertiesMap = (Map<String, String>) propertiesField.get(null);
-    propertiesMap.put("LINE_PUSH_MESSAGE_API_ENDPOINT", "https://example.com/push");
-    propertiesMap.put("LINE_BROADCAST_API_ENDPOINT", "https://example.com/broadcast");
-    propertiesMap.put("LINE_DONLOAD_FILE_API_ENDPOINT", "https://example.com/download/%s");
+  static void setupProperties() {
+    // 設定値はテスト用の入口（putForTest）で入れる。他のテストが resetForTest で消しても、各テストの前に入れ直す
+    putEndpoints();
+  }
+
+  private static void putEndpoints() {
+    Properties.putForTest("LINE_PUSH_MESSAGE_API_ENDPOINT", "https://example.com/push");
+    Properties.putForTest("LINE_BROADCAST_API_ENDPOINT", "https://example.com/broadcast");
+    Properties.putForTest("LINE_DONLOAD_FILE_API_ENDPOINT", "https://example.com/download/%s");
   }
 
   @BeforeEach
   void setUp() {
+    putEndpoints();
     mockedHttpClient = mockStatic(HttpClient.class);
     mockClient = mock(HttpClient.class);
     mockedHttpClient.when(HttpClient::newHttpClient).thenReturn(mockClient);
@@ -44,7 +44,7 @@ class LineMessagingAPITest {
 
   @Test
   void testAddMessageAndGetList() {
-    LineMessagingAPI api = new LineMessagingAPI("token");
+    LineMessagingApi api = new LineMessagingApi("token");
     api.addMessage("hello");
     assertEquals(1, api.getMessageList().size());
     assertEquals("hello", api.getMessageList().get(0));
@@ -57,7 +57,7 @@ class LineMessagingAPITest {
     when(mockResponse.statusCode()).thenReturn(200);
     doReturn(mockResponse).when(mockClient).send(any(), any());
 
-    LineMessagingAPI api = new LineMessagingAPI("token");
+    LineMessagingApi api = new LineMessagingApi("token");
     api.addMessage("msg1");
     api.sendSeparate("user1");
     verify(mockClient).send(any(), any());
@@ -70,7 +70,7 @@ class LineMessagingAPITest {
     when(mockResponse.statusCode()).thenReturn(200);
     doReturn(mockResponse).when(mockClient).send(any(), any());
 
-    LineMessagingAPI api = new LineMessagingAPI("token");
+    LineMessagingApi api = new LineMessagingApi("token");
     api.addMessage("msg1");
     api.broadCast();
     verify(mockClient).send(any(), any());
@@ -85,7 +85,7 @@ class LineMessagingAPITest {
     when(mockResponse.body()).thenReturn(content);
     doReturn(mockResponse).when(mockClient).send(any(), any());
 
-    LineMessagingAPI api = new LineMessagingAPI("token");
+    LineMessagingApi api = new LineMessagingApi("token");
     byte[] result = api.getFile("mid1");
     assertArrayEquals(content, result);
   }
@@ -97,7 +97,7 @@ class LineMessagingAPITest {
     when(mockResponse.statusCode()).thenReturn(404);
     doReturn(mockResponse).when(mockClient).send(any(), any());
 
-    LineMessagingAPI api = new LineMessagingAPI("token");
+    LineMessagingApi api = new LineMessagingApi("token");
     byte[] result = api.getFile("mid1");
     assertNull(result);
   }
@@ -109,7 +109,7 @@ class LineMessagingAPITest {
     when(mockResponse.statusCode()).thenReturn(400);
     doReturn(mockResponse).when(mockClient).send(any(), any());
 
-    LineMessagingAPI api = new LineMessagingAPI("token");
+    LineMessagingApi api = new LineMessagingApi("token");
     api.addMessage("msg1");
     api.sendSeparate("user1"); // Should hit the warning log block
     verify(mockClient).send(any(), any());
@@ -119,7 +119,7 @@ class LineMessagingAPITest {
   void testSendSeparateException() throws Exception {
     doThrow(new RuntimeException("error")).when(mockClient).send(any(), any());
 
-    LineMessagingAPI api = new LineMessagingAPI("token");
+    LineMessagingApi api = new LineMessagingApi("token");
     api.addMessage("msg1");
     api.sendSeparate("user1"); // Should hit the catch block and printStackTrace
     verify(mockClient).send(any(), any());
@@ -132,7 +132,7 @@ class LineMessagingAPITest {
     when(mockResponse.statusCode()).thenReturn(400);
     doReturn(mockResponse).when(mockClient).send(any(), any());
 
-    LineMessagingAPI api = new LineMessagingAPI("token");
+    LineMessagingApi api = new LineMessagingApi("token");
     api.addMessage("msg1");
     api.broadCast(); // Should hit the warning log block
     verify(mockClient).send(any(), any());
@@ -142,7 +142,7 @@ class LineMessagingAPITest {
   void testBroadCastException() throws Exception {
     doThrow(new RuntimeException("error")).when(mockClient).send(any(), any());
 
-    LineMessagingAPI api = new LineMessagingAPI("token");
+    LineMessagingApi api = new LineMessagingApi("token");
     api.addMessage("msg1");
     api.broadCast(); // Should hit the catch block and printStackTrace
     verify(mockClient).send(any(), any());

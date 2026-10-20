@@ -1,7 +1,7 @@
 package copel.sesproductpackage.core.database;
 
 import copel.sesproductpackage.core.database.base.Column;
-import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
+import copel.sesproductpackage.core.database.base.SesAiTableEntityBase;
 import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
@@ -26,7 +26,7 @@ import lombok.ToString;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
+public class SES_AI_T_JOB extends SesAiTableEntityBase {
 
   public SES_AI_T_JOB(String tenantId) {
     super(tenantId);
@@ -38,23 +38,38 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
   // ================================
   /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_JOB (job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, vector_data, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_T_JOB (job_id, from_group, from_id, from_name, mail_subject, "
+          + "raw_content, content_summary, unit_price, vector_data, title, overview, must_skills, "
+          + "want_skills, start_date, place, area, office_requirements, other_requirements, "
+          + "register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::vector, "
+          + "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
-      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, vector_data, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl FROM SES_AI_T_JOB WHERE job_id = ?";
+      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
+          + "unit_price, vector_data, title, overview, must_skills, want_skills, start_date, "
+          + "place, area, office_requirements, other_requirements, register_date, "
+          + "register_user, ttl FROM SES_AI_T_JOB WHERE job_id = ?";
 
   /** UPDATE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_T_JOB SET from_group = ?, from_id = ?, from_name = ?, mail_subject = ?, raw_content = ?, content_summary = ?, unit_price = ?, vector_data = ?::vector, title = ?, overview = ?, must_skills = ?, want_skills = ?, start_date = ?, place = ?, area = ?, office_requirements = ?, other_requirements = ?, ttl = ? WHERE job_id = ?";
+      "UPDATE SES_AI_T_JOB SET from_group = ?, from_id = ?, from_name = ?, mail_subject = ?, "
+          + "raw_content = ?, content_summary = ?, unit_price = ?, vector_data = ?::vector, title "
+          + "= ?, overview = ?, must_skills = ?, want_skills = ?, start_date = ?, place = ?, "
+          + "area = ?, office_requirements = ?, other_requirements = ?, ttl = ? WHERE "
+          + "job_id = ?";
 
   /** 重複チェック用SQL. */
   private static final String CHECK_SQL =
-      "SELECT COUNT(*) FROM SES_AI_T_JOB WHERE tenant_id = ? AND raw_content % ? AND similarity(raw_content, ?) > ?";
+      "SELECT COUNT(*) FROM SES_AI_T_JOB WHERE tenant_id = ? AND raw_content % ? AND "
+          + "similarity(raw_content, ?) > ?";
 
   /** 単価等取得用・重複チェックSQL. */
   private static final String FIND_SIMILAR_SQL =
-      "SELECT job_id, unit_price FROM SES_AI_T_JOB WHERE tenant_id = ? AND regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g') % ? AND similarity(regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g'), ?) > ? LIMIT 1";
+      "SELECT job_id, unit_price FROM SES_AI_T_JOB WHERE tenant_id = ? AND "
+          + "regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g') % ? AND "
+          + "similarity(regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g'), ?) > ? LIMIT "
+          + "1";
 
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_T_JOB WHERE job_id = ?";
@@ -237,7 +252,7 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
    * @param textToCheck チェック対象のテキスト
    * @param similarityThreshold 類似度のしきい値
    * @return 類似レコードが見つかった場合はそのSES_AI_T_JOB、見つからなかった場合はnull
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public static SES_AI_T_JOB findSimilarRecord(
       final Connection connection,
@@ -488,13 +503,19 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
    * 単価が未指定の場合は単価未記載のサマリを作成する。
    *
    * @param targetPrice 指定単価
-   * @param multiplier 単価倍率
    * @return 案件サマリ
    */
   public String getSummaryWithTargetPrice(Money targetPrice) {
     return getSummaryWithTargetPrice(targetPrice, 0.9);
   }
 
+  /**
+   * 指定した単価と単価倍率に書き換えた案件サマリを作成する。単価倍率の扱いは {@link #getSummaryWithTargetPrice(Money)} と同じ。
+   *
+   * @param targetPrice 指定単価
+   * @param multiplier 単価倍率
+   * @return 案件サマリ
+   */
   public String getSummaryWithTargetPrice(Money targetPrice, double multiplier) {
     StringBuilder sb = new StringBuilder();
     // 1. 案件名

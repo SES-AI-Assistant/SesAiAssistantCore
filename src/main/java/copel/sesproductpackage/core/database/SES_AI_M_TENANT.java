@@ -25,11 +25,13 @@ public class SES_AI_M_TENANT extends EntityBase {
 
   /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_M_TENANT (tenant_id, tenant_name, tenant_status_cd, register_date, register_user) VALUES (?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_M_TENANT (tenant_id, tenant_name, tenant_status_cd, register_date, "
+          + "register_user) VALUES (?, ?, ?, ?, ?)";
 
   /** SELECT文. */
   private static final String SELECT_SQL =
-      "SELECT tenant_id, tenant_name, tenant_status_cd, register_date, register_user FROM SES_AI_M_TENANT WHERE tenant_id = ?";
+      "SELECT tenant_id, tenant_name, tenant_status_cd, register_date, register_user FROM "
+          + "SES_AI_M_TENANT WHERE tenant_id = ?";
 
   /** UPDATE文. */
   private static final String UPDATE_SQL =

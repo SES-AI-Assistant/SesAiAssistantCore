@@ -1,12 +1,14 @@
 package copel.sesproductpackage.core.database;
 
 import copel.sesproductpackage.core.database.SES_AI_API_USAGE_HISTORY.Provider;
-import copel.sesproductpackage.core.database.base.DynamoDBLot;
+import copel.sesproductpackage.core.database.base.DynamoDbLot;
 import copel.sesproductpackage.core.util.Properties;
 import copel.sesproductpackage.core.util.SsmParameterKey;
 import java.math.BigDecimal;
 
-public class SES_AI_API_USAGE_HISTORYLot extends DynamoDBLot<SES_AI_API_USAGE_HISTORY> {
+/** SES_AI_API_USAGE_HISTORY のリストと検索を管理する Lot クラスです。 */
+public class SES_AI_API_USAGE_HISTORYLot extends DynamoDbLot<SES_AI_API_USAGE_HISTORY> {
+  /** SES_AI_API_USAGE_HISTORY の Lot を生成します。 */
   public SES_AI_API_USAGE_HISTORYLot() {
     super(
         Properties.get(SsmParameterKey.API_USAGE_HISTORY_TABLE_NAME.getKey()),
@@ -17,19 +19,19 @@ public class SES_AI_API_USAGE_HISTORYLot extends DynamoDBLot<SES_AI_API_USAGE_HI
    * SES_AI_API_USAGE_HISTORYテーブルをusageMonthで検索する.
    *
    * @param yyyy yyyy形式の年
-   * @param MM MM形式の月
+   * @param mm MM形式の月
    */
-  public void fetchByUsageMonth(final String yyyy, final String MM) {
-    this.fetchByUsageMonth(yyyy + MM);
+  public void fetchByUsageMonth(final String yyyy, final String mm) {
+    this.fetchByUsageMonth(yyyy + mm);
   }
 
   /**
    * SES_AI_API_USAGE_HISTORYテーブルをusageMonthで検索する.
    *
-   * @param yyyyMM yyyyMM形式の日時
+   * @param yyyyMm yyyyMM形式の日時
    */
-  public void fetchByUsageMonth(final String yyyyMM) {
-    this.fetchByColumn("usageMonth", yyyyMM);
+  public void fetchByUsageMonth(final String yyyyMm) {
+    this.fetchByColumn("usageMonth", yyyyMm);
   }
 
   /**

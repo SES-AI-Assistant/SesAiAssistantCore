@@ -75,23 +75,14 @@
 ## 5. ビルドとテスト
 
 ```bash
-# コンパイル
-mvn clean compile
+# 1. 整形を直す（ファイルを書き換える）
+mvn spotless:apply
 
-# ユニットテスト実行（カバレッジ確認）
-mvn test
-
-# パッケージ（JAR 生成）
-mvn clean package
-
-# 静的コード解析
-mvn rewrite:run          # 未使用インポート削除・コードスタイル修正
-mvn spotless:apply       # コードフォーマット
-mvn checkstyle:check     # チェックスタイル確認
-mvn pmd:pmd              # 品質解析
-mvn pmd:cpd              # 重複コード検査
-mvn spotbugs:check       # バグ検出
+# 2. CI と同じ全検査（UT・整形・LINT・カバレッジ100%・UT仕様・spotbugs）
+mvn clean verify
 ```
+
+コマンドの体系と検査の中身は [tools/README.md](tools/README.md) を参照する（親 pom `nectar-parent` が検査を決める）。
 
 ## 6. メンテナンス時の注意点
 
@@ -127,15 +118,14 @@ Gemini CLI や Claude Code がこのプロジェクトのコードを生成・�
 
 ### 7.4 自律的検証
 
-- **自動テスト**: 修正後は必ず `mvn test` で成功を確認。カバレッジは 100% を常に担保
+- **自動テスト**: 修正後は `mvn test` で成功を確認し、完了の判定は `mvn clean verify` で行う。カバレッジは 100% を常に担保
   - **テスト1対1ルール**: 1 つのクラスに対して、必ず 1 つのテストクラスであること
   - **複数ファイル禁止**: テストケースを複数のテストファイルに分離させないこと
-  - `mvn clean install` でビルドが通ることを確認
-  - `mvn test` でテストが通りカバレッジを確認
+  - `mvn clean verify` で全検査（UT・カバレッジ・UT仕様・LINT・spotbugs）が通ることを確認
 
 - **リファクタリング**: テスト通過後、命名規則やコードの綺麗さをセルフチェック
 
-- **静的コードチェック**: `mvn rewrite:run`, `mvn spotless:apply`, `mvn checkstyle:check` 等を実行
+- **静的コードチェック**: `mvn spotless:apply` で整形し、`mvn clean verify` で全検査を行う（詳細は tools/README.md）
 
 ### 7.5 波及範囲の確認
 

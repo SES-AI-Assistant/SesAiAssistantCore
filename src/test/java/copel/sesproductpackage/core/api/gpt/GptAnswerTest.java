@@ -26,16 +26,16 @@ class GptAnswerTest {
 
   @Test
   void testIsYES() {
-    assertTrue(new GptAnswer("YES", fakeTransformer).isYES());
-    assertTrue(new GptAnswer("はい", fakeTransformer).isYES());
-    assertFalse(new GptAnswer("NO", fakeTransformer).isYES());
+    assertTrue(new GptAnswer("YES", fakeTransformer).isYes());
+    assertTrue(new GptAnswer("はい", fakeTransformer).isYes());
+    assertFalse(new GptAnswer("NO", fakeTransformer).isYes());
   }
 
   @Test
   void testIsNO() {
-    assertTrue(new GptAnswer("NO", fakeTransformer).isNO());
-    assertTrue(new GptAnswer("いいえ", fakeTransformer).isNO());
-    assertFalse(new GptAnswer("YES", fakeTransformer).isNO());
+    assertTrue(new GptAnswer("NO", fakeTransformer).isNo());
+    assertTrue(new GptAnswer("いいえ", fakeTransformer).isNo());
+    assertFalse(new GptAnswer("YES", fakeTransformer).isNo());
   }
 
   @Test

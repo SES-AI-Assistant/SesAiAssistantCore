@@ -37,20 +37,11 @@ LLM や外部サービスは `api` パッケージのプロキシを経由。特
 ## ビルド・テスト
 
 ```bash
-# コンパイル
-mvn clean compile
-
-# ユニットテスト実行（カバレッジ確認）
-mvn test
-
-# パッケージ（JAR 生成）
-mvn clean package
-
-# 静的解析
-mvn rewrite:run checkstyle:check spotless:apply pmd:pmd pmd:cpd spotbugs:check
+mvn spotless:apply   # 整形を直す（ファイルを書き換える）
+mvn clean verify     # CI と同じ全検査（UT・整形・LINT・カバレッジ100%・UT仕様・spotbugs）
 ```
 
-Core 本体はまだ親 pom（`nectar-parent`）に移行していないため、上の個別のコマンドを使います（Core の UT の作り直しの際に移行予定）。
+コマンドの体系と前提（GitHub Packages の認証など）は [tools/README.md](tools/README.md) を参照してください。
 
 ## 各リポジトリ向けのビルドツール（`tools/`）
 
@@ -62,7 +53,7 @@ Lambda・Web API の各リポジトリが使う親 pom・UT 用部品・UT 仕�
 | ファイル | 用途 |
 |---------|------|
 | **AGENTS.md** | 開発ガイドライン・AI エージェント運用規約（必読） |
-| **tools/README.md** | 各リポジトリのビルド・UT・静的チェックのコマンドと導入手順 |
+| **tools/README.md** | ビルド・UT・静的チェックのコマンドと、検査の中身・導入手順 |
 | **docs/INSTRUCTION.md** | AI への開発指示（テンプレート） |
 | **docs/ARCHIVE_INSTRUCTIONS.md** | 完了した指示の履歴 |
 

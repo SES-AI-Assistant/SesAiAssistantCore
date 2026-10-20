@@ -73,7 +73,7 @@ public class SkillSheet {
    * ファイルのバイナリデータからファイルに記載されているテキストデータを取得しこのクラスのfileContentにセットします.
    *
    * @param data バイナリデータ
-   * @throws IOException
+   * @throws IOException 入出力（ファイル・ストリーム）の操作に失敗した場合
    */
   public void setFileContentFromByte(final byte[] data) throws IOException {
     if (this.fileName != null && data != null) {
@@ -133,9 +133,7 @@ public class SkillSheet {
         }
       }
       this.fileContent = text.toString();
-    }
-    // Wordファイルを処理
-    else if (this.fileName.endsWith(".doc")) {
+    } else if (this.fileName.endsWith(".doc")) { // Wordファイルを処理
       StringBuilder text = new StringBuilder();
       try (HWPFDocument doc = new HWPFDocument(inputStream);
           WordExtractor extractor = new WordExtractor(doc)) {
@@ -145,16 +143,12 @@ public class SkillSheet {
         text.append(extractor.getText());
         this.fileContent = text.toString();
       }
-    }
-    // PDFファイルを処理
-    else if (this.fileName.endsWith(".pdf")) {
+    } else if (this.fileName.endsWith(".pdf")) { // PDFファイルを処理
       try (PDDocument document = PDDocument.load(inputStream)) {
         PDFTextStripper stripper = new PDFTextStripper();
         this.fileContent = stripper.getText(document);
       }
-    }
-    // Excelファイルを処理
-    else if (this.fileName.endsWith(".xlsx") || this.fileName.endsWith(".xls")) {
+    } else if (this.fileName.endsWith(".xlsx") || this.fileName.endsWith(".xls")) { // Excelファイルを処理
       StringBuilder text = new StringBuilder();
       try (Workbook workbook =
           this.fileName.endsWith(".xlsx")
@@ -170,9 +164,7 @@ public class SkillSheet {
         }
         this.fileContent = text.toString();
       }
-    }
-    // その他のファイルの場合
-    else {
+    } else { // その他のファイルの場合
       log.info("Word/Excel/PDF以外のファイルのため、スキルシート内容の取得処理をせずに終了します。");
     }
   }
@@ -180,8 +172,8 @@ public class SkillSheet {
   /**
    * このスキルシートの要約を生成しfileContentSummaryにセットします.
    *
-   * @throws IOException
-   * @throws RuntimeException
+   * @throws IOException 入出力（ファイル・ストリーム）の操作に失敗した場合
+   * @throws RuntimeException 実行時の異常が発生した場合
    */
   public void generateSummary(final Transformer transformer) throws IOException, RuntimeException {
     if (this.fileContent != null) {
@@ -221,6 +213,11 @@ public class SkillSheet {
     return this.fileId + "_" + this.fileName;
   }
 
+  /**
+   * 抽出したファイルの本文を返します。
+   *
+   * @return 本文（未抽出の場合は null）
+   */
   public String getFileContent() {
     if (this.fileContent == null) {
       return null;

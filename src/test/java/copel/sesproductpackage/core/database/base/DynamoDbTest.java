@@ -16,7 +16,7 @@ import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
 
-class DynamoDBTest {
+class DynamoDbTest {
 
   private MockedStatic<DynamoDbClient> mockedClient;
   private MockedStatic<DynamoDbEnhancedClient> mockedEnhancedClient;
@@ -25,7 +25,7 @@ class DynamoDBTest {
   private DynamoDbTable<TestDynamoEntity> mockTable;
 
   @software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean
-  public static class TestDynamoEntity extends DynamoDB<TestDynamoEntity> {
+  public static class TestDynamoEntity extends DynamoDb<TestDynamoEntity> {
     public TestDynamoEntity() {
       super("test-table", TestDynamoEntity.class);
     }
@@ -46,7 +46,7 @@ class DynamoDBTest {
     }
   }
 
-  public static class TestDynamoLot extends DynamoDBLot<TestDynamoEntity> {
+  public static class TestDynamoLot extends DynamoDbLot<TestDynamoEntity> {
     public TestDynamoLot() {
       super("test-table", TestDynamoEntity.class);
     }

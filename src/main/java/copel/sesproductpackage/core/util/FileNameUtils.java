@@ -113,8 +113,9 @@ public class FileNameUtils {
           matcher.appendReplacement(sb, Matcher.quoteReplacement(new String(bytes, charset)));
         } else if ("Q".equals(encoding)) {
           // Quoted-Printableデコードの簡易実装
-          String qDecoded = encodedText.replace("_", " ");
-          byte[] bytes = decodeQuotedPrintable(qDecoded);
+          // 空白の代わりに _ を使う Q エンコードを、空白に戻してから 16 進数のデコードへ渡す
+          String quotedPrintableText = encodedText.replace("_", " ");
+          byte[] bytes = decodeQuotedPrintable(quotedPrintableText);
           matcher.appendReplacement(sb, Matcher.quoteReplacement(new String(bytes, charset)));
         } else {
           matcher.appendReplacement(sb, Matcher.quoteReplacement(matcher.group(0)));
@@ -143,6 +144,7 @@ public class FileNameUtils {
             continue;
           }
         } catch (Exception ignored) {
+          // 桁の変換で例外が起きた場合は、この文字を通常の文字として下の処理で書き込む
         }
       }
       buffer.write(c);
@@ -189,12 +191,12 @@ public class FileNameUtils {
     }
     for (char c : text.toCharArray()) {
       // ひらがな、カタカナ、漢字、その他のCJK文字（U+2E80-U+9FFF）
-      if ((c >= '぀' && c <= 'ゟ') // ひらがな
-          || (c >= '゠' && c <= 'ヿ') // カタカナ
-          || (c >= '一' && c <= '鿿') // 漢字
-          || (c >= '⺀' && c <= '⻿') // CJK Radicals Supplement
-          || (c >= '㐀' && c <= '䶿') // CJK Unified Ideographs Extension A
-          || (c >= '豈' && c <= '﫿')) { // CJK Compatibility Ideographs
+      if (c >= '぀' && c <= 'ゟ' // ひらがな
+          || c >= '゠' && c <= 'ヿ' // カタカナ
+          || c >= '一' && c <= '鿿' // 漢字
+          || c >= '⺀' && c <= '⻿' // CJK Radicals Supplement
+          || c >= '㐀' && c <= '䶿' // CJK Unified Ideographs Extension A
+          || c >= '豈' && c <= '﫿') { // CJK Compatibility Ideographs
         return true;
       }
     }

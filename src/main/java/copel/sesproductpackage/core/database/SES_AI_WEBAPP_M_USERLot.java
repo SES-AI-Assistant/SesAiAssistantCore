@@ -18,11 +18,13 @@ import java.util.List;
 public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER> {
   /** 全件SELECT文. */
   private static final String SELECT_ALL_SQL =
-      "SELECT user_id, user_name, role_cd, plan_cd, register_date, register_user, tenant_id FROM SES_AI_WEBAPP_M_USER";
+      "SELECT user_id, user_name, role_cd, plan_cd, register_date, register_user, tenant_id FROM "
+          + "SES_AI_WEBAPP_M_USER";
 
   /** SELECT文（WHERE句あり）. */
   private static final String SELECT_SQL =
-      "SELECT user_id, user_name, role_cd, plan_cd, register_date, register_user, tenant_id FROM SES_AI_WEBAPP_M_USER WHERE ";
+      "SELECT user_id, user_name, role_cd, plan_cd, register_date, register_user, tenant_id FROM "
+          + "SES_AI_WEBAPP_M_USER WHERE ";
 
   public SES_AI_WEBAPP_M_USERLot() {
     super();
@@ -57,7 +59,7 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
    * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectAllWithoutTenantId(final Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
@@ -75,7 +77,7 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
    * @param connection DBコネクション
    * @param page ページ番号
    * @param size ページサイズ
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectAllPagedWithoutTenantId(
       final Connection connection, final int page, final int size) throws SQLException {
@@ -110,14 +112,13 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
 
   @Override
   protected SES_AI_WEBAPP_M_USER mapResultSet(ResultSet resultSet) throws SQLException {
-    SES_AI_WEBAPP_M_USER sesAiWebappMUser =
-        new SES_AI_WEBAPP_M_USER(resultSet.getString("tenant_id"));
-    sesAiWebappMUser.setUserId(resultSet.getString("user_id"));
-    sesAiWebappMUser.setUserName(resultSet.getString("user_name"));
-    sesAiWebappMUser.setRole(Role.getEnum(resultSet.getString("role_cd")));
-    sesAiWebappMUser.setPlan(Plan.getEnum(resultSet.getString("plan_cd")));
-    sesAiWebappMUser.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-    sesAiWebappMUser.setRegisterUser(resultSet.getString("register_user"));
-    return sesAiWebappMUser;
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER(resultSet.getString("tenant_id"));
+    user.setUserId(resultSet.getString("user_id"));
+    user.setUserName(resultSet.getString("user_name"));
+    user.setRole(Role.getEnum(resultSet.getString("role_cd")));
+    user.setPlan(Plan.getEnum(resultSet.getString("plan_cd")));
+    user.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
+    user.setRegisterUser(resultSet.getString("register_user"));
+    return user;
   }
 }

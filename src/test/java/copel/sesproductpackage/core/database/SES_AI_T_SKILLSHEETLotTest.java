@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.unit.LogicalOperators;
-import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
+import copel.sesproductpackage.core.unit.LogicalOperators.LogicalOperatorType;
 import copel.sesproductpackage.core.unit.Vector;
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -121,9 +121,9 @@ class SES_AI_T_SKILLSHEETLotTest {
     setupDefaultResultSet();
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
     List<LogicalOperators> queries = new ArrayList<>();
-    queries.add(new LogicalOperators(論理演算子.AND, "val1"));
+    queries.add(new LogicalOperators(LogicalOperatorType.AND, "val1"));
     queries.add(null);
-    queries.add(new LogicalOperators(論理演算子.OR, "val2"));
+    queries.add(new LogicalOperators(LogicalOperatorType.OR, "val2"));
     lot.searchByFileContent(mockConn, "test-tenant", "first", queries);
     assertEquals(1, lot.size());
   }
@@ -156,10 +156,10 @@ class SES_AI_T_SKILLSHEETLotTest {
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
     lot.selectAll(mockConn, "test-tenant");
 
-    assertFalse(lot.toスキルシート選出用文章().isEmpty());
+    assertFalse(lot.toSkillSheetSelectionText().isEmpty());
 
     SES_AI_T_SKILLSHEETLot emptyLot = new SES_AI_T_SKILLSHEETLot();
-    assertTrue(emptyLot.toスキルシート選出用文章().isEmpty());
+    assertTrue(emptyLot.toSkillSheetSelectionText().isEmpty());
   }
 
   @Test

@@ -26,7 +26,8 @@ public class SkillsheetInfoSchema {
   @Schema(
       title = "スキル一覧",
       description =
-          "スキルシートに明記されたスキル、経験のリスト。各プロジェクトで使用されたスキルについて、各プロジェクトの期間（開始年月～終了年月）から月数を算出し、スキル毎に合算したもの。スキルシートに記載の無いスキルを、担当工程や職種から推測して追加しないこと。",
+          "スキルシートに明記されたスキル、経験のリスト。各プロジェクトで使用されたスキルについて、各プロジェクトの期間（開始年月～終了年月）から月数を算出し、スキル毎に合算したもの。スキ"
+              + "ルシートに記載の無いスキルを、担当工程や職種から推測して追加しないこと。",
       itemType = Experience.class,
       maxItems = 20)
   private List<Experience> experiences = null;
@@ -89,6 +90,7 @@ public class SkillsheetInfoSchema {
   // ================================================
   // フィールド用のクラス
   // ================================================
+  /** スキルシートに記載された経験（業務経歴）を表すスキーマです。 */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
@@ -104,13 +106,15 @@ public class SkillsheetInfoSchema {
     @Schema(
         title = "要求期間",
         description =
-            "各プロジェクトで使用されたスキルについて、各プロジェクトの期間（開始年月～終了年月）から月数を算出し、スキル毎に合算した経験年数や期間（例: 「3年」）。本文中に明確な年数や期間の記載がない場合は、推測せず必ず「null」にすること。",
+            "各プロジェクトで使用されたスキルについて、各プロジェクトの期間（開始年月～終了年月）から月数を算出し、スキル毎に合算した経験年数や期間（例: "
+                + "「3年」）。本文中に明確な年数や期間の記載がない場合は、推測せず必ず「null」にすること。",
         pattern = DURATION_REGEX,
         maxLength = 30,
         example = "3年")
     private String duration = null;
   }
 
+  /** スキルシートに記載されたプロジェクト経験を表すスキーマです。 */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor

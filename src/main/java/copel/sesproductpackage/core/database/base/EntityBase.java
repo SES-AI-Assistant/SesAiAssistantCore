@@ -44,7 +44,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    *
    * @param connection DBコネクション
    * @return 登録成功可否
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public abstract int insert(Connection connection) throws SQLException;
 
@@ -52,7 +52,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * PKをキーにSELECT処理を実行します.
    *
    * @param connection DBコネクション
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public abstract void selectByPk(final Connection connection) throws SQLException;
 
@@ -60,7 +60,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * PKをキーにUPDATE処理を実行します.
    *
    * @param connection DBコネクション
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public abstract boolean updateByPk(final Connection connection) throws SQLException;
 
@@ -68,7 +68,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * PKをキーにDELETE処理を実行します.
    *
    * @param connection DBコネクション
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public abstract boolean deleteByPk(final Connection connection) throws SQLException;
 
@@ -122,7 +122,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @param paramBinder パラメータバインディング処理（インデックス 1 から開始）
    * @param logLabel ログ出力用ラベル
    * @return 挿入行数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    * @throws IllegalArgumentException tenantId が null または空文字列の場合
    */
   protected int executeInsert(
@@ -156,7 +156,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @param paramBinder パラメータバインディング処理
    * @param logLabel ログ出力用ラベル
    * @return 挿入行数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected int executeInsertWithoutTenantFilter(
       final Connection conn,
@@ -188,7 +188,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @param resultMapper ResultSet マッピング処理
    * @param logLabel ログ出力用ラベル
    * @return データが存在する場合は true、存在しない場合は false
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    * @throws IllegalArgumentException tenantId が null または空文字列の場合
    */
   protected boolean executeSelectByPk(
@@ -233,7 +233,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @param resultMapper ResultSet マッピング処理
    * @param logLabel ログ出力用ラベル
    * @return データが存在する場合は true、存在しない場合は false
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected boolean executeSelectByPkWithoutTenantFilter(
       final Connection conn,
@@ -272,7 +272,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @param paramBinder パラメータバインディング処理
    * @param logLabel ログ出力用ラベル
    * @return レコードが存在する場合は true、存在しない場合は false
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    * @throws IllegalArgumentException tenantId が null または空文字列の場合
    */
   protected boolean executeExists(
@@ -312,7 +312,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @param paramBinder パラメータバインディング処理
    * @param logLabel ログ出力用ラベル
    * @return レコードが存在する場合は true、存在しない場合は false
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected boolean executeExistsWithoutTenantFilter(
       final Connection conn,
@@ -348,7 +348,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @param paramBinder パラメータバインディング処理
    * @param logLabel ログ出力用ラベル
    * @return 更新が成功した場合は true、失敗した場合は false
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    * @throws IllegalArgumentException tenantId が null または空文字列の場合
    */
   protected boolean executeUpdateByPk(
@@ -383,7 +383,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @param paramBinder パラメータバインディング処理
    * @param logLabel ログ出力用ラベル
    * @return 更新が成功した場合は true、失敗した場合は false
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected boolean executeUpdateByPkWithoutTenantFilter(
       final Connection conn,
@@ -414,7 +414,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @param paramBinder パラメータバインディング処理
    * @param logLabel ログ出力用ラベル
    * @return 削除が成功した場合は true、失敗した場合は false
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    * @throws IllegalArgumentException tenantId が null または空文字列の場合
    */
   protected boolean executeDeleteByPk(
@@ -450,7 +450,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @param paramBinder パラメータバインディング処理
    * @param logLabel ログ出力用ラベル
    * @return 削除が成功した場合は true、失敗した場合は false
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected boolean executeDeleteByPkWithoutTenantFilter(
       final Connection conn,
@@ -496,14 +496,12 @@ public abstract class EntityBase implements Comparable<EntityBase> {
     String upperSql = trimmedSql.toUpperCase();
 
     // SELECT EXISTS の場合は特別処理（括弧内のWHERE句に tenant_id を挿入）
-    if (upperSql.startsWith("SELECT EXISTS")) {
-      if (upperSql.contains(" WHERE ")) {
-        int lastParenIndex = trimmedSql.lastIndexOf(')');
-        if (lastParenIndex > 0) {
-          return trimmedSql.substring(0, lastParenIndex)
-              + " AND tenant_id = ?"
-              + trimmedSql.substring(lastParenIndex);
-        }
+    if (upperSql.startsWith("SELECT EXISTS") && upperSql.contains(" WHERE ")) {
+      int lastParenIndex = trimmedSql.lastIndexOf(')');
+      if (lastParenIndex > 0) {
+        return trimmedSql.substring(0, lastParenIndex)
+            + " AND tenant_id = ?"
+            + trimmedSql.substring(lastParenIndex);
       }
     }
 
@@ -542,7 +540,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @param stmt バインド対象の PreparedStatement
    * @param paramIndex パラメータインデックス
    * @param tenantId テナントID（必須）
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    * @throws IllegalArgumentException tenantId が null または空文字列の場合
    */
   protected void setTenantIdParameter(

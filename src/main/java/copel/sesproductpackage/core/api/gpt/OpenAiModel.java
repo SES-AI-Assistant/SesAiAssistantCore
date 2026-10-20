@@ -1,7 +1,7 @@
 package copel.sesproductpackage.core.api.gpt;
 
 /** OpenAIモデルのEnum. */
-public enum OpenAIModel implements GptModel {
+public enum OpenAiModel implements GptModel {
   GPT_3_5_TURBO("gpt-3.5-turbo"),
   GPT_4("gpt-4"),
   GPT_4_TURBO("gpt-4-turbo"),
@@ -9,7 +9,7 @@ public enum OpenAIModel implements GptModel {
 
   private final String modelName;
 
-  OpenAIModel(String modelName) {
+  OpenAiModel(String modelName) {
     this.modelName = modelName;
   }
 
@@ -24,8 +24,8 @@ public enum OpenAIModel implements GptModel {
    * @param modelName モデル名
    * @return OpenAIModelまたはnull
    */
-  public static OpenAIModel fromModelName(String modelName) {
-    for (OpenAIModel model : OpenAIModel.values()) {
+  public static OpenAiModel fromModelName(String modelName) {
+    for (OpenAiModel model : OpenAiModel.values()) {
       if (model.getModelName().equals(modelName)) {
         return model;
       }

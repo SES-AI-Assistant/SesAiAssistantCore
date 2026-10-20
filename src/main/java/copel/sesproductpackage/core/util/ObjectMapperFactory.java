@@ -35,7 +35,9 @@ public class ObjectMapperFactory {
               return null;
             }
             String value = p.getValueAsString();
-            if (value == null) return null;
+            if (value == null) {
+              return null;
+            }
             String trimmed = value.trim();
             if (trimmed.equalsIgnoreCase("null")) {
               return null;

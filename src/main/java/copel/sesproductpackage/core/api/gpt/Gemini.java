@@ -144,7 +144,7 @@ public class Gemini implements Transformer {
             callerInfo,
             this.completionModel,
             prompt.length(),
-            (resultText != null ? resultText.length() : 0));
+            resultText != null ? resultText.length() : 0);
         log.info("【Gemini API】出力結果: {}", resultText);
         return new GptAnswer(resultText, Gemini.class);
       }
@@ -187,7 +187,7 @@ public class Gemini implements Transformer {
           throw new RuntimeException("API returned empty response");
         }
 
-        T result = ObjectMapperFactory.OBJECT_MAPPER.readValue(resultJson, responseType);
+        final T result = ObjectMapperFactory.OBJECT_MAPPER.readValue(resultJson, responseType);
 
         recordApiUsage(prompt.length(), resultJson.length());
 
@@ -235,7 +235,7 @@ public class Gemini implements Transformer {
       usageHistory.setModel(this.completionModel);
       OriginalDateTime nowDt = new OriginalDateTime();
       usageHistory.setUsageMonth(nowDt.getYYYYMM());
-      usageHistory.setUsageDate(nowDt.getYYYYMMDD());
+      usageHistory.setUsageDate(nowDt.getYyyyMmDd());
       usageHistory.setUserId("SesAiAssitantCore");
       usageHistory.setApiType(
           inputCount > 0 && outputCount == 0

@@ -16,22 +16,22 @@ public enum Currency {
   private final String fullName;
 
   /** 円との為替レート. */
-  private double exchangeRateToJPY;
+  private double exchangeRateToJpy;
 
-  Currency(String fullName, double exchangeRateToJPY) {
+  Currency(String fullName, double exchangeRateToJpy) {
     this.fullName = fullName;
-    this.exchangeRateToJPY = exchangeRateToJPY;
+    this.exchangeRateToJpy = exchangeRateToJpy;
   }
 
   public String getFullName() {
     return fullName;
   }
 
-  public double getExchangeRateToJPY() {
-    return exchangeRateToJPY;
+  public double getExchangeRateToJpy() {
+    return exchangeRateToJpy;
   }
 
   public void updateExchangeRate(double newRate) {
-    this.exchangeRateToJPY = newRate;
+    this.exchangeRateToJpy = newRate;
   }
 }

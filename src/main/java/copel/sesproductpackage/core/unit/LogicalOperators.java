@@ -7,7 +7,7 @@ package copel.sesproductpackage.core.unit;
  */
 public class LogicalOperators {
   /** 論理演算子. */
-  private 論理演算子 logicOperator;
+  private LogicalOperatorType logicOperator;
 
   /** 対象のカラム名. */
   private String columnName;
@@ -21,12 +21,20 @@ public class LogicalOperators {
    * @param logicOperator 論理演算子
    * @param value 値
    */
-  public LogicalOperators(final 論理演算子 logicOperator, final String value) {
+  public LogicalOperators(final LogicalOperatorType logicOperator, final String value) {
     this.logicOperator = logicOperator;
     this.value = value;
   }
 
-  public LogicalOperators(final 論理演算子 logicOperator, final String columnName, final String value) {
+  /**
+   * 論理演算子・カラム名・値を指定して検索条件を生成します。
+   *
+   * @param logicOperator 論理演算子
+   * @param columnName カラム名
+   * @param value 値
+   */
+  public LogicalOperators(
+      final LogicalOperatorType logicOperator, final String columnName, final String value) {
     this.logicOperator = logicOperator;
     this.columnName = columnName;
     this.value = value;
@@ -68,7 +76,7 @@ public class LogicalOperators {
    *
    * @author Copel Co., Ltd.
    */
-  public enum 論理演算子 {
+  public enum LogicalOperatorType {
     AND,
     OR,
     NOT,

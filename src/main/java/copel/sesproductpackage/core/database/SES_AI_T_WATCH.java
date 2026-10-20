@@ -26,7 +26,8 @@ public class SES_AI_T_WATCH extends EntityBase {
 
   /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_WATCH (user_id, target_id, target_type, memo, register_date, register_user, ttl) "
+      "INSERT INTO SES_AI_T_WATCH (user_id, target_id, target_type, memo, register_date, "
+          + "register_user, ttl) "
           + "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
@@ -36,7 +37,8 @@ public class SES_AI_T_WATCH extends EntityBase {
 
   /** UPDATE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_T_WATCH SET target_type = ?, memo = ?, register_date = ?, register_user = ?, ttl = ? "
+      "UPDATE SES_AI_T_WATCH SET target_type = ?, memo = ?, register_date = ?, register_user = ?, "
+          + "ttl = ? "
           + "WHERE user_id = ? AND target_id = ?";
 
   /** DELETE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
@@ -76,7 +78,7 @@ public class SES_AI_T_WATCH extends EntityBase {
    *
    * @param connection DBコネクション
    * @return 存在すればtrue、存在しなければfalse
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public boolean isExist(Connection connection) throws SQLException {
     return executeExists(
@@ -95,7 +97,7 @@ public class SES_AI_T_WATCH extends EntityBase {
    *
    * @param connection DBコネクション
    * @return 存在すればtrue、存在しなければfalse
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public boolean isExistByTargetId(Connection connection) throws SQLException {
     return executeExists(

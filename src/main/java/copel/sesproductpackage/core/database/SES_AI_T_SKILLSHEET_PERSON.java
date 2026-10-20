@@ -1,7 +1,7 @@
 package copel.sesproductpackage.core.database;
 
 import copel.sesproductpackage.core.database.base.Column;
-import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
+import copel.sesproductpackage.core.database.base.SesAiTableEntityBase;
 import copel.sesproductpackage.core.unit.Money;
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -15,7 +15,7 @@ import lombok.Data;
  */
 @Data
 @lombok.EqualsAndHashCode(callSuper = false)
-public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
+public class SES_AI_T_SKILLSHEET_PERSON extends SesAiTableEntityBase {
 
   public SES_AI_T_SKILLSHEET_PERSON(String tenantId) {
     super(tenantId);
@@ -143,22 +143,46 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
   }
 
   private static final String SELECT_BY_PERSON_ID_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
+          + "p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, "
+          + "COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, "
+          + "s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, "
+          + "p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, "
+          + "p.office_availability, p.organization, p.experiences, "
+          + "p.ng_requirements, p.other_requirements, p.url "
           + "FROM SES_AI_T_PERSON p INNER JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
           + "WHERE p.person_id = ?";
 
   private static final String SELECT_BY_FILE_ID_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
+          + "p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, "
+          + "COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, "
+          + "s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, "
+          + "p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, "
+          + "p.office_availability, p.organization, p.experiences, "
+          + "p.ng_requirements, p.other_requirements, p.url "
           + "FROM SES_AI_T_PERSON p INNER JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
           + "WHERE s.file_id = ?";
 
   private static final String SELECT_OUTER_JOIN_BY_PERSON_ID_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
+          + "p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, "
+          + "COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, "
+          + "s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, "
+          + "p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, "
+          + "p.office_availability, p.organization, p.experiences, "
+          + "p.ng_requirements, p.other_requirements, p.url "
           + "FROM SES_AI_T_PERSON p LEFT JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
           + "WHERE p.person_id = ?";
 
   private static final String SELECT_OUTER_JOIN_BY_FILE_ID_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.unit_price, s.register_date, s.register_user, COALESCE(s.from_group, p.from_group) AS from_group, COALESCE(s.from_id, p.from_id) AS from_id, COALESCE(s.from_name, p.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
+          + "p.raw_content, p.content_summary, p.unit_price, s.register_date, s.register_user, "
+          + "COALESCE(s.from_group, p.from_group) AS from_group, COALESCE(s.from_id, "
+          + "p.from_id) AS from_id, COALESCE(s.from_name, p.from_name) AS from_name, "
+          + "p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, "
+          + "p.office_availability, p.organization, p.experiences, "
+          + "p.ng_requirements, p.other_requirements, p.url "
           + "FROM SES_AI_T_SKILLSHEET s LEFT JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
           + "WHERE s.file_id = ?";
 
@@ -182,7 +206,7 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
    *
    * @return 変換後の文章
    */
-  public String toスキルシート選出用文章() {
+  public String toSkillSheetSelectionText() {
     String summary = this.contentSummary != null ? this.contentSummary : "";
     String fileSummary = this.fileContentSummary != null ? this.fileContentSummary : "";
     return "ファイルID：" + this.fileId + " 内容：" + fileSummary + summary;
@@ -193,7 +217,7 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
    *
    * @param connection DBコネクション
    * @param personId 要員ID
-   * @throws java.sql.SQLException
+   * @throws java.sql.SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectByPersonId(java.sql.Connection connection, String personId)
       throws java.sql.SQLException {
@@ -211,7 +235,7 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
    *
    * @param connection DBコネクション
    * @param personId 要員ID
-   * @throws java.sql.SQLException
+   * @throws java.sql.SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectOuterJoinByPersonId(java.sql.Connection connection, String personId)
       throws java.sql.SQLException {
@@ -229,7 +253,7 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
    *
    * @param connection DBコネクション
    * @param fileId ファイルID
-   * @throws java.sql.SQLException
+   * @throws java.sql.SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectByFileId(java.sql.Connection connection, String fileId)
       throws java.sql.SQLException {
@@ -247,7 +271,7 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
    *
    * @param connection DBコネクション
    * @param fileId ファイルID
-   * @throws java.sql.SQLException
+   * @throws java.sql.SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectOuterJoinByFileId(java.sql.Connection connection, String fileId)
       throws java.sql.SQLException {
@@ -264,7 +288,7 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
    * ResultSetからEntityにデータをセットする共通メソッド.
    *
    * @param resultSet ResultSet
-   * @throws java.sql.SQLException
+   * @throws java.sql.SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void setEntityDataFromResultSet(java.sql.ResultSet resultSet)
       throws java.sql.SQLException {
