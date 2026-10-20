@@ -19,7 +19,8 @@ public class MatchEvaluateResponseSchema {
   @Schema(
       title = "必須スキル評価",
       description =
-          "案件情報に必須要件として明記されている項目の評価結果リスト。案件情報に記載のない項目を推測で追加しないこと。必須要件の記載が無い場合は空リストとする。評価は要員情報に明記された内容のみを根拠とし、記載から推測・補完して判断しないこと。",
+          "案件情報に必須要件として明記されている項目の評価結果リスト。案件情報に記載のない項目を推測で追加しないこと。必須要件の記載が無い場合は空リストとする。評価は要員情報に明記された"
+              + "内容のみを根拠とし、記載から推測・補完して判断しないこと。",
       itemType = SkillEvaluateResult.class,
       required = true,
       maxItems = 10)
@@ -219,7 +220,7 @@ public class MatchEvaluateResponseSchema {
             .append("：")
             .append(
                 must.getResult() != null
-                    ? (must.getResult().getIcon() + "(" + must.getComment() + ")")
+                    ? must.getResult().getIcon() + "(" + must.getComment() + ")"
                     : "-")
             .append("\n");
       }
@@ -242,7 +243,7 @@ public class MatchEvaluateResponseSchema {
             .append("：")
             .append(
                 must.getResult() != null
-                    ? (must.getResult().getIcon() + "(" + must.getComment() + ")")
+                    ? must.getResult().getIcon() + "(" + must.getComment() + ")"
                     : "-")
             .append("\n");
       }
@@ -380,6 +381,7 @@ public class MatchEvaluateResponseSchema {
   // ================================================
   // 各フィールド用のクラス
   // ================================================
+  /** スキル評価の結果を表すスキーマです。 */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
@@ -395,7 +397,11 @@ public class MatchEvaluateResponseSchema {
     @Schema(
         title = "評価結果",
         description =
-            "要員情報に明記された実務経験のみで判定する。FullyMet=評価項目と同一のスキル・経験が明記されている。PartiallyMet=同一ではないが、代替可能な類似スキル・経験（同一の技術基盤上にあり、記載された経験を要求にそのまま転用できるもの。例: 要求がSpring Bootで記載がSpring Framework）が具体的に明記されている。技術基盤が異なる製品・サービス（例: 要求がAWSで記載がGCP）は類似とみなさない。NotMet=同一・類似いずれの記載も無い。職種や他スキルからの推測（例: Javaエンジニアだから SQL も経験があるはず）でFullyMet/PartiallyMetにしてはならない。",
+            "要員情報に明記された実務経験のみで判定する。FullyMet=評価項目と同一のスキル・経験が明記されている。PartiallyMet=同一ではないが、代替可能な類似スキル・"
+                + "経験（同一の技術基盤上にあり、記載された経験を要求にそのまま転用できるもの。例: 要求がSpring Bootで記載がSpring "
+                + "Framework）が具体的に明記されている。技術基盤が異なる製品・サービス（例: "
+                + "要求がAWSで記載がGCP）は類似とみなさない。NotMet=同一・類似いずれの記載も無い。職種や他スキルからの推測（例: "
+                + "Javaエンジニアだから SQL も経験があるはず）でFullyMet/PartiallyMetにしてはならない。",
         itemType = EvaluateType.class,
         required = true,
         example = "FullyMet")
@@ -409,6 +415,7 @@ public class MatchEvaluateResponseSchema {
     private String comment;
   }
 
+  /** 単価評価の結果を表すスキーマです。 */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
@@ -428,6 +435,7 @@ public class MatchEvaluateResponseSchema {
     private String comment;
   }
 
+  /** 勤務場所の評価結果を表すスキーマです。 */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
@@ -449,6 +457,7 @@ public class MatchEvaluateResponseSchema {
     private String comment;
   }
 
+  /** 出社要件の評価結果を表すスキーマです。 */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
@@ -469,6 +478,7 @@ public class MatchEvaluateResponseSchema {
     private String comment;
   }
 
+  /** 稼働月数の評価結果を表すスキーマです。 */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
@@ -488,6 +498,7 @@ public class MatchEvaluateResponseSchema {
     private String comment;
   }
 
+  /** その他条件の評価結果を表すスキーマです。 */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
@@ -503,7 +514,8 @@ public class MatchEvaluateResponseSchema {
     @Schema(
         title = "評価結果",
         description =
-            "明記された条件を相手側が満たすかどうか。相手側の情報に明記された内容のみで判定し、推測しないこと。FullyMet=満たすことが明記されている、または相手側に該当する記載が無く違反が確認できない。PartiallyMet=一部のみ満たす記載がある。NotMet=条件に反する記載がある。",
+            "明記された条件を相手側が満たすかどうか。相手側の情報に明記された内容のみで判定し、推測しないこと。FullyMet=満たすことが明記されている、または相手側に該当する記載が"
+                + "無く違反が確認できない。PartiallyMet=一部のみ満たす記載がある。NotMet=条件に反する記載がある。",
         itemType = EvaluateType.class,
         required = true,
         example = "FullyMet")
@@ -517,12 +529,18 @@ public class MatchEvaluateResponseSchema {
     private String comment;
   }
 
-  public static enum EvaluateType {
+  /** 評価区分（充足・一部充足・未充足・不明）を表す列挙型です。 */
+  public enum EvaluateType {
     FullyMet, // 同一の実務経験が明記されている
     PartiallyMet, // 代替可能な類似の実務経験が明記されている
     NotMet, // 記載なし
     Unknown; // 不明
 
+    /**
+     * 評価区分に対応する記号を返します。
+     *
+     * @return 記号
+     */
     public String getIcon() {
       return switch (this) {
         case FullyMet -> "◎";
@@ -532,6 +550,11 @@ public class MatchEvaluateResponseSchema {
       };
     }
 
+    /**
+     * 評価区分に対応する充足率を返します。
+     *
+     * @return 充足率（0.0 から 1.0）
+     */
     public double getRate() {
       return switch (this) {
         case FullyMet -> 1.0;

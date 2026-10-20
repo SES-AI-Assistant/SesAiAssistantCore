@@ -21,7 +21,6 @@ public class SesAiAssistantWebAppNotifierSqsEntity extends SQSEntityBase {
   /**
    * コンストラクタ.
    *
-   * @param queueUrl SQS の URL
    * @param request プッシュ通知リクエスト
    */
   public SesAiAssistantWebAppNotifierSqsEntity(SesAiAssistantWebAppNotifierRequestEntity request) {

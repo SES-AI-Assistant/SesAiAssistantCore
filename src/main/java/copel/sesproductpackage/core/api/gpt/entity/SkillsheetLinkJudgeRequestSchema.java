@@ -24,6 +24,7 @@ public class SkillsheetLinkJudgeRequestSchema {
   /** 要員情報. */
   private List<PersonInfo> persons = null;
 
+  /** スキルシートのリンク判定に使う要員情報を表すスキーマです。 */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor

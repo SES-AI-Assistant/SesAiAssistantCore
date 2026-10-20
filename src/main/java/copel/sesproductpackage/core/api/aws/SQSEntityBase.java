@@ -52,7 +52,7 @@ public abstract class SQSEntityBase {
    * このEntityの内容でSQSへメッセージをキューイングします.
    *
    * @return 送信結果
-   * @throws JsonProcessingException
+   * @throws JsonProcessingException JSON の変換に失敗した場合
    */
   public SendMessageResult sendMessage() throws JsonProcessingException {
     SendMessageRequest sendMessageRequest =
@@ -91,7 +91,7 @@ public abstract class SQSEntityBase {
    * このEntityの内容をJSON形式のメッセージBody文字列に変換し返却します.
    *
    * @return メッセージBody
-   * @throws JsonProcessingException
+   * @throws JsonProcessingException JSON の変換に失敗した場合
    */
   protected abstract String getMessageBody() throws JsonProcessingException;
 }

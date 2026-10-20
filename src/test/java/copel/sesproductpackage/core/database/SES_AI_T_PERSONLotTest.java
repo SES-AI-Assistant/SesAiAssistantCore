@@ -5,7 +5,7 @@ import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.unit.LogicalOperators;
-import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
+import copel.sesproductpackage.core.unit.LogicalOperators.LogicalOperatorType;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
 import java.lang.reflect.Field;
@@ -188,8 +188,8 @@ class SES_AI_T_PERSONLotTest {
     setupDefaultResultSet();
     SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
     List<LogicalOperators> queries = new ArrayList<>();
-    queries.add(new LogicalOperators(論理演算子.AND, "val1"));
-    queries.add(new LogicalOperators(論理演算子.OR, "val2"));
+    queries.add(new LogicalOperators(LogicalOperatorType.AND, "val1"));
+    queries.add(new LogicalOperators(LogicalOperatorType.OR, "val2"));
     lot.searchByRawContent(mockConn, "test-tenant", "first", queries);
     assertEquals(1, lot.size());
   }

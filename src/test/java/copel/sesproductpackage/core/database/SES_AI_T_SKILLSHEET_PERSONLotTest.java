@@ -8,7 +8,7 @@ import copel.sesproductpackage.core.search.FulltextCondition;
 import copel.sesproductpackage.core.search.PersonDetailFilterCondition;
 import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.LogicalOperators;
-import copel.sesproductpackage.core.unit.LogicalOperators.論理演算子;
+import copel.sesproductpackage.core.unit.LogicalOperators.LogicalOperatorType;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
@@ -101,7 +101,10 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
 
     when(mockResultSet.next()).thenReturn(true, false);
     lot.searchByPersonRawContent(
-        mockConnection, "test-tenant", "k1", List.of(new LogicalOperators(論理演算子.AND, "k2")));
+        mockConnection,
+        "test-tenant",
+        "k1",
+        List.of(new LogicalOperators(LogicalOperatorType.AND, "k2")));
     assertEquals(1, lot.size());
   }
 
@@ -114,7 +117,10 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
 
     when(mockResultSet.next()).thenReturn(true, false);
     lot.searchBySkillSheetRawContent(
-        mockConnection, "test-tenant", "s1", List.of(new LogicalOperators(論理演算子.OR, "s2")));
+        mockConnection,
+        "test-tenant",
+        "s1",
+        List.of(new LogicalOperators(LogicalOperatorType.OR, "s2")));
     assertEquals(1, lot.size());
   }
 
@@ -139,7 +145,7 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
     lot.get(0).setFileContentSummary("fs");
 
     assertEquals("1人目：要員ID：p1 内容：csfs\n", lot.to要員選出用文章());
-    assertEquals("1件目：ファイルID：f1 内容：fscs\n", lot.toスキルシート選出用文章());
+    assertEquals("1件目：ファイルID：f1 内容：fscs\n", lot.toSkillSheetSelectionText());
   }
 
   @Test

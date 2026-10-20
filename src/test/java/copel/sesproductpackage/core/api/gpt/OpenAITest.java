@@ -170,7 +170,9 @@ class OpenAITest extends HttpTestBase {
     GptAnswer answer = api.generate("hi");
     assertEquals("Hello", answer.getAnswer());
 
-    assertNull(api.generate("hi"));
+    // 2回目は応答が空（choices なし）の場合を検証する。1回目で入力ストリームを読み切っているため、差し替える
+    when(sharedMockConn.getInputStream()).thenReturn(new ByteArrayInputStream("{}".getBytes()));
+    assertNull(api.generate("hi").getAnswer());
     assertNull(api.generate(null, 0.5f));
   }
 

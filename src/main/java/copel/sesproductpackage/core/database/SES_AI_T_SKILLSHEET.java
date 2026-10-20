@@ -1,6 +1,6 @@
 package copel.sesproductpackage.core.database;
 
-import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
+import copel.sesproductpackage.core.database.base.SesAiTableEntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.SkillSheet;
 import java.sql.Connection;
@@ -17,7 +17,7 @@ import lombok.ToString;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
+public class SES_AI_T_SKILLSHEET extends SesAiTableEntityBase {
 
   public SES_AI_T_SKILLSHEET(String tenantId) {
     super(tenantId);
@@ -28,19 +28,25 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
   // ================================
   /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_SKILLSHEET (from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, vector_data, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
+      "INSERT INTO SES_AI_T_SKILLSHEET (from_group, from_id, from_name, file_id, file_name, "
+          + "file_content, file_content_summary, vector_data, register_date, register_user, ttl) "
+          + "VALUES (?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?)";
 
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, file_content_summary, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content, "
+          + "file_content_summary, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET "
+          + "WHERE file_id = ?";
 
   /** SELECT文(原文抜き、tenantId フィルタなし、テンプレートメソッドが自動追加する). */
   private static final String SELECT_WITHOUT_CONTENT_SQL =
-      "SELECT from_group, from_id, from_name, file_id, file_name, file_content_summary, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
+      "SELECT from_group, from_id, from_name, file_id, file_name, file_content_summary, "
+          + "register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
 
   /** 重複チェック用SQL. */
   private static final String CHECK_SQL =
-      "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET WHERE tenant_id = ? AND file_content % ? AND similarity(file_content, ?) > ?";
+      "SELECT COUNT(*) FROM SES_AI_T_SKILLSHEET WHERE tenant_id = ? AND file_content % ? AND "
+          + "similarity(file_content, ?) > ?";
 
   /** DELETE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
@@ -59,7 +65,7 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
    *
    * @return 変換後の文章
    */
-  public String toスキルシート選出用文章() {
+  public String toSkillSheetSelectionText() {
     return "ファイルID：" + this.skillSheet.getFileId() + "内容：" + this.getFileContentSummary();
   }
 
@@ -86,7 +92,7 @@ public class SES_AI_T_SKILLSHEET extends SES_AI_T_EntityBase {
    * 原文が1.5万文字程度あり、頻繁にSELECTすると負荷を書けるため、可能であれば除外して検索する.
    *
    * @param connection DBコネクション
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectByPkWithoutRawContent(final Connection connection) throws SQLException {
     if (this.getFileId() == null) {

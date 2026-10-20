@@ -18,14 +18,14 @@ class CurrencyTest {
 
   @Test
   void testGetExchangeRateToJPY() {
-    assertEquals(1.0, Currency.JPY.getExchangeRateToJPY());
-    assertEquals(150.0, Currency.USD.getExchangeRateToJPY());
+    assertEquals(1.0, Currency.JPY.getExchangeRateToJpy());
+    assertEquals(150.0, Currency.USD.getExchangeRateToJpy());
   }
 
   @Test
   void testUpdateExchangeRate() {
     Currency.USD.updateExchangeRate(155.0);
-    assertEquals(155.0, Currency.USD.getExchangeRateToJPY());
+    assertEquals(155.0, Currency.USD.getExchangeRateToJpy());
 
     // Reset back to original state
     Currency.USD.updateExchangeRate(150.0);

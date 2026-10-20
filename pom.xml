@@ -1,21 +1,33 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+
+  <!-- ビルド設定と mvn verify の検査（整形・LINT・UT・カバレッジ100%・UT仕様・spotbugs）は親 pom にまとめている。
+       ここには Core 固有の設定だけを書く。コマンドは tools/README.md を参照する -->
+  <parent>
+    <groupId>com.github.SES-AI-Assistant</groupId>
+    <artifactId>nectar-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <relativePath />
+  </parent>
+
   <groupId>com.github.SES-AI-Assistant</groupId>
   <artifactId>sesaiassistantcore</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>SesAiAssistantCore</name>
 
-  <properties>
-    <!-- source/target ではなく release を指定することで、ローカルのJDKがJava 17より新しい場合でも
-         Java 17に存在しないAPIを誤って参照できないようにする（CIはJDK 17で動作する） -->
-    <maven.compiler.release>17</maven.compiler.release>
-    <!-- Lombokはアノテーション処理でコンパイラ内部APIを使用するため、新しいJDKでは対応版が必要。
-         バージョンが古いと、ローカルのJDKが新しい環境でgetterやコンストラクタが生成されず
-         大量のコンパイルエラーになる -->
-    <lombok.version>1.18.48</lombok.version>
-  </properties>
+  <!-- 親 pom を GitHub Packages から取得するために必要（親の解決は、親の設定を読む前に行われるため） -->
+  <repositories>
+    <repository>
+      <id>github</id>
+      <url>https://maven.pkg.github.com/SES-AI-Assistant/SesAiAssistantCore</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
 
-  <!-- GitHub Packages へ mvn deploy する際のリポジトリ（SesAiAssitantWebAppBackend の repository と同一） -->
+  <!-- Core 自身の配布先（GitHub Packages）。親 pom は持たず、Core だけが配布する。
+       deploy.yml は全検査（mvn clean deploy）を通ったものだけを配布する -->
   <distributionManagement>
     <repository>
       <id>github</id>
@@ -27,7 +39,7 @@
     </snapshotRepository>
   </distributionManagement>
 
-  <!-- GitHUB Packagesの設定 -->
+  <!-- AWS SDK の版を一括管理する（Core 固有の版管理のため残す） -->
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -156,58 +168,11 @@
       <version>1.2.3</version>
     </dependency>
 
-    <!-- Lombok -->
-    <dependency>
-      <groupId>org.projectlombok</groupId>
-      <artifactId>lombok</artifactId>
-      <version>${lombok.version}</version>
-    </dependency>
-
     <!-- PostgreSQL JDBC ドライバ -->
     <dependency>
         <groupId>org.postgresql</groupId>
         <artifactId>postgresql</artifactId>
         <version>42.7.5</version>
-    </dependency>
-
-    <!-- JUnit 5 -->
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-api</artifactId>
-      <version>5.9.3</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-engine</artifactId>
-      <version>5.9.3</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-params</artifactId>
-      <version>5.9.3</version>
-      <scope>test</scope>
-    </dependency>
-    
-    <!-- Mockito -->
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
-      <version>5.3.1</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-junit-jupiter</artifactId>
-      <version>5.3.1</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-inline</artifactId>
-      <version>5.2.0</version>
-      <scope>test</scope>
     </dependency>
 
     <!-- System Lambda (for testing System environment variables) -->
@@ -234,93 +199,22 @@
       </resources>
 
       <plugins>
-          <!-- JDKバージョンチェックプラグイン -->
-          <!-- MavenがCI（JDK 17）と異なるJDKで動作していた場合に、分かりやすいエラーで即座に停止させる。
-               特にHomebrewでMavenを導入した環境では、JAVA_HOME未設定時にMavenが自身の依存JDK
-               （シェルの java とは別物）を使うため、気付かないままビルドされてしまう。
-               JDK 23以降ではテスト実行時にMockito/ByteBuddyがエージェントをアタッチできず
-               大量のテストエラーになるため、上限を23未満としている。 -->
-          <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-enforcer-plugin</artifactId>
-              <version>3.4.1</version>
-              <executions>
-                  <execution>
-                      <id>enforce-java-version</id>
-                      <goals>
-                          <goal>enforce</goal>
-                      </goals>
-                      <configuration>
-                          <rules>
-                              <requireJavaVersion>
-                                  <version>[17,23)</version>
-                                  <message>MavenがJava 17以上23未満で動作している必要があります。JAVA_HOME を対応JDKに設定してください（例: export JAVA_HOME=$(/usr/libexec/java_home -v 18)）。現在のバージョンは mvn -version で確認できます。</message>
-                              </requireJavaVersion>
-                          </rules>
-                      </configuration>
-                  </execution>
-              </executions>
-          </plugin>
-
-          <!-- コンパイルプラグイン -->
-          <!-- JDK 23以降の javac はクラスパス上のアノテーションプロセッサを暗黙的に実行しないため、
-               Lombok を annotationProcessorPaths に明示する。
-               明示しない場合、警告もエラーも出ないままLombokが無効化され、
-               getterやコンストラクタが生成されず大量のコンパイルエラーになる。 -->
-          <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-compiler-plugin</artifactId>
-              <version>3.13.0</version>
-              <configuration>
-                  <annotationProcessorPaths>
-                      <path>
-                          <groupId>org.projectlombok</groupId>
-                          <artifactId>lombok</artifactId>
-                          <version>${lombok.version}</version>
-                      </path>
-                  </annotationProcessorPaths>
-              </configuration>
-          </plugin>
-
-          <!-- テスト実行プラグイン -->
-          <!-- 版は他リポジトリ（Backend など）と揃えて 3.2.5 に固定している。
-               systemPropertyVariables の nectar.config.source=memory は、テスト実行時だけ
-               ApplicationClock.setClock（テスト専用の時計差し替え）を許可するために渡す。
-               本番の実行では設定されないため、時計の差し替えは起きない。対象テストの範囲は既定のままにする。 -->
-          <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-surefire-plugin</artifactId>
-              <version>3.2.5</version>
-              <configuration>
-                  <systemPropertyVariables>
-                      <nectar.config.source>memory</nectar.config.source>
-                  </systemPropertyVariables>
-              </configuration>
-          </plugin>
-
-          <!-- シェードプラグインで JAR を作成 -->
+          <!-- Lambda 用ではなくライブラリ（他リポジトリが依存する）のため、mainClass は持たない。
+               shade は成果物の形（依存を同梱した JAR）を従来どおり保つために残す -->
           <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-shade-plugin</artifactId>
-              <version>3.2.4</version>
               <executions>
                   <execution>
                       <phase>package</phase>
                       <goals>
                           <goal>shade</goal>
                       </goals>
-                      <configuration>
-                          <transformers>
-                              <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                  <mainClass>copel.sesproductpackage.line.LambdaHandler</mainClass>
-                              </transformer>
-                          </transformers>
-                      </configuration>
                   </execution>
               </executions>
           </plugin>
 
-          <!-- デプロイプラグイン -->
+          <!-- デプロイプラグイン（Core 自身の配布に使う） -->
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-deploy-plugin</artifactId>
@@ -334,105 +228,24 @@
             </executions>
           </plugin>
 
-          <!-- JaCoCo -->
-          <plugin>
-            <groupId>org.jacoco</groupId>
-            <artifactId>jacoco-maven-plugin</artifactId>
-            <version>0.8.11</version>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>prepare-agent</goal>
-                </goals>
-              </execution>
-              <execution>
-                <id>report</id>
-                <phase>test</phase>
-                <goals>
-                  <goal>report</goal>
-                </goals>
-                <configuration>
-                  <formats>
-                    <format>HTML</format>
-                    <format>CSV</format>
-                  </formats>
-                </configuration>
-              </execution>
-
-            </executions>
-          </plugin>
-
-          <!-- Checkstyle -->
+          <!-- Checkstyle の抑止設定だけを Core 用に指定する（検査の設定本体は親 pom）。
+               範囲は config/checkstyle-suppressions.xml に限定して書く -->
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-checkstyle-plugin</artifactId>
-            <version>3.3.1</version>
             <configuration>
-              <configLocation>google_checks.xml</configLocation>
-              <consoleOutput>true</consoleOutput>
-              <failsOnError>false</failsOnError>
-              <linkXRef>false</linkXRef>
+              <suppressionsLocation>${project.basedir}/config/checkstyle-suppressions.xml</suppressionsLocation>
             </configuration>
           </plugin>
 
-          <!-- PMD -->
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-pmd-plugin</artifactId>
-            <version>3.21.2</version>
-            <configuration>
-              <printFailingErrors>true</printFailingErrors>
-              <linkXRef>false</linkXRef>
-            </configuration>
-          </plugin>
-
-          <!-- SpotBugs -->
+          <!-- SpotBugs の除外設定だけを Core 用に指定する（検査の設定本体は親 pom）。範囲は config/spotbugs-exclude.xml に限定して書く -->
           <plugin>
             <groupId>com.github.spotbugs</groupId>
             <artifactId>spotbugs-maven-plugin</artifactId>
-            <version>4.8.3.1</version>
             <configuration>
-              <effort>Max</effort>
-              <threshold>Low</threshold>
-              <xmlOutput>true</xmlOutput>
+              <excludeFilterFile>${project.basedir}/config/spotbugs-exclude.xml</excludeFilterFile>
             </configuration>
           </plugin>
-
-          <!-- OpenRewrite -->
-          <plugin>
-            <groupId>org.openrewrite.maven</groupId>
-            <artifactId>rewrite-maven-plugin</artifactId>
-            <version>5.20.0</version>
-            <configuration>
-              <activeRecipes>
-                <recipe>org.openrewrite.java.cleanup.CleanupRecipe</recipe>
-                <recipe>org.openrewrite.java.RemoveUnusedImports</recipe>
-              </activeRecipes>
-            </configuration>
-            <dependencies>
-              <dependency>
-                <groupId>org.openrewrite.recipe</groupId>
-                <artifactId>rewrite-static-analysis</artifactId>
-                <version>1.2.1</version>
-              </dependency>
-            </dependencies>
-          </plugin>
-
-          <!-- Spotless -->
-          <plugin>
-            <groupId>com.diffplug.spotless</groupId>
-            <artifactId>spotless-maven-plugin</artifactId>
-            <version>2.43.0</version>
-            <configuration>
-              <java>
-                <googleJavaFormat>
-                  <version>1.17.0</version>
-                  <style>GOOGLE</style>
-                </googleJavaFormat>
-              </java>
-            </configuration>
-          </plugin>
-
       </plugins>
   </build>
 </project>

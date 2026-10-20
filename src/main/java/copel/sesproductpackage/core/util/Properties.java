@@ -98,7 +98,7 @@ public class Properties {
     return t.isEmpty() ? null : t;
   }
 
-  private static long getCacheTTL() {
+  private static long getCacheTtl() {
     String ttlStr = properties.get("CACHE_TTL_MS");
     if (ttlStr != null && !ttlStr.isEmpty()) {
       try {
@@ -252,8 +252,8 @@ public class Properties {
    */
   static void load(S3Client s3Client) {
     long now = ApplicationClock.INSTANCE.clock().millis();
-    long cacheTTL = getCacheTTL();
-    if (lastS3LoadTime > 0 && (now - lastS3LoadTime) < cacheTTL) {
+    long cacheTtl = getCacheTtl();
+    if (lastS3LoadTime > 0 && (now - lastS3LoadTime) < cacheTtl) {
       log.debug("S3 プロパティファイル キャッシュが有効なため読み込みをスキップします。");
       return;
     }
@@ -295,8 +295,8 @@ public class Properties {
    */
   static void loadFromParameterStore(SsmClient ssmClient) {
     long now = ApplicationClock.INSTANCE.clock().millis();
-    long cacheTTL = getCacheTTL();
-    if (lastParameterStoreLoadTime > 0 && (now - lastParameterStoreLoadTime) < cacheTTL) {
+    long cacheTtl = getCacheTtl();
+    if (lastParameterStoreLoadTime > 0 && (now - lastParameterStoreLoadTime) < cacheTtl) {
       log.debug("Parameter Store キャッシュが有効なため読み込みをスキップします。");
       return;
     }

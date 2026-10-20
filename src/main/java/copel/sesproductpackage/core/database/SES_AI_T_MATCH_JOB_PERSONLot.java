@@ -24,11 +24,28 @@ public class SES_AI_T_MATCH_JOB_PERSONLot extends EntityLotBase<SES_AI_T_MATCH_J
 
   /** 全件SELECT文（ページング用のORDER BY含む）. */
   private static final String SELECT_ALL_SQL =
-      "SELECT m.matching_id, m.user_id, m.job_id, m.person_id, m.job_content, m.person_content, m.status_cd, m.evaluation_text, m.score, m.must_evaluation_text, m.want_evaluation_text, m.place_evaluation_text, m.office_evaluation_text, m.other_evaluation_text, m.profit, m.register_date, m.register_user, m.tenant_id, j.title AS job_title, j.unit_price AS job_unit_price, p.name AS person_name, p.age AS person_age, p.gender AS person_gender, p.unit_price AS person_unit_price FROM SES_AI_T_MATCH m LEFT JOIN SES_AI_T_JOB j ON m.job_id = j.job_id LEFT JOIN SES_AI_T_PERSON p ON m.person_id = p.person_id ORDER BY m.register_date DESC";
+      "SELECT m.matching_id, m.user_id, m.job_id, m.person_id, m.job_content, m.person_content, "
+          + "m.status_cd, m.evaluation_text, m.score, m.must_evaluation_text, "
+          + "m.want_evaluation_text, m.place_evaluation_text, m.office_evaluation_text, "
+          + "m.other_evaluation_text, m.profit, m.register_date, m.register_user, "
+          + "m.tenant_id, j.title AS job_title, j.unit_price AS job_unit_price, p.name "
+          + "AS person_name, p.age AS person_age, p.gender AS person_gender, "
+          + "p.unit_price AS person_unit_price FROM SES_AI_T_MATCH m LEFT JOIN "
+          + "SES_AI_T_JOB j ON m.job_id = j.job_id LEFT JOIN "
+          + "SES_AI_T_PERSON p ON m.person_id = p.person_id ORDER BY "
+          + "m.register_date DESC";
 
   /** SELECT文（WHERE句あり）. */
   private static final String SELECT_SQL =
-      "SELECT m.matching_id, m.user_id, m.job_id, m.person_id, m.job_content, m.person_content, m.status_cd, m.evaluation_text, m.score, m.must_evaluation_text, m.want_evaluation_text, m.place_evaluation_text, m.office_evaluation_text, m.other_evaluation_text, m.profit, m.register_date, m.register_user, m.tenant_id, j.title AS job_title, j.unit_price AS job_unit_price, p.name AS person_name, p.age AS person_age, p.gender AS person_gender, p.unit_price AS person_unit_price FROM SES_AI_T_MATCH m LEFT JOIN SES_AI_T_JOB j ON m.job_id = j.job_id LEFT JOIN SES_AI_T_PERSON p ON m.person_id = p.person_id WHERE ";
+      "SELECT m.matching_id, m.user_id, m.job_id, m.person_id, m.job_content, m.person_content, "
+          + "m.status_cd, m.evaluation_text, m.score, m.must_evaluation_text, "
+          + "m.want_evaluation_text, m.place_evaluation_text, m.office_evaluation_text, "
+          + "m.other_evaluation_text, m.profit, m.register_date, m.register_user, "
+          + "m.tenant_id, j.title AS job_title, j.unit_price AS job_unit_price, p.name "
+          + "AS person_name, p.age AS person_age, p.gender AS person_gender, "
+          + "p.unit_price AS person_unit_price FROM SES_AI_T_MATCH m LEFT JOIN "
+          + "SES_AI_T_JOB j ON m.job_id = j.job_id LEFT JOIN "
+          + "SES_AI_T_PERSON p ON m.person_id = p.person_id WHERE ";
 
   /**
    * ページング付き条件検索用のSELECT文（WHERE句を含まない）.
@@ -38,7 +55,15 @@ public class SES_AI_T_MATCH_JOB_PERSONLot extends EntityLotBase<SES_AI_T_MATCH_J
    * ...」という不正なSQLが生成されてしまう。 そのためページング条件検索専用に、WHERE句を含まない版を別途用意する。
    */
   private static final String SELECT_BASE_SQL_FOR_PAGED_QUERY =
-      "SELECT m.matching_id, m.user_id, m.job_id, m.person_id, m.job_content, m.person_content, m.status_cd, m.evaluation_text, m.score, m.must_evaluation_text, m.want_evaluation_text, m.place_evaluation_text, m.office_evaluation_text, m.other_evaluation_text, m.profit, m.register_date, m.register_user, m.tenant_id, j.title AS job_title, j.unit_price AS job_unit_price, p.name AS person_name, p.age AS person_age, p.gender AS person_gender, p.unit_price AS person_unit_price FROM SES_AI_T_MATCH m LEFT JOIN SES_AI_T_JOB j ON m.job_id = j.job_id LEFT JOIN SES_AI_T_PERSON p ON m.person_id = p.person_id ";
+      "SELECT m.matching_id, m.user_id, m.job_id, m.person_id, m.job_content, m.person_content, "
+          + "m.status_cd, m.evaluation_text, m.score, m.must_evaluation_text, "
+          + "m.want_evaluation_text, m.place_evaluation_text, m.office_evaluation_text, "
+          + "m.other_evaluation_text, m.profit, m.register_date, m.register_user, "
+          + "m.tenant_id, j.title AS job_title, j.unit_price AS job_unit_price, p.name "
+          + "AS person_name, p.age AS person_age, p.gender AS person_gender, "
+          + "p.unit_price AS person_unit_price FROM SES_AI_T_MATCH m LEFT JOIN "
+          + "SES_AI_T_JOB j ON m.job_id = j.job_id LEFT JOIN "
+          + "SES_AI_T_PERSON p ON m.person_id = p.person_id ";
 
   @Override
   protected String getSelectAllSql() {
@@ -71,7 +96,7 @@ public class SES_AI_T_MATCH_JOB_PERSONLot extends EntityLotBase<SES_AI_T_MATCH_J
    * @param jobId 案件ID
    * @param page ページ番号
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectByJobIdPaged(
       Connection connection, String tenantId, String jobId, int page, int size)
@@ -93,7 +118,7 @@ public class SES_AI_T_MATCH_JOB_PERSONLot extends EntityLotBase<SES_AI_T_MATCH_J
    * @param personId 要員ID
    * @param page ページ番号
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectByPersonIdPaged(
       Connection connection, String tenantId, String personId, int page, int size)

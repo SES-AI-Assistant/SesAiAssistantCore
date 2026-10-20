@@ -21,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
  * @author Copel Co., Ltd.
  */
 @Slf4j
-public class LineMessagingAPI {
+public class LineMessagingApi {
   // ================================
   // 定数
   // ================================
@@ -49,7 +49,7 @@ public class LineMessagingAPI {
   // ================================
   // コンストラクタ定義
   // ================================
-  public LineMessagingAPI(final String channelAccessToken) {
+  public LineMessagingApi(final String channelAccessToken) {
     this.messageList = new ArrayList<>();
     this.channelAccessToken = channelAccessToken;
   }
@@ -66,14 +66,10 @@ public class LineMessagingAPI {
     this.messageList.add(message);
   }
 
-  /**
-   * messageListの各要素ごとにこのオブジェクトにもつuserIdの個別LINEにメッセージ送信リクエストを送信するメソッド
-   *
-   * @return ResultObject 送信結果
-   */
+  /** messageListの各要素ごとにこのオブジェクトにもつuserIdの個別LINEにメッセージ送信リクエストを送信するメソッド */
   public void sendSeparate(final String toUserId) {
     try {
-      HttpClient httpClient = HttpClient.newHttpClient();
+      final HttpClient httpClient = HttpClient.newHttpClient();
       for (final String message : this.messageList) {
         // JSON形式のメッセージボディを作成（ObjectMapperで構築）
         ObjectMapper objectMapper = new ObjectMapper();
@@ -113,7 +109,7 @@ public class LineMessagingAPI {
   /** このオブジェクトに格納されているメッセージを全ユーザーにメッセージ配信する */
   public void broadCast() {
     try {
-      HttpClient httpClient = HttpClient.newHttpClient();
+      final HttpClient httpClient = HttpClient.newHttpClient();
 
       // メッセージボディを作成
       ObjectMapper objectMapper = new ObjectMapper();
@@ -157,8 +153,8 @@ public class LineMessagingAPI {
    *
    * @param messageId メッセージID.
    * @return ファイルのバイナリ値
-   * @throws IOException
-   * @throws InterruptedException
+   * @throws IOException 入出力（ファイル・ストリーム）の操作に失敗した場合
+   * @throws InterruptedException 待機中にスレッドが中断された場合
    */
   public byte[] getFile(final String messageId) throws IOException, InterruptedException {
     HttpClient client = HttpClient.newHttpClient();

@@ -215,7 +215,7 @@ class EntityLotBaseTest {
     queries.add(null);
     queries.add(
         new copel.sesproductpackage.core.unit.LogicalOperators(
-            copel.sesproductpackage.core.unit.LogicalOperators.論理演算子.AND, "val1"));
+            copel.sesproductpackage.core.unit.LogicalOperators.LogicalOperatorType.AND, "val1"));
     queries.add(null);
     lot2.searchByField(conn, "test-tenant", "col", "query", queries);
     assertEquals(1, lot2.size());
@@ -225,9 +225,9 @@ class EntityLotBaseTest {
     java.util.List<copel.sesproductpackage.core.unit.LogicalOperators> twoOps =
         java.util.Arrays.asList(
             new copel.sesproductpackage.core.unit.LogicalOperators(
-                copel.sesproductpackage.core.unit.LogicalOperators.論理演算子.AND, "v1"),
+                copel.sesproductpackage.core.unit.LogicalOperators.LogicalOperatorType.AND, "v1"),
             new copel.sesproductpackage.core.unit.LogicalOperators(
-                copel.sesproductpackage.core.unit.LogicalOperators.論理演算子.OR, "v2"));
+                copel.sesproductpackage.core.unit.LogicalOperators.LogicalOperatorType.OR, "v2"));
     lotTwoOps.searchByField(conn, "test-tenant", "col", "q", twoOps);
     assertEquals(1, lotTwoOps.size());
     verify(ps, atLeastOnce()).setString(1, "%q%");
@@ -600,7 +600,8 @@ class EntityLotBaseTest {
     java.util.List<copel.sesproductpackage.core.unit.LogicalOperators> operators =
         java.util.Arrays.asList(
             new copel.sesproductpackage.core.unit.LogicalOperators(
-                copel.sesproductpackage.core.unit.LogicalOperators.論理演算子.AND, "val1"));
+                copel.sesproductpackage.core.unit.LogicalOperators.LogicalOperatorType.AND,
+                "val1"));
 
     lot.selectByLikeQuery(
         conn, "test-tenant", "SELECT * FROM TEST_TABLE WHERE ", "col1", "search", operators);

@@ -2,7 +2,7 @@ package copel.sesproductpackage.core.database;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import copel.sesproductpackage.core.database.base.DynamoDB;
+import copel.sesproductpackage.core.database.base.DynamoDb;
 import copel.sesproductpackage.core.util.ApplicationClock;
 import copel.sesproductpackage.core.util.Properties;
 import copel.sesproductpackage.core.util.SsmParameterKey;
@@ -16,12 +16,13 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortKey;
 
+/** SES_AI_API_USAGE_HISTORY テーブルの1レコードを表す Entity です。DynamoDB に保存します。 */
 @Data
 @DynamoDbBean
 @EqualsAndHashCode(callSuper = false)
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
-public class SES_AI_API_USAGE_HISTORY extends DynamoDB<SES_AI_API_USAGE_HISTORY> {
+public class SES_AI_API_USAGE_HISTORY extends DynamoDb<SES_AI_API_USAGE_HISTORY> {
   /** 【PK】 プロバイダ名. 例：OpenAI、Googleなど */
   private Provider provider;
 
@@ -70,6 +71,11 @@ public class SES_AI_API_USAGE_HISTORY extends DynamoDB<SES_AI_API_USAGE_HISTORY>
     return this.provider + "#" + this.model + "#" + this.usageMonth;
   }
 
+  /**
+   * DynamoDB のソートキーを返します。利用日がある場合は利用日・ユーザーID・API種別、ない場合はユーザーID・API種別を連結した文字列です。
+   *
+   * @return ソートキー
+   */
   @DynamoDbSortKey
   @DynamoDbAttribute("sortKey")
   public String getSortKey() {
@@ -79,6 +85,7 @@ public class SES_AI_API_USAGE_HISTORY extends DynamoDB<SES_AI_API_USAGE_HISTORY>
     return this.userId + "#" + this.apiType;
   }
 
+  /** 空のインスタンスを生成します。 */
   public SES_AI_API_USAGE_HISTORY() {
     super(
         Properties.get(SsmParameterKey.API_USAGE_HISTORY_TABLE_NAME.getKey()),
@@ -138,6 +145,11 @@ public class SES_AI_API_USAGE_HISTORY extends DynamoDB<SES_AI_API_USAGE_HISTORY>
     this.addInputCount(new BigDecimal(count));
   }
 
+  /**
+   * このレコードの入力件数に値を加えます。
+   *
+   * @param count 加えたい数
+   */
   public void addInputCount(final BigDecimal count) {
     if (this.inputCount == null) {
       this.inputCount = BigDecimal.ZERO;
@@ -154,6 +166,11 @@ public class SES_AI_API_USAGE_HISTORY extends DynamoDB<SES_AI_API_USAGE_HISTORY>
     this.addOutputCount(new BigDecimal(count));
   }
 
+  /**
+   * このレコードの出力件数に値を加えます。
+   *
+   * @param count 加えたい数
+   */
   public void addOutputCount(final BigDecimal count) {
     if (this.outputCount == null) {
       this.outputCount = BigDecimal.ZERO;

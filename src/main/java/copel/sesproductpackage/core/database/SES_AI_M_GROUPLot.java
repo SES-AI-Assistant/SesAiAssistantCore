@@ -20,7 +20,8 @@ public class SES_AI_M_GROUPLot extends EntityLotBase<SES_AI_M_GROUP> {
 
   /** SELECT文（WHERE句あり）. */
   private static final String SELECT_SQL =
-      "SELECT from_group, group_name, register_date, register_user, tenant_id FROM SES_AI_M_GROUP WHERE ";
+      "SELECT from_group, group_name, register_date, register_user, tenant_id FROM SES_AI_M_GROUP "
+          + "WHERE ";
 
   public SES_AI_M_GROUPLot() {
     super();
@@ -55,7 +56,7 @@ public class SES_AI_M_GROUPLot extends EntityLotBase<SES_AI_M_GROUP> {
    * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectAllWithoutTenantFilter(final Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
@@ -67,11 +68,11 @@ public class SES_AI_M_GROUPLot extends EntityLotBase<SES_AI_M_GROUP> {
 
   @Override
   protected SES_AI_M_GROUP mapResultSet(ResultSet resultSet) throws SQLException {
-    SES_AI_M_GROUP sesAiMGroup = new SES_AI_M_GROUP(resultSet.getString("tenant_id"));
-    sesAiMGroup.setFromGroup(resultSet.getString("from_group"));
-    sesAiMGroup.setGroupName(resultSet.getString("group_name"));
-    sesAiMGroup.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-    sesAiMGroup.setRegisterUser(resultSet.getString("register_user"));
-    return sesAiMGroup;
+    SES_AI_M_GROUP group = new SES_AI_M_GROUP(resultSet.getString("tenant_id"));
+    group.setFromGroup(resultSet.getString("from_group"));
+    group.setGroupName(resultSet.getString("group_name"));
+    group.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
+    group.setRegisterUser(resultSet.getString("register_user"));
+    return group;
   }
 }

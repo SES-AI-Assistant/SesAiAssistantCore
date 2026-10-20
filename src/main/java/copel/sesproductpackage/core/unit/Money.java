@@ -128,8 +128,7 @@ public class Money implements Comparable<Money> {
       return NEGOTIABLE_PRICE;
     }
     // 2. 正常な万円範囲（10以上 500以下、小数の65.5なども含む）→ 1万倍して円単位
-    if (manValue.compareTo(new BigDecimal("10")) >= 0
-        && manValue.compareTo(new BigDecimal("500")) <= 0) {
+    if (manValue.compareTo(BigDecimal.TEN) >= 0 && manValue.compareTo(new BigDecimal("500")) <= 0) {
       return new Money(manValue.multiply(MAN_UNIT).setScale(0, RoundingMode.HALF_UP));
     }
     // 3. 【時給の漏れ検知】1,000以上 8,000以下（160h換算）
@@ -330,6 +329,8 @@ public class Money implements Comparable<Money> {
    * @return 割った結果の金額
    * @throws ArithmeticException divisor が 0 の場合
    */
+  // 除算の精度を既存の挙動（double からの変換）のまま保つため、BigDecimal.valueOf には置き換えない
+  @SuppressWarnings("PMD.AvoidDecimalLiteralsInBigDecimalConstructor")
   public Money divide(double divisor) {
     if (divisor == 0) {
       throw new ArithmeticException("0で割ることはできません");

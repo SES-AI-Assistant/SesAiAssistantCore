@@ -69,7 +69,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    *
    * @param connection DBコネクション
    * @param tenantId テナントID
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public abstract void selectAll(final Connection connection, final String tenantId)
       throws SQLException;
@@ -81,7 +81,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param tenantId テナントID
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectAllPaged(
       final Connection connection, final String tenantId, final int page, final int size)
@@ -240,7 +240,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param connection DBコネクション
    * @param tenantId テナントID
    * @param andQuery カラム名と検索値をkey-valueで持つMap
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectByAndQuery(
       final Connection connection, final String tenantId, final Map<String, Object> andQuery)
@@ -254,7 +254,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param connection DBコネクション
    * @param tenantId テナントID
    * @param orQuery カラム名と検索値をkey-valueで持つMap
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectByOrQuery(
       final Connection connection, final String tenantId, final Map<String, Object> orQuery)
@@ -269,12 +269,32 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param tenantId テナントID
    * @param column 検索対象カラム
    * @param query 検索文字列
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void searchByField(
       final Connection connection, final String tenantId, final String column, final String query)
       throws SQLException {
     this.selectByLikeQuery(connection, tenantId, getSelectLikeSql(), column, query, null);
+  }
+
+  /**
+   * 指定したカラムに対して複数条件で全文検索を実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param column 検索対象カラム
+   * @param firstLikeQuery 1つ目のLIKE句の検索条件
+   * @param query 検索条件リスト
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   */
+  public void searchByField(
+      final Connection connection,
+      final String tenantId,
+      final String column,
+      final String firstLikeQuery,
+      final List<LogicalOperators> query)
+      throws SQLException {
+    this.selectByLikeQuery(connection, tenantId, getSelectLikeSql(), column, firstLikeQuery, query);
   }
 
   /**
@@ -286,7 +306,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param query 検索文字列
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void searchByFieldPaged(
       final Connection connection,
@@ -301,26 +321,6 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   }
 
   /**
-   * 指定したカラムに対して複数条件で全文検索を実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param column 検索対象カラム
-   * @param firstLikeQuery 1つ目のLIKE句の検索条件
-   * @param query 検索条件リスト
-   * @throws SQLException
-   */
-  public void searchByField(
-      final Connection connection,
-      final String tenantId,
-      final String column,
-      final String firstLikeQuery,
-      final List<LogicalOperators> query)
-      throws SQLException {
-    this.selectByLikeQuery(connection, tenantId, getSelectLikeSql(), column, firstLikeQuery, query);
-  }
-
-  /**
    * 指定したカラムに対して複数条件で全文検索をページングで実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
@@ -330,7 +330,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param query 検索条件リスト
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void searchByFieldPaged(
       final Connection connection,
@@ -371,7 +371,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param baseSql 基底SQL
    * @param query 検索条件Map
    * @param isAnd AND検索ならtrue, OR検索ならfalse
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected void selectByQuery(
       final Connection connection,
@@ -433,7 +433,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param columnName 検索対象カラム名
    * @param firstLikeQuery 最初の検索ワード
    * @param query 追加の検索条件リスト
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected void selectByLikeQuery(
       final Connection connection,
@@ -494,7 +494,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param query 追加の検索条件リスト
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected void selectByLikeQueryPaged(
       final Connection connection,
@@ -596,7 +596,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param likeParams プレースホルダに順にバインドする値
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected void selectByDynamicWherePaged(
       final Connection connection,
@@ -685,7 +685,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param areaFilter エリアフィルタ（null可）
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected <
           T extends java.math.BigDecimal, U extends java.time.temporal.Temporal, V extends Enum<?>>
@@ -719,15 +719,11 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     try (PreparedStatement preparedStatement = connection.prepareStatement(filteredCountSql)) {
       int paramIndex = 1;
       // フィルタ条件をバインド（selectSqlPrefixに含まれている）
-      if (price != null) {
-        if (price instanceof java.math.BigDecimal) {
-          preparedStatement.setBigDecimal(paramIndex++, (java.math.BigDecimal) price);
-        }
+      if (price != null && price instanceof java.math.BigDecimal) {
+        preparedStatement.setBigDecimal(paramIndex++, (java.math.BigDecimal) price);
       }
-      if (startDate != null) {
-        if (startDate instanceof java.sql.Timestamp) {
-          preparedStatement.setTimestamp(paramIndex++, (java.sql.Timestamp) startDate);
-        }
+      if (startDate != null && startDate instanceof java.sql.Timestamp) {
+        preparedStatement.setTimestamp(paramIndex++, (java.sql.Timestamp) startDate);
       }
       if (integerFilter != null && areaFilter != null) {
         preparedStatement.setInt(paramIndex++, integerFilter);
@@ -768,15 +764,11 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
             (stmt, paramIndex) -> {
               int idx = paramIndex;
               // フィルタ条件をバインド（selectSqlPrefixに含まれている）
-              if (price != null) {
-                if (price instanceof java.math.BigDecimal) {
-                  stmt.setBigDecimal(idx++, (java.math.BigDecimal) price);
-                }
+              if (price != null && price instanceof java.math.BigDecimal) {
+                stmt.setBigDecimal(idx++, (java.math.BigDecimal) price);
               }
-              if (startDate != null) {
-                if (startDate instanceof java.sql.Timestamp) {
-                  stmt.setTimestamp(idx++, (java.sql.Timestamp) startDate);
-                }
+              if (startDate != null && startDate instanceof java.sql.Timestamp) {
+                stmt.setTimestamp(idx++, (java.sql.Timestamp) startDate);
               }
               if (integerFilter != null && areaFilter != null) {
                 stmt.setInt(idx++, integerFilter);
@@ -807,7 +799,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param filterParams 詳細フィルターのパラメータリスト
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected void selectByDynamicWhereWithFilterPaged(
       final Connection connection,
@@ -906,7 +898,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param stmt PreparedStatement
    * @param paramIndex パラメータインデックス（1-based）
    * @param param バインドするパラメータ値
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected void bindParameter(
       final PreparedStatement stmt, final int paramIndex, final Object param) throws SQLException {
@@ -943,7 +935,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param query 検索条件Map
    * @param isAnd AND検索ならtrue, OR検索ならfalse
    * @return 件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected long countByQuery(
       final Connection connection,
@@ -979,7 +971,6 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     }
 
     // 新しいテンプレートメソッドで実行
-    final int paramCount = query != null ? query.size() : 0;
     try (PreparedStatement preparedStatement =
         connection.prepareStatement(addTenantIdFilter(sql.toString(), tenantId))) {
       int paramIndex = 1;
@@ -1010,7 +1001,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param isAnd AND検索ならtrue, OR検索ならfalse
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected void selectByQueryPaged(
       final Connection connection,
@@ -1184,10 +1175,12 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   @FunctionalInterface
   protected interface PreparedStatementBinder {
     /**
+     * PreparedStatement に値をバインドし、次のパラメータインデックスを返します。
+     *
      * @param stmt バインド対象の PreparedStatement
      * @param startIndex 開始パラメータインデックス（通常は 1）
      * @return 次のパラメータインデックス（tenantId バインド時に使用）
-     * @throws SQLException
+     * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
      */
     int bind(PreparedStatement stmt, int startIndex) throws SQLException;
   }
@@ -1200,9 +1193,11 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   @FunctionalInterface
   protected interface ResultSetMapper<T> {
     /**
+     * 1行分の ResultSet を、エンティティへ変換します。
+     *
      * @param rs マッピング対象の ResultSet
      * @return マッピング後のエンティティ
-     * @throws SQLException
+     * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
      */
     T map(ResultSet rs) throws SQLException;
   }
@@ -1229,14 +1224,12 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     String upperSql = trimmedSql.toUpperCase();
 
     // SELECT EXISTS の場合は特別処理（括弧内のWHERE句に tenant_id を挿入）
-    if (upperSql.startsWith("SELECT EXISTS")) {
-      if (upperSql.contains(" WHERE ")) {
-        int lastParenIndex = trimmedSql.lastIndexOf(')');
-        if (lastParenIndex > 0) {
-          return trimmedSql.substring(0, lastParenIndex)
-              + " AND tenant_id = ?"
-              + trimmedSql.substring(lastParenIndex);
-        }
+    if (upperSql.startsWith("SELECT EXISTS") && upperSql.contains(" WHERE ")) {
+      int lastParenIndex = trimmedSql.lastIndexOf(')');
+      if (lastParenIndex > 0) {
+        return trimmedSql.substring(0, lastParenIndex)
+            + " AND tenant_id = ?"
+            + trimmedSql.substring(lastParenIndex);
       }
     }
 
@@ -1331,7 +1324,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param stmt バインド対象の PreparedStatement
    * @param paramIndex パラメータインデックス
    * @param tenantId テナントID（null 不可）
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    * @throws IllegalArgumentException tenantId が null または空文字列の場合
    */
   protected void setTenantIdParameter(
@@ -1355,7 +1348,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param mapper ResultSet → Entity マッピング処理
    * @param binder カスタムパラメータバインド処理
    * @return クエリ実行結果のエンティティリスト
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    * @throws IllegalArgumentException tenantId が null または空文字列の場合
    */
   protected List<E> executeQuery(
@@ -1403,7 +1396,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param mapper ResultSet → Entity マッピング処理
    * @param binder カスタムパラメータバインド処理
    * @return クエリ実行結果のエンティティリスト
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected List<E> executeQueryWithoutTenantFilter(
       final Connection conn,
@@ -1440,7 +1433,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param tenantId テナントID
    * @param binder カスタムパラメータバインド処理
    * @return 削除したレコード数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected int executeDelete(
       final Connection conn,
@@ -1474,7 +1467,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param sql DELETE SQL（WHERE句を含める）
    * @param binder カスタムパラメータバインド処理
    * @return 削除したレコード数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected int executeDeleteWithoutTenantFilter(
       final Connection conn, final String sql, final PreparedStatementBinder binder)
@@ -1500,12 +1493,14 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   @FunctionalInterface
   protected interface VectorParameterBinder {
     /**
+     * ベクトル値とスレッショルド値以外のパラメータを PreparedStatement にバインドします。
+     *
      * @param stmt バインド対象の PreparedStatement
      * @param startIndex 開始パラメータインデックス
      * @param vectorValue ベクトル値（文字列形式）
      * @param similarityThreshold 類似度スレッショルド（0.0で閾値なし）
      * @return 次のパラメータインデックス
-     * @throws SQLException
+     * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
      */
     int bind(PreparedStatement stmt, int startIndex, String vectorValue, double similarityThreshold)
         throws SQLException;
@@ -1526,7 +1521,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param size 1ページあたりの件数
    * @param mapper ResultSet → Entity マッピング処理
    * @param binder ベクトル値・スレッショルド値以外のパラメータをバインドする処理
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    * @throws IllegalArgumentException tenantId が null または空文字列の場合
    */
   protected void executeVectorPagedQueryWithCountBinder(
@@ -1659,7 +1654,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param similarityThreshold 類似度スレッショルド
    * @param binder パラメータバインド処理
    * @return レコード総数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   private long getCountByVector(
       final Connection conn,
@@ -1742,10 +1737,10 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param limit リミット
    * @param mapper ResultSet → Entity マッピング処理
    * @return クエリ実行結果のエンティティリスト
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    * @throws IllegalArgumentException tenantId が null または空文字列の場合
    */
-  protected List<E> executeTTLExpiredQuery(
+  protected List<E> executeTtlExpiredQuery(
       final Connection conn,
       final String selectPrefix,
       final String selectSuffix,
@@ -1806,9 +1801,9 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param limit リミット
    * @param mapper ResultSet → Entity マッピング処理
    * @return クエリ実行結果のエンティティリスト
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
-  protected List<E> executeTTLExpiredQueryWithoutTenantFilter(
+  protected List<E> executeTtlExpiredQueryWithoutTenantFilter(
       final Connection conn,
       final String selectPrefix,
       final String selectSuffix,
@@ -1850,7 +1845,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    *
    * @param resultSet レスポンス
    * @return Entity
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected abstract E mapResultSet(ResultSet resultSet) throws SQLException;
 

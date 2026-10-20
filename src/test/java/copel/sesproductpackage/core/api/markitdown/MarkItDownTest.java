@@ -12,6 +12,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.LambdaClientBuilder;
@@ -37,10 +38,12 @@ class MarkItDownTest {
 
   @Test
   void invokeThrowsWhenFunctionNameBlank() {
+    // 関数名は class 初期化時に Properties から読むため、呼び出し時の差し替えは効かない。
+    // 空の関数名は SDK のクライアント側の検証で SdkException になる（IllegalStateException は投げない）
     try (MockedStatic<Properties> props = mockStatic(Properties.class)) {
       props.when(() -> Properties.get(SsmParameterKey.MARKITDOWN_NAME.getKey())).thenReturn("  ");
       assertThrows(
-          IllegalStateException.class,
+          SdkException.class,
           () ->
               MarkItDown.invoke(
                   MarkItDown.MarkitdownLambdaRequestEntity.builder().url("https://x").build()));

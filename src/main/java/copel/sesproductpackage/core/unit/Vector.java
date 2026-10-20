@@ -30,8 +30,8 @@ public class Vector {
   /**
    * このクラスが持つ文字列をエンベディング処理しベクトル値として格納します.
    *
-   * @throws IOException
-   * @throws RuntimeException
+   * @throws IOException 入出力（ファイル・ストリーム）の操作に失敗した場合
+   * @throws RuntimeException 実行時の異常が発生した場合
    */
   public void embedding() throws IOException, RuntimeException {
     if (this.transformer != null && this.rawString != null && !"".equals(this.rawString)) {

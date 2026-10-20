@@ -28,15 +28,19 @@ public class SES_AI_T_WATCH_JOB_PERSONLot extends EntityLotBase<SES_AI_T_WATCH_J
    * でマッチするようにしている。 register_date で降順ソート（最新のウォッチが最初に表示される）。
    */
   private static final String SELECT_BASE_SQL_FOR_PAGED_QUERY =
-      "SELECT w.user_id, w.target_id, w.target_type, w.memo, w.register_date, w.register_user, w.ttl, w.tenant_id, "
-          + "j.title AS job_title, j.from_name AS job_from_name, j.mail_subject AS job_mail_subject, j.content_summary AS job_content_summary, "
+      "SELECT w.user_id, w.target_id, w.target_type, w.memo, w.register_date, w.register_user, "
+          + "w.ttl, w.tenant_id, "
+          + "j.title AS job_title, j.from_name AS job_from_name, j.mail_subject AS "
+          + "job_mail_subject, j.content_summary AS job_content_summary, "
           + "j.raw_content AS job_raw_content, "
           + "j.start_date AS job_start_date, j.office_requirements AS job_office_requirements, "
           + "j.unit_price AS job_unit_price, j.place AS job_place, j.area AS job_area, "
-          + "p.name AS person_name, p.from_name AS person_from_name, p.mail_subject AS person_mail_subject, p.content_summary AS person_content_summary, "
+          + "p.name AS person_name, p.from_name AS person_from_name, p.mail_subject AS "
+          + "person_mail_subject, p.content_summary AS person_content_summary, "
           + "p.raw_content AS person_raw_content, "
           + "p.age AS person_age, p.gender AS person_gender, p.start_date AS person_start_date, "
-          + "p.office_availability AS person_office_availability, p.unit_price AS person_unit_price, "
+          + "p.office_availability AS person_office_availability, p.unit_price AS "
+          + "person_unit_price, "
           + "p.place AS person_place, p.area AS person_area "
           + "FROM SES_AI_T_WATCH w "
           + "LEFT JOIN SES_AI_T_JOB j ON w.target_id = j.job_id AND w.target_type = 'JOB' "

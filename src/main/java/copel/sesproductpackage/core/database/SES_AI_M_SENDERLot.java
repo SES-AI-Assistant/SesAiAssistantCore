@@ -20,7 +20,8 @@ public class SES_AI_M_SENDERLot extends EntityLotBase<SES_AI_M_SENDER> {
 
   /** SELECT文（WHERE句あり）. */
   private static final String SELECT_SQL =
-      "SELECT from_id, from_name, register_date, register_user, tenant_id FROM SES_AI_M_SENDER WHERE ";
+      "SELECT from_id, from_name, register_date, register_user, tenant_id FROM SES_AI_M_SENDER "
+          + "WHERE ";
 
   public SES_AI_M_SENDERLot() {
     super();
@@ -55,7 +56,7 @@ public class SES_AI_M_SENDERLot extends EntityLotBase<SES_AI_M_SENDER> {
    * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectAllWithoutTenantFilter(final Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
@@ -67,11 +68,11 @@ public class SES_AI_M_SENDERLot extends EntityLotBase<SES_AI_M_SENDER> {
 
   @Override
   protected SES_AI_M_SENDER mapResultSet(ResultSet resultSet) throws SQLException {
-    SES_AI_M_SENDER sesAiMSender = new SES_AI_M_SENDER(resultSet.getString("tenant_id"));
-    sesAiMSender.setFromId(resultSet.getString("from_id"));
-    sesAiMSender.setFromName(resultSet.getString("from_name"));
-    sesAiMSender.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-    sesAiMSender.setRegisterUser(resultSet.getString("register_user"));
-    return sesAiMSender;
+    SES_AI_M_SENDER sender = new SES_AI_M_SENDER(resultSet.getString("tenant_id"));
+    sender.setFromId(resultSet.getString("from_id"));
+    sender.setFromName(resultSet.getString("from_name"));
+    sender.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
+    sender.setRegisterUser(resultSet.getString("register_user"));
+    return sender;
   }
 }

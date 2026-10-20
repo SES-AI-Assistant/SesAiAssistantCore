@@ -25,11 +25,27 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
 
   /** SELECT_ALL_SQL - 全件取得. */
   private static final String SELECT_ALL_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url, p.tenant_id FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id";
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
+          + "p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, "
+          + "COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, "
+          + "s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, "
+          + "p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, "
+          + "p.office_availability, p.organization, p.experiences, "
+          + "p.ng_requirements, p.other_requirements, p.url, p.tenant_id FROM "
+          + "SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON "
+          + "s.file_id = p.file_id";
 
   /** SELECT_SQL - WHERE句あり. */
   private static final String SELECT_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url, p.tenant_id FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id WHERE ";
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
+          + "p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, "
+          + "COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, "
+          + "s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, "
+          + "p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, "
+          + "p.office_availability, p.organization, p.experiences, "
+          + "p.ng_requirements, p.other_requirements, p.url, p.tenant_id FROM "
+          + "SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON "
+          + "s.file_id = p.file_id WHERE ";
 
   /** COUNT SQL用プレフィックス. */
   private static final String COUNT_SQL_PREFIX = "SELECT COUNT(*) ";
@@ -39,50 +55,105 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
 
   /** 要員ベクトル検索用COUNT_QUERY_PART. */
   private static final String COUNT_QUERY_PART_FOR_PERSON_VECTOR =
-      "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id WHERE 1 - (p.vector_data <=> ?::vector) >= ?";
+      "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id WHERE 1 - "
+          + "(p.vector_data <=> ?::vector) >= ?";
 
   private static final String RETRIEVE_BY_PERSON_VECTOR_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url, p.vector_data <=> ?::vector AS distance, p.tenant_id "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
+          + "p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, "
+          + "COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, "
+          + "s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, "
+          + "p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, "
+          + "p.office_availability, p.organization, p.experiences, "
+          + "p.ng_requirements, p.other_requirements, p.url, p.vector_data <=> "
+          + "?::vector AS distance, p.tenant_id "
           + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
           + "WHERE 1 - (p.vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
 
   private static final String RETRIEVE_BY_SKILLSHEET_VECTOR_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url, s.vector_data <=> ?::vector AS distance, p.tenant_id "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
+          + "p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, "
+          + "COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, "
+          + "s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, "
+          + "p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, "
+          + "p.office_availability, p.organization, p.experiences, "
+          + "p.ng_requirements, p.other_requirements, p.url, s.vector_data <=> "
+          + "?::vector AS distance, p.tenant_id "
           + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
           + "WHERE 1 - (s.vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
 
   private static final String RETRIEVE_OUTER_JOIN_BY_PERSON_VECTOR_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url, p.vector_data <=> ?::vector AS distance, p.tenant_id "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
+          + "p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, "
+          + "COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, "
+          + "s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, "
+          + "p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, "
+          + "p.office_availability, p.organization, p.experiences, "
+          + "p.ng_requirements, p.other_requirements, p.url, p.vector_data <=> "
+          + "?::vector AS distance, p.tenant_id "
           + "FROM SES_AI_T_PERSON p LEFT JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
           + "WHERE 1 - (p.vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
 
   private static final String RETRIEVE_OUTER_JOIN_BY_SKILLSHEET_VECTOR_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, s.register_date, s.register_user, p.unit_price, COALESCE(s.from_group, p.from_group) AS from_group, COALESCE(s.from_id, p.from_id) AS from_id, COALESCE(s.from_name, p.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url, s.vector_data <=> ?::vector AS distance, p.tenant_id "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
+          + "p.raw_content, p.content_summary, s.register_date, s.register_user, p.unit_price, "
+          + "COALESCE(s.from_group, p.from_group) AS from_group, COALESCE(s.from_id, "
+          + "p.from_id) AS from_id, COALESCE(s.from_name, p.from_name) AS from_name, "
+          + "p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, "
+          + "p.office_availability, p.organization, p.experiences, "
+          + "p.ng_requirements, p.other_requirements, p.url, s.vector_data <=> "
+          + "?::vector AS distance, p.tenant_id "
           + "FROM SES_AI_T_SKILLSHEET s LEFT JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
           + "WHERE 1 - (s.vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
 
   /** 要員ベクトル検索用COUNT_QUERY_PART（価格・開始日フィルタ付き）. */
   private static final String COUNT_QUERY_PART_FOR_PERSON_VECTOR_WITH_FILTER_2_VALUES =
-      "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id WHERE p.unit_price <= ? AND p.start_date >= ? AND 1 - (p.vector_data <=> ?::vector) >= ?";
+      "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id WHERE "
+          + "p.unit_price <= ? AND p.start_date >= ? AND 1 - (p.vector_data <=> ?::vector) >= ?";
 
   /** 要員ベクトル検索SQL（価格・開始日フィルタ付き）. */
   private static final String RETRIEVE_BY_PERSON_VECTOR_WITH_FILTER_2_VALUES_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url, p.vector_data <=> ?::vector AS distance, p.tenant_id "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
+          + "p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, "
+          + "COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, "
+          + "s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, "
+          + "p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, "
+          + "p.office_availability, p.organization, p.experiences, "
+          + "p.ng_requirements, p.other_requirements, p.url, p.vector_data <=> "
+          + "?::vector AS distance, p.tenant_id "
           + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
-          + "WHERE p.unit_price <= ? AND p.start_date >= ? AND 1 - (p.vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
+          + "WHERE p.unit_price <= ? AND p.start_date >= ? AND 1 - (p.vector_data <=> ?::vector) "
+          + ">= ? ORDER BY distance ASC LIMIT ?";
 
   /** 要員ベクトル検索用COUNT_QUERY_PART（価格・開始日・オフィス可用性・エリアフィルタ付き）. */
   private static final String COUNT_QUERY_PART_FOR_PERSON_VECTOR_WITH_FILTER_4_VALUES =
-      "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id WHERE p.unit_price <= ? AND p.start_date >= ? AND p.office_availability >= ? AND p.area = ? AND 1 - (p.vector_data <=> ?::vector) >= ?";
+      "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id WHERE "
+          + "p.unit_price <= ? AND p.start_date >= ? AND p.office_availability >= ? AND p.area = ? "
+          + "AND 1 - (p.vector_data <=> ?::vector) >= ?";
 
   /** 要員ベクトル検索SQL（価格・開始日・オフィス可用性・エリアフィルタ付き）. */
   private static final String RETRIEVE_BY_PERSON_VECTOR_WITH_FILTER_4_VALUES_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url, p.vector_data <=> ?::vector AS distance, p.tenant_id "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
+          + "p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, "
+          + "COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, "
+          + "s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, "
+          + "p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, "
+          + "p.office_availability, p.organization, p.experiences, "
+          + "p.ng_requirements, p.other_requirements, p.url, p.vector_data <=> "
+          + "?::vector AS distance, p.tenant_id "
           + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
-          + "WHERE p.unit_price <= ? AND p.start_date >= ? AND p.office_availability >= ? AND p.area = ? AND 1 - (p.vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT ?";
+          + "WHERE p.unit_price <= ? AND p.start_date >= ? AND p.office_availability >= ? AND "
+          + "p.area = ? AND 1 - (p.vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT "
+          + "?";
 
   private static final String SELECT_BY_PERSON_RAW_CONTENT_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url, p.tenant_id "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
+          + "p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, "
+          + "COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, "
+          + "s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, "
+          + "p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, "
+          + "p.office_availability, p.organization, p.experiences, "
+          + "p.ng_requirements, p.other_requirements, p.url, p.tenant_id "
           + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
           + "WHERE p.raw_content LIKE ?";
 
@@ -91,28 +162,63 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * スキルシート未紐づきの要員も除外しない。
    */
   private static final String SELECT_BY_PERSON_OR_SKILLSHEET_SUMMARY_PREFIX =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url, p.tenant_id "
-          + "FROM SES_AI_T_PERSON p LEFT JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id WHERE ";
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
+          + "p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, "
+          + "COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, "
+          + "s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, "
+          + "p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, "
+          + "p.office_availability, p.organization, p.experiences, "
+          + "p.ng_requirements, p.other_requirements, p.url, p.tenant_id "
+          + "FROM SES_AI_T_PERSON p LEFT JOIN SES_AI_T_SKILLSHEET s "
+          + "ON p.file_id = s.file_id WHERE ";
 
   /** 要員 raw_content 複合条件全文検索用 SELECT 接頭辞（末尾に WHERE を含む）. */
   private static final String SELECT_BY_PERSON_RAW_CONTENT_PREFIX =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url, p.tenant_id "
-          + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id WHERE ";
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
+          + "p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, "
+          + "COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, "
+          + "s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, "
+          + "p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, "
+          + "p.office_availability, p.organization, p.experiences, "
+          + "p.ng_requirements, p.other_requirements, p.url, p.tenant_id "
+          + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
+          + "WHERE ";
 
   private static final String SELECT_BY_SKILLSHEET_RAW_CONTENT_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url, p.tenant_id "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
+          + "p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, "
+          + "COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, "
+          + "s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, "
+          + "p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, "
+          + "p.office_availability, p.organization, p.experiences, "
+          + "p.ng_requirements, p.other_requirements, p.url, p.tenant_id "
           + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
           + "WHERE s.file_content LIKE ?";
 
   /** 要員・スキルシート複合全文検索用プリフィックス（価格・開始日フィルタ付き）. */
   private static final String SELECT_BY_PERSON_OR_SKILLSHEET_SUMMARY_WITH_FILTER_2_VALUES_PREFIX =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url, p.tenant_id "
-          + "FROM SES_AI_T_PERSON p LEFT JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id WHERE p.unit_price <= ? AND p.start_date >= ? AND ";
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
+          + "p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, "
+          + "COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, "
+          + "s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, "
+          + "p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, "
+          + "p.office_availability, p.organization, p.experiences, "
+          + "p.ng_requirements, p.other_requirements, p.url, p.tenant_id "
+          + "FROM SES_AI_T_PERSON p LEFT JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id WHERE "
+          + "p.unit_price <= ? AND p.start_date >= ? AND ";
 
   /** 要員・スキルシート複合全文検索用プリフィックス（価格・開始日・オフィス可用性・エリアフィルタ付き）. */
   private static final String SELECT_BY_PERSON_OR_SKILLSHEET_SUMMARY_WITH_FILTER_4_VALUES_PREFIX =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url, p.tenant_id "
-          + "FROM SES_AI_T_PERSON p LEFT JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id WHERE p.unit_price <= ? AND p.start_date >= ? AND p.office_availability >= ? AND p.area = ? AND ";
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
+          + "p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, "
+          + "COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, "
+          + "s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, "
+          + "p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, "
+          + "p.office_availability, p.organization, p.experiences, "
+          + "p.ng_requirements, p.other_requirements, p.url, p.tenant_id "
+          + "FROM SES_AI_T_PERSON p LEFT JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id WHERE "
+          + "p.unit_price <= ? AND p.start_date >= ? AND p.office_availability >= ? AND p.area "
+          + "= ? AND ";
 
   /** コンストラクタ. */
   public SES_AI_T_SKILLSHEET_PERSONLot() {
@@ -142,7 +248,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param query 検索ベクトル
    * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
    * @param limit 取得上限件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void retrieveByPersonVector(
       final Connection connection,
@@ -163,7 +269,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param query 検索ベクトル
    * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
    * @param limit 取得上限件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void retrieveBySkillSheetVector(
       final Connection connection,
@@ -184,7 +290,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param query 検索ベクトル
    * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
    * @param limit 取得上限件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void retrieveOuterJoinByPersonVector(
       final Connection connection,
@@ -210,7 +316,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param query 検索ベクトル
    * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
    * @param limit 取得上限件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void retrieveOuterJoinBySkillSheetVector(
       final Connection connection,
@@ -237,7 +343,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void retrieveByPersonVectorPaged(
       final Connection connection,
@@ -268,7 +374,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param startDate 最早開始日（開始日がこの日付以降のもの）
    * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
    * @param limit 取得上限件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void retrieveByPersonVectorWithFilter(
       final Connection connection,
@@ -284,6 +390,44 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
   }
 
   /**
+   * 要員のベクトルデータに対して価格・開始日・オフィス可用性・エリアでフィルタされたセマンティック検索を実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param query 検索ベクトル
+   * @param price 最大価格（単価がこの値以下のもの）
+   * @param startDate 最早開始日（開始日がこの日付以降のもの）
+   * @param officeRequirements 最小オフィス可用性（オフィス可用性がこの値以上のもの）
+   * @param area 対象エリア（エリアがこの値と一致するもの）
+   * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
+   * @param limit 取得上限件数
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   */
+  public void retrieveByPersonVectorWithFilter(
+      final Connection connection,
+      final String tenantId,
+      final Vector query,
+      final Money price,
+      final OriginalDateTime startDate,
+      final int officeRequirements,
+      final Area area,
+      final double similarityThreshold,
+      final int limit)
+      throws SQLException {
+    this.retrieveByPersonVectorWithFilterPaged(
+        connection,
+        tenantId,
+        query,
+        price,
+        startDate,
+        officeRequirements,
+        area,
+        similarityThreshold,
+        1,
+        limit);
+  }
+
+  /**
    * 要員のベクトルデータに対して価格と開始日でフィルタされたセマンティック検索をページングで実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
@@ -294,7 +438,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void retrieveByPersonVectorWithFilterPaged(
       final Connection connection,
@@ -322,44 +466,6 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
   }
 
   /**
-   * 要員のベクトルデータに対して価格・開始日・オフィス可用性・エリアでフィルタされたセマンティック検索を実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param query 検索ベクトル
-   * @param price 最大価格（単価がこの値以下のもの）
-   * @param startDate 最早開始日（開始日がこの日付以降のもの）
-   * @param officeRequirements 最小オフィス可用性（オフィス可用性がこの値以上のもの）
-   * @param area 対象エリア（エリアがこの値と一致するもの）
-   * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
-   * @param limit 取得上限件数
-   * @throws SQLException
-   */
-  public void retrieveByPersonVectorWithFilter(
-      final Connection connection,
-      final String tenantId,
-      final Vector query,
-      final Money price,
-      final OriginalDateTime startDate,
-      final int officeRequirements,
-      final Area area,
-      final double similarityThreshold,
-      final int limit)
-      throws SQLException {
-    this.retrieveByPersonVectorWithFilterPaged(
-        connection,
-        tenantId,
-        query,
-        price,
-        startDate,
-        officeRequirements,
-        area,
-        similarityThreshold,
-        1,
-        limit);
-  }
-
-  /**
    * 要員のベクトルデータに対して価格・開始日・オフィス可用性・エリアでフィルタされたセマンティック検索をページングで実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
@@ -372,7 +478,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void retrieveByPersonVectorWithFilterPaged(
       final Connection connection,
@@ -432,7 +538,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       countSql = addTenantIdFilter(countSql, tenantId);
       try (PreparedStatement preparedStatement = connection.prepareStatement(countSql)) {
         int paramIndex = 1;
-        String vectorStr = query.toString();
+        final String vectorStr = query.toString();
         preparedStatement.setString(paramIndex++, vectorStr);
         preparedStatement.setDouble(paramIndex++, similarityThreshold);
         setTenantIdParameter(preparedStatement, paramIndex, tenantId);
@@ -464,7 +570,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
             this::mapResultSet,
             (stmt, paramIndex) -> {
               int idx = paramIndex;
-              String vectorStr = query.toString();
+              final String vectorStr = query.toString();
               stmt.setString(idx, vectorStr);
               stmt.setString(idx + 1, vectorStr);
               stmt.setDouble(idx + 2, similarityThreshold);
@@ -499,7 +605,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       countSql = addTenantIdFilter(countSql, tenantId);
       try (PreparedStatement preparedStatement = connection.prepareStatement(countSql)) {
         int paramIndex = 1;
-        String vectorStr = query.toString();
+        final String vectorStr = query.toString();
         preparedStatement.setBigDecimal(paramIndex++, price.getValue());
         preparedStatement.setTimestamp(paramIndex++, startDate.toTimestamp());
         if (officeRequirements != null && area != null) {
@@ -536,7 +642,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
             this::mapResultSet,
             (stmt, paramIndex) -> {
               int idx = paramIndex;
-              String vectorStr = query.toString();
+              final String vectorStr = query.toString();
               stmt.setBigDecimal(idx, price.getValue());
               stmt.setTimestamp(idx + 1, startDate.toTimestamp());
               if (officeRequirements != null && area != null) {
@@ -574,7 +680,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
    * @param countQueryPart COUNT SQL用の部分SQL
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   private void executeRetrieveWithFilterPaged(
       final Connection connection,
@@ -597,7 +703,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       countSql = addTenantIdFilter(countSql, tenantId);
       try (PreparedStatement preparedStatement = connection.prepareStatement(countSql)) {
         int paramIndex = 1;
-        String vectorStr = query.toString();
+        final String vectorStr = query.toString();
         preparedStatement.setString(paramIndex++, vectorStr);
         preparedStatement.setDouble(paramIndex++, similarityThreshold);
         // 詳細フィルターパラメータをバインド
@@ -634,7 +740,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
             this::mapResultSet,
             (stmt, paramIndex) -> {
               int idx = paramIndex;
-              String vectorStr = query.toString();
+              final String vectorStr = query.toString();
               stmt.setString(idx, vectorStr);
               stmt.setString(idx + 1, vectorStr);
               stmt.setDouble(idx + 2, similarityThreshold);
@@ -661,12 +767,36 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param connection DBコネクション
    * @param tenantId テナントID
    * @param query 検索キーワード
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void searchByPersonRawContent(
       final Connection connection, final String tenantId, final String query) throws SQLException {
     this.selectByLikeQuery(
         connection, tenantId, SELECT_BY_PERSON_RAW_CONTENT_SQL, "p.raw_content", query, null);
+  }
+
+  /**
+   * 要員の全文情報(raw_content)に対して複数条件で検索を実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param firstLikeQuery 1つ目の検索キーワード
+   * @param query 追加の検索条件
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   */
+  public void searchByPersonRawContent(
+      final Connection connection,
+      final String tenantId,
+      final String firstLikeQuery,
+      final List<LogicalOperators> query)
+      throws SQLException {
+    this.selectByLikeQuery(
+        connection,
+        tenantId,
+        SELECT_BY_PERSON_RAW_CONTENT_SQL,
+        "p.raw_content",
+        firstLikeQuery,
+        query);
   }
 
   /**
@@ -677,7 +807,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param query 検索キーワード
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void searchByPersonRawContentPaged(
       final Connection connection,
@@ -698,6 +828,35 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
   }
 
   /**
+   * 要員の raw_content に対して複合条件（AND/OR/NOT）でページング検索を実行します（INNER JOIN）.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param conditions API の conditions 配列と同一の論理
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   */
+  public void searchByPersonRawContentPaged(
+      final Connection connection,
+      final String tenantId,
+      final List<FulltextCondition> conditions,
+      final int page,
+      final int size)
+      throws SQLException {
+    FulltextConditionsWhereClause.Built built =
+        FulltextConditionsWhereClause.build("p.raw_content", conditions);
+    this.selectByDynamicWherePaged(
+        connection,
+        tenantId,
+        SELECT_BY_PERSON_RAW_CONTENT_PREFIX,
+        built.getWhereClauseWithoutWhereKeyword(),
+        built.getLikeParams(),
+        page,
+        size);
+  }
+
+  /**
    * 要員の raw_content とスキルシートの file_content_summary の両方に対して複合条件でページング検索します（LEFT JOIN）.
    *
    * <p>スキルシート未紐づきの要員は raw_content のみが照合対象となり、結果から除外されない。 スキルシート原文（file_content）は検索対象外。
@@ -707,7 +866,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param conditions 検索条件リスト
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void searchByPersonOrSkillSheetSummaryPaged(
       final Connection connection,
@@ -718,7 +877,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       throws SQLException {
     FulltextConditionsWhereClause.Built built =
         FulltextConditionsWhereClause.buildForMultipleColumns(
-            "p.raw_content", java.util.List.of("s.file_content_summary"), conditions);
+            "p.raw_content", List.of("s.file_content_summary"), conditions);
     this.selectByDynamicWherePaged(
         connection,
         tenantId,
@@ -740,7 +899,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param conditions 検索条件リスト
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void searchByPersonOrSkillSheetSummaryInnerJoinPaged(
       final Connection connection,
@@ -751,7 +910,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       throws SQLException {
     FulltextConditionsWhereClause.Built built =
         FulltextConditionsWhereClause.buildForMultipleColumns(
-            "p.raw_content", java.util.List.of("s.file_content_summary"), conditions);
+            "p.raw_content", List.of("s.file_content_summary"), conditions);
     this.selectByDynamicWherePaged(
         connection,
         tenantId,
@@ -772,7 +931,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param startDate 最早開始日（開始日がこの日付以降のもの）
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void searchByPersonOrSkillSheetSummaryWithFilter(
       final Connection connection,
@@ -785,7 +944,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       throws SQLException {
     FulltextConditionsWhereClause.Built built =
         FulltextConditionsWhereClause.buildForMultipleColumns(
-            "p.raw_content", java.util.List.of("s.file_content_summary"), conditions);
+            "p.raw_content", List.of("s.file_content_summary"), conditions);
     this.selectByDynamicWhereWithFilterPaged(
         connection,
         tenantId,
@@ -812,7 +971,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param area 対象エリア（エリアがこの値と一致するもの）
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void searchByPersonOrSkillSheetSummaryWithFilter(
       final Connection connection,
@@ -827,7 +986,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       throws SQLException {
     FulltextConditionsWhereClause.Built built =
         FulltextConditionsWhereClause.buildForMultipleColumns(
-            "p.raw_content", java.util.List.of("s.file_content_summary"), conditions);
+            "p.raw_content", List.of("s.file_content_summary"), conditions);
     this.selectByDynamicWhereWithFilterPaged(
         connection,
         tenantId,
@@ -843,44 +1002,29 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
   }
 
   /**
-   * 要員の raw_content に対して複合条件（AND/OR/NOT）でページング検索を実行します（INNER JOIN）.
+   * スキルシートの全文情報(file_content)に対して検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
    * @param tenantId テナントID
-   * @param conditions API の conditions 配列と同一の論理
-   * @param page ページ番号(1-based)
-   * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @param query 検索キーワード
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
-  public void searchByPersonRawContentPaged(
-      final Connection connection,
-      final String tenantId,
-      final List<FulltextCondition> conditions,
-      final int page,
-      final int size)
-      throws SQLException {
-    FulltextConditionsWhereClause.Built built =
-        FulltextConditionsWhereClause.build("p.raw_content", conditions);
-    this.selectByDynamicWherePaged(
-        connection,
-        tenantId,
-        SELECT_BY_PERSON_RAW_CONTENT_PREFIX,
-        built.getWhereClauseWithoutWhereKeyword(),
-        built.getLikeParams(),
-        page,
-        size);
+  public void searchBySkillSheetRawContent(
+      final Connection connection, final String tenantId, final String query) throws SQLException {
+    this.selectByLikeQuery(
+        connection, tenantId, SELECT_BY_SKILLSHEET_RAW_CONTENT_SQL, "s.file_content", query, null);
   }
 
   /**
-   * 要員の全文情報(raw_content)に対して複数条件で検索を実行し、結果をこのLotに保持します.
+   * スキルシートの全文情報(file_content)に対して複数条件で検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
    * @param tenantId テナントID
    * @param firstLikeQuery 1つ目の検索キーワード
    * @param query 追加の検索条件
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
-  public void searchByPersonRawContent(
+  public void searchBySkillSheetRawContent(
       final Connection connection,
       final String tenantId,
       final String firstLikeQuery,
@@ -889,24 +1033,10 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
     this.selectByLikeQuery(
         connection,
         tenantId,
-        SELECT_BY_PERSON_RAW_CONTENT_SQL,
-        "p.raw_content",
+        SELECT_BY_SKILLSHEET_RAW_CONTENT_SQL,
+        "s.file_content",
         firstLikeQuery,
         query);
-  }
-
-  /**
-   * スキルシートの全文情報(file_content)に対して検索を実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param query 検索キーワード
-   * @throws SQLException
-   */
-  public void searchBySkillSheetRawContent(
-      final Connection connection, final String tenantId, final String query) throws SQLException {
-    this.selectByLikeQuery(
-        connection, tenantId, SELECT_BY_SKILLSHEET_RAW_CONTENT_SQL, "s.file_content", query, null);
   }
 
   /**
@@ -917,7 +1047,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param query 検索キーワード
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void searchBySkillSheetRawContentPaged(
       final Connection connection,
@@ -935,30 +1065,6 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
         null,
         page,
         size);
-  }
-
-  /**
-   * スキルシートの全文情報(file_content)に対して複数条件で検索を実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param firstLikeQuery 1つ目の検索キーワード
-   * @param query 追加の検索条件
-   * @throws SQLException
-   */
-  public void searchBySkillSheetRawContent(
-      final Connection connection,
-      final String tenantId,
-      final String firstLikeQuery,
-      final List<LogicalOperators> query)
-      throws SQLException {
-    this.selectByLikeQuery(
-        connection,
-        tenantId,
-        SELECT_BY_SKILLSHEET_RAW_CONTENT_SQL,
-        "s.file_content",
-        firstLikeQuery,
-        query);
   }
 
   /**
@@ -1019,12 +1125,12 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    *
    * @return 変換後の文章
    */
-  public String toスキルシート選出用文章() {
+  public String toSkillSheetSelectionText() {
     StringBuilder result = new StringBuilder();
     int i = 1;
     if (this.entityLot != null) {
       for (SES_AI_T_SKILLSHEET_PERSON entity : this.entityLot) {
-        result.append(i).append("件目：").append(entity.toスキルシート選出用文章()).append("\n");
+        result.append(i).append("件目：").append(entity.toSkillSheetSelectionText()).append("\n");
         i++;
       }
     }
@@ -1056,7 +1162,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param detailFilter 詳細フィルター条件（null可）
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void searchByPersonOrSkillSheetSummaryWithDetailFilter(
       final Connection connection,
@@ -1073,7 +1179,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
     // (1) 全文検索のWHERE句とパラメータを構築
     FulltextConditionsWhereClause.Built ftBuilt =
         FulltextConditionsWhereClause.buildForMultipleColumns(
-            "p.raw_content", java.util.List.of("s.file_content_summary"), conditions);
+            "p.raw_content", List.of("s.file_content_summary"), conditions);
 
     // (2) 詳細フィルターのWHERE句とパラメータを構築
     PersonDetailFilterCondition.WhereClauseAndParams detailFilterWhere =
@@ -1116,7 +1222,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param detailFilter 詳細フィルター条件（null可）
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void retrieveByPersonVectorWithDetailFilter(
       final Connection connection,
@@ -1146,7 +1252,14 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
 
     // (3) ベクトル検索SQLを構築
     String sql =
-        "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url, p.vector_data <=> ?::vector AS distance, p.tenant_id "
+        "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
+            + "p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, "
+            + "COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, "
+            + "s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, "
+            + "p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, "
+            + "p.office_availability, p.organization, p.experiences, "
+            + "p.ng_requirements, p.other_requirements, p.url, p.vector_data "
+            + "<=> ?::vector AS distance, p.tenant_id "
             + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
             + "WHERE "
             + whereClause.toString()
@@ -1178,7 +1291,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectAllWithoutTenantFilter(final Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();

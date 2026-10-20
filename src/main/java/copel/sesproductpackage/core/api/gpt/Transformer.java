@@ -11,10 +11,10 @@ public interface Transformer {
   /**
    * 引数に入力された文字列をエンベディング処理しベクトル値を返却します.
    *
-   * @param input 入力
+   * @param inputString 入力
    * @return ベクトル値
-   * @throws IOException
-   * @throws RuntimeException
+   * @throws IOException 入出力（ファイル・ストリーム）の操作に失敗した場合
+   * @throws RuntimeException 実行時の異常が発生した場合
    */
   float[] embedding(final String inputString) throws IOException, RuntimeException;
 
@@ -23,8 +23,8 @@ public interface Transformer {
    *
    * @param prompt プロンプト
    * @return 回答
-   * @throws IOException
-   * @throws RuntimeException
+   * @throws IOException 入出力（ファイル・ストリーム）の操作に失敗した場合
+   * @throws RuntimeException 実行時の異常が発生した場合
    */
   GptAnswer generate(final String prompt) throws IOException, RuntimeException;
 
@@ -61,7 +61,7 @@ public interface Transformer {
    *
    * @param <T> 応答型
    * @param prompt LLM APIに送信するプロンプト
-   * @param responseType 応答型を指定するClass<T>
+   * @param responseType 応答型を指定する {@code Class<T>}
    * @return プロンプトに対する応答をresponseType型のインスタンスとして返します
    * @throws IOException ファイルI/Oエラーが発生した場合
    * @throws RuntimeException APIエラー、スキーマ不正、マッピングエラーが発生した場合

@@ -21,10 +21,10 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
 
-class DynamoDBLotTest {
+class DynamoDbLotTest {
 
   @DynamoDbBean
-  public static class TestDynamoEntity extends DynamoDB<TestDynamoEntity> {
+  public static class TestDynamoEntity extends DynamoDb<TestDynamoEntity> {
     public TestDynamoEntity() {
       super("TestTable", TestDynamoEntity.class);
     }
@@ -45,7 +45,7 @@ class DynamoDBLotTest {
     }
   }
 
-  static class TestDynamoDBLot extends DynamoDBLot<TestDynamoEntity> {
+  static class TestDynamoDBLot extends DynamoDbLot<TestDynamoEntity> {
     public TestDynamoDBLot() {
       super("TestTable", TestDynamoEntity.class);
     }

@@ -1,0 +1,74 @@
+# CI — PR と main への push で、手元と同じ `mvn verify` を実行して全検査を行う
+#
+# 検査の中身は親 pom（https://github.com/SES-AI-Assistant/SesAiAssistantCore/tree/main/tools/nectar-parent）が決めている。verify では次の順に検査する。
+#   UT の全 PASS（surefire）→ 整形（spotless）→ LINT（checkstyle / PMD / CPD）
+#   → カバレッジ 100%（JaCoCo の命令・分岐）→ UT 仕様の検査とテスト仕様書 HTML の出力 → バグ検出（spotbugs）
+# コマンドの体系は https://github.com/SES-AI-Assistant/SesAiAssistantCore/blob/main/tools/README.md を参照。
+# テスト結果、カバレッジレポート、テスト仕様書は Artifacts に14日間保存する。
+name: CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # 親 pom（nectar-parent）、Core、nectar-bom / nectar-test-support / nectar-ut-spec-plugin は
+    # SesAiAssistantCore の GitHub Packages から取得するため、deploy.yml と同じ PAT で認証する
+    env:
+      GITHUB_ACTOR: ${{ github.actor }}
+      GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+      MAVEN_ARGS: -B --settings .github/maven-settings.xml
+    steps:
+      - name: コードをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: JDK をセットアップ
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: 全検査（mvn verify）
+        run: mvn $MAVEN_ARGS clean verify
+
+      - name: テスト結果を保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/TEST-*.xml
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: カバレッジレポートを保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: テスト仕様書を保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ut-spec
+          path: target/nectar-ut-spec/
+          retention-days: 14
+          if-no-files-found: ignore

@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import copel.sesproductpackage.core.api.aws.SQSEntityBase;
 import copel.sesproductpackage.core.api.gpt.entity.ContentParseSchema.InformationType;
-import copel.sesproductpackage.core.api.line.LineMessagingAPI;
+import copel.sesproductpackage.core.api.line.LineMessagingApi;
 import copel.sesproductpackage.core.unit.RequestType;
 import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import copel.sesproductpackage.core.util.Properties;
@@ -376,14 +376,14 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
   /**
    * このリクエストで送られてきたファイルのデータをダウンロードしこのオブジェクトに持つ.
    *
-   * @throws InterruptedException
-   * @throws IOException
+   * @throws InterruptedException 待機中にスレッドが中断された場合
+   * @throws IOException 入出力（ファイル・ストリーム）の操作に失敗した場合
    */
   public void downloadFileData(final String lineChannelAccessToken)
       throws IOException, InterruptedException {
     switch (this.requestType) {
       case LineFile:
-        LineMessagingAPI client = new LineMessagingAPI(lineChannelAccessToken);
+        LineMessagingApi client = new LineMessagingApi(lineChannelAccessToken);
         this.fileData = client.getFile(this.fileId);
         break;
       case EmailFile:

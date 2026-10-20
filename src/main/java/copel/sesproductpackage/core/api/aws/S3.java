@@ -85,7 +85,7 @@ public class S3 {
   /**
    * このオブジェクトが持つバケット名の中にあるファイルパス先のファイルを取得しdataに持つ.
    *
-   * @throws IOException
+   * @throws IOException 入出力（ファイル・ストリーム）の操作に失敗した場合
    */
   public void read() throws IOException {
     try {
@@ -131,15 +131,20 @@ public class S3 {
   }
 
   /**
-   * S3ファイルの署名付きダウンロードURLを生成する.
+   * S3ファイルの署名付きダウンロードURLを生成する（有効期限は1分）.
    *
-   * @param expireMinutes 有効期限（分）
    * @return 署名付きURL
    */
   public String createDownloadUrl() {
     return this.createDownloadUrl(1);
   }
 
+  /**
+   * 指定した有効期限（分）の署名付きダウンロードURLを生成します。
+   *
+   * @param expireMinutes 有効期限（分）
+   * @return 署名付きURL
+   */
   public String createDownloadUrl(final long expireMinutes) {
     try (S3Presigner presigner =
         S3Presigner.builder()

@@ -48,13 +48,13 @@ class OriginalDateTimeTest {
     OriginalDateTime dateWithHyphen = new OriginalDateTime("2026-10");
     assertNotNull(dateWithHyphen.toLocalDateTime());
     assertEquals(LocalDateTime.of(2026, 10, 1, 0, 0, 0), dateWithHyphen.toLocalDateTime());
-    assertEquals("2026-10-01", dateWithHyphen.getYyyy_MM_dd());
+    assertEquals("2026-10-01", dateWithHyphen.getYyyyHyphenMmDd());
 
     // yyyy/MM形式のテスト（検索APIの開始月フィルターで使用）
     OriginalDateTime dateWithSlash = new OriginalDateTime("2026/10");
     assertNotNull(dateWithSlash.toLocalDateTime());
     assertEquals(LocalDateTime.of(2026, 10, 1, 0, 0, 0), dateWithSlash.toLocalDateTime());
-    assertEquals("2026/10/01", dateWithSlash.getYyyyMMdd());
+    assertEquals("2026/10/01", dateWithSlash.getYyyySlashMmDd());
 
     // 複数の月でのテスト
     OriginalDateTime jan = new OriginalDateTime("2025-01");
@@ -116,13 +116,13 @@ class OriginalDateTimeTest {
     OriginalDateTime empty = new OriginalDateTime((String) null);
     assertTrue(empty.isEmpty());
     assertNull(empty.toString());
-    assertNull(empty.get曜日());
-    assertNull(empty.getMMdd());
+    assertNull(empty.getWeekdayLabel());
+    assertNull(empty.getMmDd());
     assertNull(empty.getYYYYMM());
-    assertNull(empty.getHHmm());
-    assertNull(empty.getHHmmss());
-    assertNull(empty.getYyyyMMdd());
-    assertNull(empty.getYyyy_MM_dd());
+    assertNull(empty.getHhmm());
+    assertNull(empty.getHhmmss());
+    assertNull(empty.getYyyySlashMmDd());
+    assertNull(empty.getYyyyHyphenMmDd());
     assertNull(empty.toLocalDate());
     assertNull(empty.toTimestamp());
 
@@ -131,12 +131,12 @@ class OriginalDateTimeTest {
 
   @Test
   void testGet曜日() {
-    assertEquals("(月)", dateTimeString.get曜日());
+    assertEquals("(月)", dateTimeString.getWeekdayLabel());
   }
 
   @Test
   void testGetMMdd() {
-    assertEquals("04/01", dateTimeString.getMMdd());
+    assertEquals("04/01", dateTimeString.getMmDd());
   }
 
   @Test
@@ -146,22 +146,22 @@ class OriginalDateTimeTest {
 
   @Test
   void testGetHHmm() {
-    assertEquals("12:34", dateTimeString.getHHmm());
+    assertEquals("12:34", dateTimeString.getHhmm());
   }
 
   @Test
   void testGetHHmmss() {
-    assertEquals("12:34:56", dateTimeString.getHHmmss());
+    assertEquals("12:34:56", dateTimeString.getHhmmss());
   }
 
   @Test
   void testGetYyyyMMdd() {
-    assertEquals("2024/04/01", dateTimeString.getYyyyMMdd());
+    assertEquals("2024/04/01", dateTimeString.getYyyySlashMmDd());
   }
 
   @Test
   void testGetYyyy_MM_dd() {
-    assertEquals("2024-04-01", dateTimeString.getYyyy_MM_dd());
+    assertEquals("2024-04-01", dateTimeString.getYyyyHyphenMmDd());
   }
 
   @Test
@@ -197,13 +197,13 @@ class OriginalDateTimeTest {
   @Test
   void testPlusDays() {
     dateTimeString.plusDays(1);
-    assertEquals("2024-04-02", dateTimeString.getYyyy_MM_dd());
+    assertEquals("2024-04-02", dateTimeString.getYyyyHyphenMmDd());
   }
 
   @Test
   void testMinusMinutes() {
     dateTimeString.minusMinutes(34);
-    assertEquals("12:00", dateTimeString.getHHmm());
+    assertEquals("12:00", dateTimeString.getHhmm());
   }
 
   @Test

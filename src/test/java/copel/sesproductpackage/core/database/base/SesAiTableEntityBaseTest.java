@@ -15,9 +15,9 @@ import java.sql.SQLException;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-class SES_AI_T_EntityBaseTest {
+class SesAiTableEntityBaseTest {
 
-  static class TestVectorEntity extends SES_AI_T_EntityBase {
+  static class TestVectorEntity extends SesAiTableEntityBase {
 
     public TestVectorEntity(String tenantId) {
       super(tenantId);
@@ -103,7 +103,7 @@ class SES_AI_T_EntityBaseTest {
   }
 
   @Test
-  void testSES_AI_T_EntityBaseBasic() {
+  void testSesAiTableEntityBaseBasic() {
     TestVectorEntity entity = new TestVectorEntity("test-tenant");
 
     entity.setFromGroup("group1");

@@ -101,7 +101,7 @@ class SES_AI_T_SKILLSHEET_PERSONTest {
     entity.setFileId("f1");
     entity.setContentSummary("cs1");
     entity.setFileContentSummary("fs1");
-    assertEquals("ファイルID：f1 内容：fs1cs1", entity.toスキルシート選出用文章());
+    assertEquals("ファイルID：f1 内容：fs1cs1", entity.toSkillSheetSelectionText());
   }
 
   @Test

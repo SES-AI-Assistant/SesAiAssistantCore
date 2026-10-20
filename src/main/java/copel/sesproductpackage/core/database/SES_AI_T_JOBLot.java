@@ -23,39 +23,73 @@ import java.util.List;
 public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   /** 全文検索SQL. */
   private static final String SELECT_LIKE_SQL =
-      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, vector_data, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE raw_content LIKE ?";
+      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
+          + "unit_price, vector_data, title, overview, must_skills, want_skills, start_date, "
+          + "place, area, office_requirements, other_requirements, register_date, "
+          + "register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE raw_content LIKE ?";
 
   /** 複合条件全文検索用 SELECT 接頭辞（末尾に WHERE を含む）. */
   private static final String SELECT_RAW_CONTENT_FOR_FULLTEXT =
-      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, vector_data, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE ";
+      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
+          + "unit_price, vector_data, title, overview, must_skills, want_skills, start_date, "
+          + "place, area, office_requirements, other_requirements, register_date, "
+          + "register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE ";
 
   /** 検索SQL. */
   private static final String SELECT_SQL =
-      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, vector_data, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE ";
+      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
+          + "unit_price, vector_data, title, overview, must_skills, want_skills, start_date, "
+          + "place, area, office_requirements, other_requirements, register_date, "
+          + "register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE ";
 
   /** 全件検索SQL. */
   private static final String SELECT_ALL_SQL =
-      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB ORDER BY register_date DESC";
+      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
+          + "unit_price, title, overview, must_skills, want_skills, start_date, place, area, "
+          + "office_requirements, other_requirements, register_date, register_user, ttl, "
+          + "tenant_id FROM SES_AI_T_JOB ORDER BY register_date DESC";
 
   /** 類似度閾値ベクトル検索用SQL（ページング用・LIMIT/OFFSET除外）. */
   private static final String RETRIEVE_WITH_THRESHOLD_SQL_WITHOUT_LIMIT =
-      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
+      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
+          + "unit_price, title, overview, must_skills, want_skills, start_date, place, area, "
+          + "office_requirements, other_requirements, register_date, register_user, ttl, "
+          + "vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE 1 - "
+          + "(vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
 
   /** ベクトル検索＋価格・開始日フィルタ用SQL（ページング用・LIMIT/OFFSET除外）. */
   private static final String RETRIEVE_WITH_FILTER_2_VALUES_SQL_WITHOUT_LIMIT =
-      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date <= ? AND 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
+      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
+          + "unit_price, title, overview, must_skills, want_skills, start_date, place, area, "
+          + "office_requirements, other_requirements, register_date, register_user, ttl, "
+          + "vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE "
+          + "unit_price >= ? AND start_date <= ? AND 1 - (vector_data <=> ?::vector) "
+          + ">= ? ORDER BY distance ASC";
 
   /** ベクトル検索＋価格・開始日・オフィス要件・エリアフィルタ用SQL（ページング用・LIMIT/OFFSET除外）. */
   private static final String RETRIEVE_WITH_FILTER_4_VALUES_SQL_WITHOUT_LIMIT =
-      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date <= ? AND office_requirements <= ? AND area = ? AND 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
+      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
+          + "unit_price, title, overview, must_skills, want_skills, start_date, place, area, "
+          + "office_requirements, other_requirements, register_date, register_user, ttl, "
+          + "vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE "
+          + "unit_price >= ? AND start_date <= ? AND office_requirements <= ? AND area "
+          + "= ? AND 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
 
   /** 全文検索＋価格・開始日フィルタ用SQL. */
   private static final String SELECT_RAW_CONTENT_WITH_FILTER_2_VALUES_FOR_FULLTEXT =
-      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date <= ? AND raw_content LIKE ?";
+      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
+          + "unit_price, title, overview, must_skills, want_skills, start_date, place, area, "
+          + "office_requirements, other_requirements, register_date, register_user, ttl, "
+          + "tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date <= ? AND "
+          + "raw_content LIKE ?";
 
   /** 全文検索＋価格・開始日・オフィス要件・エリアフィルタ用SQL. */
   private static final String SELECT_RAW_CONTENT_WITH_FILTER_4_VALUES_FOR_FULLTEXT =
-      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date <= ? AND office_requirements <= ? AND area = ? AND raw_content LIKE ?";
+      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
+          + "unit_price, title, overview, must_skills, want_skills, start_date, place, area, "
+          + "office_requirements, other_requirements, register_date, register_user, ttl, "
+          + "tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date <= ? AND "
+          + "office_requirements <= ? AND area = ? AND raw_content LIKE ?";
 
   /** コンストラクタ. */
   public SES_AI_T_JOBLot() {
@@ -96,7 +130,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectAllWithoutTenantFilter(Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
@@ -114,7 +148,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param query 検索ベクトル
    * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
    * @param limit 取得上限件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void retrieveWithThreshold(
       Connection connection, String tenantId, Vector query, double similarityThreshold, int limit)
@@ -131,7 +165,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void retrievePagedWithThreshold(
       Connection connection,
@@ -176,11 +210,29 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param connection DBコネクション
    * @param tenantId テナントID
    * @param query 検索条件Map
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void searchByRawContent(
       final Connection connection, final String tenantId, final String query) throws SQLException {
     this.searchByField(connection, tenantId, "raw_content", query);
+  }
+
+  /**
+   * raw_contentカラムに対して複数条件で全文検索を実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param firstLikeQuery 1つ目のLIKE句の検索条件
+   * @param query 検索条件リスト
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   */
+  public void searchByRawContent(
+      final Connection connection,
+      final String tenantId,
+      final String firstLikeQuery,
+      final List<LogicalOperators> query)
+      throws SQLException {
+    this.searchByField(connection, tenantId, "raw_content", firstLikeQuery, query);
   }
 
   /**
@@ -191,7 +243,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param query 検索文字列
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void searchByRawContentPaged(
       final Connection connection,
@@ -204,24 +256,6 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   }
 
   /**
-   * raw_contentカラムに対して複数条件で全文検索を実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param firstLikeQuery 1つ目のLIKE句の検索条件
-   * @param query 検索条件リスト
-   * @throws SQLException
-   */
-  public void searchByRawContent(
-      final Connection connection,
-      final String tenantId,
-      final String firstLikeQuery,
-      final List<LogicalOperators> query)
-      throws SQLException {
-    this.searchByField(connection, tenantId, "raw_content", firstLikeQuery, query);
-  }
-
-  /**
    * raw_contentカラムに対して複数条件で全文検索をページングで実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
@@ -230,7 +264,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param query 検索条件リスト
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void searchByRawContentPaged(
       final Connection connection,
@@ -244,6 +278,35 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   }
 
   /**
+   * raw_content に対して複合条件（AND/OR/NOT）で全文検索をページング実行します.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param conditions API の conditions 配列と同一の論理
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   */
+  public void searchByRawContentPaged(
+      final Connection connection,
+      final String tenantId,
+      final List<FulltextCondition> conditions,
+      final int page,
+      final int size)
+      throws SQLException {
+    FulltextConditionsWhereClause.Built built =
+        FulltextConditionsWhereClause.build("raw_content", conditions);
+    this.selectByDynamicWherePaged(
+        connection,
+        tenantId,
+        SELECT_RAW_CONTENT_FOR_FULLTEXT,
+        built.getWhereClauseWithoutWhereKeyword(),
+        built.getLikeParams(),
+        page,
+        size);
+  }
+
+  /**
    * raw_contentカラムで価格と開始日の条件を付けて全文検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
@@ -251,7 +314,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param query 検索文字列
    * @param price 最低価格（単価がこの値以上のもの）
    * @param startDate 最遅開始日（開始日がこの日付以前のもの）
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void searchByRawContentWithFilter(
       final Connection connection,
@@ -265,6 +328,39 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   }
 
   /**
+   * raw_contentカラムで価格・開始日・オフィス要件・エリアの条件を付けて全文検索を実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param query 検索文字列
+   * @param price 最低価格（単価がこの値以上のもの）
+   * @param startDate 最遅開始日（開始日がこの日付以前のもの）
+   * @param officeRequirements 最大オフィス要件（オフィス要件がこの値以下のもの）
+   * @param area 対象エリア（エリアがこの値と一致するもの）
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   */
+  public void searchByRawContentWithFilter(
+      final Connection connection,
+      final String tenantId,
+      final String query,
+      final Money price,
+      final OriginalDateTime startDate,
+      final int officeRequirements,
+      final Area area)
+      throws SQLException {
+    this.searchByRawContentWithFilterPaged(
+        connection,
+        tenantId,
+        query,
+        price,
+        startDate,
+        officeRequirements,
+        area,
+        1,
+        Integer.MAX_VALUE);
+  }
+
+  /**
    * raw_contentカラムで価格と開始日の条件を付けてページング全文検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
@@ -274,7 +370,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param startDate 最遅開始日（開始日がこの日付以前のもの）
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void searchByRawContentWithFilterPaged(
       final Connection connection,
@@ -306,39 +402,6 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   }
 
   /**
-   * raw_contentカラムで価格・開始日・オフィス要件・エリアの条件を付けて全文検索を実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param query 検索文字列
-   * @param price 最低価格（単価がこの値以上のもの）
-   * @param startDate 最遅開始日（開始日がこの日付以前のもの）
-   * @param officeRequirements 最大オフィス要件（オフィス要件がこの値以下のもの）
-   * @param area 対象エリア（エリアがこの値と一致するもの）
-   * @throws SQLException
-   */
-  public void searchByRawContentWithFilter(
-      final Connection connection,
-      final String tenantId,
-      final String query,
-      final Money price,
-      final OriginalDateTime startDate,
-      final int officeRequirements,
-      final Area area)
-      throws SQLException {
-    this.searchByRawContentWithFilterPaged(
-        connection,
-        tenantId,
-        query,
-        price,
-        startDate,
-        officeRequirements,
-        area,
-        1,
-        Integer.MAX_VALUE);
-  }
-
-  /**
    * raw_contentカラムで価格・開始日・オフィス要件・エリアの条件を付けてページング全文検索を実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
@@ -350,7 +413,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param area 対象エリア（エリアがこの値と一致するもの）
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void searchByRawContentWithFilterPaged(
       final Connection connection,
@@ -383,35 +446,6 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
               return paramIndex + 5;
             });
     this.entityLot.addAll(results);
-  }
-
-  /**
-   * raw_content に対して複合条件（AND/OR/NOT）で全文検索をページング実行します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param conditions API の conditions 配列と同一の論理
-   * @param page ページ番号(1-based)
-   * @param size 1ページあたりの件数
-   * @throws SQLException
-   */
-  public void searchByRawContentPaged(
-      final Connection connection,
-      final String tenantId,
-      final List<FulltextCondition> conditions,
-      final int page,
-      final int size)
-      throws SQLException {
-    FulltextConditionsWhereClause.Built built =
-        FulltextConditionsWhereClause.build("raw_content", conditions);
-    this.selectByDynamicWherePaged(
-        connection,
-        tenantId,
-        SELECT_RAW_CONTENT_FOR_FULLTEXT,
-        built.getWhereClauseWithoutWhereKeyword(),
-        built.getLikeParams(),
-        page,
-        size);
   }
 
   /**
@@ -458,7 +492,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param startDate 最遅開始日（開始日がこの日付以前のもの）
    * @param similarityThreshold 類似度閾値(0.0～1.0)
    * @param limit 取得上限件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void retrieveWithFilter(
       Connection connection,
@@ -474,6 +508,44 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   }
 
   /**
+   * 価格・開始日・オフィス要件・エリアでフィルタされたベクトル検索を実行し、結果をこのLotに保持します.
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param query 検索ベクトル
+   * @param price 最低価格（単価がこの値以上のもの）
+   * @param startDate 最遅開始日（開始日がこの日付以前のもの）
+   * @param officeAvailability 最大オフィス要件（オフィス要件がこの値以下のもの）
+   * @param area 対象エリア（エリアがこの値と一致するもの）
+   * @param similarityThreshold 類似度閾値(0.0～1.0)
+   * @param limit 取得上限件数
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   */
+  public void retrieveWithFilter(
+      Connection connection,
+      String tenantId,
+      Vector query,
+      Money price,
+      OriginalDateTime startDate,
+      int officeAvailability,
+      Area area,
+      double similarityThreshold,
+      int limit)
+      throws SQLException {
+    this.retrieveWithFilterPaged(
+        connection,
+        tenantId,
+        query,
+        price,
+        startDate,
+        officeAvailability,
+        area,
+        similarityThreshold,
+        1,
+        limit);
+  }
+
+  /**
    * 価格と開始日でフィルタされたベクトル検索をページングで実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
@@ -484,7 +556,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param similarityThreshold 類似度閾値(0.0～1.0)
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void retrieveWithFilterPaged(
       Connection connection,
@@ -527,44 +599,6 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   }
 
   /**
-   * 価格・開始日・オフィス要件・エリアでフィルタされたベクトル検索を実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param query 検索ベクトル
-   * @param price 最低価格（単価がこの値以上のもの）
-   * @param startDate 最遅開始日（開始日がこの日付以前のもの）
-   * @param officeAvailability 最大オフィス要件（オフィス要件がこの値以下のもの）
-   * @param area 対象エリア（エリアがこの値と一致するもの）
-   * @param similarityThreshold 類似度閾値(0.0～1.0)
-   * @param limit 取得上限件数
-   * @throws SQLException
-   */
-  public void retrieveWithFilter(
-      Connection connection,
-      String tenantId,
-      Vector query,
-      Money price,
-      OriginalDateTime startDate,
-      int officeAvailability,
-      Area area,
-      double similarityThreshold,
-      int limit)
-      throws SQLException {
-    this.retrieveWithFilterPaged(
-        connection,
-        tenantId,
-        query,
-        price,
-        startDate,
-        officeAvailability,
-        area,
-        similarityThreshold,
-        1,
-        limit);
-  }
-
-  /**
    * 価格・開始日・オフィス要件・エリアでフィルタされたベクトル検索をページングで実行し、結果をこのLotに保持します.
    *
    * @param connection DBコネクション
@@ -577,7 +611,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param similarityThreshold 類似度閾値(0.0～1.0)
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void retrieveWithFilterPaged(
       Connection connection,
@@ -649,7 +683,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param detailFilter 詳細フィルター条件（null可）
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void searchByJobWithDetailFilter(
       final Connection connection,
@@ -710,7 +744,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param detailFilter 詳細フィルター条件（null可）
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void retrieveByJobVectorWithDetailFilter(
       final Connection connection,
@@ -742,7 +776,10 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
 
     // (3) ベクトル検索SQLを構築
     String sql =
-        "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id "
+        "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, "
+            + "content_summary, unit_price, title, overview, must_skills, want_skills, start_date, "
+            + "place, area, office_requirements, other_requirements, register_date, "
+            + "register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id "
             + "FROM SES_AI_T_JOB "
             + "WHERE "
             + whereClause.toString()
@@ -779,7 +816,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
    * @param countQueryPart COUNT SQL用の部分SQL
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   private void executeRetrieveWithFilterPaged(
       final Connection connection,
@@ -812,7 +849,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
           }
         }
         setTenantIdParameter(preparedStatement, paramIndex, tenantId);
-        try (java.sql.ResultSet resultSet = preparedStatement.executeQuery()) {
+        try (ResultSet resultSet = preparedStatement.executeQuery()) {
           if (resultSet.next()) {
             this.totalCount = resultSet.getLong(1);
           }
@@ -866,7 +903,7 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @param stmt PreparedStatement
    * @param paramIndex パラメータインデックス（1-based）
    * @param param バインドするパラメータ値
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected void bindParameter(
       final java.sql.PreparedStatement stmt, final int paramIndex, final Object param)
@@ -906,32 +943,32 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   @Override
   protected SES_AI_T_JOB mapResultSet(ResultSet resultSet) throws SQLException {
     String tenantId = resultSet.getString("tenant_id");
-    SES_AI_T_JOB sesAiTJob = new SES_AI_T_JOB(tenantId);
-    sesAiTJob.setJobId(resultSet.getString("job_id"));
-    sesAiTJob.setFromGroup(resultSet.getString("from_group"));
-    sesAiTJob.setFromId(resultSet.getString("from_id"));
-    sesAiTJob.setFromName(resultSet.getString("from_name"));
-    sesAiTJob.setMailSubject(resultSet.getString("mail_subject"));
-    sesAiTJob.setRawContent(resultSet.getString("raw_content"));
-    sesAiTJob.setContentSummary(resultSet.getString("content_summary"));
+    SES_AI_T_JOB job = new SES_AI_T_JOB(tenantId);
+    job.setJobId(resultSet.getString("job_id"));
+    job.setFromGroup(resultSet.getString("from_group"));
+    job.setFromId(resultSet.getString("from_id"));
+    job.setFromName(resultSet.getString("from_name"));
+    job.setMailSubject(resultSet.getString("mail_subject"));
+    job.setRawContent(resultSet.getString("raw_content"));
+    job.setContentSummary(resultSet.getString("content_summary"));
     java.math.BigDecimal unitPriceValue = resultSet.getBigDecimal("unit_price");
-    sesAiTJob.setUnitPrice(unitPriceValue == null ? Money.empty() : new Money(unitPriceValue));
-    sesAiTJob.setTitle(resultSet.getString("title"));
-    sesAiTJob.setOverview(resultSet.getString("overview"));
-    sesAiTJob.setMustSkills(resultSet.getString("must_skills"));
-    sesAiTJob.setWantSkills(resultSet.getString("want_skills"));
-    sesAiTJob.setStartDate(new OriginalDateTime(resultSet.getString("start_date")));
-    sesAiTJob.setPlace(resultSet.getString("place"));
+    job.setUnitPrice(unitPriceValue == null ? Money.empty() : new Money(unitPriceValue));
+    job.setTitle(resultSet.getString("title"));
+    job.setOverview(resultSet.getString("overview"));
+    job.setMustSkills(resultSet.getString("must_skills"));
+    job.setWantSkills(resultSet.getString("want_skills"));
+    job.setStartDate(new OriginalDateTime(resultSet.getString("start_date")));
+    job.setPlace(resultSet.getString("place"));
     String areaStr = resultSet.getString("area");
-    sesAiTJob.setArea(areaStr == null ? null : Area.valueOf(areaStr));
-    sesAiTJob.setOfficeRequirements(
+    job.setArea(areaStr == null ? null : Area.valueOf(areaStr));
+    job.setOfficeRequirements(
         resultSet.getObject("office_requirements") == null
             ? null
             : resultSet.getInt("office_requirements"));
-    sesAiTJob.setOtherRequirements(resultSet.getString("other_requirements"));
-    sesAiTJob.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-    sesAiTJob.setRegisterUser(resultSet.getString("register_user"));
-    sesAiTJob.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-    return sesAiTJob;
+    job.setOtherRequirements(resultSet.getString("other_requirements"));
+    job.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
+    job.setRegisterUser(resultSet.getString("register_user"));
+    job.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
+    return job;
   }
 }
