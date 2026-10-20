@@ -598,7 +598,7 @@ class SesInfoRegisterRequestSqsEntityTest {
   @DisplayName("isProcessingTarget() - LineMessage 正常系（十分な長さ）")
   void testIsProcessingTargetLineMessageSuccess() {
     entity.setRequestType(RequestType.LineMessage);
-    entity.setRawContent("a".repeat(100));
+    entity.setRawContent("a".repeat(201));
 
     assertTrue(entity.isProcessingTarget());
   }
@@ -608,6 +608,15 @@ class SesInfoRegisterRequestSqsEntityTest {
   void testIsProcessingTargetLineMessageShortContent() {
     entity.setRequestType(RequestType.LineMessage);
     entity.setRawContent("short");
+
+    assertFalse(entity.isProcessingTarget());
+  }
+
+  @Test
+  @DisplayName("isProcessingTarget() - LineMessage 処理対象外（200文字ちょうど）")
+  void testIsProcessingTargetLineMessageBoundary() {
+    entity.setRequestType(RequestType.LineMessage);
+    entity.setRawContent("a".repeat(200));
 
     assertFalse(entity.isProcessingTarget());
   }
@@ -624,7 +633,7 @@ class SesInfoRegisterRequestSqsEntityTest {
   @DisplayName("isProcessingTarget() - EmailMessage 正常系（十分な長さ）")
   void testIsProcessingTargetEmailMessageSuccess() {
     entity.setRequestType(RequestType.EmailMessage);
-    entity.setRawContent("a".repeat(100));
+    entity.setRawContent("a".repeat(201));
 
     assertTrue(entity.isProcessingTarget());
   }
@@ -650,7 +659,7 @@ class SesInfoRegisterRequestSqsEntityTest {
   @DisplayName("isProcessingTarget() - OtherMessage 正常系（十分な長さ）")
   void testIsProcessingTargetOtherMessageSuccess() {
     entity.setRequestType(RequestType.OtherMessage);
-    entity.setRawContent("a".repeat(100));
+    entity.setRawContent("a".repeat(201));
 
     assertTrue(entity.isProcessingTarget());
   }

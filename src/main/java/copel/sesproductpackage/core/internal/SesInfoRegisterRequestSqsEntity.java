@@ -85,9 +85,8 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
   /** テナントID. */
   private String tenantId;
 
-  /** 登録対象となる最小文字数. */
-  private static final int CONTENT_MIN_LENGTH_FOR_CLASSIFICATION =
-      Properties.getInt("CONTENT_MIN_LENGTH_FOR_CLASSIFICATION");
+  /** 登録対象となる最小文字数. 本文がこの文字数以下の場合は Gemini を呼ばず処理対象外とする. */
+  private static final int CONTENT_MIN_LENGTH_FOR_CLASSIFICATION = 200;
 
   /**
    * SQS送信用コンストラクタ（キューURLを自動取得）.
@@ -277,6 +276,8 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
 
   /**
    * このリクエストが処理対象であるかどうかを判定します（コンテンツ長チェック）.
+   *
+   * <p>メッセージ本文の場合、本文が {@code CONTENT_MIN_LENGTH_FOR_CLASSIFICATION}（200文字）以下なら処理対象外とし、Gemini を呼ばない。
    *
    * @return 処理対象ならtrue、処理対象外ならfalse
    */
