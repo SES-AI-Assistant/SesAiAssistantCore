@@ -14,6 +14,22 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class FileNameUtils {
+  /** インスタンス化を禁止する。すべての操作は静的メンバーで提供する。 */
+  private FileNameUtils() {}
+
+  /**
+   * 日本語またはマルチバイト文字とみなす文字の範囲。各要素は {開始の文字, 終了の文字} の組で、両端を含む。
+   *
+   * <p>ひらがな、カタカナ、漢字、CJK の部首補助・拡張 A・互換漢字の範囲を並べる。
+   */
+  private static final char[][] MULTIBYTE_RANGES = {
+    {'぀', 'ゟ'}, // ひらがな
+    {'゠', 'ヿ'}, // カタカナ
+    {'一', '鿿'}, // 漢字
+    {'⺀', '⻿'}, // CJK Radicals Supplement
+    {'㐀', '䶿'}, // CJK Unified Ideographs Extension A
+    {'豈', '﫿'}, // CJK Compatibility Ideographs
+  };
 
   // MIMEエンコードの正規表現 (例: =?UTF-8?B?...?= または =?ISO-8859-1?Q?...?=)
   private static final Pattern MIME_PATTERN =
@@ -62,12 +78,8 @@ public class FileNameUtils {
         if (!decoded.contains("%")) {
           break;
         }
-        String previous = decoded;
-        // 基本はUTF-8で試行し、失敗や変化なしなら終了
+        // 基本はUTF-8で試行し、失敗したら終了する。%XX を含む文字列は必ず変化するため、変化の有無では判定しない
         decoded = URLDecoder.decode(decoded, StandardCharsets.UTF_8.name());
-        if (decoded.equals(previous)) {
-          break;
-        }
       }
     } catch (Exception e) {
       log.debug("URLデコードに失敗しました（スキップ）: {}", decoded);
@@ -96,7 +108,7 @@ public class FileNameUtils {
    * @return デコード後の文字列
    */
   private static String decodeMimeText(String text) {
-    if (text == null || !text.contains("=?")) {
+    if (!text.contains("=?")) {
       return text;
     }
 
@@ -111,14 +123,13 @@ public class FileNameUtils {
         if ("B".equals(encoding)) {
           byte[] bytes = Base64.getDecoder().decode(encodedText);
           matcher.appendReplacement(sb, Matcher.quoteReplacement(new String(bytes, charset)));
-        } else if ("Q".equals(encoding)) {
+        } else {
           // Quoted-Printableデコードの簡易実装
           // 空白の代わりに _ を使う Q エンコードを、空白に戻してから 16 進数のデコードへ渡す
+          // 正規表現の [BQbq] により、ここに来るのは Q だけである
           String quotedPrintableText = encodedText.replace("_", " ");
           byte[] bytes = decodeQuotedPrintable(quotedPrintableText);
           matcher.appendReplacement(sb, Matcher.quoteReplacement(new String(bytes, charset)));
-        } else {
-          matcher.appendReplacement(sb, Matcher.quoteReplacement(matcher.group(0)));
         }
       } catch (Exception e) {
         log.debug("MIMEデコードに失敗しました（スキップ）: {}", matcher.group(0));
@@ -135,16 +146,13 @@ public class FileNameUtils {
     for (int i = 0; i < s.length(); i++) {
       char c = s.charAt(i);
       if (c == '=' && i + 2 < s.length()) {
-        try {
-          int u = Character.digit(s.charAt(i + 1), 16);
-          int l = Character.digit(s.charAt(i + 2), 16);
-          if (u != -1 && l != -1) {
-            buffer.write((char) ((u << 4) + l));
-            i += 2;
-            continue;
-          }
-        } catch (Exception ignored) {
-          // 桁の変換で例外が起きた場合は、この文字を通常の文字として下の処理で書き込む
+        // Character.digit は例外を投げず、16進数でない文字には -1 を返す
+        int u = Character.digit(s.charAt(i + 1), 16);
+        int l = Character.digit(s.charAt(i + 2), 16);
+        if (u != -1 && l != -1) {
+          buffer.write((char) ((u << 4) + l));
+          i += 2;
+          continue;
         }
       }
       buffer.write(c);
@@ -162,19 +170,16 @@ public class FileNameUtils {
    * @return 修正後の文字列（修正不要な場合は元の文字列）
    */
   private static String recoverUtf8MisinterpretedAsLatin1(String text) {
-    if (text == null || text.isEmpty()) {
+    if (text.isEmpty()) {
       return text;
     }
-    try {
-      byte[] latin1Bytes = text.getBytes(StandardCharsets.ISO_8859_1);
-      String recovered = new String(latin1Bytes, StandardCharsets.UTF_8);
-      // 復帰後の文字列に日本語（またはその他のマルチバイト文字）が含まれていたら採用
-      // ひらがな、カタカナ、漢字、その他のCJK文字、絵文字などをチェック
-      if (containsJapaneseOrMultibyte(recovered)) {
-        return recovered;
-      }
-    } catch (Exception e) {
-      log.debug("UTF-8復帰に失敗しました（スキップ）: {}", text);
+    // ISO-8859-1 と UTF-8 の変換は例外を投げないため、try で囲まない
+    byte[] latin1Bytes = text.getBytes(StandardCharsets.ISO_8859_1);
+    String recovered = new String(latin1Bytes, StandardCharsets.UTF_8);
+    // 復帰後の文字列に日本語（またはその他のマルチバイト文字）が含まれていたら採用
+    // ひらがな、カタカナ、漢字、その他のCJK文字、絵文字などをチェック
+    if (containsJapaneseOrMultibyte(recovered)) {
+      return recovered;
     }
     return text;
   }
@@ -186,18 +191,11 @@ public class FileNameUtils {
    * @return 日本語またはマルチバイト文字を含めば true
    */
   private static boolean containsJapaneseOrMultibyte(String text) {
-    if (text == null) {
-      return false;
-    }
     for (char c : text.toCharArray()) {
-      // ひらがな、カタカナ、漢字、その他のCJK文字（U+2E80-U+9FFF）
-      if (c >= '぀' && c <= 'ゟ' // ひらがな
-          || c >= '゠' && c <= 'ヿ' // カタカナ
-          || c >= '一' && c <= '鿿' // 漢字
-          || c >= '⺀' && c <= '⻿' // CJK Radicals Supplement
-          || c >= '㐀' && c <= '䶿' // CJK Unified Ideographs Extension A
-          || c >= '豈' && c <= '﫿') { // CJK Compatibility Ideographs
-        return true;
+      for (char[] range : MULTIBYTE_RANGES) {
+        if (c >= range[0] && c <= range[1]) {
+          return true;
+        }
       }
     }
     return false;

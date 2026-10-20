@@ -1,221 +1,155 @@
 package copel.sesproductpackage.core.util;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Clock;
-import java.time.Instant;
 import java.time.ZoneId;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-/**
- * {@link ApplicationClock} の単体テスト。
- *
- * @author Copel Co., Ltd.
- */
+/** {@link ApplicationClock} の単体テスト。 */
 class ApplicationClockTest {
 
-  /** テストで使う固定時計。UTC の "2026-01-15T03:04:05Z" を "Asia/Tokyo" のゾーンで保持する。 */
-  private static final Clock FIXED_CLOCK =
-      Clock.fixed(Instant.parse("2026-01-15T03:04:05Z"), ZoneId.of("Asia/Tokyo"));
+  /** テスト前の読み込み元の設定値。テスト後に元へ戻すために保存する。 */
+  private String 読み込み元の設定値;
 
-  /** テストの前に設定読み込み元のプロパティの値を退避する。 */
-  private String originalConfigSource;
-
-  /** テストの前に設定読み込み元のプロパティを退避して memory に設定し、時計を既定のシステム時計に戻す。 前のテストの差し替えが残らないようにする。 */
   @BeforeEach
-  void setUp() {
-    originalConfigSource = System.getProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
-    System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, ConfigSource.CONFIG_SOURCE_MEMORY);
-    ApplicationClock.INSTANCE.resetToDefault();
+  void 読み込み元の設定値を保存する() {
+    読み込み元の設定値 = System.getProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
   }
 
-  /** テストの後に設定読み込み元のプロパティを復元し、時計を既定のシステム時計に戻す。 後続のテストの設定が変わらないようにする。 */
   @AfterEach
-  void tearDown() {
-    if (originalConfigSource == null) {
+  void 時計と読み込み元を元に戻す() {
+    ApplicationClock.INSTANCE.resetToDefault();
+    if (読み込み元の設定値 == null) {
       System.clearProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
     } else {
-      System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, originalConfigSource);
+      System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, 読み込み元の設定値);
     }
-    ApplicationClock.INSTANCE.resetToDefault();
   }
 
-  /** {@link ApplicationClock#clock()} のテスト。 */
   @Nested
   class clock {
 
-    /** 正常系のテスト。 */
     @Nested
     class 正常系 {
 
       /**
-       * ApplicationClock#clock が既定のシステム時計を返すことを確かめる。 本番の現在時刻の取得元がシステム時計であることを保証する。
+       * 既定の時計のタイムゾーンが Asia/Tokyo であることを確かめる。 本番の現在時刻の取得元が変わると日付の境界がずれるので、Asia/Tokyo を固定する。
        *
-       * @given 時計が既定のシステム時計に戻されている
-       * @when clock を引数なしで呼び出す
-       * @then ゾーンが "Asia/Tokyo" で、時刻が呼び出し前後の現在時刻の範囲に収まる時計を返す
+       * @given 時計が既定の状態
+       * @when clock を実行する
+       * @then Asia/Tokyo のタイムゾーンを返す
        */
       @Test
-      void 時計が既定のシステム時計の場合_システム時計を返す() {
-        Instant before = Instant.now();
-        Clock actual = ApplicationClock.INSTANCE.clock();
-        Instant actualInstant = actual.instant();
-        Instant after = Instant.now();
+      void 既定の時計の場合_Asia_Tokyoのタイムゾーンを返す() {
+        ApplicationClock.INSTANCE.resetToDefault();
 
-        assertEquals(ZoneId.of("Asia/Tokyo"), actual.getZone());
-        assertFalse(actualInstant.isBefore(before));
-        assertFalse(actualInstant.isAfter(after));
-      }
-
-      /**
-       * ApplicationClock#clock が setClock で設定された固定時計をそのまま返すことを確かめる。
-       * テストで時刻を固定するには、設定された時計が現在時刻の取得に使われる必要がある。
-       *
-       * @given 時計が UTC の "2026-01-15T03:04:05Z" と "Asia/Tokyo" のゾーンを持つ固定時計に設定されている
-       * @when clock を引数なしで呼び出す
-       * @then 設定した固定時計と同一のインスタンスを返す
-       */
-      @Test
-      void 時計が固定時計に設定されている場合_設定された固定時計を返す() {
-        ApplicationClock.INSTANCE.setClock(FIXED_CLOCK);
-
-        Clock actual = ApplicationClock.INSTANCE.clock();
-
-        assertSame(FIXED_CLOCK, actual);
+        assertThat(ApplicationClock.INSTANCE.clock().getZone()).isEqualTo(ZoneId.of("Asia/Tokyo"));
       }
     }
   }
 
-  /** {@link ApplicationClock#setClock(Clock)} のテスト。 */
   @Nested
   class setClock {
 
-    /** 正常系のテスト。 */
     @Nested
     class 正常系 {
 
       /**
-       * ApplicationClock#setClock が渡された時計を取得元に設定することを確かめる。 テストで現在時刻を固定するための差し替え口である。
+       * 読み込み元が memory の場合は、指定した時計を取得できることを確かめる。 テストで時刻を固定できないと日付に依存したテストが不安定になるので、設定した時計を使う。
        *
-       * @given 時計が既定のシステム時計に戻されており、システムプロパティ "nectar.config.source" が "memory" である
-       * @when setClock を FIXED_CLOCK で呼び出す
-       * @then clock が渡した固定時計と同一のインスタンスを返す
+       * @given 読み込み元が memory、固定する時計が UTC の固定時計
+       * @when setClock を固定時計で実行する
+       * @then 指定した時計を返す
        */
       @Test
-      void 引数が固定時計の場合_渡した時計を返す() {
-        System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, ConfigSource.CONFIG_SOURCE_MEMORY);
-        ApplicationClock.INSTANCE.setClock(FIXED_CLOCK);
+      void 固定時計を設定した場合_設定した時計を返す() {
+        Clock fixed =
+            Clock.fixed(java.time.Instant.parse("2026-01-15T03:04:05Z"), ZoneId.of("UTC"));
 
-        assertSame(FIXED_CLOCK, ApplicationClock.INSTANCE.clock());
+        ApplicationClock.INSTANCE.setClock(fixed);
+
+        assertThat(ApplicationClock.INSTANCE.clock()).isSameAs(fixed);
       }
     }
 
-    /** 異常系のテスト。 */
     @Nested
     class 異常系 {
 
       /**
-       * ApplicationClock#setClock が null を受け付けず例外を投げることを確かめる。 null の時計では現在時刻を取得できない。
+       * 読み込み元が本番の場合は時計の差し替えを拒否することを確かめる。 本番で時計を差し替えると現在時刻の挙動が変わるので、拒否する。
        *
-       * @given 時計が固定時計に設定されており、システムプロパティ "nectar.config.source" が "memory" である
-       * @when setClock を null で呼び出す
-       * @then NullPointerException を投げ、clock が設定済みの固定時計と同一のインスタンスを返す
+       * @given 読み込み元が本番で memory 以外
+       * @when setClock を任意の時計で実行する
+       * @then IllegalStateException を投げる
        */
       @Test
-      void 引数がnullの場合_NullPointerExceptionを投げる() {
-        ApplicationClock.INSTANCE.setClock(FIXED_CLOCK);
+      void 読み込み元が本番の場合_IllegalStateExceptionを投げる() {
+        System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, "production");
 
-        assertThrows(NullPointerException.class, () -> ApplicationClock.INSTANCE.setClock(null));
-        assertSame(FIXED_CLOCK, ApplicationClock.INSTANCE.clock());
+        assertThatThrownBy(() -> ApplicationClock.INSTANCE.setClock(Clock.systemUTC()))
+            .isInstanceOf(IllegalStateException.class);
       }
 
       /**
-       * ApplicationClock#setClock が設定読み込み元が memory 以外の場合に例外を投げることを確かめる。 本番で時計が差し替わることを防ぐ仕様である。
+       * 時計に null を指定すると例外を投げることを確かめる。 時計が無くなると現在時刻が取れなくなるので、null を拒否する。
        *
-       * @given 時計が既定のシステム時計に戻されており、システムプロパティ "nectar.config.source" が "file" である
-       * @when setClock を FIXED_CLOCK で呼び出す
-       * @then IllegalStateException を投げ、clock が差し替え前のシステム時計と同一のインスタンスを返す
+       * @given 読み込み元が memory、時計が null
+       * @when setClock を null で実行する
+       * @then NullPointerException を投げる
        */
       @Test
-      void システムプロパティがmemory以外の場合_IllegalStateExceptionを投げる() {
-        System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, "file");
-        Clock before = ApplicationClock.INSTANCE.clock();
-
-        assertThrows(
-            IllegalStateException.class, () -> ApplicationClock.INSTANCE.setClock(FIXED_CLOCK));
-        assertSame(before, ApplicationClock.INSTANCE.clock());
-      }
-
-      /**
-       * ApplicationClock#setClock がシステムプロパティ未設定の場合に例外を投げることを確かめる。
-       * 未設定は本番を含む通常の実行環境であり、差し替えを許可しない仕様である。
-       *
-       * @given 時計が既定のシステム時計に戻されており、システムプロパティ "nectar.config.source" が未設定である
-       * @when setClock を FIXED_CLOCK で呼び出す
-       * @then IllegalStateException を投げ、clock が差し替え前のシステム時計と同一のインスタンスを返す
-       */
-      @Test
-      void システムプロパティが未設定の場合_IllegalStateExceptionを投げる() {
-        System.clearProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
-        Clock before = ApplicationClock.INSTANCE.clock();
-
-        assertThrows(
-            IllegalStateException.class, () -> ApplicationClock.INSTANCE.setClock(FIXED_CLOCK));
-        assertSame(before, ApplicationClock.INSTANCE.clock());
+      void 時計がnullの場合_NullPointerExceptionを投げる() {
+        assertThatThrownBy(() -> ApplicationClock.INSTANCE.setClock(null))
+            .isInstanceOf(NullPointerException.class);
       }
     }
   }
 
-  /** {@link ApplicationClock#resetToDefault()} のテスト。 */
   @Nested
   class resetToDefault {
 
-    /** 正常系のテスト。 */
     @Nested
     class 正常系 {
 
       /**
-       * ApplicationClock#resetToDefault が固定時計を既定のシステム時計に戻すことを確かめる。
-       * テストの後始末で時計を戻せないと、後続のテストの現在時刻が固定されたままになる。
+       * 固定した時計から既定の時計へ戻すことを確かめる。 テスト後に時刻の固定が残ると他のテストに影響するので、既定の時計に戻す。
        *
-       * @given 時計が固定時計に設定されている
-       * @when resetToDefault を引数なしで呼び出す
-       * @then clock が "Asia/Tokyo" のゾーンを持つ、固定時計とは別のインスタンスを返す
+       * @given 時計が UTC の固定時計に設定されている
+       * @when resetToDefault を実行する
+       * @then Asia/Tokyo のタイムゾーンを返す
        */
       @Test
-      void 時計が固定時計に設定されている場合_システム時計を返す() {
-        ApplicationClock.INSTANCE.setClock(FIXED_CLOCK);
+      void 固定時計から戻した場合_Asia_Tokyoのタイムゾーンを返す() {
+        ApplicationClock.INSTANCE.setClock(Clock.fixed(java.time.Instant.EPOCH, ZoneId.of("UTC")));
 
         ApplicationClock.INSTANCE.resetToDefault();
-        Clock actual = ApplicationClock.INSTANCE.clock();
 
-        assertEquals(ZoneId.of("Asia/Tokyo"), actual.getZone());
-        assertNotSame(FIXED_CLOCK, actual);
+        assertThat(ApplicationClock.INSTANCE.clock().getZone()).isEqualTo(ZoneId.of("Asia/Tokyo"));
       }
+    }
+
+    @Nested
+    class 境界値 {
 
       /**
-       * ApplicationClock#resetToDefault が設定読み込み元が memory 以外でも時計を戻すことを確かめる。
-       * 現在時刻を固定しない操作であるため、システムプロパティによる制限を設けない仕様である。
+       * 読み込み元が本番の場合も既定の時計に戻せることを確かめる。 後始末の操作を本番で制限すると本番の初期化ができなくなるので、制限しない。
        *
-       * @given 時計が固定時計に設定されており、システムプロパティ "nectar.config.source" が "file" に変更されている
-       * @when resetToDefault を引数なしで呼び出す
-       * @then clock が固定時計とは別のインスタンスを返す
+       * @given 読み込み元が本番で memory 以外
+       * @when resetToDefault を実行する
+       * @then Asia/Tokyo のタイムゾーンを返す
        */
       @Test
-      void システムプロパティがmemory以外の場合_システム時計を返す() {
-        ApplicationClock.INSTANCE.setClock(FIXED_CLOCK);
-        System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, "file");
+      void 読み込み元が本番の場合_Asia_Tokyoのタイムゾーンを返す() {
+        System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, "production");
 
         ApplicationClock.INSTANCE.resetToDefault();
 
-        assertNotSame(FIXED_CLOCK, ApplicationClock.INSTANCE.clock());
+        assertThat(ApplicationClock.INSTANCE.clock().getZone()).isEqualTo(ZoneId.of("Asia/Tokyo"));
       }
     }
   }

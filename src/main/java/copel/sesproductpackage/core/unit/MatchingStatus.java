@@ -16,7 +16,7 @@ public enum MatchingStatus {
   無効("99");
 
   /** コード値. */
-  private String code;
+  private final String code;
 
   /**
    * コンストラクタ.
@@ -49,14 +49,5 @@ public enum MatchingStatus {
    */
   public String getCode() {
     return this.code;
-  }
-
-  /**
-   * コード値をセットする.
-   *
-   * @param code コード値
-   */
-  public void setCode(String code) {
-    this.code = code;
   }
 }

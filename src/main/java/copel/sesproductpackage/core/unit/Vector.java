@@ -6,7 +6,7 @@ import java.io.IOException;
 /**
  * ベクトルクラス.
  *
- * @author Copel Co., Ltd..
+ * @author Copel Co., Ltd.
  */
 public class Vector {
   /** エンベディング処理の対象となる文字列. */
@@ -37,15 +37,6 @@ public class Vector {
     if (this.transformer != null && this.rawString != null && !"".equals(this.rawString)) {
       this.value = this.transformer.embedding(this.rawString);
     }
-  }
-
-  /**
-   * このクラスが持つ文字列を返却します.
-   *
-   * @return rawString
-   */
-  public String getRawString() {
-    return rawString;
   }
 
   /**

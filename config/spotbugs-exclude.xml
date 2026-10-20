@@ -10,10 +10,6 @@
      - CT_CONSTRUCTOR_THROW: 空の tenantId を生成時に拒否するための意図的な例外。
      - RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE / WMI_WRONG_MAP_ITERATOR: 既存の検索処理の挙動を保つため、そのまま残す。
      - CO_SELF_NO_OBJECT: 距離による比較を compareTo として提供している（Comparable は実装していない）。
-     - ME_ENUM_FIELD_SETTER: 列挙型の値（為替レート、ステータスのコード等）の更新を既存の呼び出し側が使っている。
-     - HE_EQUALS_USE_HASHCODE: OriginalDateTime は equals を持つが hashCode を持たない。hashCode の追加は HashSet・HashMap の
-       挙動（重複の扱い）を変えるため、この PR（基盤）では行わない。PR②（unit パッケージの UT 作り直し）で、
-       UT で振る舞いを固定したうえで追加する。
      - NP_TOSTRING_COULD_RETURN_NULL: OriginalDateTime.toString は日時が未設定のとき null を返す。戻り値の仕様（null か空文字か）は
        呼び出し側の期待に関わるため、この PR では変えず、仕様を決めてから別に扱う。
      - DM_DEFAULT_ENCODING: Properties.load（static void load(S3Client)）は、S3 から取得した設定ファイルを
@@ -161,20 +157,8 @@
     <Bug pattern="CO_SELF_NO_OBJECT"/>
   </Match>
   <Match>
-    <Class name="copel.sesproductpackage.core.unit.Currency"/>
-    <Bug pattern="ME_ENUM_FIELD_SETTER"/>
-  </Match>
-  <Match>
-    <Class name="copel.sesproductpackage.core.unit.MatchingStatus"/>
-    <Bug pattern="ME_ENUM_FIELD_SETTER"/>
-  </Match>
-  <Match>
-    <Class name="copel.sesproductpackage.core.unit.Role"/>
-    <Bug pattern="ME_ENUM_FIELD_SETTER"/>
-  </Match>
-  <Match>
     <Class name="copel.sesproductpackage.core.unit.OriginalDateTime"/>
-    <Bug pattern="HE_EQUALS_USE_HASHCODE,NP_TOSTRING_COULD_RETURN_NULL"/>
+    <Bug pattern="NP_TOSTRING_COULD_RETURN_NULL"/>
   </Match>
   <Match>
     <Class name="copel.sesproductpackage.core.util.Properties"/>

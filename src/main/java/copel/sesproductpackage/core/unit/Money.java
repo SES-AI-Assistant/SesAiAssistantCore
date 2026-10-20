@@ -131,14 +131,14 @@ public class Money implements Comparable<Money> {
     if (manValue.compareTo(BigDecimal.TEN) >= 0 && manValue.compareTo(new BigDecimal("500")) <= 0) {
       return new Money(manValue.multiply(MAN_UNIT).setScale(0, RoundingMode.HALF_UP));
     }
-    // 3. 【時給の漏れ検知】1,000以上 8,000以下（160h換算）
+    // 3. 【時給の漏れ検知】1,000以上 10,000未満（160h換算）。境界の 10,000 は手順 4 の日給へ回す
     if (manValue.compareTo(new BigDecimal("1000")) >= 0
-        && manValue.compareTo(new BigDecimal("8000")) <= 0) {
+        && manValue.compareTo(new BigDecimal("10000")) < 0) {
       return new Money(manValue.multiply(new BigDecimal("160")).setScale(0, RoundingMode.HALF_UP));
     }
-    // 4. 【日給の漏れ検知】10,000以上 50,000以下（20日換算）
+    // 4. 【日給の漏れ検知】10,000以上 100,000未満（20日換算）。境界の 100,000 は手順 6 の円として扱う
     if (manValue.compareTo(new BigDecimal("10000")) >= 0
-        && manValue.compareTo(new BigDecimal("50000")) <= 0) {
+        && manValue.compareTo(new BigDecimal("100000")) < 0) {
       return new Money(manValue.multiply(new BigDecimal("20")).setScale(0, RoundingMode.HALF_UP));
     }
     // 5. 【ゼロ1個過剰の救済】1,000万以上
@@ -199,19 +199,6 @@ public class Money implements Comparable<Money> {
   }
 
   /**
-   * シンプル数値形式：「100」（万円単位）.
-   *
-   * @return 万円単位の数値文字列、またはnull
-   */
-  public String toManFormat() {
-    if (isEmpty()) {
-      return null;
-    }
-    BigDecimal manValue = value.divide(new BigDecimal("10000"), 2, RoundingMode.FLOOR);
-    return manValue.stripTrailingZeros().toPlainString();
-  }
-
-  /**
    * 円単位の数値：「1000000」.
    *
    * @return 円単位の long 値、empty の場合は 0L
@@ -223,34 +210,6 @@ public class Money implements Comparable<Money> {
   // ================================================
   // 比較処理
   // ================================================
-
-  /**
-   * 自身が指定された金額より大きいかを判定する. 自身または対象の金額が未設定（empty）または null の場合は安全に false を返す.
-   *
-   * @param other 比較対象の金額
-   * @return 自身が other より大きい場合は true、それ以外は false
-   * @author Copel Co., Ltd.
-   */
-  public boolean isGreaterThan(Money other) {
-    if (this.isEmpty() || other == null || other.isEmpty()) {
-      return false;
-    }
-    return this.value.compareTo(other.value) > 0;
-  }
-
-  /**
-   * 自身が指定された金額以上であるかを判定する. 自身または対象の金額が未設定（empty）または null の場合は安全に false を返す.
-   *
-   * @param other 比較対象の金額
-   * @return 自身が other 以上の場合は true、それ以外は false
-   * @author Copel Co., Ltd.
-   */
-  public boolean isGreaterThanOrEqualTo(Money other) {
-    if (this.isEmpty() || other == null || other.isEmpty()) {
-      return false;
-    }
-    return this.value.compareTo(other.value) >= 0;
-  }
 
   /**
    * 自身が指定された金額より小さいかを判定する. 自身または対象の金額が未設定（empty）または null の場合は安全に false を返す.
@@ -307,40 +266,19 @@ public class Money implements Comparable<Money> {
     if (this.isEmpty() || other.isEmpty()) {
       return false;
     }
-    return this.value.equals(other.value);
+    // BigDecimal#equals は小数の桁数（スケール）まで比べるため、数値として比べる（100 と 100.00 を等しいとする）
+    return this.value.compareTo(other.value) == 0;
   }
 
   @Override
   public int hashCode() {
-    return isEmpty() ? 0 : value.hashCode();
+    // equals と合わせ、末尾の 0 を除いた値で計算する（100 と 100.00 は同じハッシュコードになる）
+    return isEmpty() ? 0 : value.stripTrailingZeros().hashCode();
   }
 
   @Override
   public String toString() {
     return isEmpty() ? "empty" : toJapaneseFormat();
-  }
-
-  /**
-   * この金額を指定の数値で割った結果を返す.
-   *
-   * <p>金額を n 分の1 にする際に使用。例えば、万円単位への換算は divide(10000.0) で実現。 0で割った場合は ArithmeticException をスロー。
-   *
-   * @param divisor 除数
-   * @return 割った結果の金額
-   * @throws ArithmeticException divisor が 0 の場合
-   */
-  // 除算の精度を既存の挙動（double からの変換）のまま保つため、BigDecimal.valueOf には置き換えない
-  @SuppressWarnings("PMD.AvoidDecimalLiteralsInBigDecimalConstructor")
-  public Money divide(double divisor) {
-    if (divisor == 0) {
-      throw new ArithmeticException("0で割ることはできません");
-    }
-    if (this.isEmpty()) {
-      return Money.empty();
-    }
-    BigDecimal result =
-        this.value.divide(new BigDecimal(divisor), this.value.scale(), RoundingMode.HALF_UP);
-    return new Money(result);
   }
 
   /**

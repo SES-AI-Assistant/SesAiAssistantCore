@@ -31,6 +31,9 @@ import software.amazon.awssdk.services.ssm.model.Parameter;
  */
 @Slf4j
 public class Properties {
+  /** インスタンス化を禁止する。すべての操作は静的メンバーで提供する。 */
+  private Properties() {}
+
   /** S3 上の config ファイルのオブジェクトキー（固定）. */
   private static final String CONFIG_OBJECT_KEY = "config.properties";
 
@@ -40,7 +43,7 @@ public class Properties {
   /** 環境変数: Parameter Store の環境（dev または prod）. */
   private static final String ENV_ENVIRONMENT = "ENVIRONMENT";
 
-  private static final String ENVIRONMENT = resolveEnvironment();
+  private static final String ENVIRONMENT = resolveEnvironment(System::getenv);
 
   /** プロパティ. */
   private static final Map<String, String> properties = new HashMap<>();
@@ -120,12 +123,21 @@ public class Properties {
     return null;
   }
 
-  private static String resolveEnvironment() {
-    String v = trimOrNull(System.getenv(ENV_ENVIRONMENT));
+  /**
+   * 環境変数から Parameter Store の環境（dev または prod）を解決します。
+   *
+   * <p>ENVIRONMENT が設定されていればその値を使う。未設定で AWS_REGION に prod を含む場合は prod、それ以外は dev
+   * とする。環境変数の読み取りを引数で受け取り、テストで値を差し替えられるようにする。
+   *
+   * @param environment 環境変数を読む関数。本番では {@code System::getenv} を渡す
+   * @return 解決した環境名
+   */
+  static String resolveEnvironment(final UnaryOperator<String> environment) {
+    String v = trimOrNull(environment.apply(ENV_ENVIRONMENT));
     if (v != null) {
       return v;
     }
-    String region = trimOrNull(System.getenv(ENV_AWS_REGION));
+    String region = trimOrNull(environment.apply(ENV_AWS_REGION));
     if (region != null && region.contains("prod")) {
       return "prod";
     }
@@ -135,21 +147,14 @@ public class Properties {
   /**
    * 環境変数 AWS_REGION からリージョンを解決します。
    *
-   * <p>未設定、空、または解決できない値は既定の ap-northeast-1 にする。環境変数の読み取りを引数で受け取り、テストで値を差し替えられるようにする。
+   * <p>未設定または空の場合は既定の ap-northeast-1 にする。空白だけの値は空として扱う。環境変数の読み取りを引数で受け取り、テストで値を差し替えられるようにする。
    *
    * @param environment 環境変数を読む関数。本番では {@code System::getenv} を渡す
    * @return 解決したリージョン
    */
   static Region resolveS3Region(final UnaryOperator<String> environment) {
     String r = trimOrNull(environment.apply(ENV_AWS_REGION));
-    if (r != null) {
-      try {
-        return Region.of(r);
-      } catch (Exception e) {
-        log.warn("無効なリージョン '{}' のため {} を使用します。", r, Region.AP_NORTHEAST_1);
-      }
-    }
-    return Region.AP_NORTHEAST_1;
+    return r != null ? Region.of(r) : Region.AP_NORTHEAST_1;
   }
 
   /**
@@ -273,10 +278,9 @@ public class Properties {
         while ((line = reader.readLine()) != null) {
           // 行が空でなく、'='で区切られていればプロパティとして登録
           if (!line.trim().isEmpty() && line.contains("=")) {
+            // 上限を 2 にして分割するため、「=」を含む行は必ず 2 要素になる
             String[] keyValue = line.split("=", 2);
-            if (keyValue.length == 2) {
-              properties.put(keyValue[0].trim(), keyValue[1].trim());
-            }
+            properties.put(keyValue[0].trim(), keyValue[1].trim());
           }
         }
       }
@@ -372,17 +376,6 @@ public class Properties {
   public static Double getDouble(final String key) {
     String val = properties.get(key);
     return val != null ? Double.parseDouble(val) : 0.0;
-  }
-
-  /**
-   * 引数をキーにプロパティの値を文字配列で取得します.
-   *
-   * @param key キー
-   * @return 配列
-   */
-  public static String[] getAsArray(final String key) {
-    String value = properties.get(key);
-    return value != null ? value.split(",") : new String[0];
   }
 
   /**

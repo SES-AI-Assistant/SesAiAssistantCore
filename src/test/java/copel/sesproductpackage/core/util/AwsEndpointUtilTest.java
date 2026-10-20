@@ -1,147 +1,119 @@
 package copel.sesproductpackage.core.util;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-/**
- * {@link AwsEndpointUtil} の単体テスト。
- *
- * <p>システムプロパティ aws.endpointUrl はテストごとに退避して、環境に依存しないようにする。環境変数は読み取り関数を差し替えて確かめる。
- *
- * @author Copel Co., Ltd.
- */
+/** {@link AwsEndpointUtil} の単体テスト。 */
 class AwsEndpointUtilTest {
 
-  /** エンドポイントを指定するシステムプロパティのキー。 */
-  private static final String ENDPOINT_PROPERTY = "aws.endpointUrl";
+  /** テストで設定するシステムプロパティのキー。 */
+  private static final String PROPERTY_KEY = "aws.endpointUrl";
 
-  /** テストの前に退避する、システムプロパティ aws.endpointUrl の値。 */
-  private String originalEndpointUrl;
-
-  /** テストの前に退避し、システムプロパティ aws.endpointUrl を未設定にする。 */
-  @BeforeEach
-  void setUp() {
-    originalEndpointUrl = System.getProperty(ENDPOINT_PROPERTY);
-    System.clearProperty(ENDPOINT_PROPERTY);
-  }
-
-  /** テストの後に、システムプロパティ aws.endpointUrl を復元する。 */
   @AfterEach
-  void tearDown() {
-    if (originalEndpointUrl == null) {
-      System.clearProperty(ENDPOINT_PROPERTY);
-    } else {
-      System.setProperty(ENDPOINT_PROPERTY, originalEndpointUrl);
-    }
+  void システムプロパティを消す() {
+    System.clearProperty(PROPERTY_KEY);
   }
 
-  /** {@link AwsEndpointUtil#resolveEndpointUrl()} のテスト。 */
-  @Nested
-  class resolveEndpointUrl {
-
-    /** 正常系のテスト。 */
-    @Nested
-    class 正常系 {
-
-      /**
-       * AwsEndpointUtil#resolveEndpointUrl がシステムプロパティの値を前後の空白を除いて返すことを確かめる。
-       * 空白を含む値のままエンドポイントに使うと、接続先の URL が不正になるため。
-       *
-       * @given システムプロパティ aws.endpointUrl が " http://localhost:4566 "
-       * @when resolveEndpointUrl を引数なしで呼び出す
-       * @then "http://localhost:4566" を返す
-       */
-      @Test
-      void システムプロパティがある場合_トリム済みの値を返す() {
-        System.setProperty(ENDPOINT_PROPERTY, "  http://localhost:4566  ");
-
-        assertEquals("http://localhost:4566", AwsEndpointUtil.resolveEndpointUrl());
-      }
-    }
-  }
-
-  /** {@link AwsEndpointUtil#resolveEndpointUrl(java.util.function.UnaryOperator)} のテスト。 */
   @Nested
   class resolveEndpointUrl_UnaryOperator {
 
-    /** 正常系のテスト。 */
     @Nested
     class 正常系 {
 
       /**
-       * AwsEndpointUtil#resolveEndpointUrl が環境変数の値を前後の空白を除いて返すことを確かめる。
-       * システムプロパティがないローカル実行では、環境変数のエンドポイントを使うため。
+       * システムプロパティが設定されている場合は、環境変数より優先して前後の空白を除いた値を返すことを確かめる。
+       * 本番で接続先を指定できないと検証環境の接続ができないので、システムプロパティを優先する。
        *
-       * @given システムプロパティ aws.endpointUrl が未設定で、環境変数 AWS_ENDPOINT_URL が " http://env:4566 "
-       * @when resolveEndpointUrl を環境変数の関数で呼び出す
-       * @then "http://env:4566" を返す
+       * @given システムプロパティが " http://localhost:4566 "、環境変数が "http://env"
+       * @when resolveEndpointUrl を環境変数の関数つきで実行する
+       * @then 前後の空白を除いた "http://localhost:4566" を返す
        */
       @Test
-      void 環境変数だけがある場合_トリム済みの値を返す() {
-        String result =
-            AwsEndpointUtil.resolveEndpointUrl(
-                key -> Map.of("AWS_ENDPOINT_URL", " http://env:4566 ").get(key));
+      void システムプロパティが設定されている場合_前後の空白を除いたURLを返す() {
+        System.setProperty(PROPERTY_KEY, "  http://localhost:4566  ");
 
-        assertEquals("http://env:4566", result);
+        assertThat(AwsEndpointUtil.resolveEndpointUrl(key -> "http://env"))
+            .isEqualTo("http://localhost:4566");
+      }
+
+      /**
+       * システムプロパティが未設定の場合は環境変数の値を前後の空白を除いて返すことを確かめる。 環境変数だけの指定ができないと CI の設定が使えないので、環境変数でも指定できる。
+       *
+       * @given システムプロパティが未設定、環境変数が " http://env:4566 "
+       * @when resolveEndpointUrl を環境変数の関数つきで実行する
+       * @then 前後の空白を除いた "http://env:4566" を返す
+       */
+      @Test
+      void システムプロパティが未設定で環境変数が設定されている場合_環境変数の値を返す() {
+        assertThat(AwsEndpointUtil.resolveEndpointUrl(key -> " http://env:4566 "))
+            .isEqualTo("http://env:4566");
       }
     }
 
-    /** 境界値のテスト。 */
     @Nested
     class 境界値 {
 
       /**
-       * AwsEndpointUtil#resolveEndpointUrl がシステムプロパティが空白のとき環境変数を使うことを確かめる。
-       * 空白だけのシステムプロパティを採用すると、エンドポイントが空になるため。
+       * システムプロパティが空白のみの場合は環境変数の値を返すことを確かめる。 空の指定を有効な値として扱うと接続先が空になるので、環境変数へ戻す。
        *
-       * @given システムプロパティ aws.endpointUrl が空白 " "、環境変数 AWS_ENDPOINT_URL が "http://env:4566"
-       * @when resolveEndpointUrl を環境変数の関数で呼び出す
-       * @then "http://env:4566" を返す
+       * @given システムプロパティが " "、環境変数が "http://env"
+       * @when resolveEndpointUrl を環境変数の関数つきで実行する
+       * @then 環境変数の "http://env" を返す
        */
       @Test
-      void システムプロパティが空白の場合_環境変数の値を返す() {
-        System.setProperty(ENDPOINT_PROPERTY, "   ");
+      void システムプロパティが空白のみの場合_環境変数の値を返す() {
+        System.setProperty(PROPERTY_KEY, "   ");
 
-        String result =
-            AwsEndpointUtil.resolveEndpointUrl(
-                key -> Map.of("AWS_ENDPOINT_URL", "http://env:4566").get(key));
-
-        assertEquals("http://env:4566", result);
+        assertThat(AwsEndpointUtil.resolveEndpointUrl(key -> "http://env")).isEqualTo("http://env");
       }
 
       /**
-       * AwsEndpointUtil#resolveEndpointUrl が環境変数が空文字のとき null を返すことを確かめる。
-       * 空文字のエンドポイントを使うと接続先が決まらないため、既定の接続先に任せる。
+       * どちらも未設定の場合は null を返すことを確かめる。 接続先が無い状態を判定できないと誤った接続を試みるので、null を返す。
        *
-       * @given システムプロパティ aws.endpointUrl が未設定で、環境変数 AWS_ENDPOINT_URL が空文字 ""
-       * @when resolveEndpointUrl を環境変数の関数で呼び出す
+       * @given システムプロパティと環境変数が未設定
+       * @when resolveEndpointUrl を値を返さない環境変数の関数つきで実行する
        * @then null を返す
        */
       @Test
-      void 環境変数が空文字の場合_nullを返す() {
-        String result =
-            AwsEndpointUtil.resolveEndpointUrl(key -> Map.of("AWS_ENDPOINT_URL", "").get(key));
-
-        assertNull(result);
+      void どちらも未設定の場合_nullを返す() {
+        assertThat(AwsEndpointUtil.resolveEndpointUrl(key -> null)).isNull();
       }
 
       /**
-       * AwsEndpointUtil#resolveEndpointUrl がシステムプロパティも環境変数もないとき null を返すことを確かめる。
-       * 未設定は本番の既定の接続先を使う状態のため。
+       * 環境変数が空白のみの場合は null を返すことを確かめる。 空白の接続先を有効と扱うと接続に失敗するので、null を返す。
        *
-       * @given システムプロパティ aws.endpointUrl が未設定で、環境変数 AWS_ENDPOINT_URL が未設定
-       * @when resolveEndpointUrl を環境変数の関数で呼び出す
+       * @given システムプロパティが未設定、環境変数が " "
+       * @when resolveEndpointUrl を環境変数の関数つきで実行する
        * @then null を返す
        */
       @Test
-      void 両方が未設定の場合_nullを返す() {
-        assertNull(AwsEndpointUtil.resolveEndpointUrl(key -> null));
+      void 環境変数が空白のみの場合_nullを返す() {
+        assertThat(AwsEndpointUtil.resolveEndpointUrl(key -> "   ")).isNull();
+      }
+    }
+  }
+
+  @Nested
+  class resolveEndpointUrl {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 引数なしで呼んだ場合も、システムプロパティを前後の空白を除いて返すことを確かめる。 本番の環境変数を読む入口で解決規則が変わると接続先の選び方が変わるので、規則を固定する。
+       *
+       * @given システムプロパティが " http://x "
+       * @when 引数なしの resolveEndpointUrl を実行する
+       * @then 前後の空白を除いた "http://x" を返す
+       */
+      @Test
+      void システムプロパティが設定されている場合_前後の空白を除いたURLを返す() {
+        System.setProperty(PROPERTY_KEY, " http://x ");
+
+        assertThat(AwsEndpointUtil.resolveEndpointUrl()).isEqualTo("http://x");
       }
     }
   }

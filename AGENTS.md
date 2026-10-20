@@ -39,7 +39,7 @@
 ### 2.2 ドメイン・ユニット（`unit` パッケージ）
 
 **Value Object の徹底**:
-- `Money`, `Currency`, `OriginalDateTime` など、値とロジックをカプセル化したクラス（Domain Primitive）を積極的に利用してください
+- `Money`, `OriginalDateTime` など、値とロジックをカプセル化したクラス（Domain Primitive）を積極的に利用してください
 - プリミティブ型（String, int等）を直接扱うのではなく、可能な限り `unit` パッケージのクラスへ変換して扱います
 
 ### 2.3 外部API連携（`api` パッケージ）
