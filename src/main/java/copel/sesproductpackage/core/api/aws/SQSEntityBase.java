@@ -69,10 +69,22 @@ public abstract class SQSEntityBase {
    */
   @JsonIgnore
   public String getQueueName() {
-    if (this.queueUrl == null) {
+    return toQueueName(this.queueUrl);
+  }
+
+  /**
+   * キューURLからキュー名を取り出します.
+   *
+   * <p>送信するエンティティを作る前に、送信しない旨をログに残す場合に使う.
+   *
+   * @param queueUrl キューURL
+   * @return キュー名。キューURLが null の場合は null
+   */
+  public static String toQueueName(final String queueUrl) {
+    if (queueUrl == null) {
       return null;
     }
-    return this.queueUrl.substring(this.queueUrl.lastIndexOf('/') + 1);
+    return queueUrl.substring(queueUrl.lastIndexOf('/') + 1);
   }
 
   /**

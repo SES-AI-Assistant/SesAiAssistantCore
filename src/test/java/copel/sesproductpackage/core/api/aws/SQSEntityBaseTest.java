@@ -78,4 +78,10 @@ class SQSEntityBaseTest {
 
     assertNull(entity.getQueueName());
   }
+
+  @Test
+  void testToQueueName() {
+    assertEquals("queue-a", SQSEntityBase.toQueueName("https://sqs.test/123/queue-a"));
+    assertNull(SQSEntityBase.toQueueName(null));
+  }
 }

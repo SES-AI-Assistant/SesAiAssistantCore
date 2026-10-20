@@ -275,6 +275,19 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
   }
 
   /**
+   * 本文が処理対象となる長さかどうかを判定します.
+   *
+   * <p>件名を含めず本文だけで判定する。メール受信 Lambda が、200文字以下の本文を Register 用の SQS へ送らないために使う.
+   *
+   * @param body 本文
+   * @return 本文が {@code CONTENT_MIN_LENGTH_FOR_CLASSIFICATION}（200文字）を超える場合は true、null
+   *     または200文字以下の場合は false
+   */
+  public static boolean isProcessingTargetBody(final String body) {
+    return body != null && body.length() > CONTENT_MIN_LENGTH_FOR_CLASSIFICATION;
+  }
+
+  /**
    * このリクエストが処理対象であるかどうかを判定します（コンテンツ長チェック）.
    *
    * <p>メッセージ本文の場合、本文が {@code CONTENT_MIN_LENGTH_FOR_CLASSIFICATION}（200文字）以下なら処理対象外とし、Gemini を呼ばない。

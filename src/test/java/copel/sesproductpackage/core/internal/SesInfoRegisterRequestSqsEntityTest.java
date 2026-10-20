@@ -696,4 +696,22 @@ class SesInfoRegisterRequestSqsEntityTest {
 
     assertTrue(entity.isProcessingTarget());
   }
+
+  @Test
+  @DisplayName("isProcessingTargetBody() - 本文が201文字なら処理対象")
+  void testIsProcessingTargetBodyLongBody() {
+    assertTrue(SesInfoRegisterRequestSqsEntity.isProcessingTargetBody("a".repeat(201)));
+  }
+
+  @Test
+  @DisplayName("isProcessingTargetBody() - 本文が200文字なら処理対象外")
+  void testIsProcessingTargetBodyBoundary() {
+    assertFalse(SesInfoRegisterRequestSqsEntity.isProcessingTargetBody("a".repeat(200)));
+  }
+
+  @Test
+  @DisplayName("isProcessingTargetBody() - 本文が null なら処理対象外")
+  void testIsProcessingTargetBodyNull() {
+    assertFalse(SesInfoRegisterRequestSqsEntity.isProcessingTargetBody(null));
+  }
 }
