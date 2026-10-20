@@ -1,6 +1,7 @@
 package copel.sesproductpackage.core.api.aws;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -59,5 +60,28 @@ class SQSEntityBaseTest {
 
     SendMessageResult result = entity.sendMessage();
     assertEquals("mid123", result.getMessageId());
+  }
+
+  @Test
+  void testGetQueueName() {
+    TestSQSEntity entity =
+        new TestSQSEntity(
+            Regions.AP_NORTHEAST_1,
+            "https://sqs.ap-northeast-1.amazonaws.com/123456789012/NectarMessagingStack-RegisterQueue");
+
+    assertEquals("NectarMessagingStack-RegisterQueue", entity.getQueueName());
+  }
+
+  @Test
+  void testGetQueueNameWithNullUrl() {
+    TestSQSEntity entity = new TestSQSEntity(Regions.AP_NORTHEAST_1, null);
+
+    assertNull(entity.getQueueName());
+  }
+
+  @Test
+  void testToQueueName() {
+    assertEquals("queue-a", SQSEntityBase.toQueueName("https://sqs.test/123/queue-a"));
+    assertNull(SQSEntityBase.toQueueName(null));
   }
 }
