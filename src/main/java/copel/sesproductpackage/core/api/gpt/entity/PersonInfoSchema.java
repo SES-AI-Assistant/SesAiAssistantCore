@@ -187,7 +187,8 @@ public class PersonInfoSchema {
       sb.append("■年齢: ").append(this.age).append("歳\n");
     }
     // 2. 性別
-    sb.append("■性別: ").append(this.gender.toJapanese()).append("\n");
+    // 性別が未設定の場合は「-」と表示する
+    sb.append("■性別: ").append(this.gender != null ? this.gender.toJapanese() : "-").append("\n");
     // 3. 国籍
     sb.append("■国籍: ").append(this.nationality).append("\n");
     // 4. 稼働開始可能月
@@ -250,26 +251,7 @@ public class PersonInfoSchema {
    * @return OriginalDateTime
    */
   public OriginalDateTime getStartDateAsOriginalDateTime() {
-    if (this.startYearMonth == null) {
-      OriginalDateTime now = new OriginalDateTime();
-      return OriginalDateTime.fromMonth(
-          now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
-    }
-    String[] parts = this.startYearMonth.split("/");
-    if (parts.length == 2) {
-      try {
-        int year = Integer.parseInt(parts[0]);
-        int month = Integer.parseInt(parts[1]);
-        return OriginalDateTime.fromMonth(year, month);
-      } catch (NumberFormatException e) {
-        OriginalDateTime now = new OriginalDateTime();
-        return OriginalDateTime.fromMonth(
-            now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
-      }
-    }
-    OriginalDateTime now = new OriginalDateTime();
-    return OriginalDateTime.fromMonth(
-        now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
+    return OriginalDateTime.fromYearMonthText(this.startYearMonth);
   }
 
   /**

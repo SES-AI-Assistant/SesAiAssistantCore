@@ -30,19 +30,4 @@ public enum GeminiModel implements GptModel {
   public String getModelName() {
     return modelName;
   }
-
-  /**
-   * 指定されたモデル名に対応するGeminiModelを返します。 見つからない場合はnullを返します。
-   *
-   * @param modelName モデル名
-   * @return GeminiModelまたはnull
-   */
-  public static GeminiModel fromModelName(String modelName) {
-    for (GeminiModel model : GeminiModel.values()) {
-      if (model.getModelName().equals(modelName)) {
-        return model;
-      }
-    }
-    return null;
-  }
 }

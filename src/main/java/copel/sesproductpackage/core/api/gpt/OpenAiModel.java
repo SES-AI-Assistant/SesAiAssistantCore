@@ -17,19 +17,4 @@ public enum OpenAiModel implements GptModel {
   public String getModelName() {
     return modelName;
   }
-
-  /**
-   * 指定されたモデル名に対応するOpenAIModelを返します。 見つからない場合はnullを返します。
-   *
-   * @param modelName モデル名
-   * @return OpenAIModelまたはnull
-   */
-  public static OpenAiModel fromModelName(String modelName) {
-    for (OpenAiModel model : OpenAiModel.values()) {
-      if (model.getModelName().equals(modelName)) {
-        return model;
-      }
-    }
-    return null;
-  }
 }

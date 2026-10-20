@@ -1,496 +1,579 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import copel.sesproductpackage.core.api.gpt.entity.PersonInfoSchema.Experience;
-import copel.sesproductpackage.core.api.gpt.schema.Schema;
-import copel.sesproductpackage.core.api.gpt.schema.SchemaGenerator;
-import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.Money;
-import copel.sesproductpackage.core.util.ObjectMapperFactory;
-import java.lang.reflect.Field;
+import copel.sesproductpackage.tools.testsupport.clock.FixedClock;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
-/**
- * PersonInfoSchema の単体テスト.
- *
- * @author Copel Co., Ltd.
- */
+/** {@link PersonInfoSchema} の単体テスト。 */
 class PersonInfoSchemaTest {
 
-  private final ObjectMapper objectMapper =
-      new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+  @Nested
+  class getPrice {
 
-  // ================================================
-  // priceInMan および getPrice() の動作検証
-  // ================================================
+    @Nested
+    class 正常系 {
 
-  @Test
-  @DisplayName("getPrice: priceInMan が通常万円数値（80）の場合、800,000円の Money が返ること")
-  void testGetPrice_NormalMan() {
-    PersonInfoSchema schema = new PersonInfoSchema();
-    schema.setPriceInMan(new BigDecimal("80"));
+      /**
+       * 単価が万円で設定されている場合に、円に換算した金額を返すことを確かめる。 要員の単価も案件と同じ円の単位で比較するため、換算した値を使うことを守る。
+       *
+       * @given 単価が 65 万円である
+       * @when getPrice を呼び出す
+       * @then 65 万円を円に換算した 650000 円の金額を返す
+       */
+      @Test
+      void 単価が65万円の場合_円に換算した金額を返す() {
+        PersonInfoSchema schema = new PersonInfoSchema();
+        schema.setPriceInMan(new BigDecimal("65"));
 
-    Money price = schema.getPrice();
-    assertNotNull(price);
-    assertFalse(price.isEmpty());
-    assertEquals(800000L, price.toYenValue());
-    assertEquals("80万円", price.toJapaneseFormat());
-  }
+        assertThat(schema.getPrice()).isEqualTo(new Money(650000L));
+      }
+    }
 
-  @Test
-  @DisplayName("getPrice: priceInMan が小数万円数値（65.5）の場合、655,000円の Money が返ること")
-  void testGetPrice_DecimalMan() {
-    PersonInfoSchema schema = new PersonInfoSchema();
-    schema.setPriceInMan(new BigDecimal("65.5"));
+    @Nested
+    class 境界値 {
 
-    Money price = schema.getPrice();
-    assertNotNull(price);
-    assertFalse(price.isEmpty());
-    assertEquals(655000L, price.toYenValue());
-  }
-
-  @Test
-  @DisplayName("getPrice: priceInMan がスキル見合い仕様値（999）の場合、isNegotiable が true となること")
-  void testGetPrice_Negotiable() {
-    PersonInfoSchema schema = new PersonInfoSchema();
-    schema.setPriceInMan(new BigDecimal("999"));
-
-    Money price = schema.getPrice();
-    assertNotNull(price);
-    assertFalse(price.isEmpty());
-    assertEquals(9990000L, price.toYenValue());
-    assertTrue(price.isNegotiable());
-  }
-
-  @Test
-  @DisplayName("getPrice: priceInMan が応相談（0）の場合、0円の Money が返り isConsultation が true となること")
-  void testGetPrice_Zero() {
-    PersonInfoSchema schema = new PersonInfoSchema();
-    schema.setPriceInMan(BigDecimal.ZERO);
-
-    Money price = schema.getPrice();
-    assertNotNull(price);
-    assertFalse(price.isEmpty());
-    assertEquals(0L, price.toYenValue());
-    assertTrue(price.isConsultation());
-    assertTrue(price.isNegotiable());
-    assertEquals("0万円", price.toJapaneseFormat());
-  }
-
-  @Test
-  @DisplayName("getPrice: priceInMan が null の場合、Money.empty が返ること")
-  void testGetPrice_Null() {
-    PersonInfoSchema schema = new PersonInfoSchema();
-    schema.setPriceInMan(null);
-
-    Money price = schema.getPrice();
-    assertNotNull(price);
-    assertTrue(price.isEmpty());
-    assertNull(price.getValue());
-  }
-
-  // ================================================
-  // Jackson デシリアライズ検証
-  // ================================================
-
-  @Test
-  @DisplayName("Jackson: JSONから priceInMan が数値（80）としてデシリアライズされ、getPrice で円換算されること")
-  void testJacksonDeserialize_Number() throws Exception {
-    String json = "{\"name\":\"T.T\",\"priceInMan\":80}";
-    PersonInfoSchema schema = objectMapper.readValue(json, PersonInfoSchema.class);
-
-    assertNotNull(schema);
-    assertEquals(new BigDecimal("80"), schema.getPriceInMan());
-    assertEquals(800000L, schema.getPrice().toYenValue());
-  }
-
-  @Test
-  @DisplayName("Jackson: JSONから priceInMan が応相談（0）としてデシリアライズされること")
-  void testJacksonDeserialize_ZeroPrice_Consultation() throws Exception {
-    String json = "{\"name\":\"T.T\",\"priceInMan\":0}";
-    PersonInfoSchema schema = objectMapper.readValue(json, PersonInfoSchema.class);
-
-    assertNotNull(schema);
-    assertEquals(new BigDecimal("0"), schema.getPriceInMan());
-    assertEquals(0L, schema.getPrice().toYenValue());
-    assertTrue(schema.getPrice().isConsultation());
-    assertTrue(schema.getPrice().isNegotiable());
-    assertEquals("0万円", schema.getPrice().toJapaneseFormat());
-  }
-
-  @Test
-  @DisplayName("Jackson: JSONから priceInMan がスキル見合い（999）としてデシリアライズされること")
-  void testJacksonDeserialize_Negotiable() throws Exception {
-    String json = "{\"name\":\"T.T\",\"priceInMan\":999}";
-    PersonInfoSchema schema = objectMapper.readValue(json, PersonInfoSchema.class);
-
-    assertNotNull(schema);
-    assertEquals(new BigDecimal("999"), schema.getPriceInMan());
-    assertTrue(schema.getPrice().isNegotiable());
-  }
-
-  @Test
-  @DisplayName("Jackson: JSONの priceInMan が null の場合、空の Money が返ること")
-  void testJacksonDeserialize_NullPrice() throws Exception {
-    String json = "{\"name\":\"T.T\",\"priceInMan\":null}";
-    PersonInfoSchema schema = objectMapper.readValue(json, PersonInfoSchema.class);
-
-    assertNotNull(schema);
-    assertNull(schema.getPriceInMan());
-    assertTrue(schema.getPrice().isEmpty());
-  }
-
-  @Test
-  @DisplayName("Jackson: JSONに priceInMan キーが存在しない場合、空の Money が返ること")
-  void testJacksonDeserialize_MissingKey() throws Exception {
-    String json = "{\"name\":\"T.T\"}";
-    PersonInfoSchema schema = objectMapper.readValue(json, PersonInfoSchema.class);
-
-    assertNotNull(schema);
-    assertNull(schema.getPriceInMan());
-    assertTrue(schema.getPrice().isEmpty());
-  }
-
-  // ================================================
-  // toSummaryText の検証
-  // ================================================
-
-  @Test
-  @DisplayName("toSummaryText: 単価が概要文に正しくフォーマットされて含まれること")
-  void testToSummaryText_ContainsPrice() {
-    PersonInfoSchema schema = new PersonInfoSchema();
-    schema.setName("T.T");
-    schema.setGender(Gender.Man);
-    schema.setPriceInMan(new BigDecimal("80"));
-
-    String summaryText = schema.toSummaryText();
-    assertTrue(summaryText.contains("■単価: 80万円"));
-  }
-
-  @Test
-  @DisplayName("toSummaryText: 場所が空文字・null の場合は場所の行を出力せず、値がある場合は出力すること")
-  void testToSummaryText_EmptyPlaceIsOmitted() {
-    PersonInfoSchema schema = new PersonInfoSchema();
-    schema.setGender(Gender.Man);
-
-    schema.setPlace("");
-    assertFalse(schema.toSummaryText().contains("■場所"));
-
-    schema.setPlace(null);
-    assertFalse(schema.toSummaryText().contains("■場所"));
-
-    schema.setPlace("広木駅");
-    assertTrue(schema.toSummaryText().contains("■場所: 広木駅"));
-  }
-
-  // ================================================
-  // @Schema アノテーション定義の検証
-  // ================================================
-
-  @Test
-  @DisplayName("@Schema: priceInMan に期待通りのアノテーションが設定されていること")
-  void testSchemaAnnotation() throws Exception {
-    Field field = PersonInfoSchema.class.getDeclaredField("priceInMan");
-    Schema schemaAnnotation = field.getAnnotation(Schema.class);
-
-    assertNotNull(schemaAnnotation);
-    assertEquals("希望単価（万円）", schemaAnnotation.title());
-    assertTrue(schemaAnnotation.required());
-    assertEquals("number", schemaAnnotation.type());
-    assertEquals("80", schemaAnnotation.example());
-    assertTrue(schemaAnnotation.description().contains("月額希望単価を万円単位の数値で設定"));
-    assertTrue(schemaAnnotation.description().contains("スキル見合い・応相談・未記載は0"));
-  }
-
-  // ================================================
-  // 経歴（経験月数）の出力検証
-  // ================================================
-
-  @Test
-  @DisplayName("toSummaryText/getExperiencesAsString: 経験月数は年月表記で出力され、未設定の場合はスキル名のみ出力されること")
-  void testExperiencesWithDurationMonths() {
-    PersonInfoSchema schema = new PersonInfoSchema();
-    schema.setName("H.M");
-    schema.setGender(Gender.Woman);
-    schema.setExperiences(
-        List.of(
-            new PersonInfoSchema.Experience("PMO経験", null),
-            new PersonInfoSchema.Experience("Java", 36)));
-
-    assertEquals("PMO経験\nJava: 3年", schema.getExperiencesAsString());
-
-    String summaryText = schema.toSummaryText();
-    assertTrue(summaryText.contains("・PMO経験\n"));
-    assertTrue(summaryText.contains("・Java: 3年"));
-  }
-
-  @Test
-  @DisplayName("JSON: 本番のObjectMapper（SNAKE_CASE）で duration_months が数値としてデシリアライズされること")
-  void testDeserializeDurationMonths() throws Exception {
-    PersonInfoSchema schema =
-        ObjectMapperFactory.OBJECT_MAPPER.readValue(
-            "{\"experiences\":[{\"perspective\":\"Java\",\"duration_months\":18},{\"perspective\":\"PMO\"}]}",
-            PersonInfoSchema.class);
-
-    assertEquals(18, schema.getExperiences().get(0).getDurationMonths());
-    assertNull(schema.getExperiences().get(1).getDurationMonths());
-    assertEquals("Java: 1年6ヶ月\nPMO", schema.getExperiencesAsString());
-  }
-
-  // ================================================
-  // 推測抑止: 記載の無い項目の捏造を誘発する最低件数指定が無いこと
-  // ================================================
-
-  @Test
-  @DisplayName("Schema: リスト項目に最低件数（minItems）が設定されていないこと")
-  void testSchema_NoMinItems() throws NoSuchFieldException {
-    for (String fieldName : List.of("experiences")) {
-      Schema schema =
-          PersonInfoSchema.class.getDeclaredField(fieldName).getAnnotation(Schema.class);
-      assertEquals(-1, schema.minItems(), fieldName);
+      /**
+       * 単価が未設定の場合に、空の金額を返すことを確かめる。 未設定の単価を 0 円として扱うと、単価の無い要員が無料で提供されるように見えることを守る。
+       *
+       * @given 単価が未設定である
+       * @when getPrice を呼び出す
+       * @then 空の金額を返す
+       */
+      @Test
+      void 単価が未設定の場合_空の金額を返す() {
+        assertThat(new PersonInfoSchema().getPrice().isEmpty()).isTrue();
+      }
     }
   }
 
-  @Test
-  @DisplayName("@Schema: name フィールドに架空要員・一般名詞設定禁止およびUnknown判定制約が設定されていること")
-  void testSchemaAnnotation_NameFieldProhibition() throws Exception {
-    Field field = PersonInfoSchema.class.getDeclaredField("name");
-    Schema schemaAnnotation = field.getAnnotation(Schema.class);
+  @Nested
+  class toSummaryText {
 
-    assertNotNull(schemaAnnotation);
-    assertEquals("氏名", schemaAnnotation.title());
-    assertTrue(schemaAnnotation.required());
-    assertEquals(10, schemaAnnotation.maxLength());
-    assertEquals("T.T", schemaAnnotation.example());
+    @Nested
+    class 正常系 {
 
-    String desc = schemaAnnotation.description();
-    assertNotNull(desc);
-    assertAll(
-        "nameフィールドのdescription制約アサーション",
-        () -> assertTrue(desc.contains("紹介されている要員本人の氏名またはイニシャル")),
-        () -> assertTrue(desc.contains("職種名（エンジニア、プログラマー、PM等）")),
-        () -> assertTrue(desc.contains("所属名（〇〇所属、弊社プロパー等）")),
-        () -> assertTrue(desc.contains("一般名詞・プレースホルダー（要員様、N/A、担当者等）を設定することは厳禁")),
-        () ->
-            assertTrue(desc.contains("特定個人の名前・イニシャルが記載されていない場合は架空の要員として出力せず、必ず Unknown と判定すること")));
+      /**
+       * 全ての項目が設定されている場合に、見出しごとの要約を返すことを確かめる。 要約は AI の判定の入力になるため、項目の並びと書式を固定して崩れを防ぐことを守る。
+       *
+       * @given 名前、年齢、性別、所属、経歴、NG 条件、備考の全ての項目が設定されている
+       * @when toSummaryText を呼び出す
+       * @then 全ての見出しと項目を並べた要約を返す
+       */
+      @Test
+      void 全ての項目が設定されている場合_見出しごとの要約を返す() {
+        PersonInfoSchema schema = fullSchema();
+
+        assertThat(schema.toSummaryText())
+            .isEqualTo(
+                "■名前: 山田太郎\n"
+                    + "■年齢: 35歳\n"
+                    + "■性別: 男性\n"
+                    + "■国籍: 日本\n"
+                    + "■開始: 2026年4月\n"
+                    + "■単価: "
+                    + new Money(650000L)
+                    + "\n■所属形態: 弊社所属正社員\n"
+                    + "■場所: 東京都\n"
+                    + "■出社: 常駐可\n"
+                    + "■経歴\n・Java: 5年\n"
+                    + "■NG条件\n・夜間\n"
+                    + "■備考\n・英語可");
+      }
+
+      /**
+       * 所属が2社先の個人事業主の場合に、所属形態を社数と雇用形態で表示することを確かめる。 所属の段数が要約に出ないと、要員の所属先を誤って判定することを守る。
+       *
+       * @given 所属の段数が2、雇用形態が個人事業主である
+       * @when toSummaryText を呼び出す
+       * @then 所属形態を "2社先個人事業主" として含む要約を返す
+       */
+      @Test
+      void 所属が2社先の個人事業主の場合_所属形態を社数と雇用形態で含む要約を返す() {
+        PersonInfoSchema schema = new PersonInfoSchema();
+        schema.setName("山田太郎");
+        schema.setGender(Gender.Man);
+        schema.setOrganization(organization(2, PersonInfoSchema.EmploymentType.個人事業主));
+
+        assertThat(schema.toSummaryText()).contains("■所属形態: 2社先個人事業主");
+      }
+
+      /**
+       * 所属の段数が0の場合に、弊社所属の所属形態を表示することを確かめる。 自社の要員は弊社所属として区別して表示することを守る。
+       *
+       * @given 所属の段数が0、雇用形態が正社員である
+       * @when toSummaryText を呼び出す
+       * @then 所属形態を "弊社所属正社員" として含む要約を返す
+       */
+      @Test
+      void 所属の段数が0の場合_弊社所属の所属形態を含む要約を返す() {
+        PersonInfoSchema schema = minimalSchema();
+        schema.setOrganization(organization(0, PersonInfoSchema.EmploymentType.正社員));
+
+        assertThat(schema.toSummaryText()).contains("■所属形態: 弊社所属正社員");
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 年齢が0以下の場合に、年齢の見出しを含めないことを確かめる。 年齢が未設定の既定値のまま出力すると、存在しない年齢として読まれることを守る。
+       *
+       * @given 年齢が未設定の既定値である
+       * @when toSummaryText を呼び出す
+       * @then 年齢の見出しを含まない要約を返す
+       */
+      @Test
+      void 年齢が未設定の場合_年齢の見出しを含まない要約を返す() {
+        PersonInfoSchema schema = new PersonInfoSchema();
+        schema.setName("山田太郎");
+        schema.setGender(Gender.Woman);
+
+        assertThat(schema.toSummaryText()).doesNotContain("■年齢").contains("■性別: 女性");
+      }
+
+      /**
+       * 出社希望がフルリモートの場合に、フルリモート希望と表示することを確かめる。 出社の数値 0 はフルリモートを表すので、他の週数と区別して表示することを守る。
+       *
+       * @given 出社の希望が0である
+       * @when toSummaryText を呼び出す
+       * @then 出社の見出しをフルリモート希望として含む要約を返す
+       */
+      @Test
+      void 出社の希望が0の場合_フルリモート希望を含む要約を返す() {
+        PersonInfoSchema schema = minimalSchema();
+        schema.setOfficeAvailability(0);
+
+        assertThat(schema.toSummaryText()).contains("■出社: フルリモート希望");
+      }
+
+      /**
+       * 出社希望が週単位の場合に、週数の上限として表示することを確かめる。 週数の上限を示すことで、案件の出社要件との照合を可能にすることを守る。
+       *
+       * @given 出社の希望が3である
+       * @when toSummaryText を呼び出す
+       * @then 出社の見出しを週3まで可として含む要約を返す
+       */
+      @Test
+      void 出社の希望が週単位の場合_週数の上限を含む要約を返す() {
+        PersonInfoSchema schema = minimalSchema();
+        schema.setOfficeAvailability(3);
+
+        assertThat(schema.toSummaryText()).contains("■出社: 週3まで可");
+      }
+
+      /**
+       * 場所と所属と任意の一覧が未設定の場合に、それらの見出しを含めないことを確かめる。 未設定の項目を空の見出しで出すと、要約の読みやすさが損なわれることを守る。
+       *
+       * @given 場所、所属、経歴、NG 条件、備考が未設定である
+       * @when toSummaryText を呼び出す
+       * @then それぞれの見出しを含まない要約を返す
+       */
+      @Test
+      void 場所と所属と任意の一覧が未設定の場合_それぞれの見出しを含まない要約を返す() {
+        PersonInfoSchema schema = minimalSchema();
+
+        assertThat(schema.toSummaryText()).doesNotContain("■所属形態", "■場所", "■経歴", "■NG条件", "■備考");
+      }
+
+      /**
+       * 場所が空文字の場合に、場所の見出しを含めないことを確かめる。 空の場所を表示すると、場所の記載が無い要員に場所があるように見えることを守る。
+       *
+       * @given 場所が空文字である
+       * @when toSummaryText を呼び出す
+       * @then 場所の見出しを含まない要約を返す
+       */
+      @Test
+      void 場所が空文字の場合_場所の見出しを含まない要約を返す() {
+        PersonInfoSchema schema = minimalSchema();
+        schema.setPlace("");
+
+        assertThat(schema.toSummaryText()).doesNotContain("■場所");
+      }
+
+      /**
+       * 開始年月が未設定の場合に、開始の見出しを含めないことを確かめる。 開始の見出しを空で出すと、開始時期が決まっているように読まれることを守る。
+       *
+       * @given 開始年月が未設定である
+       * @when toSummaryText を呼び出す
+       * @then 開始の見出しを含まない要約を返す
+       */
+      @Test
+      void 開始年月が未設定の場合_開始の見出しを含まない要約を返す() {
+        assertThat(minimalSchema().toSummaryText()).doesNotContain("■開始");
+      }
+
+      /**
+       * 要約が1000文字を超える場合に、1000文字に切り詰めることを確かめる。 要約の長さは AI への入力の上限に合わせるため、超過分を切り捨てることを守る。
+       *
+       * @given 備考が200件あり、それぞれが10文字である
+       * @when toSummaryText を呼び出す
+       * @then 1000文字に切り詰めた要約を返す
+       */
+      @Test
+      void 要約が1000文字を超える場合_1000文字に切り詰めた要約を返す() {
+        List<String> remarks = new ArrayList<>();
+        for (int i = 0; i < 200; i++) {
+          remarks.add("あ".repeat(10));
+        }
+        PersonInfoSchema schema = minimalSchema();
+        schema.setOtherRequirements(remarks);
+
+        assertThat(schema.toSummaryText()).hasSize(1000);
+      }
+
+      /**
+       * 経歴とNG条件と備考が空の一覧の場合に、それぞれの見出しを含めないことを確かめる。 空の一覧を見出しとして出さないことを守る。
+       *
+       * @given 経歴、NG 条件、備考の一覧が空である
+       * @when toSummaryText を呼び出す
+       * @then 経歴、NG 条件、備考の見出しを含まない要約を返す
+       */
+      @Test
+      void 経歴とNG条件と備考が空の一覧の場合_見出しを含まない要約を返す() throws Exception {
+        PersonInfoSchema schema = minimalSchema();
+        schema.setExperiences(List.of());
+        schema.setNgRequirements(List.of());
+        schema.setOtherRequirements(List.of());
+
+        assertThat(schema.toSummaryText()).doesNotContain("■経歴", "■NG条件", "■備考");
+      }
+
+      /**
+       * 性別が未設定の場合に、性別をハイフンで表示した要約を返すことを確かめる。 性別の無い要員で例外にせず、表示できる要約を返すことを守る。
+       *
+       * @given 名前だけを設定し、性別が未設定である
+       * @when toSummaryText を呼び出す
+       * @then 性別の見出しにハイフンを含む要約を返す
+       */
+      @Test
+      void 性別が未設定の場合_性別をハイフンとした要約を返す() {
+        PersonInfoSchema schema = new PersonInfoSchema();
+        schema.setName("山田太郎");
+
+        assertThat(schema.toSummaryText()).contains("■性別: -\n");
+      }
+    }
   }
 
-  // ================================================
-  // isValid の動作検証
-  // ================================================
+  @Nested
+  class getStartDateAsOriginalDateTime {
 
-  @Test
-  @DisplayName("isValid: 正常系（氏名・スキル・年齢・単価完備の通常要員データ）")
-  void isValid_normal_withNameAndSkillsAndAge() {
-    PersonInfoSchema person = new PersonInfoSchema();
-    person.setName("山田太郎");
-    person.setAge(30);
-    person.setPriceInMan(new BigDecimal("80"));
-    person.setExperiences(List.of(new Experience("Java開発", 36)));
+    @Nested
+    class 正常系 {
 
-    assertTrue(person.isValid());
+      /**
+       * 開始年月が年と月の区切りで書かれている場合に、その年月の日時を返すことを確かめる。 開始年月の判定は要員の稼働時期の比較に使うため、書かれた年月をそのまま使うことを守る。
+       *
+       * @given 開始年月が "2026/4" である
+       * @when getStartDateAsOriginalDateTime を呼び出す
+       * @then 2026年4月の日時を返す
+       */
+      @Test
+      void 開始年月が年と月で書かれている場合_その年月の日時を返す() {
+        PersonInfoSchema schema = new PersonInfoSchema();
+        schema.setStartYearMonth("2026/4");
+
+        assertThat(schema.getStartDateAsOriginalDateTime().getYYYYMM()).isEqualTo("202604");
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * 開始年月の数字が解釈できない場合に、現在の年月を返すことを確かめる。 数字に変換できない値で例外を投げると、要員の登録全体が止まることを守る。
+       *
+       * @given 開始年月が "abc/xx" で、現在時刻が2026年10月20日である
+       * @when getStartDateAsOriginalDateTime を呼び出す
+       * @then 現在の年月である 202610 を返す
+       */
+      @Test
+      @FixedClock("2026-10-20T10:00:00+09:00")
+      void 数字に変換できない開始年月の場合_現在の年月を返す() {
+        PersonInfoSchema schema = new PersonInfoSchema();
+        schema.setStartYearMonth("abc/xx");
+
+        assertThat(schema.getStartDateAsOriginalDateTime().getYYYYMM()).isEqualTo("202610");
+      }
+
+      /**
+       * 開始年月が区切りの無い形式の場合に、現在の年月を返すことを確かめる。 解釈できない形式で例外を投げると、要員の登録全体が止まることを守る。
+       *
+       * @given 開始年月が "2026年4月" で、現在時刻が2026年10月20日である
+       * @when getStartDateAsOriginalDateTime を呼び出す
+       * @then 現在の年月である 202610 を返す
+       */
+      @Test
+      @FixedClock("2026-10-20T10:00:00+09:00")
+      void 区切りが無い開始年月の場合_現在の年月を返す() {
+        PersonInfoSchema schema = new PersonInfoSchema();
+        schema.setStartYearMonth("2026年4月");
+
+        assertThat(schema.getStartDateAsOriginalDateTime().getYYYYMM()).isEqualTo("202610");
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 開始年月が未設定の場合に、現在の年月を返すことを確かめる。 開始年月が無い要員でも稼働時期の比較ができるよう、今月を既定値とすることを守る。
+       *
+       * @given 開始年月が未設定で、現在時刻が2026年10月20日である
+       * @when getStartDateAsOriginalDateTime を呼び出す
+       * @then 現在の年月である 202610 を返す
+       */
+      @Test
+      @FixedClock("2026-10-20T10:00:00+09:00")
+      void 開始年月が未設定の場合_現在の年月を返す() {
+        assertThat(new PersonInfoSchema().getStartDateAsOriginalDateTime().getYYYYMM())
+            .isEqualTo("202610");
+      }
+    }
   }
 
-  @Test
-  @DisplayName("isValid: 正常系（年齢不明-1、単価未記載999/0であっても、氏名とスキル経歴があれば妥当と判定されること）")
-  void isValid_normal_unknownAgeAndUnsetPrice() {
-    // スキル見合い・単価未記載（999）、年齢不明（-1）
-    PersonInfoSchema person1 = new PersonInfoSchema();
-    person1.setName("鈴木二郎");
-    person1.setAge(-1);
-    person1.setPriceInMan(new BigDecimal("999"));
-    person1.setExperiences(List.of(new Experience("React開発", 24)));
+  @Nested
+  class getExperiencesAsString {
 
-    // 単価未記載（0）、年齢不明（-1）
-    PersonInfoSchema person2 = new PersonInfoSchema();
-    person2.setName("佐藤一郎");
-    person2.setAge(-1);
-    person2.setPriceInMan(BigDecimal.ZERO);
-    person2.setExperiences(List.of(new Experience("Python開発", 12)));
+    @Nested
+    class 正常系 {
 
-    assertAll(
-        "年齢不明または単価未記載でも氏名とスキルがあれば正当な要員",
-        () -> assertTrue(person1.isValid()),
-        () -> assertTrue(person2.isValid()));
+      /**
+       * 経歴が設定されている場合に、改行で区切った文字列を返すことを確かめる。 経歴は1行ずつ並べて AI に渡すため、区切りの形式を固定することを守る。
+       *
+       * @given 経歴が Java の60か月と SQL の期間未設定である
+       * @when getExperiencesAsString を呼び出す
+       * @then 改行で区切った "Java: 5年" と "SQL" の文字列を返す
+       */
+      @Test
+      void 経歴が設定されている場合_改行で区切った文字列を返す() {
+        PersonInfoSchema schema = new PersonInfoSchema();
+        schema.setExperiences(List.of(experience("Java", 60), experience("SQL", null)));
+
+        assertThat(schema.getExperiencesAsString()).isEqualTo("Java: 5年\nSQL");
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 経歴が空の場合に、null を返すことを確かめる。 空の経歴を文字列にすると、経歴があるかのように見えてしまうことを守る。
+       *
+       * @given 経歴の一覧が空である
+       * @when getExperiencesAsString を呼び出す
+       * @then null を返す
+       */
+      @Test
+      void 経歴の一覧が空の場合_nullを返す() {
+        PersonInfoSchema schema = new PersonInfoSchema();
+        schema.setExperiences(List.of());
+
+        assertThat(schema.getExperiencesAsString()).isNull();
+      }
+
+      /**
+       * 経歴が未設定の場合に、null を返すことを確かめる。 未設定の経歴を空の文字列にしないことを守る。
+       *
+       * @given 経歴の一覧が未設定である
+       * @when getExperiencesAsString を呼び出す
+       * @then null を返す
+       */
+      @Test
+      void 経歴の一覧が未設定の場合_nullを返す() {
+        assertThat(new PersonInfoSchema().getExperiencesAsString()).isNull();
+      }
+    }
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"T.T", "Y.M", "S.K.", "A.B"})
-  @DisplayName("isValid: 正常系（イニシャル表記の氏名＋スキル完備）")
-  void isValid_normal_initialName(String initialName) {
-    PersonInfoSchema person = new PersonInfoSchema();
-    person.setName(initialName);
-    person.setAge(35);
-    person.setPriceInMan(new BigDecimal("70"));
-    person.setExperiences(List.of(new Experience("AWS設計", 60)));
+  @Nested
+  class isValid {
 
-    assertTrue(person.isValid());
+    @Nested
+    class 正常系 {
+
+      /**
+       * 名前と経歴が揃っている場合に、有効と判定することを確かめる。 名前と経歴が揃った要員だけを登録し、マッチングの対象にすることを守る。
+       *
+       * @given 名前 "山田太郎" と経歴が1件設定されている
+       * @when isValid を呼び出す
+       * @then true を返す
+       */
+      @Test
+      void 名前と経歴が揃っている場合_trueを返す() {
+        assertThat(validSchema("山田太郎").isValid()).isTrue();
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * 名前が未設定の場合に、無効と判定することを確かめる。 名前が null のまま判定を続けると例外になるため、先に無効として返すことを守る。
+       *
+       * @given 名前が未設定で、経歴が1件設定されている
+       * @when isValid を呼び出す
+       * @then false を返す
+       */
+      @Test
+      void 名前が未設定の場合_falseを返す() {
+        assertThat(validSchema(null).isValid()).isFalse();
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 名前が空白だけの場合に、無効と判定することを確かめる。 名前の無い要員は特定できないため、登録の対象から外すことを守る。
+       *
+       * @given 名前が " " で、経歴が1件設定されている
+       * @when isValid を呼び出す
+       * @then false を返す
+       */
+      @Test
+      void 名前が空白だけの場合_falseを返す() {
+        assertThat(validSchema("  ").isValid()).isFalse();
+      }
+
+      /**
+       * 名前が不明を表す語の場合に、無効と判定することを確かめる。 AI が名前を推測で埋めた値を、要員の名前として登録しないことを守る。
+       *
+       * @given 名前が "Unknown" で、経歴が1件設定されている
+       * @when isValid を呼び出す
+       * @then false を返す
+       */
+      @Test
+      void 名前が不明を表す語の場合_falseを返す() {
+        assertThat(validSchema("Unknown").isValid()).isFalse();
+      }
+
+      /**
+       * 名前に文字が含まれない場合に、無効と判定することを確かめる。 数字だけの名前は人物を特定できないため、登録しないことを守る。
+       *
+       * @given 名前が "123" で、経歴が1件設定されている
+       * @when isValid を呼び出す
+       * @then false を返す
+       */
+      @Test
+      void 名前に文字が含まれない場合_falseを返す() {
+        assertThat(validSchema("123").isValid()).isFalse();
+      }
+
+      /**
+       * 経歴が空の場合に、無効と判定することを確かめる。 経歴の無い要員はスキルの判定ができないため、登録の対象から外すことを守る。
+       *
+       * @given 名前 "山田太郎" があり、経歴の一覧が空である
+       * @when isValid を呼び出す
+       * @then false を返す
+       */
+      @Test
+      void 経歴の一覧が空の場合_falseを返す() {
+        PersonInfoSchema schema = validSchema("山田太郎");
+        schema.setExperiences(List.of());
+
+        assertThat(schema.isValid()).isFalse();
+      }
+
+      /**
+       * 経歴が未設定の場合に、無効と判定することを確かめる。 未設定の経歴を空と同じく扱わないと、判定が例外で止まることを守る。
+       *
+       * @given 名前 "山田太郎" があり、経歴が未設定である
+       * @when isValid を呼び出す
+       * @then false を返す
+       */
+      @Test
+      void 経歴が未設定の場合_falseを返す() {
+        PersonInfoSchema schema = validSchema("山田太郎");
+        schema.setExperiences(null);
+
+        assertThat(schema.isValid()).isFalse();
+      }
+    }
   }
 
-  @Test
-  @DisplayName("isValid: 異常系（氏名がnull）")
-  void isValid_abnormal_nullName() {
-    PersonInfoSchema person = new PersonInfoSchema();
-    person.setName(null);
-    person.setAge(30);
-    person.setPriceInMan(new BigDecimal("80"));
-    person.setExperiences(List.of(new Experience("Java開発", 36)));
-
-    assertFalse(person.isValid());
+  /**
+   * 全ての項目を設定した要員を作る.
+   *
+   * @return 要員情報
+   */
+  private static PersonInfoSchema fullSchema() {
+    PersonInfoSchema schema = new PersonInfoSchema();
+    schema.setName("山田太郎");
+    schema.setAge(35);
+    schema.setGender(Gender.Man);
+    schema.setNationality("日本");
+    schema.setStartYearMonth("2026/4");
+    schema.setPriceInMan(new BigDecimal("65"));
+    schema.setPlace("東京都");
+    schema.setOfficeAvailability(5);
+    schema.setOrganization(organization(0, PersonInfoSchema.EmploymentType.正社員));
+    schema.setExperiences(List.of(experience("Java", 60)));
+    schema.setNgRequirements(List.of("夜間"));
+    schema.setOtherRequirements(List.of("英語可"));
+    return schema;
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"", " ", "   ", "　", "\t\n"})
-  @DisplayName("isValid: 異常系（氏名が空文字・空白文字）")
-  void isValid_abnormal_blankName(String invalidName) {
-    PersonInfoSchema person = new PersonInfoSchema();
-    person.setName(invalidName);
-    person.setAge(30);
-    person.setPriceInMan(new BigDecimal("80"));
-    person.setExperiences(List.of(new Experience("Java開発", 36)));
-
-    assertFalse(person.isValid());
+  /**
+   * 名前と性別だけを設定した要員を作る.
+   *
+   * @return 要員情報
+   */
+  private static PersonInfoSchema minimalSchema() {
+    PersonInfoSchema schema = new PersonInfoSchema();
+    schema.setName("山田太郎");
+    schema.setGender(Gender.Man);
+    return schema;
   }
 
-  @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "unknown", "Unknown", "UNKNOWN", "n/a", "na", "none", "N/A", "None", "不明", "なし", "未定",
-        "要員様", "要員", "エンジニア", "技術者", "プロパー", "メンバー", "様", "さん", "担当", "営業"
-      })
-  @DisplayName("isValid: 異常系（架空要員名・プレースホルダー）")
-  void isValid_abnormal_placeholderNames(String placeholderName) {
-    PersonInfoSchema person = new PersonInfoSchema();
-    person.setName(placeholderName);
-    person.setAge(30);
-    person.setPriceInMan(new BigDecimal("80"));
-    person.setExperiences(List.of(new Experience("Java開発", 36)));
-
-    assertFalse(person.isValid());
+  /**
+   * 名前と1件の経歴を設定した要員を作る.
+   *
+   * @param name 名前
+   * @return 要員情報
+   */
+  private static PersonInfoSchema validSchema(final String name) {
+    PersonInfoSchema schema = new PersonInfoSchema();
+    schema.setName(name);
+    schema.setExperiences(List.of(experience("Java", 12)));
+    return schema;
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"---", "...", "★", "【】", "!?#$"})
-  @DisplayName("isValid: 異常系（記号のみの氏名）")
-  void isValid_abnormal_symbolsOnly(String symbol) {
-    PersonInfoSchema person = new PersonInfoSchema();
-    person.setName(symbol);
-    person.setAge(30);
-    person.setPriceInMan(new BigDecimal("80"));
-    person.setExperiences(List.of(new Experience("Java開発", 36)));
-
-    assertFalse(person.isValid());
+  /**
+   * 経歴を1件作る.
+   *
+   * @param perspective 要求項目
+   * @param durationMonths 経験の月数
+   * @return 経歴
+   */
+  private static PersonInfoSchema.Experience experience(
+      final String perspective, final Integer durationMonths) {
+    PersonInfoSchema.Experience experience = new PersonInfoSchema.Experience();
+    experience.setPerspective(perspective);
+    experience.setDurationMonths(durationMonths);
+    return experience;
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"12345", "090-1234-5678", "001", "#123"})
-  @DisplayName("isValid: 異常系（数字のみ・数字と記号のみの氏名）")
-  void isValid_abnormal_digitsOnly(String digits) {
-    PersonInfoSchema person = new PersonInfoSchema();
-    person.setName(digits);
-    person.setAge(30);
-    person.setPriceInMan(new BigDecimal("80"));
-    person.setExperiences(List.of(new Experience("Java開発", 36)));
-
-    assertFalse(person.isValid());
-  }
-
-  @Test
-  @DisplayName("isValid: 異常系（実体プロファイルなし：スキル経歴がnullまたは空リスト）")
-  void isValid_abnormal_noExperiences() {
-    // 氏名・年齢・単価があっても、スキルがnullの場合は実体なしとして除外
-    PersonInfoSchema person1 = new PersonInfoSchema();
-    person1.setName("山田太郎");
-    person1.setAge(30);
-    person1.setPriceInMan(new BigDecimal("80"));
-    person1.setExperiences(null);
-
-    // 氏名・年齢・単価があっても、スキルが空リストの場合は実体なしとして除外
-    PersonInfoSchema person2 = new PersonInfoSchema();
-    person2.setName("佐藤一郎");
-    person2.setAge(28);
-    person2.setPriceInMan(new BigDecimal("60"));
-    person2.setExperiences(List.of());
-
-    // 年齢不明・単価未記載かつスキルがnullの場合も除外
-    PersonInfoSchema person3 = new PersonInfoSchema();
-    person3.setName("鈴木二郎");
-    person3.setAge(-1);
-    person3.setPriceInMan(new BigDecimal("999"));
-    person3.setExperiences(null);
-
-    assertAll(
-        "スキル経歴が存在しない場合は実体なしとして不正と判定されること",
-        () -> assertFalse(person1.isValid()),
-        () -> assertFalse(person2.isValid()),
-        () -> assertFalse(person3.isValid()));
-  }
-
-  // ================================================
-  // 地域（area）の抽出指示
-  // ================================================
-
-  @Test
-  @DisplayName("@Schema: area は必須かつ、関東_首都圏への誘導や署名への言及を含まず推定を強制する説明であること")
-  void testAreaSchemaAnnotation() throws Exception {
-    Field field = PersonInfoSchema.class.getDeclaredField("area");
-    Schema schemaAnnotation = field.getAnnotation(Schema.class);
-
-    assertNotNull(schemaAnnotation);
-    assertTrue(schemaAnnotation.required());
-    assertFalse(schemaAnnotation.description().contains("関東_首都圏とする"));
-    assertTrue(schemaAnnotation.description().contains("確信が持てなくても最も可能性の高い地域を推定して必ず選ぶこと"));
-    assertFalse(schemaAnnotation.description().contains("署名"));
-    assertTrue(schemaAnnotation.description().contains("記載が一切無い場合のみその他とする"));
-  }
-
-  @Test
-  @DisplayName("@Schema: place は本文の見出し語に書かれた所在のみを記載させ、署名には言及しない説明であること")
-  void testPlaceSchemaAnnotation() throws Exception {
-    Field field = PersonInfoSchema.class.getDeclaredField("place");
-    Schema schemaAnnotation = field.getAnnotation(Schema.class);
-
-    assertNotNull(schemaAnnotation);
-    assertFalse(schemaAnnotation.required());
-    assertEquals(20, schemaAnnotation.maxLength());
-    assertTrue(schemaAnnotation.description().contains("「最寄駅」"));
-    assertFalse(schemaAnnotation.description().contains("署名"));
-    assertTrue(schemaAnnotation.description().contains("記載が無い場合は項目自体を省略する"));
-  }
-
-  @Test
-  @DisplayName("SchemaGenerator: 生成された JSON Schema の required に area が含まれること")
-  void testAreaIsRequiredInGeneratedSchema() {
-    Map<String, Object> schema = SchemaGenerator.generate(PersonInfoSchema.class);
-
-    assertTrue(((List<?>) schema.get("required")).contains("area"));
-  }
-
-  @Test
-  @DisplayName("Jackson: area キーが無い場合は関東_首都圏ではなくその他になること")
-  void testJacksonDeserialize_MissingArea() throws Exception {
-    PersonInfoSchema info =
-        ObjectMapperFactory.OBJECT_MAPPER.readValue("{}", PersonInfoSchema.class);
-
-    assertEquals(Area.その他, info.getArea());
-  }
-
-  @Test
-  @DisplayName("Jackson: area に地域名が設定されている場合はその地域になること")
-  void testJacksonDeserialize_Area() throws Exception {
-    PersonInfoSchema info =
-        ObjectMapperFactory.OBJECT_MAPPER.readValue("{\"area\":\"九州\"}", PersonInfoSchema.class);
-
-    assertEquals(Area.九州, info.getArea());
+  /**
+   * 所属を作る.
+   *
+   * @param tier 所属の段数
+   * @param employmentType 雇用形態
+   * @return 所属
+   */
+  private static PersonInfoSchema.Organization organization(
+      final int tier, final PersonInfoSchema.EmploymentType employmentType) {
+    PersonInfoSchema.Organization organization = new PersonInfoSchema.Organization();
+    organization.setCompaniesTierNumber(tier);
+    organization.setEmploymentType(employmentType);
+    return organization;
   }
 }

@@ -969,4 +969,84 @@ class OriginalDateTimeTest {
       }
     }
   }
+
+  @Nested
+  class fromYearMonthText {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 年と月の区切りが書かれた文字列の場合に、その年月の日時を返すことを確かめる。 開始年月は稼働時期の比較に使うため、書かれた年月をそのまま使うことを守る。
+       *
+       * @given 文字列が "2026/4" である
+       * @when fromYearMonthText を呼び出す
+       * @then 2026年4月の日時を返す
+       */
+      @Test
+      void 年と月の区切りが書かれた場合_その年月の日時を返す() {
+        assertThat(OriginalDateTime.fromYearMonthText("2026/4").getYYYYMM()).isEqualTo("202604");
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * 数字に変換できない文字列の場合に、現在の年月を返すことを確かめる。 数字に変換できない値で例外を投げると登録処理が止まるため、今月を既定値とすることを守る。
+       *
+       * @given 文字列が "abc/xx" で、現在時刻が2026年10月20日である
+       * @when fromYearMonthText を呼び出す
+       * @then 現在の年月である 202610 を返す
+       */
+      @Test
+      @FixedClock("2026-10-20T10:00:00+09:00")
+      void 数字に変換できない場合_現在の年月を返す() {
+        assertThat(OriginalDateTime.fromYearMonthText("abc/xx").getYYYYMM()).isEqualTo("202610");
+      }
+
+      /**
+       * 月が範囲外の文字列の場合に、DateTimeException を投げることを確かめる。 範囲外の月を現在の年月で補うと、入力の誤りが見えなくなるため、例外として伝えることを守る。
+       *
+       * @given 文字列が "2026/13" である
+       * @when fromYearMonthText を呼び出す
+       * @then DateTimeException を投げる
+       */
+      @Test
+      void 月が範囲外の場合_DateTimeExceptionを投げる() {
+        assertThatThrownBy(() -> OriginalDateTime.fromYearMonthText("2026/13"))
+            .isInstanceOf(DateTimeException.class);
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 年と月の区切りが無い文字列の場合に、現在の年月を返すことを確かめる。 解釈できない形式で登録処理を止めないため、今月を既定値とすることを守る。
+       *
+       * @given 文字列が "2026年4月" で、現在時刻が2026年10月20日である
+       * @when fromYearMonthText を呼び出す
+       * @then 現在の年月である 202610 を返す
+       */
+      @Test
+      @FixedClock("2026-10-20T10:00:00+09:00")
+      void 区切りが無い場合_現在の年月を返す() {
+        assertThat(OriginalDateTime.fromYearMonthText("2026年4月").getYYYYMM()).isEqualTo("202610");
+      }
+
+      /**
+       * 文字列が null の場合に、現在の年月を返すことを確かめる。 開始年月が未設定の要員や案件でも、稼働時期の比較ができるよう今月を既定値とすることを守る。
+       *
+       * @given 文字列が null で、現在時刻が2026年10月20日である
+       * @when fromYearMonthText を呼び出す
+       * @then 現在の年月である 202610 を返す
+       */
+      @Test
+      @FixedClock("2026-10-20T10:00:00+09:00")
+      void nullの場合_現在の年月を返す() {
+        assertThat(OriginalDateTime.fromYearMonthText(null).getYYYYMM()).isEqualTo("202610");
+      }
+    }
+  }
 }

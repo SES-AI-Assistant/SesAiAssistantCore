@@ -1,150 +1,154 @@
 package copel.sesproductpackage.core.api.line;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import copel.sesproductpackage.core.util.Properties;
+import copel.sesproductpackage.tools.testsupport.config.TestProperty;
+import java.io.IOException;
+import java.net.URI;
 import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
+/** {@link LineMessagingApi} の単体テスト。 */
+@TestProperty(
+    key = "LINE_DONLOAD_FILE_API_ENDPOINT",
+    value = "https://api-data.line.example/v2/bot/message/%s/content")
 class LineMessagingApiTest {
 
-  private MockedStatic<HttpClient> mockedHttpClient;
-  private HttpClient mockClient;
+  @Nested
+  class コンストラクタ {
 
-  @BeforeAll
-  static void setupProperties() {
-    // 設定値はテスト用の入口（putForTest）で入れる。他のテストが resetForTest で消しても、各テストの前に入れ直す
-    putEndpoints();
+    @Nested
+    class 正常系 {
+
+      /**
+       * チャネルアクセストークンを指定した場合に、ファイルの取得に使うインスタンスを作ることを確かめる。 取得の認証にトークンを使うため、生成時点で例外にならないことを守る。
+       *
+       * @given チャネルアクセストークン "token" がある
+       * @when LineMessagingApi を生成する
+       * @then LineMessagingApi のインスタンスを返す
+       */
+      @Test
+      void トークンを指定した場合_インスタンスを返す() {
+        assertThat(new LineMessagingApi("token")).isNotNull();
+      }
+    }
   }
 
-  private static void putEndpoints() {
-    Properties.putForTest("LINE_PUSH_MESSAGE_API_ENDPOINT", "https://example.com/push");
-    Properties.putForTest("LINE_BROADCAST_API_ENDPOINT", "https://example.com/broadcast");
-    Properties.putForTest("LINE_DONLOAD_FILE_API_ENDPOINT", "https://example.com/download/%s");
+  @Nested
+  class getFile {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 応答が200の場合に、ファイルの本文を返すことを確かめる。 受信したファイルを後続の登録処理で使うため、本文を返すとともに、送信先 URI と認証で取得していることを守る。
+       *
+       * @given 送信の応答が200で、本文が3バイトで、トークンが token である
+       * @when getFile をメッセージIDで呼び出す
+       * @then 本文の3バイトを返し、送信先 URI と Bearer の認証ヘッダーを使う
+       */
+      @Test
+      void 応答が200の場合_本文を返す() throws Exception {
+        try (MockedStatic<HttpClient> hc = mockStatic(HttpClient.class)) {
+          HttpClient client = clientReturning(response(200, new byte[] {1, 2, 3}));
+          hc.when(HttpClient::newHttpClient).thenReturn(client);
+
+          assertThat(new LineMessagingApi("token").getFile("m1")).containsExactly(1, 2, 3);
+
+          ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
+          verify(client).send(captor.capture(), any());
+          assertThat(captor.getValue().uri().toString())
+              .isEqualTo("https://api-data.line.example/v2/bot/message/m1/content");
+          assertThat(captor.getValue().headers().firstValue("Authorization"))
+              .contains("Bearer token");
+        }
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * 通信が失敗した場合に、入出力の例外を投げることを確かめる。 通信の失敗を黙って握りつぶさず、呼び出し元に伝えることを守る。
+       *
+       * @given 送信が IOException を投げる
+       * @when getFile をメッセージIDで呼び出す
+       * @then IOException を投げる
+       */
+      @Test
+      void 通信が失敗する場合_IOExceptionを投げる() throws Exception {
+        try (MockedStatic<HttpClient> hc = mockStatic(HttpClient.class)) {
+          HttpClient client = mock(HttpClient.class);
+          doThrow(new IOException("接続失敗")).when(client).send(any(HttpRequest.class), any());
+          hc.when(HttpClient::newHttpClient).thenReturn(client);
+
+          assertThatThrownBy(() -> new LineMessagingApi("token").getFile("m1"))
+              .isInstanceOf(IOException.class);
+        }
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 応答が200以外の場合に、null を返すことを確かめる。 取得できないファイルを空の本文として扱うと、誤った登録になることを守る。
+       *
+       * @given 送信の応答が404である
+       * @when getFile をメッセージIDで呼び出す
+       * @then null を返す
+       */
+      @Test
+      void 応答が200以外の場合_nullを返す() throws Exception {
+        try (MockedStatic<HttpClient> hc = mockStatic(HttpClient.class)) {
+          HttpClient client = clientReturning(response(404, null));
+          hc.when(HttpClient::newHttpClient).thenReturn(client);
+
+          assertThat(new LineMessagingApi("token").getFile("m1")).isNull();
+        }
+      }
+    }
   }
 
-  @BeforeEach
-  void setUp() {
-    putEndpoints();
-    mockedHttpClient = mockStatic(HttpClient.class);
-    mockClient = mock(HttpClient.class);
-    mockedHttpClient.when(HttpClient::newHttpClient).thenReturn(mockClient);
+  /**
+   * 指定の応答を返す HttpClient のモックを作る.
+   *
+   * @param response 応答
+   * @return HttpClient のモック
+   * @throws Exception 送信のスタブに失敗した場合
+   */
+  private static HttpClient clientReturning(final HttpResponse<byte[]> response) throws Exception {
+    HttpClient client = mock(HttpClient.class);
+    doReturn(response).when(client).send(any(HttpRequest.class), any());
+    return client;
   }
 
-  @AfterEach
-  void tearDown() {
-    mockedHttpClient.close();
-  }
-
-  @Test
-  void testAddMessageAndGetList() {
-    LineMessagingApi api = new LineMessagingApi("token");
-    api.addMessage("hello");
-    assertEquals(1, api.getMessageList().size());
-    assertEquals("hello", api.getMessageList().get(0));
-  }
-
-  @Test
-  void testSendSeparate() throws Exception {
-    @SuppressWarnings("unchecked")
-    HttpResponse<String> mockResponse = mock(HttpResponse.class);
-    when(mockResponse.statusCode()).thenReturn(200);
-    doReturn(mockResponse).when(mockClient).send(any(), any());
-
-    LineMessagingApi api = new LineMessagingApi("token");
-    api.addMessage("msg1");
-    api.sendSeparate("user1");
-    verify(mockClient).send(any(), any());
-  }
-
-  @Test
-  void testBroadCast() throws Exception {
-    @SuppressWarnings("unchecked")
-    HttpResponse<String> mockResponse = mock(HttpResponse.class);
-    when(mockResponse.statusCode()).thenReturn(200);
-    doReturn(mockResponse).when(mockClient).send(any(), any());
-
-    LineMessagingApi api = new LineMessagingApi("token");
-    api.addMessage("msg1");
-    api.broadCast();
-    verify(mockClient).send(any(), any());
-  }
-
-  @Test
-  void testGetFile() throws Exception {
-    byte[] content = "file".getBytes();
-    @SuppressWarnings("unchecked")
-    HttpResponse<byte[]> mockResponse = mock(HttpResponse.class);
-    when(mockResponse.statusCode()).thenReturn(200);
-    when(mockResponse.body()).thenReturn(content);
-    doReturn(mockResponse).when(mockClient).send(any(), any());
-
-    LineMessagingApi api = new LineMessagingApi("token");
-    byte[] result = api.getFile("mid1");
-    assertArrayEquals(content, result);
-  }
-
-  @Test
-  void testGetFileFailure() throws Exception {
-    @SuppressWarnings("unchecked")
-    HttpResponse<byte[]> mockResponse = mock(HttpResponse.class);
-    when(mockResponse.statusCode()).thenReturn(404);
-    doReturn(mockResponse).when(mockClient).send(any(), any());
-
-    LineMessagingApi api = new LineMessagingApi("token");
-    byte[] result = api.getFile("mid1");
-    assertNull(result);
-  }
-
-  @Test
-  void testSendSeparateNotOk() throws Exception {
-    @SuppressWarnings("unchecked")
-    HttpResponse<String> mockResponse = mock(HttpResponse.class);
-    when(mockResponse.statusCode()).thenReturn(400);
-    doReturn(mockResponse).when(mockClient).send(any(), any());
-
-    LineMessagingApi api = new LineMessagingApi("token");
-    api.addMessage("msg1");
-    api.sendSeparate("user1"); // Should hit the warning log block
-    verify(mockClient).send(any(), any());
-  }
-
-  @Test
-  void testSendSeparateException() throws Exception {
-    doThrow(new RuntimeException("error")).when(mockClient).send(any(), any());
-
-    LineMessagingApi api = new LineMessagingApi("token");
-    api.addMessage("msg1");
-    api.sendSeparate("user1"); // Should hit the catch block and printStackTrace
-    verify(mockClient).send(any(), any());
-  }
-
-  @Test
-  void testBroadCastNotOk() throws Exception {
-    @SuppressWarnings("unchecked")
-    HttpResponse<String> mockResponse = mock(HttpResponse.class);
-    when(mockResponse.statusCode()).thenReturn(400);
-    doReturn(mockResponse).when(mockClient).send(any(), any());
-
-    LineMessagingApi api = new LineMessagingApi("token");
-    api.addMessage("msg1");
-    api.broadCast(); // Should hit the warning log block
-    verify(mockClient).send(any(), any());
-  }
-
-  @Test
-  void testBroadCastException() throws Exception {
-    doThrow(new RuntimeException("error")).when(mockClient).send(any(), any());
-
-    LineMessagingApi api = new LineMessagingApi("token");
-    api.addMessage("msg1");
-    api.broadCast(); // Should hit the catch block and printStackTrace
-    verify(mockClient).send(any(), any());
+  /**
+   * 本文付きの応答を作る.
+   *
+   * @param status ステータス
+   * @param body 本文
+   * @return 応答
+   */
+  @SuppressWarnings("unchecked")
+  private static HttpResponse<byte[]> response(final int status, final byte[] body) {
+    HttpResponse<byte[]> response = mock(HttpResponse.class);
+    when(response.statusCode()).thenReturn(status);
+    when(response.body()).thenReturn(body);
+    when(response.uri()).thenReturn(URI.create("https://api-data.line.example/"));
+    return response;
   }
 }

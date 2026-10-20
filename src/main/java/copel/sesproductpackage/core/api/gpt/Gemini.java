@@ -1,6 +1,7 @@
 package copel.sesproductpackage.core.api.gpt;
 
 import com.google.genai.Client;
+import com.google.genai.Models;
 import com.google.genai.types.ContentEmbedding;
 import com.google.genai.types.EmbedContentResponse;
 import com.google.genai.types.GenerateContentConfig;
@@ -24,6 +25,26 @@ import lombok.extern.slf4j.Slf4j;
 @Data
 @Slf4j
 public class Gemini implements Transformer {
+
+  /**
+   * SDK の Models を作る関数（既定は本来の SDK の Client から取り出す）。
+   *
+   * <p>テストで必要な理由: 実際の API を呼ばずに応答を再現するため。SDK の Client は内部のフィールドを
+   * 反射で差し替えるしかなかったため、この差し替え口を設けた。本番のコードは既定の関数を使う。
+   */
+  @FunctionalInterface
+  interface ModelsFactory {
+    /**
+     * APIキーから Models を作る.
+     *
+     * @param apiKey APIキー
+     * @return Models
+     */
+    Models create(String apiKey);
+  }
+
+  /** Models を作る関数（既定は本来の SDK）。テストでのみ差し替える。 */
+  static ModelsFactory modelsFactory = apiKey -> Client.builder().apiKey(apiKey).build().models;
 
   /** 生成APIのデフォルトGPTモデル名. */
   private static final String COMPLETION_MODEL_DEFAULT =
@@ -84,9 +105,8 @@ public class Gemini implements Transformer {
     }
 
     try {
-      Client client = Client.builder().apiKey(this.apiKey).build();
-      EmbedContentResponse response =
-          client.models.embedContent(this.embeddingModel, inputString, null);
+      Models models = modelsFactory.create(this.apiKey);
+      EmbedContentResponse response = models.embedContent(this.embeddingModel, inputString, null);
 
       Optional<List<ContentEmbedding>> embeddingsOpt = response.embeddings();
       if (embeddingsOpt.isPresent()) {
@@ -101,7 +121,7 @@ public class Gemini implements Transformer {
               embeddings[i] = values.get(i);
             }
 
-            recordApiUsage(inputString.length(), 0);
+            recordApiUsage(inputString.length(), 0, SES_AI_API_USAGE_HISTORY.ApiType.Embedding);
             return embeddings;
           }
         }
@@ -120,25 +140,17 @@ public class Gemini implements Transformer {
     }
 
     try {
-      Client client = Client.builder().apiKey(this.apiKey).build();
-      GenerateContentResponse response =
-          client.models.generateContent(this.completionModel, prompt, null);
+      Models models = modelsFactory.create(this.apiKey);
+      GenerateContentResponse response = models.generateContent(this.completionModel, prompt, null);
 
       if (response != null) {
         String resultText = response.text();
-        recordApiUsage(prompt.length(), resultText != null ? resultText.length() : 0);
+        recordApiUsage(
+            prompt.length(),
+            resultText != null ? resultText.length() : 0,
+            SES_AI_API_USAGE_HISTORY.ApiType.Generate);
 
-        String callerInfo = "Unknown";
-        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        for (int i = 2; i < stackTrace.length; i++) {
-          String className = stackTrace[i].getClassName();
-          if (!className.equals(Gemini.class.getName()) && !className.contains("Thread")) {
-            String[] classNameParts = className.split("\\.");
-            String simpleClassName = classNameParts[classNameParts.length - 1];
-            callerInfo = simpleClassName + "." + stackTrace[i].getMethodName();
-            break;
-          }
-        }
+        String callerInfo = callerInfo();
         log.info(
             "【Gemini API】呼び出し元: {}, モデル: {}, 入力: {} 文字, 出力: {} 文字",
             callerInfo,
@@ -165,11 +177,8 @@ public class Gemini implements Transformer {
     }
 
     try {
+      // SchemaGenerator は型ごとに必ず非空のスキーマを返すため、空の確認は行わない
       Map<String, Object> jsonSchema = SchemaGenerator.generate(responseType);
-
-      if (jsonSchema == null || jsonSchema.isEmpty()) {
-        throw new RuntimeException("JSON schema must not be null or empty");
-      }
 
       GenerateContentConfig config =
           GenerateContentConfig.builder()
@@ -177,9 +186,9 @@ public class Gemini implements Transformer {
               .responseJsonSchema(jsonSchema)
               .build();
 
-      Client client = Client.builder().apiKey(this.apiKey).build();
+      Models models = modelsFactory.create(this.apiKey);
       GenerateContentResponse response =
-          client.models.generateContent(this.completionModel, prompt, config);
+          models.generateContent(this.completionModel, prompt, config);
 
       if (response != null) {
         String resultJson = response.text();
@@ -189,19 +198,10 @@ public class Gemini implements Transformer {
 
         final T result = ObjectMapperFactory.OBJECT_MAPPER.readValue(resultJson, responseType);
 
-        recordApiUsage(prompt.length(), resultJson.length());
+        recordApiUsage(
+            prompt.length(), resultJson.length(), SES_AI_API_USAGE_HISTORY.ApiType.Generate);
 
-        String callerInfo = "Unknown";
-        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        for (int i = 2; i < stackTrace.length; i++) {
-          String className = stackTrace[i].getClassName();
-          if (!className.equals(Gemini.class.getName()) && !className.contains("Thread")) {
-            String[] classNameParts = className.split("\\.");
-            String simpleClassName = classNameParts[classNameParts.length - 1];
-            callerInfo = simpleClassName + "." + stackTrace[i].getMethodName();
-            break;
-          }
-        }
+        String callerInfo = callerInfo();
         log.info(
             "【Gemini API (Structured)】呼び出し元: {}, モデル: {}, 型: {}, 入力: {} 文字, 出力: {} 文字",
             callerInfo,
@@ -223,12 +223,26 @@ public class Gemini implements Transformer {
   }
 
   /**
+   * 呼び出し元のクラス名とメソッド名を、ログ用の文字列にして返します.
+   *
+   * <p>スタックの先頭から、この処理・生成処理・呼び出し元の順に並ぶため、呼び出し元は index 3 になる。
+   *
+   * @return 「クラス名.メソッド名」の形式の文字列
+   */
+  private static String callerInfo() {
+    StackTraceElement caller = Thread.currentThread().getStackTrace()[3];
+    String className = caller.getClassName();
+    return className.substring(className.lastIndexOf('.') + 1) + "." + caller.getMethodName();
+  }
+
+  /**
    * API使用履歴をDBに記録します.
    *
    * @param inputCount 入力文字数
    * @param outputCount 出力文字数
    */
-  private void recordApiUsage(int inputCount, int outputCount) {
+  private void recordApiUsage(
+      int inputCount, int outputCount, SES_AI_API_USAGE_HISTORY.ApiType apiType) {
     try {
       SES_AI_API_USAGE_HISTORY usageHistory = new SES_AI_API_USAGE_HISTORY();
       usageHistory.setProvider(SES_AI_API_USAGE_HISTORY.Provider.Google);
@@ -237,10 +251,7 @@ public class Gemini implements Transformer {
       usageHistory.setUsageMonth(nowDt.getYYYYMM());
       usageHistory.setUsageDate(nowDt.getYyyyMmDd());
       usageHistory.setUserId("SesAiAssitantCore");
-      usageHistory.setApiType(
-          inputCount > 0 && outputCount == 0
-              ? SES_AI_API_USAGE_HISTORY.ApiType.Embedding
-              : SES_AI_API_USAGE_HISTORY.ApiType.Generate);
+      usageHistory.setApiType(apiType);
       usageHistory.fetch();
       usageHistory.addInputCount(inputCount);
       usageHistory.addOutputCount(outputCount);

@@ -1,180 +1,345 @@
 package copel.sesproductpackage.core.api.aws;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.RETURNS_SELF;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import copel.sesproductpackage.core.util.ApplicationClock;
+import copel.sesproductpackage.tools.testsupport.clock.FixedClock;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.net.URL;
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.util.Date;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import software.amazon.awssdk.core.ResponseInputStream;
-import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.http.AbortableInputStream;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.*;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
+/** {@link S3} の単体テスト。 */
 class S3Test {
 
-  private S3Client mockS3Client;
-  private S3 s3;
+  private static final String BUCKET = "bucket";
+  private static final String KEY = "key/file.txt";
 
-  @BeforeEach
-  void setUp() {
-    mockS3Client = mock(S3Client.class, RETURNS_DEEP_STUBS);
-    try (MockedStatic<S3Client> mockedS3 = mockStatic(S3Client.class)) {
-      software.amazon.awssdk.services.s3.S3ClientBuilder builder =
-          mock(software.amazon.awssdk.services.s3.S3ClientBuilder.class);
-      when(S3Client.builder()).thenReturn(builder);
-      when(builder.credentialsProvider(any())).thenReturn(builder);
-      when(builder.region(any())).thenReturn(builder);
-      when(builder.build()).thenReturn(mockS3Client);
-
-      s3 = new S3("bucket", "key", Region.AP_NORTHEAST_1);
-    }
-  }
-
-  @Test
-  void testSave() {
-    s3.setData("test data".getBytes());
-    s3.save();
-    verify(mockS3Client).putObject(any(PutObjectRequest.class), any(RequestBody.class));
-    assertNotNull(s3.getUpdateDate());
-  }
-
-  @Test
-  void testSaveNulls() {
-    s3.setBucketName(null);
-    s3.save(); // Should log warn and return
-    s3.setBucketName("b");
-    s3.setObjectKey(null);
-    s3.save();
-    s3.setObjectKey("k");
-    s3.setData(null);
-    s3.save();
-    verify(mockS3Client, never()).putObject(any(PutObjectRequest.class), any(RequestBody.class));
-  }
-
-  @Test
-  void testSaveException() {
-    s3.setData(new byte[1]);
-    when(mockS3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
-        .thenThrow(new RuntimeException("error"));
-    assertDoesNotThrow(() -> s3.save());
-  }
-
-  @Test
-  void testRead() throws Exception {
-    byte[] data = "hello".getBytes();
-    ResponseInputStream<GetObjectResponse> ris =
-        new ResponseInputStream<>(
-            GetObjectResponse.builder().build(), new ByteArrayInputStream(data));
-    when(mockS3Client.getObject(any(GetObjectRequest.class))).thenReturn(ris);
-
-    HeadObjectResponse hor = HeadObjectResponse.builder().lastModified(Instant.now()).build();
-    when(mockS3Client.headObject(any(HeadObjectRequest.class))).thenReturn(hor);
-
-    s3.read();
-    assertArrayEquals(data, s3.getData());
-    assertNotNull(s3.getUpdateDate());
-  }
-
-  @Test
-  void testReadException() {
-    when(mockS3Client.getObject(any(GetObjectRequest.class)))
-        .thenThrow(new RuntimeException("error"));
-    assertThrows(IOException.class, () -> s3.read());
-  }
-
-  @Test
-  void testDelete() {
-    s3.delete();
-    verify(mockS3Client).deleteObject(any(DeleteObjectRequest.class));
-    assertNull(s3.getUpdateDate());
-  }
-
-  @Test
-  void testDeleteException() {
-    when(mockS3Client.deleteObject(any(DeleteObjectRequest.class)))
-        .thenThrow(new RuntimeException("error"));
-    assertDoesNotThrow(() -> s3.delete());
-  }
-
-  @Test
-  void testCreateDownloadUrl() throws Exception {
-    try (MockedStatic<S3Presigner> mockedPresigner = mockStatic(S3Presigner.class)) {
-      S3Presigner mockPresigner = mock(S3Presigner.class);
-      S3Presigner.Builder mockBuilder = mock(S3Presigner.Builder.class);
-      when(mockBuilder.region(any())).thenReturn(mockBuilder);
-      when(mockBuilder.credentialsProvider(any())).thenReturn(mockBuilder);
-      when(mockBuilder.build()).thenReturn(mockPresigner);
-      mockedPresigner.when(S3Presigner::builder).thenReturn(mockBuilder);
-
-      PresignedGetObjectRequest mockPresigned = mock(PresignedGetObjectRequest.class);
-      when(mockPresigned.url()).thenReturn(new URL("http://example.com"));
-      when(mockPresigner.presignGetObject(any(GetObjectPresignRequest.class)))
-          .thenReturn(mockPresigned);
-
-      String url = s3.createDownloadUrl();
-      assertEquals("http://example.com", url);
-
-      // expireMinutes variant
-      url = s3.createDownloadUrl(5);
-      assertEquals("http://example.com", url);
-    }
-  }
-
-  @Test
-  void testCreateDownloadUrlException() {
-    try (MockedStatic<S3Presigner> mockedPresigner = mockStatic(S3Presigner.class)) {
-      mockedPresigner.when(S3Presigner::builder).thenThrow(new RuntimeException("error"));
-      assertNull(s3.createDownloadUrl());
-    }
-  }
-
-  /** {@link S3#save()} のテスト。 */
   @Nested
-  class save {
+  class コンストラクタ {
 
-    /** 正常系のテスト。 */
     @Nested
     class 正常系 {
 
-      /** テストの後に時計を既定のシステム時計に戻す。後続のテストに固定時計が残らないようにする。 */
-      @AfterEach
-      void tearDown() {
-        ApplicationClock.INSTANCE.resetToDefault();
+      /**
+       * バケット名とオブジェクトキーを指定した場合に、それらを保持することを確かめる。 保存と取得の対象を生成時に固定するため、保持する値を揃えることを守る。
+       *
+       * @given バケット名 bucket とオブジェクトキー key/file.txt と リージョン ap-northeast-1 がある
+       * @when S3 を生成する
+       * @then バケット名とオブジェクトキーを保持する
+       */
+      @Test
+      void バケット名とキーを指定した場合_バケット名とキーを返す() {
+        try (MockedStatic<S3Client> s3 = mockStatic(S3Client.class)) {
+          prepareS3(s3);
+
+          S3 file = new S3(BUCKET, KEY, Region.AP_NORTHEAST_1);
+
+          assertThat(file.getBucketName()).isEqualTo(BUCKET);
+          assertThat(file.getObjectKey()).isEqualTo(KEY);
+        }
+      }
+    }
+  }
+
+  @Nested
+  class save {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * バケット名とキーとデータが揃っている場合に、S3 へ保存して更新日時を設定することを確かめる。 保存の成否を更新日時で判断できるようにするため、保存後に現在時刻を設定することを守る。
+       *
+       * @given データが3バイトで、バケット名とキーが設定され、現在時刻が2026年10月20日10時である
+       * @when save を呼び出す
+       * @then PutObject を1回呼び出し、更新日時を現在時刻に設定する
+       */
+      @Test
+      @FixedClock("2026-10-20T10:00:00+09:00")
+      void 必要な値が揃っている場合_更新日時を更新する() {
+        try (MockedStatic<S3Client> s3 = mockStatic(S3Client.class)) {
+          S3Client client = prepareS3(s3);
+          S3 file = new S3(BUCKET, KEY, Region.AP_NORTHEAST_1);
+          file.setData(new byte[] {1, 2, 3});
+
+          file.save();
+
+          verify(client)
+              .putObject(
+                  any(PutObjectRequest.class),
+                  any(software.amazon.awssdk.core.sync.RequestBody.class));
+          assertThat(file.getUpdateDate())
+              .isEqualTo(Date.from(Instant.parse("2026-10-20T01:00:00Z")));
+        }
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * 保存の呼び出しが失敗した場合に、例外を投げず更新日時を設定しないことを確かめる。 保存の失敗で呼び出し元の処理を止めず、更新日時で失敗を判断できるようにすることを守る。
+       *
+       * @given PutObject が SDK の例外を投げる
+       * @when save を呼び出す
+       * @then 例外を投げず、更新日時を null のままにする
+       */
+      @Test
+      void 保存の呼び出しが失敗する場合_何もしない() {
+        try (MockedStatic<S3Client> s3 = mockStatic(S3Client.class)) {
+          S3Client client = prepareS3(s3);
+          doThrow(SdkClientException.create("接続失敗"))
+              .when(client)
+              .putObject(
+                  any(PutObjectRequest.class),
+                  any(software.amazon.awssdk.core.sync.RequestBody.class));
+          S3 file = new S3(BUCKET, KEY, Region.AP_NORTHEAST_1);
+          file.setData(new byte[] {1});
+
+          file.save();
+
+          assertThat(file.getUpdateDate()).isNull();
+        }
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * バケット名が null の場合に、保存せずに終えることを確かめる。 保存先が無いまま呼び出しをしないことを守る。
+       *
+       * @given バケット名が null で、キーとデータが設定されている
+       * @when save を呼び出す
+       * @then PutObject を呼び出さない
+       */
+      @Test
+      void バケット名がnullの場合_何もしない() {
+        try (MockedStatic<S3Client> s3 = mockStatic(S3Client.class)) {
+          S3Client client = prepareS3(s3);
+          S3 file = new S3(null, KEY, Region.AP_NORTHEAST_1);
+          file.setData(new byte[] {1});
+
+          file.save();
+
+          verify(client, never())
+              .putObject(
+                  any(PutObjectRequest.class),
+                  any(software.amazon.awssdk.core.sync.RequestBody.class));
+        }
       }
 
       /**
-       * save が保存時点の更新日時を時計から取得することを確かめる。 S3 に保存した時点の更新日時が本番の現在時刻の取得元に従うことを保証する。
+       * オブジェクトキーが null の場合に、保存せずに終えることを確かめる。 保存先のキーが無いまま呼び出しをしないことを守る。
        *
-       * @given 時計が UTC の "2026-01-15T03:04:05Z" の固定時計に設定され、データが "test data" のバイト列である
-       * @when save を引数なしで呼び出す
-       * @then getUpdateDate が "2026-01-15T03:04:05Z" に対応する Date を返す
+       * @given キーが null で、バケット名とデータが設定されている
+       * @when save を呼び出す
+       * @then PutObject を呼び出さない
        */
       @Test
-      void 時計が固定時計に設定されている場合_固定時刻の更新日時を返す() {
-        ApplicationClock.INSTANCE.setClock(
-            Clock.fixed(Instant.parse("2026-01-15T03:04:05Z"), ZoneId.of("Asia/Tokyo")));
-        s3.setData("test data".getBytes());
+      void キーがnullの場合_何もしない() {
+        try (MockedStatic<S3Client> s3 = mockStatic(S3Client.class)) {
+          S3Client client = prepareS3(s3);
+          S3 file = new S3(BUCKET, null, Region.AP_NORTHEAST_1);
+          file.setData(new byte[] {1});
 
-        s3.save();
+          file.save();
 
-        assertEquals(Date.from(Instant.parse("2026-01-15T03:04:05Z")), s3.getUpdateDate());
+          verify(client, never())
+              .putObject(
+                  any(PutObjectRequest.class),
+                  any(software.amazon.awssdk.core.sync.RequestBody.class));
+        }
+      }
+
+      /**
+       * データが null の場合に、保存せずに終えることを確かめる。 中身の無いオブジェクトを保存しないことを守る。
+       *
+       * @given データが null で、バケット名とキーが設定されている
+       * @when save を呼び出す
+       * @then PutObject を呼び出さない
+       */
+      @Test
+      void データがnullの場合_何もしない() {
+        try (MockedStatic<S3Client> s3 = mockStatic(S3Client.class)) {
+          S3Client client = prepareS3(s3);
+          S3 file = new S3(BUCKET, KEY, Region.AP_NORTHEAST_1);
+
+          file.save();
+
+          verify(client, never())
+              .putObject(
+                  any(PutObjectRequest.class),
+                  any(software.amazon.awssdk.core.sync.RequestBody.class));
+          assertThat(file.getUpdateDate()).isNull();
+        }
       }
     }
+  }
+
+  @Nested
+  class read {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 取得が成功した場合に、本文と最終更新日時を保持することを確かめる。 取得した本文を後続の処理で使い、更新日時を比較に使うことを守る。
+       *
+       * @given GetObject が本文3バイトを返し、HeadObject が最終更新日時を返す
+       * @when read を呼び出す
+       * @then 本文の3バイトと最終更新日時を保持する
+       */
+      @Test
+      void 取得が成功する場合_本文と更新日時を返す() throws Exception {
+        try (MockedStatic<S3Client> s3 = mockStatic(S3Client.class)) {
+          S3Client client = prepareS3(s3);
+          when(client.getObject(any(GetObjectRequest.class)))
+              .thenReturn(stream(new byte[] {1, 2, 3}));
+          when(client.headObject(
+                  any(software.amazon.awssdk.services.s3.model.HeadObjectRequest.class)))
+              .thenReturn(
+                  HeadObjectResponse.builder()
+                      .lastModified(Instant.parse("2026-10-20T01:00:00Z"))
+                      .build());
+          S3 file = new S3(BUCKET, KEY, Region.AP_NORTHEAST_1);
+
+          file.read();
+
+          assertThat(file.getData()).containsExactly(1, 2, 3);
+          assertThat(file.getUpdateDate())
+              .isEqualTo(Date.from(Instant.parse("2026-10-20T01:00:00Z")));
+        }
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * 取得が失敗した場合に、入出力の例外を投げることを確かめる。 取得できない本文を空として扱わず、呼び出し元に失敗を伝えることを守る。
+       *
+       * @given GetObject が SDK の例外を投げる
+       * @when read を呼び出す
+       * @then IOException を投げる
+       */
+      @Test
+      void 取得が失敗する場合_IOExceptionを投げる() throws Exception {
+        try (MockedStatic<S3Client> s3 = mockStatic(S3Client.class)) {
+          S3Client client = prepareS3(s3);
+          when(client.getObject(any(GetObjectRequest.class)))
+              .thenThrow(SdkClientException.create("接続失敗"));
+          S3 file = new S3(BUCKET, KEY, Region.AP_NORTHEAST_1);
+
+          assertThatThrownBy(file::read).isInstanceOf(IOException.class);
+        }
+      }
+    }
+  }
+
+  @Nested
+  class delete {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 削除が成功した場合に、更新日時を消去することを確かめる。 削除済みのファイルを更新日時で存在すると判断しないことを守る。
+       *
+       * @given 更新日時が設定されている
+       * @when delete を呼び出す
+       * @then DeleteObject を呼び出し、更新日時を null にする
+       */
+      @Test
+      void 削除が成功する場合_更新日時を削除する() {
+        try (MockedStatic<S3Client> s3 = mockStatic(S3Client.class)) {
+          S3Client client = prepareS3(s3);
+          S3 file = new S3(BUCKET, KEY, Region.AP_NORTHEAST_1);
+          file.setUpdateDate(new Date());
+
+          file.delete();
+
+          verify(client).deleteObject(any(DeleteObjectRequest.class));
+          assertThat(file.getUpdateDate()).isNull();
+        }
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * 削除が失敗した場合に、例外を投げず更新日時を残すことを確かめる。 削除できていないのに更新日時を消すと、存在の判断を誤ることを守る。
+       *
+       * @given DeleteObject が SDK の例外を投げ、更新日時が設定されている
+       * @when delete を呼び出す
+       * @then 例外を投げず、更新日時を残す
+       */
+      @Test
+      void 削除が失敗する場合_何もしない() {
+        try (MockedStatic<S3Client> s3 = mockStatic(S3Client.class)) {
+          S3Client client = prepareS3(s3);
+          doThrow(SdkClientException.create("接続失敗"))
+              .when(client)
+              .deleteObject(any(DeleteObjectRequest.class));
+          S3 file = new S3(BUCKET, KEY, Region.AP_NORTHEAST_1);
+          Date before = new Date();
+          file.setUpdateDate(before);
+
+          file.delete();
+
+          assertThat(file.getUpdateDate()).isEqualTo(before);
+        }
+      }
+    }
+  }
+
+  /**
+   * S3Client の生成を差し替え、テスト用のクライアントを返す.
+   *
+   * @param s3 S3Client の静的モック
+   * @return S3Client のモック
+   */
+  private static S3Client prepareS3(final MockedStatic<S3Client> s3) {
+    S3ClientBuilder builder = mock(S3ClientBuilder.class, RETURNS_SELF);
+    S3Client client = mock(S3Client.class);
+    when(builder.build()).thenReturn(client);
+    s3.when(S3Client::builder).thenReturn(builder);
+    return client;
+  }
+
+  /**
+   * 本文を持つ取得結果を作る.
+   *
+   * @param body 本文
+   * @return 取得結果
+   */
+  private static ResponseInputStream<GetObjectResponse> stream(final byte[] body) {
+    return new ResponseInputStream<>(
+        GetObjectResponse.builder().build(),
+        AbortableInputStream.create(new ByteArrayInputStream(body)));
   }
 }

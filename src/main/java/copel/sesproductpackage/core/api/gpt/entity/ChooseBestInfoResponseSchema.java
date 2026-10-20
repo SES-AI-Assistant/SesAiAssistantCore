@@ -3,11 +3,13 @@ package copel.sesproductpackage.core.api.gpt.entity;
 import copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateResponseSchema.EvaluateType;
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.api.gpt.schema.SchemaIgnore;
+import java.util.Comparator;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * AIによるベストマッチ選出結果エンティティ.
@@ -17,6 +19,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Slf4j
 public class ChooseBestInfoResponseSchema {
   @Schema(
       title = "選出対象の評価結果リスト",
@@ -73,7 +76,12 @@ public class ChooseBestInfoResponseSchema {
               if (rules.getMustSkillLevel() == null) {
                 return true;
               }
+              // 評価が無い候補は、レベル指定に対して満たさない扱いとして除外し、候補の ID をログに残す
               EvaluateType result = r.getMustSkillEvaluateResult();
+              if (result == null) {
+                log.warn("必須スキルの評価が無い候補を除外しました: ID={}", r.getId());
+                return false;
+              }
               EvaluateType level = rules.getMustSkillLevel();
               return result.ordinal() <= level.ordinal();
             })
@@ -83,11 +91,16 @@ public class ChooseBestInfoResponseSchema {
               if (rules.getWantSkillLevel() == null) {
                 return true;
               }
+              // 評価が無い候補は、レベル指定に対して満たさない扱いとして除外し、候補の ID をログに残す
               EvaluateType result = r.getWantSkillEvaluateResult();
+              if (result == null) {
+                log.warn("尚好スキルの評価が無い候補を除外しました: ID={}", r.getId());
+                return false;
+              }
               EvaluateType level = rules.getWantSkillLevel();
               return result.ordinal() <= level.ordinal();
             })
-        .sorted(java.util.Comparator.reverseOrder())
+        .sorted(Comparator.reverseOrder())
         .toList();
   }
 
@@ -153,14 +166,15 @@ public class ChooseBestInfoResponseSchema {
         defaultValue = "true")
     private boolean otherConstraintsResult = true;
 
+    /** matchScore で比較し、null を最小として扱う比較器. */
+    private static final Comparator<CandidateEvaluationResult> NULLS_FIRST_BY_MATCH_SCORE =
+        Comparator.nullsFirst(Comparator.comparingInt(CandidateEvaluationResult::getMatchScore));
+
     @SchemaIgnore
     @Override
     public int compareTo(CandidateEvaluationResult o) {
-      if (o == null) {
-        return 1;
-      }
-      // matchScore の降順（大きい順）
-      return Integer.compare(this.matchScore, o.matchScore);
+      // matchScore の昇順。null は最も小さい値として扱う（従来どおり、この値に対して常に 1 を返す）
+      return NULLS_FIRST_BY_MATCH_SCORE.compare(this, o);
     }
 
     @SchemaIgnore

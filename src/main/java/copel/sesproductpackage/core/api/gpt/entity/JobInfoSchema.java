@@ -151,7 +151,7 @@ public class JobInfoSchema {
       for (Requirements must : this.wantList) {
         sb.append("・")
             .append(must.getPerspective())
-            .append(new ExperienceDuration(must.getDurationMonths()).toSuffix("："))
+            .append(new ExperienceDuration(must.getDurationMonths()).toSuffix(": "))
             .append("\n");
       }
     }
@@ -200,26 +200,7 @@ public class JobInfoSchema {
    * @return OriginalDateTime
    */
   public OriginalDateTime getStartDateAsOriginalDateTime() {
-    if (this.startYearMonth == null) {
-      OriginalDateTime now = new OriginalDateTime();
-      return OriginalDateTime.fromMonth(
-          now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
-    }
-    String[] parts = this.startYearMonth.split("/");
-    if (parts.length == 2) {
-      try {
-        int year = Integer.parseInt(parts[0]);
-        int month = Integer.parseInt(parts[1]);
-        return OriginalDateTime.fromMonth(year, month);
-      } catch (NumberFormatException e) {
-        OriginalDateTime now = new OriginalDateTime();
-        return OriginalDateTime.fromMonth(
-            now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
-      }
-    }
-    OriginalDateTime now = new OriginalDateTime();
-    return OriginalDateTime.fromMonth(
-        now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
+    return OriginalDateTime.fromYearMonthText(this.startYearMonth);
   }
 
   /**

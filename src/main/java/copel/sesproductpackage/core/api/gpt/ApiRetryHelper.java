@@ -1,5 +1,6 @@
 package copel.sesproductpackage.core.api.gpt;
 
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -9,6 +10,9 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class ApiRetryHelper {
+  /** 再試行の対象となる HTTP 状態コード（429: レート制限、503: 一時的な過負荷）. */
+  private static final Set<Integer> RETRYABLE_STATUS_CODES = Set.of(429, 503);
+
   /** 最大リトライ回数. */
   private static final int MAX_RETRIES = 3;
 
@@ -30,15 +34,17 @@ public class ApiRetryHelper {
    * @throws RuntimeException ランタイム例外（リトライ3回失敗後、または非リトライ対象）
    */
   public static <T> T executeWithRetry(final RetryableCall<T> call) throws RuntimeException {
-    RuntimeException lastRuntimeException = null;
-
-    for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    // 終了は最大回数に達したときの throw だけで行うため、条件を持たない for で書く
+    for (int attempt = 1; ; attempt++) {
       try {
         return call.call();
       } catch (RuntimeException e) {
-        lastRuntimeException = e;
-        // リトライ対象のHTTPエラーコードかチェック
-        if (!isRetryableError(e)) {
+        // 再試行の対象は HTTP 状態コードで判定する（例外メッセージの文字列には依存しない）
+        boolean retryable =
+            e instanceof HttpStatusException status
+                && RETRYABLE_STATUS_CODES.contains(status.getStatusCode());
+
+        if (!retryable) {
           throw e;
         }
 
@@ -66,39 +72,35 @@ public class ApiRetryHelper {
         }
       }
     }
-
-    // このコードに到達することはありませんが、コンパイラのためにここに記載
-    if (lastRuntimeException != null) {
-      throw lastRuntimeException;
-    }
-    throw new RuntimeException("API呼び出し失敗");
   }
 
-  /**
-   * エラーが再試行可能な種別かを判定します.
-   *
-   * <p>503（Service Unavailable）と429（Rate Limit）をリトライ対象と判定。
-   *
-   * @param e 判定対象の例外
-   * @return リトライ対象の場合は true
-   */
-  private static boolean isRetryableError(final RuntimeException e) {
-    String message = e.getMessage();
-    if (message == null) {
-      return false;
+  /** HTTP 応答がエラーだったことを、状態コード付きで表す例外. 再試行の判定に状態コードを使う。 */
+  public static class HttpStatusException extends RuntimeException {
+
+    private static final long serialVersionUID = 1L;
+
+    /** HTTP 状態コード. */
+    private final int statusCode;
+
+    /**
+     * コンストラクタ.
+     *
+     * @param statusCode HTTP 状態コード
+     * @param message 例外メッセージ
+     */
+    public HttpStatusException(final int statusCode, final String message) {
+      super(message);
+      this.statusCode = statusCode;
     }
 
-    // 503 Service Unavailable（API側のメンテナンスや負荷過高）
-    if (message.contains("503")) {
-      return true;
+    /**
+     * HTTP 状態コードを返します.
+     *
+     * @return HTTP 状態コード
+     */
+    public int getStatusCode() {
+      return statusCode;
     }
-
-    // 429 Too Many Requests（レート制限）
-    if (message.contains("429")) {
-      return true;
-    }
-
-    return false;
   }
 
   /**
