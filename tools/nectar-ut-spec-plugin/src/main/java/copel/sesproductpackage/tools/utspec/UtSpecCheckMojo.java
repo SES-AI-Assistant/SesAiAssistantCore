@@ -31,6 +31,15 @@ public class UtSpecCheckMojo extends AbstractMojo {
   @Parameter(property = "nectar.ut.failOnViolation", defaultValue = "true")
   boolean failOnViolation;
 
+  /**
+   * プロジェクトの packaging。pom の場合はソースもテストも無いため検査しない。
+   *
+   * <p>親 pom（nectar-parent）は本ゴールを子に継承させるため、親 pom 自身の build でも実行される。 skip を指定せずに親 pom
+   * を配布できるようにする（skip を使うと子でも検査が止まる抜け道になるため）。
+   */
+  @Parameter(defaultValue = "${project.packaging}", readonly = true)
+  String packaging;
+
   /** リポジトリ直下。相対パスの基準。 */
   @Parameter(defaultValue = "${basedir}", readonly = true)
   File basedir;
@@ -65,6 +74,10 @@ public class UtSpecCheckMojo extends AbstractMojo {
   public void execute() throws MojoExecutionException, MojoFailureException {
     if (skip) {
       getLog().info("UT 仕様の検査をスキップする（nectar.ut.skip=true）");
+      return;
+    }
+    if ("pom".equals(packaging)) {
+      getLog().info("packaging が pom のため、UT 仕様の検査を行わない");
       return;
     }
     UtSpecRunner.Config config =

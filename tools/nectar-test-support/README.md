@@ -10,137 +10,15 @@ Nectar の Java リポジトリで単体テスト（UT）を書くための共�
 
 ## 1. 利用側の pom.xml への追加
 
-### 1.1 依存関係
+親 pom（`nectar-parent`）を継承すれば、本ライブラリは `test` スコープで依存に加わり、surefire の設定（memory への切り替え）も済みます。
+利用側の pom に追加するものはありません。導入手順とコマンドは [`tools/README.md`](../README.md) を参照してください。
 
-`nectar-bom` で版を統一し、`nectar-test-support` を `test` スコープで1つ宣言します。
-JUnit 5、Mockito、AssertJ は `nectar-test-support` の推移的依存として `test` スコープで揃います。
+親 pom が行っている設定は次のとおりです（親 pom を使わない場合は、これらを自分で書きます）。
 
-```xml
-<repositories>
-  <repository>
-    <id>github</id>
-    <url>https://maven.pkg.github.com/SES-AI-Assistant/SesAiAssistantCore</url>
-    <snapshots>
-      <enabled>true</enabled>
-    </snapshots>
-  </repository>
-</repositories>
-
-<dependencyManagement>
-  <dependencies>
-    <dependency>
-      <groupId>com.github.SES-AI-Assistant</groupId>
-      <artifactId>nectar-bom</artifactId>
-      <version>0.0.1-SNAPSHOT</version>
-      <type>pom</type>
-      <scope>import</scope>
-    </dependency>
-  </dependencies>
-</dependencyManagement>
-
-<dependencies>
-  <dependency>
-    <groupId>com.github.SES-AI-Assistant</groupId>
-    <artifactId>nectar-test-support</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <scope>test</scope>
-  </dependency>
-</dependencies>
-```
-
-### 1.2 surefire（memory への切り替え）
-
-テストでは設定の読み込み元を memory に切り替えます。この設定がない場合、拡張は
-「surefire の systemPropertyVariables に nectar.config.source=memory を設定すること」
-というメッセージで即座に失敗します。拡張側では自動で設定しません。
-
-```xml
-<plugin>
-  <groupId>org.apache.maven.plugins</groupId>
-  <artifactId>maven-surefire-plugin</artifactId>
-  <version>3.2.5</version>
-  <configuration>
-    <systemPropertyVariables>
-      <nectar.config.source>memory</nectar.config.source>
-    </systemPropertyVariables>
-  </configuration>
-</plugin>
-```
-
-### 1.3 JaCoCo と UT 仕様の検査（任意。UT 仕様に従う場合）
-
-```xml
-<plugin>
-  <groupId>org.jacoco</groupId>
-  <artifactId>jacoco-maven-plugin</artifactId>
-  <version>0.8.15</version>
-  <executions>
-    <execution>
-      <id>prepare-agent</id>
-      <goals>
-        <goal>prepare-agent</goal>
-      </goals>
-    </execution>
-    <execution>
-      <id>report</id>
-      <phase>test</phase>
-      <goals>
-        <goal>report</goal>
-      </goals>
-      <configuration>
-        <formats>
-          <format>HTML</format>
-          <format>CSV</format>
-          <format>XML</format>
-        </formats>
-      </configuration>
-    </execution>
-    <execution>
-      <id>check</id>
-      <phase>verify</phase>
-      <goals>
-        <goal>check</goal>
-      </goals>
-      <configuration>
-        <rules>
-          <rule>
-            <element>BUNDLE</element>
-            <limits>
-              <limit>
-                <counter>INSTRUCTION</counter>
-                <value>COVEREDRATIO</value>
-                <minimum>1.00</minimum>
-              </limit>
-              <limit>
-                <counter>BRANCH</counter>
-                <value>COVEREDRATIO</value>
-                <minimum>1.00</minimum>
-              </limit>
-            </limits>
-          </rule>
-        </rules>
-      </configuration>
-    </execution>
-  </executions>
-</plugin>
-
-<plugin>
-  <groupId>com.github.SES-AI-Assistant</groupId>
-  <artifactId>nectar-ut-spec-plugin</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
-  <executions>
-    <execution>
-      <id>nectar-ut-spec</id>
-      <goals>
-        <goal>check</goal>
-      </goals>
-    </execution>
-  </executions>
-</plugin>
-```
-
-- JaCoCo の `prepare-agent` と `report` は、`nectar-ut-spec-plugin` より前に宣言する。
-- `nectar-ut-spec-plugin` は `verify` フェーズで実行される。詳細は `tools/nectar-ut-spec-plugin/README.md` を参照する。
+- `nectar-bom` の import と、本ライブラリの `test` スコープでの依存（JUnit 5・Mockito・AssertJ も推移的に揃う）
+- surefire の `systemPropertyVariables` に `nectar.config.source=memory`。この設定が無い場合、拡張は
+  「surefire の systemPropertyVariables に nectar.config.source=memory を設定すること」というメッセージで即座に失敗します。拡張側では自動で設定しません
+- surefire の `systemPropertyVariables` に `logback.configurationFile=logback-ut.xml`（4章）
 
 ## 2. 拡張（宣言的に使う注釈）
 
@@ -271,21 +149,23 @@ memory 以外（`nectar.config.source` が未設定、または memory 以外の
 @FixedClock は読み込み元が memory のときだけ使えます。surefire の systemPropertyVariables に nectar.config.source=memory を設定してください。
 ```
 
-本番の設定や接続先を差し替えないための制限です。対処は、上記の surefire 設定（1.2）を追加することです。
+本番の設定や接続先を差し替えないための制限です。対処は、親 pom を継承するか、1章の surefire 設定を追加することです。
 
-## 4. Core の logback 設定についての注意
+## 4. UT 用のログ設定（`logback-ut.xml`）
 
-Core の jar には logback の設定（`logback.xml`）が同梱されており、Logstash のエンコーダ（`net.logstash.logback.encoder.LogstashEncoder`）を参照します。
-利用側のテストのクラスパスに `logstash-logback-encoder` が無い場合、テスト起動時に
-`Could not create component [encoder] of type [net.logstash.logback.encoder.LogstashEncoder]` などのエラーログが出ます。
-テストの結果には影響しませんが、ログが読みにくくなります。
+本ライブラリは、UT でログを出力しないための `logback-ut.xml` を同梱しています。
+親 pom の surefire 設定（`logback.configurationFile=logback-ut.xml`）からだけ参照されます。
 
-利用側のテストリソースに `logback-test.xml` を置くと、テスト時に同梱の設定より優先されて、エラーログを抑止できます。
-本プロジェクト（`nectar-test-support`）も、`src/test/resources/logback-test.xml` で同じ対処をしています。
+- Core の jar に同梱の `logback.xml`（Logstash のエンコーダを参照する）も、この設定で置き換わります。
+- `logback-test.xml` の名前にしていないのは、テストのクラスパスで動く IT1 の起動クラスでもログが消えてしまうためです。
+- ロガーのレベルは INFO のままです。テストで追加したアペンダーはログを受け取れます。
+- 利用側の `src/test/resources` に同名のファイルを置くと、そちらが優先されます。
+
+本プロジェクト（`nectar-test-support`）自身のテストは、`src/test/resources/logback-test.xml` でログを抑止しています。
 
 ## 5. 開発者向け
 
-### 4.1 ビルドと検査
+### 5.1 ビルドと検査
 
 ```bash
 export JAVA_HOME=$(/usr/libexec/java_home -v 18)   # Maven が JDK 17 以上 23 未満で動くこと
@@ -296,8 +176,8 @@ mvn -B clean install
 - `nectar-bom` と `nectar-ut-spec-plugin` は、先に `tools/` 配下で `mvn install` しておく必要がある。
 - Core の取得は GitHub Packages から行う。オフラインでの再ビルドには `-o` を使う。
 
-### 4.2 配布
+### 5.2 配布
 
 `.github/workflows/deploy-tools.yml` が、`main` への push のうち `tools/**` に変更があった場合と、手動実行で配布します。
-配布の順番は、`nectar-bom`、`nectar-ut-spec-plugin`、`nectar-test-support` です。
+配布の順番は、`nectar-bom`、`nectar-ut-spec-plugin`、`nectar-test-support`、`nectar-parent` です。
 `nectar-test-support` は build 時に `nectar-ut-spec-plugin` を使うため、その後に配布します。

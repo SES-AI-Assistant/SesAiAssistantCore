@@ -12,60 +12,12 @@ UT（単体テスト）コードを検査し、テスト仕様書 HTML を出力
 
 ### 1.1 pom.xml への追加
 
-`jacoco-maven-plugin` の `report` の後に、本プラグインを `verify` フェーズで実行します。
-`report` は `test` フェーズで実行されるため、本プラグインは必ず JaCoCo の CSV を読める状態になります。
+親 pom（`nectar-parent`）を継承すれば、本プラグインは JaCoCo の後に `verify` フェーズで実行されます。
+利用側の pom に追加するものはありません。導入手順とコマンドは [`tools/README.md`](../README.md) を参照してください。
 
-```xml
-<build>
-  <plugins>
-    <!-- 1. JaCoCo（report は test フェーズで jacoco.csv を出力する） -->
-    <plugin>
-      <groupId>org.jacoco</groupId>
-      <artifactId>jacoco-maven-plugin</artifactId>
-      <version>0.8.15</version>
-      <executions>
-        <execution>
-          <goals>
-            <goal>prepare-agent</goal>
-          </goals>
-        </execution>
-        <execution>
-          <id>report</id>
-          <phase>test</phase>
-          <goals>
-            <goal>report</goal>
-          </goals>
-          <configuration>
-            <formats>
-              <format>HTML</format>
-              <format>CSV</format>
-            </formats>
-          </configuration>
-        </execution>
-      </executions>
-    </plugin>
-
-    <!-- 2. UT 仕様の検査と仕様書出力（verify フェーズで jacoco:report の後に1回実行される） -->
-    <plugin>
-      <groupId>com.github.SES-AI-Assistant</groupId>
-      <artifactId>nectar-ut-spec-plugin</artifactId>
-      <version>0.0.1-SNAPSHOT</version>
-      <executions>
-        <execution>
-          <id>nectar-ut-spec</id>
-          <goals>
-            <goal>check</goal>
-          </goals>
-        </execution>
-      </executions>
-    </plugin>
-  </plugins>
-</build>
-```
-
-- JaCoCo の `prepare-agent` と `report` は必ず本プラグインより前に宣言する。
-- 本プラグインは `verify` フェーズに束縛されるため、`mvn verify`（または `mvn install`、`mvn deploy`）で実行される。
-- `mvn test` では実行されない。
+- 本プラグインは JaCoCo の `report`（`test` フェーズ）が出力する `jacoco.csv` を読みます。親 pom を使わない場合は、JaCoCo を本プラグインより前に宣言します。
+- `verify` フェーズに束縛されるため、`mvn clean verify` で実行されます。`mvn test` では実行されません。
+- 本プラグインは GitHub Packages から取得するため、親 pom を使わない場合は `pluginRepositories` に同じ URL を指定します（Maven はプラグインを `repositories` からは探しません）。
 
 ### 1.2 パラメータ
 
@@ -78,6 +30,8 @@ UT（単体テスト）コードを検査し、テスト仕様書 HTML を出力
 | `jacocoCsv` | — | `${project.build.directory}/site/jacoco/jacoco.csv` | JaCoCo の CSV レポート |
 | `surefireReportsDirectory` | — | `${project.build.directory}/surefire-reports` | surefire のレポートのディレクトリ |
 | `outputDirectory` | — | `${project.build.directory}/nectar-ut-spec` | 仕様書 HTML の出力先 |
+
+packaging が `pom` のプロジェクト（親 pom の `nectar-parent` など）では、ソースが無いため検査を行いません。
 
 除外のリストを指定するパラメータはありません。除外は本体クラスやメソッドに `@CoverageExcludedGenerated(reason = "...")` を付けて行います。
 
@@ -256,4 +210,4 @@ mvn -B com.github.SES-AI-Assistant:nectar-ut-spec-plugin:0.0.1-SNAPSHOT:check
 ### 9.3 配布
 
 `.github/workflows/deploy-tools.yml` が、`main` への push のうち `tools/**` に変更があった場合と、手動実行で配布します。
-配布の順番は `nectar-bom`、`nectar-ut-spec-plugin` です。
+配布の順番は `nectar-bom`、`nectar-ut-spec-plugin`、`nectar-test-support`、`nectar-parent` です。

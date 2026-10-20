@@ -50,11 +50,19 @@ mvn clean package
 mvn rewrite:run checkstyle:check spotless:apply pmd:pmd pmd:cpd spotbugs:check
 ```
 
+Core 本体はまだ親 pom（`nectar-parent`）に移行していないため、上の個別のコマンドを使います（Core の UT の作り直しの際に移行予定）。
+
+## 各リポジトリ向けのビルドツール（`tools/`）
+
+Lambda・Web API の各リポジトリが使う親 pom・UT 用部品・UT 仕様の検査プラグインを `tools/` に置いています。
+各リポジトリでのコマンド（`mvn spotless:apply` と `mvn clean verify`）、検査の中身、導入手順は [`tools/README.md`](tools/README.md) を参照してください。
+
 ## ドキュメント
 
 | ファイル | 用途 |
 |---------|------|
 | **AGENTS.md** | 開発ガイドライン・AI エージェント運用規約（必読） |
+| **tools/README.md** | 各リポジトリのビルド・UT・静的チェックのコマンドと導入手順 |
 | **docs/INSTRUCTION.md** | AI への開発指示（テンプレート） |
 | **docs/ARCHIVE_INSTRUCTIONS.md** | 完了した指示の履歴 |
 
