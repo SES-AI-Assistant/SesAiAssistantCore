@@ -1,0 +1,340 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.github.SES-AI-Assistant</groupId>
+  <artifactId>nectar-parent</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>Nectar Parent</name>
+  <description>Nectar の Java リポジトリ（Lambda・Web API）が継承する親 pom。ビルド設定と、mvn verify で行う検査（整形・LINT・UT・カバレッジ100%・UT仕様・spotbugs）をまとめる</description>
+
+  <!--
+    各リポジトリの pom にコピーしていた共通設定をここに集める。
+    各リポジトリは <parent> で本 pom を指定し、リポジトリ固有の設定（依存ライブラリ、shade の mainClass など）だけを書く。
+    コマンドと導入手順は tools/README.md を参照する。
+  -->
+
+  <properties>
+    <!-- source/target ではなく release を指定し、Java 17 に存在しない API を誤って参照できないようにする（CI は JDK 17 で動作する） -->
+    <maven.compiler.release>17</maven.compiler.release>
+    <!-- ソースと成果物の文字コードを UTF-8 に固定する（日本語の JavaDoc とテスト名を文字化けさせないため） -->
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <lombok.version>1.18.48</lombok.version>
+    <!-- Core と tools の版。Core と tools を同じ版で配布しているため1つのプロパティで管理する。
+         ${project.version} にすると子の版に置き換わってしまうため、本 pom の version と別に書く（版を上げるときは両方を変える） -->
+    <nectar.version>0.0.1-SNAPSHOT</nectar.version>
+  </properties>
+
+  <!-- distributionManagement は書かない。子に継承され、子で mvn deploy すると各リポジトリの成果物が Core の GitHub Packages に公開されてしまうため。
+       本 pom の配布先は deploy-tools.yml で altDeploymentRepository として指定する -->
+
+  <!--
+    Core・nectar-bom・nectar-test-support は repositories から、nectar-ut-spec-plugin は pluginRepositories から取得する。
+    Maven はプラグインを repositories ではなく pluginRepositories から探すため、同じ URL を両方に指定する。
+    本 pom 自体の取得には子の pom の repositories が要る（親の解決は、親の設定を読む前に行われるため）
+  -->
+  <repositories>
+    <repository>
+      <id>github</id>
+      <url>https://maven.pkg.github.com/SES-AI-Assistant/SesAiAssistantCore</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
+  <pluginRepositories>
+    <pluginRepository>
+      <id>github</id>
+      <url>https://maven.pkg.github.com/SES-AI-Assistant/SesAiAssistantCore</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </pluginRepository>
+  </pluginRepositories>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- テスト用ライブラリ（JUnit / Mockito / AssertJ）の版を nectar-bom で統一する -->
+      <dependency>
+        <groupId>com.github.SES-AI-Assistant</groupId>
+        <artifactId>nectar-bom</artifactId>
+        <version>${nectar.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- 子の pom は Core を版なしで宣言する -->
+      <dependency>
+        <groupId>com.github.SES-AI-Assistant</groupId>
+        <artifactId>sesaiassistantcore</artifactId>
+        <version>${nectar.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <version>${lombok.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- UT 用の共通テスト部品。JUnit 5 / Mockito / AssertJ も推移的に取り込まれる -->
+    <dependency>
+      <groupId>com.github.SES-AI-Assistant</groupId>
+      <artifactId>nectar-test-support</artifactId>
+      <version>${nectar.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <!-- リポジトリによって使い方が違うプラグインは、版と共通の設定だけをここで決め、使う側の pom で宣言する -->
+    <pluginManagement>
+      <plugins>
+        <!-- Lambda にアップロードする JAR（依存ライブラリ込み）を作る。子の pom で mainClass を指定する -->
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>3.2.4</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>exec-maven-plugin</artifactId>
+          <version>3.3.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>build-helper-maven-plugin</artifactId>
+          <version>3.6.0</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
+    <!--
+      verify フェーズでは、宣言した順に検査する。手早く終わる検査（整形・LINT）を先に、UT の結果を使う検査を後に置く。
+      1. spotless:check（整形） 2. checkstyle:check 3. pmd:check / pmd:cpd-check（LINT）
+      4. jacoco:check（カバレッジ 100%） 5. nectar-ut-spec:check（UT 仕様） 6. spotbugs:check（バグ検出）
+      UT 自体は test フェーズで実行され、1件でも失敗すれば verify まで進まない
+    -->
+    <plugins>
+      <!-- JDK バージョンチェック -->
+      <!-- Maven が CI（JDK 17）と異なる JDK で動作していた場合に、分かりやすいエラーで即座に停止させる。
+           Homebrew で Maven を導入した環境では、JAVA_HOME 未設定時に Maven が自身の依存 JDK を使うため気付きにくい。
+           JDK 23 以降ではテスト実行時に Mockito/ByteBuddy がエージェントをアタッチできないため、上限を23未満とする -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>3.4.1</version>
+        <executions>
+          <execution>
+            <id>enforce-java-version</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireJavaVersion>
+                  <version>[17,23)</version>
+                  <message>MavenがJava 17以上23未満で動作している必要があります。JAVA_HOME を対応JDKに設定してください（例: export JAVA_HOME=$(/usr/libexec/java_home -v 18)）。現在のバージョンは mvn -version で確認できます。</message>
+                </requireJavaVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- JDK 23 以降の javac はクラスパス上のアノテーションプロセッサを暗黙的に実行しないため、Lombok を明示する。
+           明示しない場合、警告もエラーも出ないまま Lombok が無効化され、大量のコンパイルエラーになる -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+        <configuration>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+              <version>${lombok.version}</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+        <configuration>
+          <argLine>@{argLine} --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+          <systemPropertyVariables>
+            <!-- UT では設定値・DB 接続を AWS から読まず、nectar-test-support の拡張で差し替える -->
+            <nectar.config.source>memory</nectar.config.source>
+            <!-- UT ではログを出力しない（nectar-test-support 同梱の設定）。
+                 logback-test.xml の名前にすると、テストのクラスパスで動く IT1 の起動クラスでもログが消えるため、surefire でだけ指定する -->
+            <logback.configurationFile>logback-ut.xml</logback.configurationFile>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+
+      <!-- 1. 整形: google-java-format との差分があれば失敗する。直すときは mvn spotless:apply。
+           google-java-format は未使用 import の削除と import の並べ替えも行うため、OpenRewrite は使わない -->
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>2.43.0</version>
+        <configuration>
+          <java>
+            <googleJavaFormat>
+              <version>1.17.0</version>
+              <style>GOOGLE</style>
+            </googleJavaFormat>
+          </java>
+        </configuration>
+        <executions>
+          <execution>
+            <id>spotless-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- 2. LINT: spotless と同じ Google スタイルで、警告も違反として失敗させる。
+           テストは日本語のテスト名・@Nested のクラス名が命名規則に合わないため対象外とし、
+           UT 仕様の検査（nectar-ut-spec-plugin）で品質を担保する -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>3.3.1</version>
+        <configuration>
+          <configLocation>google_checks.xml</configLocation>
+          <violationSeverity>warning</violationSeverity>
+          <consoleOutput>true</consoleOutput>
+          <failsOnError>true</failsOnError>
+          <failOnViolation>true</failOnViolation>
+          <linkXRef>false</linkXRef>
+        </configuration>
+        <executions>
+          <execution>
+            <id>checkstyle-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- 3. LINT: PMD（既定のルールセット）とコード重複（CPD）。違反があれば失敗させる -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-pmd-plugin</artifactId>
+        <version>3.21.2</version>
+        <configuration>
+          <failOnViolation>true</failOnViolation>
+          <printFailingErrors>true</printFailingErrors>
+          <linkXRef>false</linkXRef>
+        </configuration>
+        <executions>
+          <execution>
+            <id>pmd-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+              <goal>cpd-check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- 4. カバレッジ: 命令・分岐の両方で 100% を要求する。
+           report は test フェーズで CSV を出力し、verify フェーズの nectar-ut-spec-plugin が読む -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.15</version>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>test</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+            <configuration>
+              <formats>
+                <format>HTML</format>
+                <format>CSV</format>
+                <format>XML</format>
+              </formats>
+            </configuration>
+          </execution>
+          <execution>
+            <id>check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>INSTRUCTION</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>1.00</minimum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>1.00</minimum>
+                    </limit>
+                  </limits>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- 5. UT 仕様の検査とテスト仕様書 HTML の出力（JaCoCo より後に宣言する） -->
+      <plugin>
+        <groupId>com.github.SES-AI-Assistant</groupId>
+        <artifactId>nectar-ut-spec-plugin</artifactId>
+        <version>${nectar.version}</version>
+        <executions>
+          <execution>
+            <id>nectar-ut-spec</id>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- 6. バグ検出。除外が必要になったリポジトリは、範囲を限定した除外ファイルを excludeFilterFile で指定する -->
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <version>4.8.6.2</version>
+        <executions>
+          <execution>
+            <id>spotbugs-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

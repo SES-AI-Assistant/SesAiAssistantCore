@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- UT ではログを出力しない。nectar-parent の surefire 設定（logback.configurationFile）からだけ参照し、テストの結果だけを読みやすくする。
+     Core の jar に同梱の logback.xml（Logstash のエンコーダを参照する）も、この設定で置き換わる。
+     logback-test.xml の名前にすると、テストのクラスパスで動く IT1 の起動クラスでもログが消えるため別名にしている。
+     ロガーのレベルは INFO のままにし、テストで追加したアペンダーがログを受け取れるようにする。
+     利用側の src/test/resources に同名のファイルを置けば、そちらが優先される -->
+<configuration>
+  <root level="INFO" />
+</configuration>

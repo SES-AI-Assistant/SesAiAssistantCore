@@ -96,6 +96,7 @@ class UtSpecCheckMojoTest {
   private UtSpecCheckMojo mojo() {
     UtSpecCheckMojo mojo = new UtSpecCheckMojo();
     mojo.skip = false;
+    mojo.packaging = "jar";
     mojo.failOnViolation = true;
     mojo.basedir = tempDir.toFile();
     mojo.sourceDirectory = tempDir.resolve("src/main/java").toFile();
@@ -138,6 +139,22 @@ class UtSpecCheckMojoTest {
       void skipがtrueの場合_何もしない() throws IOException {
         UtSpecCheckMojo mojo = mojo();
         mojo.skip = true;
+
+        assertThatCode(mojo::execute).doesNotThrowAnyException();
+        assertThat(tempDir.resolve("target/nectar-ut-spec/index.html")).doesNotExist();
+      }
+
+      /**
+       * packaging が pom のプロジェクトでは検査を行わず、例外も仕様書も出さないことを確かめる。 親 pom 自身の build で検査を失敗させない。
+       *
+       * @given packaging を pom にし、jacoco.csv が無い状態
+       * @when execute を実行する
+       * @then 例外を投げず、仕様書を出力しない
+       */
+      @Test
+      void packagingがpomの場合_何もしない() throws IOException {
+        UtSpecCheckMojo mojo = mojo();
+        mojo.packaging = "pom";
 
         assertThatCode(mojo::execute).doesNotThrowAnyException();
         assertThat(tempDir.resolve("target/nectar-ut-spec/index.html")).doesNotExist();

@@ -53,3 +53,12 @@ jobs:
         env:
           GITHUB_ACTOR: ${{ secrets.GITHUB_ACTOR }}
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+
+      # nectar-parent は上の3つを参照する親 pom のため、最後に配布する。
+      # 配布先は pom に書かずここで指定する（pom に書くと子に継承され、子の mvn deploy で各リポジトリの成果物が公開されるため）
+      - name: nectar-parent をビルドしてデプロイ
+        working-directory: tools/nectar-parent
+        run: mvn -B deploy -DaltDeploymentRepository=github::https://maven.pkg.github.com/SES-AI-Assistant/SesAiAssistantCore --settings ${GITHUB_WORKSPACE}/.github/maven-settings.xml
+        env:
+          GITHUB_ACTOR: ${{ secrets.GITHUB_ACTOR }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
