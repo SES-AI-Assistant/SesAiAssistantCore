@@ -7,6 +7,7 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import copel.sesproductpackage.core.util.AwsEndpointUtil;
 
@@ -57,6 +58,21 @@ public abstract class SQSEntityBase {
     SendMessageRequest sendMessageRequest =
         new SendMessageRequest().withQueueUrl(this.queueUrl).withMessageBody(this.getMessageBody());
     return this.sqsClient.sendMessage(sendMessageRequest);
+  }
+
+  /**
+   * キューイング対象のSQSのキュー名を返却します.
+   *
+   * <p>キュー名は IaC で自動採番されるため、実行時にキューURLの最後の階層から取り出す。ログに送信先を残すために使う.
+   *
+   * @return キュー名。キューURLが未設定の場合は null
+   */
+  @JsonIgnore
+  public String getQueueName() {
+    if (this.queueUrl == null) {
+      return null;
+    }
+    return this.queueUrl.substring(this.queueUrl.lastIndexOf('/') + 1);
   }
 
   /**
