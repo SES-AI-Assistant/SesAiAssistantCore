@@ -8,6 +8,8 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * ウォッチ・案件・要員を結合したEntityのLotクラス.
@@ -54,12 +56,6 @@ public class SES_AI_T_WATCH_JOB_PERSONLot extends EntityLotBase<SES_AI_T_WATCH_J
   }
 
   @Override
-  protected String getSelectSql() {
-    throw new UnsupportedOperationException(
-        "SES_AI_T_WATCH_JOB_PERSONLot は selectSql をサポートしていません。selectByUserIdPaged を使用してください。");
-  }
-
-  @Override
   public void selectAll(Connection connection, String tenantId) throws SQLException {
     throw new UnsupportedOperationException(
         "SES_AI_T_WATCH_JOB_PERSONLot は selectAll をサポートしていません。selectByUserIdPaged を使用してください。");
@@ -85,7 +81,7 @@ public class SES_AI_T_WATCH_JOB_PERSONLot extends EntityLotBase<SES_AI_T_WATCH_J
     if (userId == null) {
       return;
     }
-    java.util.Map<String, String> query = new java.util.HashMap<>();
+    Map<String, String> query = new HashMap<>();
     query.put("w.user_id", userId);
     this.selectByQueryPaged(
         connection, tenantId, SELECT_BASE_SQL_FOR_PAGED_QUERY, query, true, page, size);

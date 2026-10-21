@@ -21,7 +21,6 @@ public class SES_AI_T_WATCH extends EntityBase {
 
   public SES_AI_T_WATCH(String tenantId) {
     super(tenantId);
-    this.tenantId = tenantId;
   }
 
   /** INSERT文. */
@@ -48,10 +47,6 @@ public class SES_AI_T_WATCH extends EntityBase {
   /** EXISTS文. */
   private static final String EXISTS_SQL =
       "SELECT EXISTS (SELECT 1 FROM SES_AI_T_WATCH WHERE user_id = ? AND target_id = ?)";
-
-  /** EXISTS文2. */
-  private static final String EXISTS_BY_TAGET_ID_SQL =
-      "SELECT EXISTS (SELECT 1 FROM SES_AI_T_WATCH WHERE target_id = ?)";
 
   /** ユーザーID / user_id */
   @Column(physicalName = "user_id", logicalName = "ユーザーID")
@@ -90,22 +85,6 @@ public class SES_AI_T_WATCH extends EntityBase {
           stmt.setString(2, this.targetId);
         },
         "SES_AI_T_WATCH.isExist");
-  }
-
-  /**
-   * このEntityの持つ対象IDを持つレコードが存在するかどうかを判定します.
-   *
-   * @param connection DBコネクション
-   * @return 存在すればtrue、存在しなければfalse
-   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   */
-  public boolean isExistByTargetId(Connection connection) throws SQLException {
-    return executeExists(
-        connection,
-        EXISTS_BY_TAGET_ID_SQL,
-        this.tenantId,
-        (stmt) -> stmt.setString(1, this.targetId),
-        "SES_AI_T_WATCH.isExistByTargetId");
   }
 
   @Override

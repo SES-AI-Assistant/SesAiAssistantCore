@@ -5,6 +5,7 @@ import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.ExperienceDuration;
 import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.unit.OfficeAvailability;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
 import java.math.BigDecimal;
@@ -206,13 +207,9 @@ public class PersonInfoSchema {
       sb.append("■場所: ").append(this.place).append("\n");
     }
     // 8. 出社可否
-    if (this.officeAvailability == 0) {
-      sb.append("■出社: ").append("フルリモート希望\n");
-    } else if (this.officeAvailability == 5) {
-      sb.append("■出社: ").append("常駐可").append("\n");
-    } else {
-      sb.append("■出社: ").append("週").append(this.officeAvailability).append("まで可").append("\n");
-    }
+    sb.append("■出社: ")
+        .append(new OfficeAvailability(this.officeAvailability).toDisplayString())
+        .append("\n");
     // 9. 経歴
     if (this.experiences != null && !this.experiences.isEmpty()) {
       sb.append("■経歴\n");

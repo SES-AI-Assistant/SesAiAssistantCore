@@ -65,12 +65,20 @@ public class SES_AI_M_INGEST_ROUTE extends EntityBase {
       "SELECT channel_type, route_key, register_date, register_user FROM SES_AI_M_INGEST_ROUTE "
           + "WHERE channel_type = ? AND route_key = ?";
 
-  /** UPDATE文（tenantId 条件を含む）. */
+  /**
+   * UPDATE文（tenantId 条件を含む）.
+   *
+   * <p>UPDATE 用の実行テンプレートは TenantFilterSql を通さず、tenant_id の条件を SQL に手書きする。テンプレートは条件を自動で付けないため。
+   */
   private static final String UPDATE_SQL =
       "UPDATE SES_AI_M_INGEST_ROUTE SET register_user = ? WHERE channel_type = ? AND route_key = ? "
           + "AND tenant_id = ?";
 
-  /** DELETE文（tenantId 条件を含む）. */
+  /**
+   * DELETE文（tenantId 条件を含む）.
+   *
+   * <p>DELETE 用の実行テンプレートは TenantFilterSql を通さず、tenant_id の条件を SQL に手書きする。テンプレートは条件を自動で付けないため。
+   */
   private static final String DELETE_SQL =
       "DELETE FROM SES_AI_M_INGEST_ROUTE WHERE channel_type = ? AND route_key = ? AND tenant_id = "
           + "?";

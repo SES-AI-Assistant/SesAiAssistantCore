@@ -15,6 +15,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import copel.sesproductpackage.core.unit.LogicalOperators;
+import copel.sesproductpackage.core.unit.LogicalOperators.LogicalOperatorType;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.tools.testsupport.jdbc.MockResultSetBuilder;
 import java.math.BigDecimal;
@@ -24,6 +25,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -144,11 +146,6 @@ class EntityLotBaseTest {
     @Override
     protected String getSelectAllSql() {
       return SELECT_ALL_SQL;
-    }
-
-    @Override
-    protected String getSelectSql() {
-      return "SELECT id, name, tenant_id FROM TEST_TABLE WHERE ";
     }
 
     @Override
@@ -817,508 +814,84 @@ class EntityLotBaseTest {
   }
 
   @Nested
-  class selectByAndQuery {
+  class selectByLikeQuery {
 
     @Nested
     class 正常系 {
 
       /**
-       * 条件を AND で連ねて、テナントIDの条件を最後に付けたSQLで検索することを確かめる。 複数の条件をすべて満たす行だけを返すためである。
+       * 条件を連ねたSQLで検索し、null の条件を飛ばして検索語を順に設定することを確かめる。 条件の一部が未設定でも検索を続けられるようにする。
        *
-       * @given 条件が name と id の2件、検索結果が 1件
-       * @when selectByAndQuery をテナントID T001 で実行する
-       * @then name と id を AND で連ね、テナントIDの条件を付けたSQLを準備し、1件を返す
+       * @given 検索語が 山、条件が AND の x、null、OR の y
+       * @when selectByLikeQuery を接続、テナントID "T001"、列名 name で実行する
+       * @then 条件を連ねたSQLを準備し、検索語を 1 から 3 番目に設定する
        */
       @Test
-      void 条件が2件の場合_AND条件とテナントIDの条件を付けて1件を返す() throws SQLException {
+      void 条件が2件でnullを含む場合_条件を連ねたSQLを送信する() throws SQLException {
         Connection connection = mock(Connection.class);
-        stubAnyStatement(
-            connection,
-            MockResultSetBuilder.builder()
-                .columns("id", "name", "tenant_id")
-                .row("U001", "山田", TENANT_ID)
-                .build());
-        Map<String, Object> query = new LinkedHashMap<>();
-        query.put("name", "山田");
-        query.put("id", "U001");
-        TestLot lot = new TestLot();
+        PreparedStatement statement =
+            stubStatement(
+                connection,
+                " OR name LIKE ?",
+                MockResultSetBuilder.builder().columns("id", "name", "tenant_id").build());
+        List<LogicalOperators> query =
+            Arrays.asList(
+                new LogicalOperators(LogicalOperatorType.AND, "x"),
+                null,
+                new LogicalOperators(LogicalOperatorType.OR, "y"));
 
-        lot.selectByAndQuery(connection, TENANT_ID, query);
+        new TestLot().selectByLikeQuery(connection, TENANT_ID, SELECT_LIKE_SQL, "name", "山", query);
 
-        verify(connection)
-            .prepareStatement(
-                "SELECT id, name, tenant_id FROM TEST_TABLE WHERE name = ? AND id = ? AND tenant_id = ?");
-        assertThat(lot.size()).isEqualTo(1);
+        verify(statement).setString(1, "%山%");
+        verify(statement).setString(2, "%x%");
+        verify(statement).setString(3, "%y%");
       }
 
       /**
-       * 条件の値の型ごとに、対応する型で値を設定することを確かめる。 数値やBooleanを文字列にすると、比較結果が変わるためである。
+       * 条件が null の場合に、検索語だけで検索することを確かめる。 追加の条件が無い検索も行えるようにする。
        *
-       * @given 条件が Boolean の true、Integer の 3、Long の 4、null の順に並ぶ
-       * @when selectByAndQuery をテナントID T001 で実行する
-       * @then Boolean、Integer、Long、null の順に型に応じた値を設定し、1件を返す
+       * @given 検索語が 山、条件が null
+       * @when selectByLikeQuery を接続、テナントID "T001"、列名 name、条件 null で実行する
+       * @then 検索語を 1 番目だけに設定する
        */
       @Test
-      void 条件値の型が異なる場合_型に応じて値を設定して1件を返す() throws SQLException {
+      void 条件がnullの場合_検索語だけのSQLを送信する() throws SQLException {
         Connection connection = mock(Connection.class);
-        PreparedStatement statement = stubAnyStatement(connection, twoRowsResult());
-        Map<String, Object> query = new LinkedHashMap<>();
-        query.put("flag", true);
-        query.put("count", 3);
-        query.put("big", 4L);
-        query.put("name", null);
-        TestLot lot = new TestLot();
+        PreparedStatement statement =
+            stubStatement(
+                connection,
+                "WHERE name LIKE ?",
+                MockResultSetBuilder.builder().columns("id", "name", "tenant_id").build());
 
-        lot.selectByAndQuery(connection, TENANT_ID, query);
-
-        verify(statement).setBoolean(1, true);
-        verify(statement).setInt(2, 3);
-        verify(statement).setLong(3, 4L);
-        verify(statement).setString(4, null);
-        verify(statement).setString(5, TENANT_ID);
-        assertThat(lot.size()).isEqualTo(2);
-      }
-    }
-
-    @Nested
-    class 境界値 {
-
-      /**
-       * 条件が空の場合に問い合わせを行わず、空のLotを返すことを確かめる。 条件の無い検索は全件を返す意図ではないため、何もしない。
-       *
-       * @given 条件が空の Map
-       * @when selectByAndQuery を実行する
-       * @then 問い合わせを行わず、空のLotを返す
-       */
-      @Test
-      void 条件が空の場合_空のLotを返す() throws SQLException {
-        Connection connection = mock(Connection.class);
-        TestLot lot = new TestLot();
-
-        lot.selectByAndQuery(connection, TENANT_ID, new LinkedHashMap<>());
-
-        verify(connection, never()).prepareStatement(anyString());
-        assertThat(lot.isEmpty()).isTrue();
-      }
-
-      /**
-       * 接続が null の場合に例外を投げることを確かめる。 接続が無いと問い合わせできないため、何もしない。
-       *
-       * @given 接続が null、条件が1件
-       * @when selectByAndQuery を接続 null で実行する
-       * @then IllegalArgumentException を投げる
-       */
-      @Test
-      void 接続がnullの場合_IllegalArgumentExceptionを投げる() throws SQLException {
-        Map<String, Object> query = new LinkedHashMap<>();
-        query.put("name", "山田");
-        TestLot lot = new TestLot();
-        assertThatThrownBy(
-                () -> {
-                  lot.selectByAndQuery(null, TENANT_ID, query);
-                })
-            .isInstanceOf(IllegalArgumentException.class);
-      }
-
-      /**
-       * 条件がnullの場合に問い合わせを行わず、空のLotを返すことを確かめる。 条件が無い検索は全件を返す意図ではないためである。
-       *
-       * @given 条件が null
-       * @when selectByAndQuery を条件 null で実行する
-       * @then 問い合わせを行わず、空のLotを返す
-       */
-      @Test
-      void 条件がnullの場合_空のLotを返す() throws SQLException {
-        Connection connection = mock(Connection.class);
-        TestLot lot = new TestLot();
-
-        lot.selectByAndQuery(connection, TENANT_ID, null);
-
-        verify(connection, never()).prepareStatement(anyString());
-        assertThat(lot.isEmpty()).isTrue();
-      }
-    }
-  }
-
-  @Nested
-  class selectByOrQuery {
-
-    @Nested
-    class テナント隔離 {
-
-      /**
-       * OR 条件では、条件全体を括弧で包んでからテナントIDの条件を付けることを確かめる。 括弧で包まないと、テナントIDの条件が最後の条件だけに掛かり、他テナントの行を返すためである。
-       *
-       * @given 条件が name と id の OR、検索結果が 1件
-       * @when selectByOrQuery をテナントID T001 で実行する
-       * @then テナントIDの条件が id の条件だけに付いたSQLを準備し、1件を返す
-       */
-      @Test
-      void OR条件の場合_OR全体を括弧で包んで1件を返す() throws SQLException {
-        Connection connection = mock(Connection.class);
-        stubAnyStatement(
-            connection,
-            MockResultSetBuilder.builder()
-                .columns("id", "name", "tenant_id")
-                .row("U001", "山田", TENANT_ID)
-                .build());
-        Map<String, Object> query = new LinkedHashMap<>();
-        query.put("name", "山田");
-        query.put("id", "U001");
-        TestLot lot = new TestLot();
-
-        lot.selectByOrQuery(connection, TENANT_ID, query);
-
-        verify(connection)
-            .prepareStatement(
-                "SELECT id, name, tenant_id FROM TEST_TABLE WHERE (name = ? OR id = ?) AND tenant_id = ?");
-        assertThat(lot.size()).isEqualTo(1);
-      }
-    }
-  }
-
-  @Nested
-  class searchByField_Connection_String_String_String {
-
-    @Nested
-    class 正常系 {
-
-      /**
-       * 検索語で LIKE 検索し、テナントIDの条件を付けて1件を返すことを確かめる。 全文検索は検索語を含む行だけを返すためである。
-       *
-       * @given 検索語が 山 、テナントID T001 の検索結果が 1件
-       * @when searchByField を列名 name と検索語 山 で実行する
-       * @then 検索語を % で挟んだ値と T001 を設定し、1件を返す
-       */
-      @Test
-      void 検索語がある場合_LIKE条件とテナントIDの条件で1件を返す() throws SQLException {
-        Connection connection = mock(Connection.class);
-        PreparedStatement statement = stubAnyStatement(connection, twoRowsResult());
-        TestLot lot = new TestLot();
-
-        lot.searchByField(connection, TENANT_ID, "name", "山");
+        new TestLot().selectByLikeQuery(connection, TENANT_ID, SELECT_LIKE_SQL, "name", "山", null);
 
         verify(statement).setString(1, "%山%");
         verify(statement).setString(2, TENANT_ID);
-        assertThat(lot.size()).isEqualTo(2);
       }
-    }
-
-    @Nested
-    class 境界値 {
 
       /**
-       * 検索語が null の場合に問い合わせを行わないことを確かめる。 検索語の無い全文検索で全件を返さないためである。
+       * 条件が空の場合に、検索語だけで検索することを確かめる。 条件の並びが無い検索で余分な値を設定しない。
        *
-       * @given 検索語が null
-       * @when searchByField を検索語 null で実行する
-       * @then 問い合わせを行わず、空のLotを返す
+       * @given 検索語が 山、条件が空のリスト
+       * @when selectByLikeQuery を接続、テナントID "T001"、列名 name、空の条件で実行する
+       * @then 検索語を 1 番目だけに設定する
        */
       @Test
-      void 検索語がnullの場合_空のLotを返す() throws SQLException {
+      void 条件が空の場合_検索語だけのSQLを送信する() throws SQLException {
         Connection connection = mock(Connection.class);
-        TestLot lot = new TestLot();
+        PreparedStatement statement =
+            stubStatement(
+                connection,
+                "WHERE name LIKE ?",
+                MockResultSetBuilder.builder().columns("id", "name", "tenant_id").build());
 
-        lot.searchByField(connection, TENANT_ID, "name", null);
+        new TestLot()
+            .selectByLikeQuery(connection, TENANT_ID, SELECT_LIKE_SQL, "name", "山", List.of());
 
-        verify(connection, never()).prepareStatement(anyString());
-        assertThat(lot.isEmpty()).isTrue();
-      }
-    }
-  }
-
-  @Nested
-  class searchByField_Connection_String_String_String_List {
-
-    @Nested
-    class 正常系 {
-
-      /**
-       * AND 条件の追加検索を、LIKE 句を連ねてテナントIDの条件を最後に付けたSQLで実行することを確かめる。 複数の検索語をすべて満たす行だけを返すためである。
-       *
-       * @given 最初の検索語が 山 、追加条件が AND の 田 の1件
-       * @when searchByField を列名 name、追加条件つきで実行する
-       * @then AND の LIKE 句を連ね、2つの検索語と T001 を設定して1件を返す
-       */
-      @Test
-      void AND条件の場合_LIKE条件を連ねて1件を返す() throws SQLException {
-        Connection connection = mock(Connection.class);
-        PreparedStatement statement = stubAnyStatement(connection, twoRowsResult());
-        List<LogicalOperators> query =
-            List.of(new LogicalOperators(LogicalOperators.LogicalOperatorType.AND, "田"));
-        TestLot lot = new TestLot();
-
-        lot.searchByField(connection, TENANT_ID, "name", "山", query);
-
-        verify(connection)
-            .prepareStatement(
-                "SELECT id, name, tenant_id FROM TEST_TABLE WHERE name LIKE ? AND name LIKE ? AND tenant_id = ?");
         verify(statement).setString(1, "%山%");
-        verify(statement).setString(2, "%田%");
-        verify(statement).setString(3, TENANT_ID);
-        assertThat(lot.size()).isEqualTo(2);
-      }
-
-      /**
-       * OR 条件の追加検索では、LIKE 句全体を括弧で包んでからテナントIDの条件を付けることを確かめる。 括弧で包まないと、テナントIDの条件が最後の LIKE
-       * 句だけに掛かり、他テナントの行を返すためである。
-       *
-       * @given 最初の検索語が 山 、追加条件が OR の 田 の1件
-       * @when searchByField を列名 name、OR の追加条件つきで実行する
-       * @then OR の LIKE 句を連ね、テナントIDの条件を2つ目の LIKE 句にだけ付けたSQLで1件を返す
-       */
-      @Test
-      void OR条件の場合_OR全体を括弧で包んで1件を返す() throws SQLException {
-        Connection connection = mock(Connection.class);
-        stubAnyStatement(connection, twoRowsResult());
-        List<LogicalOperators> query =
-            List.of(new LogicalOperators(LogicalOperators.LogicalOperatorType.OR, "田"));
-        TestLot lot = new TestLot();
-
-        lot.searchByField(connection, TENANT_ID, "name", "山", query);
-
-        verify(connection)
-            .prepareStatement(
-                "SELECT id, name, tenant_id FROM TEST_TABLE WHERE (name LIKE ? OR name LIKE ?) AND tenant_id = ?");
-        assertThat(lot.size()).isEqualTo(2);
+        verify(statement).setString(2, TENANT_ID);
       }
     }
-
-    @Nested
-    class 境界値 {
-
-      /**
-       * 追加条件の中の null を読み飛ばして検索することを確かめる。 空の条件を含む一覧を渡されても、有効な条件だけで検索するためである。
-       *
-       * @given 追加条件が null の1件だけ
-       * @when searchByField を追加条件つきで実行する
-       * @then 追加条件を連ねず、最初の検索語とテナントIDの条件だけのSQLで1件を返す
-       */
-      @Test
-      void 追加条件がnullの場合_最初の検索語の条件だけで1件を返す() throws SQLException {
-        Connection connection = mock(Connection.class);
-        stubAnyStatement(connection, twoRowsResult());
-        List<LogicalOperators> query = new ArrayList<>();
-        query.add(null);
-        TestLot lot = new TestLot();
-
-        lot.searchByField(connection, TENANT_ID, "name", "山", query);
-
-        verify(connection)
-            .prepareStatement(
-                "SELECT id, name, tenant_id FROM TEST_TABLE WHERE name LIKE ? AND tenant_id = ?");
-        assertThat(lot.size()).isEqualTo(2);
-      }
-
-      /**
-       * 追加条件が空の一覧の場合に、最初の検索語の条件だけで検索することを確かめる。 空の一覧を渡されても、有効な検索語で検索するためである。
-       *
-       * @given 追加条件が空のリスト
-       * @when searchByField を追加条件つきで実行する
-       * @then LIKE 句の1件とテナントIDの条件のSQLで準備し、2件を返す
-       */
-      @Test
-      void 追加条件が空の場合_2件を返す() throws SQLException {
-        Connection connection = mock(Connection.class);
-        stubAnyStatement(connection, twoRowsResult());
-        TestLot lot = new TestLot();
-
-        lot.searchByField(connection, TENANT_ID, "name", "山", List.of());
-
-        verify(connection)
-            .prepareStatement(
-                "SELECT id, name, tenant_id FROM TEST_TABLE WHERE name LIKE ? AND tenant_id = ?");
-        assertThat(lot.size()).isEqualTo(2);
-      }
-    }
-  }
-
-  @Nested
-  class searchByFieldPaged_Connection_String_String_String_int_int {
-
-    @Nested
-    class 正常系 {
-
-      /**
-       * 検索語のページング検索で、件数と1ページ目の結果を保持することを確かめる。 検索結果の一覧をページ単位で表示するためである。
-       *
-       * @given 件数の問い合わせが 2 を返し、一覧の問い合わせが 2件を返す
-       * @when searchByFieldPaged を検索語 山 、1ページ目、1ページ10件で実行する
-       * @then 件数に 2 を保持し、2件を返す
-       */
-      @Test
-      void 検索語がある場合_2件を返す() throws SQLException {
-        Connection connection = mock(Connection.class);
-        stubStatement(connection, "COUNT(*)", countResult(2));
-        stubStatement(connection, "LIMIT", twoRowsResult());
-        TestLot lot = new TestLot();
-
-        lot.searchByFieldPaged(connection, TENANT_ID, "name", "山", 1, 10);
-
-        assertThat(lot.getTotalCount()).isEqualTo(2);
-        assertThat(lot.size()).isEqualTo(2);
-      }
-
-      /**
-       * 件数の結果が 0 件の場合に一覧の問い合わせを行わず、空のLotを返すことを確かめる。 0件の検索結果で余分な問い合わせを行わないためである。
-       *
-       * @given 件数の問い合わせが 0 を返す
-       * @when searchByFieldPaged を検索語 山 で実行する
-       * @then 件数の問い合わせだけを行い、空のLotを返す
-       */
-      @Test
-      void 件数が0件の場合_空のLotを返す() throws SQLException {
-        Connection connection = mock(Connection.class);
-        stubStatement(connection, "COUNT(*)", countResult(0));
-        TestLot lot = new TestLot();
-
-        lot.searchByFieldPaged(connection, TENANT_ID, "name", "山", 1, 10);
-
-        verify(connection, times(1)).prepareStatement(anyString());
-        assertThat(lot.isEmpty()).isTrue();
-      }
-    }
-
-    @Nested
-    class 異常系 {
-
-      /**
-       * ページング検索の一覧の問い合わせで、テナントIDを LIMIT と OFFSET より前の2番目に設定することを確かめる。 LIMIT と OFFSET
-       * を後ろにバインドすると値の位置がずれて SQL が失敗するためである。
-       *
-       * @given 件数の問い合わせが 2 を返し、一覧の問い合わせが 2件を返す
-       * @when searchByFieldPaged を検索語 山 、1ページ目、1ページ10件で実行する
-       * @then テナントIDを2番目、LIMIT を3番目、OFFSET を4番目に設定して2件を返す
-       */
-      @Test
-      void 検索語がある場合_テナントIDを2番目にして2件を返す() throws SQLException {
-        Connection connection = mock(Connection.class);
-        stubStatement(connection, "COUNT(*)", countResult(2));
-        PreparedStatement pageStatement = stubStatement(connection, "LIMIT", twoRowsResult());
-        TestLot lot = new TestLot();
-
-        lot.searchByFieldPaged(connection, TENANT_ID, "name", "山", 1, 10);
-
-        verify(pageStatement).setString(1, "%山%");
-        verify(pageStatement).setString(2, TENANT_ID);
-        verify(pageStatement).setInt(3, 10);
-        verify(pageStatement).setInt(4, 0);
-        assertThat(lot.size()).isEqualTo(2);
-      }
-    }
-
-    @Nested
-    class 境界値 {
-      /**
-       * 件数の問い合わせが行を返さない場合に、一覧を取得せず空のLotを返すことを確かめる。 行が無い件数を0件として扱い、余分な問い合わせを行わないためである。
-       *
-       * @given 件数の問い合わせが行を返さない
-       * @when searchByFieldPaged を検索語 山 で実行する
-       * @then 件数の問い合わせだけを行い、空のLotを返す
-       */
-      @Test
-      void 件数の行が無い場合_空のLotを返す() throws SQLException {
-        Connection connection = mock(Connection.class);
-        stubStatement(connection, "COUNT(*)", emptyResult());
-        TestLot lot = new TestLot();
-
-        lot.searchByFieldPaged(connection, TENANT_ID, "name", "山", 1, 10);
-
-        verify(connection, times(1)).prepareStatement(anyString());
-        assertThat(lot.isEmpty()).isTrue();
-      }
-    }
-  }
-
-  @Nested
-  class searchByFieldPaged_Connection_String_String_String_List_int_int {
-
-    @Nested
-    class 正常系 {
-
-      /**
-       * 追加条件つきのページング検索で、件数と結果を保持することを確かめる。 詳細な条件つきの一覧もページ単位で表示するためである。
-       *
-       * @given 件数の問い合わせが 1 を返し、一覧の問い合わせが 1件 の結果を返す
-       * @when searchByFieldPaged を検索語と AND の追加条件つきで実行する
-       * @then 件数に 1 を保持し、1件を返す
-       */
-      @Test
-      void AND条件の場合_1件を返す() throws SQLException {
-        Connection connection = mock(Connection.class);
-        stubStatement(connection, "COUNT(*)", countResult(1));
-        stubStatement(
-            connection,
-            "LIMIT",
-            MockResultSetBuilder.builder()
-                .columns("id", "name", "tenant_id")
-                .row("U001", "山田", TENANT_ID)
-                .build());
-        List<LogicalOperators> query =
-            List.of(new LogicalOperators(LogicalOperators.LogicalOperatorType.AND, "田"));
-        TestLot lot = new TestLot();
-
-        lot.searchByFieldPaged(connection, TENANT_ID, "name", "山", query, 1, 10);
-
-        assertThat(lot.getTotalCount()).isEqualTo(1);
-        assertThat(lot.size()).isEqualTo(1);
-      }
-
-      /**
-       * 追加条件の null を読み飛ばしてページング検索を実行することを確かめる。 空の条件が混ざっても、件数と一覧の条件を揃えるためである。
-       *
-       * @given 件数の問い合わせが 1 を返し、追加条件が null の1件だけ
-       * @when searchByFieldPaged を検索語と null の追加条件つきで実行する
-       * @then 件数に 1 を保持し、1件を返す
-       */
-      @Test
-      void 追加条件がnullの場合_1件を返す() throws SQLException {
-        Connection connection = mock(Connection.class);
-        stubStatement(connection, "COUNT(*)", countResult(1));
-        stubStatement(
-            connection,
-            "LIMIT",
-            MockResultSetBuilder.builder()
-                .columns("id", "name", "tenant_id")
-                .row("U001", "山田", TENANT_ID)
-                .build());
-        List<LogicalOperators> query = new ArrayList<>();
-        query.add(null);
-        TestLot lot = new TestLot();
-
-        lot.searchByFieldPaged(connection, TENANT_ID, "name", "山", query, 1, 10);
-
-        assertThat(lot.getTotalCount()).isEqualTo(1);
-        assertThat(lot.size()).isEqualTo(1);
-      }
-    }
-
-    @Nested
-    class 境界値 {
-      /**
-       * 追加条件が空の一覧のページング検索でも、件数と一覧を取得することを確かめる。 空の追加条件で件数と一覧の条件がずれないようにするためである。
-       *
-       * @given 件数の問い合わせが 2 を返し、一覧の問い合わせが 2件を返す
-       * @when searchByFieldPaged を追加条件が空で1ページ目、1ページ10件で実行する
-       * @then 件数に 2 を保持し、2件を返す
-       */
-      @Test
-      void 追加条件が空の場合_2件を返す() throws SQLException {
-        Connection connection = mock(Connection.class);
-        stubStatement(connection, "COUNT(*)", countResult(2));
-        stubStatement(connection, "LIMIT", twoRowsResult());
-        TestLot lot = new TestLot();
-
-        lot.searchByFieldPaged(connection, TENANT_ID, "name", "山", List.of(), 1, 10);
-
-        assertThat(lot.getTotalCount()).isEqualTo(2);
-        assertThat(lot.size()).isEqualTo(2);
-      }
-    }
-  }
-
-  @Nested
-  class selectByLikeQuery {
 
     @Nested
     class 境界値 {
@@ -1601,6 +1174,26 @@ class EntityLotBaseTest {
         lot.selectByQueryPaged(connection, TENANT_ID, null, null, true, 1, 10);
 
         verify(connection, never()).prepareStatement(anyString());
+        assertThat(lot.isEmpty()).isTrue();
+      }
+
+      /**
+       * 件数の問い合わせが行を返さない場合に、件数0のまま空の一覧を返すことを確かめる。 件数が取れないときは一覧を読み込まない。
+       *
+       * @given 件数の問い合わせの結果が 0 行
+       * @when selectByQueryPaged を接続、テナントID "T001"、基本SQL、条件 null、1ページ目、1ページ10件で実行する
+       * @then 件数に 0 を保持し、空の一覧を返す
+       */
+      @Test
+      void 件数の結果が0行の場合_件数0の空の一覧を返す() throws SQLException {
+        Connection connection = mock(Connection.class);
+        stubStatement(
+            connection, "COUNT(*)", MockResultSetBuilder.builder().columns("count").build());
+        TestLot lot = new TestLot();
+
+        lot.selectByQueryPaged(connection, TENANT_ID, SELECT_ALL_SQL, null, true, 1, 10);
+
+        assertThat(lot.getTotalCount()).isEqualTo(0);
         assertThat(lot.isEmpty()).isTrue();
       }
     }
@@ -2127,124 +1720,6 @@ class EntityLotBaseTest {
   }
 
   @Nested
-  class executeDelete {
-
-    @Nested
-    class 正常系 {
-
-      /**
-       * 期限切れの削除で、テナントIDの条件を1回だけ付けて第1引数にバインドすることを確かめる。 手書きの条件と二重に付くと、呼び出し側のバインド規約と合わず削除が失敗するためである。
-       *
-       * @given 削除の件数が 1 件、SQL が期限切れの条件だけを持つ
-       * @when executeDelete をテナントID T001 で、値を持たない条件で実行する
-       * @then テナントIDの条件を末尾に1回だけ付けたSQLで準備し、テナントIDを第1引数に設定して1を返す
-       */
-      @Test
-      void 期限切れの削除の場合_テナントIDを第1引数に設定して1を返す() throws SQLException {
-        Connection connection = mock(Connection.class);
-        PreparedStatement statement = mock(PreparedStatement.class);
-        when(statement.executeUpdate()).thenReturn(1);
-        when(connection.prepareStatement(anyString())).thenReturn(statement);
-
-        int deleted =
-            new TestLot()
-                .executeDelete(
-                    connection,
-                    "DELETE FROM TEST_TABLE WHERE ttl < NOW()",
-                    TENANT_ID,
-                    (stmt, index) -> index);
-
-        verify(connection)
-            .prepareStatement("DELETE FROM TEST_TABLE WHERE ttl < NOW() AND tenant_id = ?");
-        verify(statement).setString(1, TENANT_ID);
-        assertThat(deleted).isEqualTo(1);
-      }
-
-      /**
-       * 削除の条件にテナントIDを付けて、削除件数を返すことを確かめる。 他テナントの行を削除しないためである。
-       *
-       * @given 削除の件数が 1 件
-       * @when executeDelete をテナントID T001 で、値を1番目に設定して実行する
-       * @then テナントIDの条件を付けたSQLで準備し、テナントIDを2番目に設定して1を返す
-       */
-      @Test
-      void 削除件数が1件の場合_テナントIDを2番目に設定して1を返す() throws SQLException {
-        Connection connection = mock(Connection.class);
-        PreparedStatement statement = mock(PreparedStatement.class);
-        when(statement.executeUpdate()).thenReturn(1);
-        when(connection.prepareStatement(anyString())).thenReturn(statement);
-
-        int deleted =
-            new TestLot()
-                .executeDelete(
-                    connection,
-                    "DELETE FROM TEST_TABLE WHERE id = ?",
-                    TENANT_ID,
-                    (stmt, index) -> {
-                      stmt.setString(index, "U001");
-                      return index + 1;
-                    });
-
-        verify(connection)
-            .prepareStatement("DELETE FROM TEST_TABLE WHERE id = ? AND tenant_id = ?");
-        verify(statement).setString(2, TENANT_ID);
-        assertThat(deleted).isEqualTo(1);
-      }
-    }
-
-    @Nested
-    class 異常系 {
-
-      /**
-       * テナントIDが null の場合に例外を投げることを確かめる。 テナントIDの無い削除は全テナントの行を対象にしてしまうためである。
-       *
-       * @given テナントIDが null
-       * @when executeDelete をテナントID null で実行する
-       * @then IllegalArgumentException を投げる
-       */
-      @Test
-      void テナントIDがnullの場合_IllegalArgumentExceptionを投げる() {
-        Connection connection = mock(Connection.class);
-
-        assertThatThrownBy(
-                () ->
-                    new TestLot()
-                        .executeDelete(
-                            connection,
-                            "DELETE FROM TEST_TABLE WHERE id = ?",
-                            null,
-                            (stmt, index) -> index))
-            .isInstanceOf(IllegalArgumentException.class);
-      }
-    }
-
-    @Nested
-    class 境界値 {
-
-      /**
-       * 接続が null の場合に例外を投げることを確かめる。 接続が無い状態では削除できないためである。
-       *
-       * @given 接続が null
-       * @when executeDelete を接続 null で実行する
-       * @then IllegalArgumentException を投げる
-       */
-      @Test
-      void 接続がnullの場合_IllegalArgumentExceptionを投げる() {
-        assertThatThrownBy(
-                () -> {
-                  new TestLot()
-                      .executeDelete(
-                          null,
-                          "DELETE FROM TEST_TABLE WHERE id = ?",
-                          TENANT_ID,
-                          (stmt, index) -> index);
-                })
-            .isInstanceOf(IllegalArgumentException.class);
-      }
-    }
-  }
-
-  @Nested
   class executeDeleteWithoutTenantFilter {
 
     @Nested
@@ -2458,71 +1933,10 @@ class EntityLotBaseTest {
   }
 
   @Nested
-  class executeTtlExpiredQuery {
+  class executeTtlExpiredQueryWithoutTenantFilter {
 
     @Nested
     class 正常系 {
-
-      /**
-       * テナントIDの条件を付けたSQLで、期限切れの行を1件取得することを確かめる。 他テナントの期限切れの行を対象にしないためである。
-       *
-       * @given 期限切れの判定の SQL の日数が 30 、結果が 2件
-       * @when executeTtlExpiredQuery をテナントID T001 、オフセット 0 、件数上限 10 で実行する
-       * @then テナントIDの条件を ORDER BY の前に付けたSQLで準備し、2件を返す
-       */
-      @Test
-      void テナントIDがT001の場合_テナントIDの条件を付けたSQLで2件を返す() throws SQLException {
-        Connection connection = mock(Connection.class);
-        stubAnyStatement(connection, twoRowsResult());
-
-        List<TestEntity> result =
-            new TestLot()
-                .executeTtlExpiredQuery(
-                    connection,
-                    "SELECT id, name, tenant_id FROM TEST_TABLE WHERE (ttl < NOW() - INTERVAL '",
-                    " days') < NOW() ORDER BY id LIMIT ? OFFSET ?",
-                    TENANT_ID,
-                    30,
-                    0,
-                    10,
-                    new TestLot()::mapResultSet);
-
-        verify(connection)
-            .prepareStatement(
-                "SELECT id, name, tenant_id FROM TEST_TABLE WHERE (ttl < NOW() - INTERVAL '30 days') < NOW() AND tenant_id = ? ORDER BY id LIMIT ? OFFSET ?");
-        assertThat(result).hasSize(2);
-      }
-
-      /**
-       * テナントIDの条件がある期限切れ取得で、テナントIDを先頭に、続けて LIMIT と OFFSET を設定することを確かめる。 tenant_id は LIMIT と OFFSET
-       * より前に挿入されるため、その順でバインドするためである。
-       *
-       * @given 期限切れの判定の SQL の日数が 30 、オフセット 5 、件数上限 10 で結果が 0件
-       * @when executeTtlExpiredQuery をテナントID T001 で実行する
-       * @then 1番目に件数上限の10、2番目に OFFSET の5、3番目にテナントIDを設定して0件を返す
-       */
-      @Test
-      void テナントIDの条件がある場合_テナントIDを先頭に設定して0件を返す() throws SQLException {
-        Connection connection = mock(Connection.class);
-        PreparedStatement statement = stubAnyStatement(connection, emptyResult());
-
-        List<TestEntity> result =
-            new TestLot()
-                .executeTtlExpiredQuery(
-                    connection,
-                    "SELECT id, name, tenant_id FROM TEST_TABLE WHERE (ttl < NOW() - INTERVAL '",
-                    " days') < NOW() ORDER BY id LIMIT ? OFFSET ?",
-                    TENANT_ID,
-                    30,
-                    5,
-                    10,
-                    new TestLot()::mapResultSet);
-
-        verify(statement).setString(1, TENANT_ID);
-        verify(statement).setInt(2, 10);
-        verify(statement).setInt(3, 5);
-        assertThat(result).isEmpty();
-      }
 
       /**
        * テナントIDの条件を付けない期限切れ取得で、LIMIT と OFFSET を順にバインドすることを確かめる。 バッチ用の全テナント対象の取得で、件数とオフセットを渡すためである。
@@ -2557,36 +1971,6 @@ class EntityLotBaseTest {
     class 異常系 {
 
       /**
-       * テナントIDが null の場合に例外を投げることを確かめる。 テナントIDの無い期限切れ取得は全テナントの行を対象にしてしまうためである。
-       *
-       * @given テナントIDが null
-       * @when executeTtlExpiredQuery をテナントID null で実行する
-       * @then IllegalArgumentException を投げる
-       */
-      @Test
-      void テナントIDがnullの場合_IllegalArgumentExceptionを投げる() {
-        Connection connection = mock(Connection.class);
-
-        assertThatThrownBy(
-                () ->
-                    new TestLot()
-                        .executeTtlExpiredQuery(
-                            connection,
-                            "SELECT id FROM TEST_TABLE",
-                            "",
-                            null,
-                            30,
-                            0,
-                            10,
-                            new TestLot()::mapResultSet))
-            .isInstanceOf(IllegalArgumentException.class);
-      }
-    }
-
-    @Nested
-    class 境界値 {
-
-      /**
        * 接続が null の場合に例外を投げることを確かめる。 接続が無い状態では問い合わせできないためである。
        *
        * @given 接続が null
@@ -2602,31 +1986,6 @@ class EntityLotBaseTest {
                           null,
                           "SELECT id FROM TEST_TABLE",
                           "",
-                          30,
-                          0,
-                          10,
-                          new TestLot()::mapResultSet);
-                })
-            .isInstanceOf(IllegalArgumentException.class);
-      }
-
-      /**
-       * テナントIDの条件を付けた取得で接続が null の場合に例外を投げることを確かめる。 接続が無い状態では問い合わせできないためである。
-       *
-       * @given 接続が null
-       * @when executeTtlExpiredQuery を接続 null で実行する
-       * @then IllegalArgumentException を投げる
-       */
-      @Test
-      void テナントIDがある接続がnullの場合_IllegalArgumentExceptionを投げる() throws SQLException {
-        assertThatThrownBy(
-                () -> {
-                  new TestLot()
-                      .executeTtlExpiredQuery(
-                          null,
-                          "SELECT id FROM TEST_TABLE",
-                          "",
-                          TENANT_ID,
                           30,
                           0,
                           10,
@@ -2673,26 +2032,6 @@ class EntityLotBaseTest {
       @Test
       void 要素が無い場合_空の文字列を返す() {
         assertThat(new TestLot().toString()).isEmpty();
-      }
-    }
-  }
-
-  @Nested
-  class getSelectSql {
-
-    @Nested
-    class 境界値 {
-
-      /**
-       * 検索用のSQLを定義していない場合に null を返すことを確かめる。 定義が無い Lot は全文検索のSQLを作れないことを示すためである。
-       *
-       * @given 検索用のSQLを定義しない Lot
-       * @when getSelectSql を実行する
-       * @then null を返す
-       */
-      @Test
-      void 検索用SQLを定義しない場合_nullを返す() {
-        assertThat(new PlainLot().getSelectSql()).isNull();
       }
     }
   }
@@ -2777,6 +2116,33 @@ class EntityLotBaseTest {
             10);
 
         verify(connection, times(1)).prepareStatement(anyString());
+        assertThat(lot.isEmpty()).isTrue();
+      }
+
+      /**
+       * 件数の問い合わせが行を返さない場合に、件数0のまま空の一覧を返すことを確かめる。 件数が取れないときは一覧を読み込まない。
+       *
+       * @given 件数の問い合わせの結果が 0 行
+       * @when selectByDynamicWherePaged を接続、テナントID "T001"、条件 "name LIKE ?"、1ページ目、1ページ10件で実行する
+       * @then 件数に 0 を保持し、空の一覧を返す
+       */
+      @Test
+      void 件数の結果が0行の場合_件数0の空の一覧を返す() throws SQLException {
+        Connection connection = mock(Connection.class);
+        stubStatement(
+            connection, "COUNT(*)", MockResultSetBuilder.builder().columns("count").build());
+        TestLot lot = new TestLot();
+
+        lot.selectByDynamicWherePaged(
+            connection,
+            TENANT_ID,
+            "SELECT id, name, tenant_id FROM TEST_TABLE WHERE ",
+            "name LIKE ?",
+            List.of("%山%"),
+            1,
+            10);
+
+        assertThat(lot.getTotalCount()).isEqualTo(0);
         assertThat(lot.isEmpty()).isTrue();
       }
     }
@@ -3668,24 +3034,6 @@ class EntityLotBaseTest {
     class 正常系 {
 
       /**
-       * WHERE 句の副問い合わせ内の結合を書き換えずに、主テーブルの条件だけを付けることを確かめる。 副問い合わせの結合は主テーブルの句ではないため、外側の結合の書き換え対象に含めない。
-       *
-       * @given 基本SQLの WHERE 句の副問い合わせが INNER JOIN を含む
-       * @when addTenantIdFilter をテナントID T001 で実行する
-       * @then 副問い合わせの結合は変えず、主テーブルの条件だけを WHERE 句の末尾に付けたSQLを返す
-       */
-      @Test
-      void WHERE句の副問い合わせに結合がある場合_副問い合わせの結合は変えないSQLを返す() {
-        assertThat(
-                new TestLot()
-                    .addTenantIdFilter(
-                        "SELECT * FROM T1 a WHERE a.id IN (SELECT x FROM T2 b INNER JOIN T3 c ON c.id = b.id)",
-                        TENANT_ID))
-            .isEqualTo(
-                "SELECT * FROM T1 a WHERE a.id IN (SELECT x FROM T2 b INNER JOIN T3 c ON c.id = b.id) AND a.tenant_id = ?");
-      }
-
-      /**
        * カンマ区切りの FROM 句で別名を持つ結合先の条件を、結合先の別名で付けることを確かめる。 別名を無視して表名で付けると、別名付きの列を参照するSQLと食い違うためである。
        *
        * @given 基本SQLが FROM T1 a, T2 b の形で WHERE 句を1つ持つ
@@ -4016,11 +3364,59 @@ class EntityLotBaseTest {
         assertThatThrownBy(() -> new TestLot().setTenantIdParameter(statement, 1, ""))
             .isInstanceOf(IllegalArgumentException.class);
       }
+
+      /**
+       * WHERE 句の括弧の中に結合を含む副問い合わせがあると拒否することを確かめる。 副問い合わせの表にはテナント条件が付かないため、結合先の行が他テナントを含むおそれがある。
+       *
+       * @given 基本SQLの WHERE 句の副問い合わせが INNER JOIN を含む
+       * @when addTenantIdFilter をテナントID T001 で実行する
+       * @then IllegalArgumentExceptionを投げる
+       */
+      @Test
+      void WHERE句の副問い合わせに結合がある場合_IllegalArgumentExceptionを投げる() {
+        assertThatThrownBy(
+                () ->
+                    new TestLot()
+                        .addTenantIdFilter(
+                            "SELECT * FROM T1 a WHERE a.id IN (SELECT x FROM T2 b INNER JOIN T3 c ON c.id = b.id)",
+                            TENANT_ID))
+            .isInstanceOf(IllegalArgumentException.class);
+      }
     }
   }
 
   @Nested
   class selectByLikeQueryPaged {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 条件を連ねた件数の問い合わせを行い、1ページ目の一覧を読み込むことを確かめる。 画面の検索結果に件数とページ情報をそろえる。
+       *
+       * @given 件数の問い合わせが 2 を返し、一覧の問い合わせが 2 行を返す、条件が AND の x
+       * @when selectByLikeQueryPaged を接続、テナントID "T001"、列名 name、1ページ目、1ページ10件で実行する
+       * @then 件数に 2、ページ情報に 10 と 1 を保持する
+       */
+      @Test
+      void 件数が2件の場合_件数を返す() throws SQLException {
+        Connection connection = mock(Connection.class);
+        PreparedStatement countStatement = stubStatement(connection, "COUNT(*)", countResult(2));
+        stubStatement(connection, "LIMIT", twoRowsResult());
+        List<LogicalOperators> query =
+            Arrays.asList(new LogicalOperators(LogicalOperatorType.AND, "x"), null);
+        TestLot lot = new TestLot();
+
+        lot.selectByLikeQueryPaged(
+            connection, TENANT_ID, SELECT_LIKE_SQL, "name", "山", query, 1, 10);
+
+        assertThat(lot.getTotalCount()).isEqualTo(2);
+        assertThat(lot.getPageSize()).isEqualTo(10);
+        assertThat(lot.getCurrentPageIndex()).isEqualTo(1);
+        verify(countStatement).setString(1, "%山%");
+        verify(countStatement).setString(2, "%x%");
+      }
+    }
 
     @Nested
     class 境界値 {
@@ -4078,6 +3474,48 @@ class EntityLotBaseTest {
 
         verify(connection, never()).prepareStatement(anyString());
         assertThat(lot.isEmpty()).isTrue();
+      }
+
+      /**
+       * 件数が0件の場合に一覧を読まず、件数0を保持することを確かめる。 対象が無い検索で一覧の問い合わせを行わない。
+       *
+       * @given 件数の問い合わせが 0 を返す
+       * @when selectByLikeQueryPaged を接続、テナントID "T001"、列名 name、1ページ目、1ページ10件で実行する
+       * @then 件数に 0 を保持し、一覧の問い合わせを呼ばない
+       */
+      @Test
+      void 件数が0件の場合_一覧を読まず件数0を返す() throws SQLException {
+        Connection connection = mock(Connection.class);
+        stubStatement(connection, "COUNT(*)", countResult(0));
+        TestLot lot = new TestLot();
+
+        lot.selectByLikeQueryPaged(
+            connection, TENANT_ID, SELECT_LIKE_SQL, "name", "山", null, 1, 10);
+
+        assertThat(lot.getTotalCount()).isEqualTo(0);
+        assertThat(lot.isEmpty()).isTrue();
+        verify(connection, never()).prepareStatement(contains("LIMIT"));
+      }
+
+      /**
+       * 件数の問い合わせが行を返さない場合に、件数0のまま一覧を読まないことを確かめる。 件数が取れないときは一覧を読まない。
+       *
+       * @given 件数の問い合わせの結果が 0 行
+       * @when selectByLikeQueryPaged を接続、テナントID "T001"、列名 name、1ページ目、1ページ10件で実行する
+       * @then 件数に 0 を保持し、一覧の問い合わせを呼ばない
+       */
+      @Test
+      void 件数の結果が0行の場合_一覧を読まず件数0を返す() throws SQLException {
+        Connection connection = mock(Connection.class);
+        stubStatement(
+            connection, "COUNT(*)", MockResultSetBuilder.builder().columns("count").build());
+        TestLot lot = new TestLot();
+
+        lot.selectByLikeQueryPaged(
+            connection, TENANT_ID, SELECT_LIKE_SQL, "name", "山", null, 1, 10);
+
+        assertThat(lot.getTotalCount()).isEqualTo(0);
+        verify(connection, never()).prepareStatement(contains("LIMIT"));
       }
     }
   }

@@ -77,7 +77,7 @@ public class SES_AI_T_SKILLSHEET extends SesAiTableEntityBase {
    * @return ダウンロードURL
    */
   public String getFileUrl() {
-    return this.skillSheet != null ? this.skillSheet.getFileUrl() : null;
+    return this.skillSheet.getFileUrl();
   }
 
   /**
@@ -146,11 +146,10 @@ public class SES_AI_T_SKILLSHEET extends SesAiTableEntityBase {
           stmt.setString(1, this.fromGroup);
           stmt.setString(2, this.fromId);
           stmt.setString(3, this.fromName);
-          stmt.setString(4, this.skillSheet == null ? null : this.skillSheet.getFileId());
-          stmt.setString(5, this.skillSheet == null ? null : this.skillSheet.getFileName());
-          stmt.setString(6, this.skillSheet == null ? null : this.skillSheet.getFileContent());
-          stmt.setString(
-              7, this.skillSheet == null ? null : this.skillSheet.getFileContentSummary());
+          stmt.setString(4, this.skillSheet.getFileId());
+          stmt.setString(5, this.skillSheet.getFileName());
+          stmt.setString(6, this.skillSheet.getFileContent());
+          stmt.setString(7, this.skillSheet.getFileContentSummary());
           stmt.setString(8, this.vectorData == null ? null : this.vectorData.toString());
           stmt.setTimestamp(9, this.registerDate == null ? null : this.registerDate.toTimestamp());
           stmt.setString(10, this.registerUser);
@@ -209,12 +208,8 @@ public class SES_AI_T_SKILLSHEET extends SesAiTableEntityBase {
     return this.skillSheet;
   }
 
-  public void setSkillSheet(SkillSheet skillSheet) {
-    this.skillSheet = skillSheet;
-  }
-
   public String getFileId() {
-    return this.skillSheet == null ? null : this.skillSheet.getFileId();
+    return this.skillSheet.getFileId();
   }
 
   public void setFileId(String fileId) {
@@ -222,7 +217,7 @@ public class SES_AI_T_SKILLSHEET extends SesAiTableEntityBase {
   }
 
   public String getFileName() {
-    return this.skillSheet == null ? null : this.skillSheet.getFileName();
+    return this.skillSheet.getFileName();
   }
 
   public void setFileName(String fileName) {
@@ -230,7 +225,7 @@ public class SES_AI_T_SKILLSHEET extends SesAiTableEntityBase {
   }
 
   public String getFileContent() {
-    return this.skillSheet == null ? "" : this.skillSheet.getFileContent();
+    return this.skillSheet.getFileContent();
   }
 
   public void setFileContent(String fileContent) {
@@ -238,7 +233,7 @@ public class SES_AI_T_SKILLSHEET extends SesAiTableEntityBase {
   }
 
   public String getFileContentSummary() {
-    return this.skillSheet == null ? "" : this.skillSheet.getFileContentSummary();
+    return this.skillSheet.getFileContentSummary();
   }
 
   public void setFileContentSummary(String fileContentSummary) {

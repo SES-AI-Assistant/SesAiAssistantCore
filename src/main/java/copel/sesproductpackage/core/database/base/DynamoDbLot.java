@@ -8,9 +8,7 @@ import java.util.List;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Expression;
-import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
-import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
@@ -51,20 +49,6 @@ public class DynamoDbLot<E extends DynamoDb<E>> implements Iterable<E> {
     } catch (JsonProcessingException e) {
       return "[]";
     }
-  }
-
-  /**
-   * 指定したパーティションキーに基づきレコードを取得し、entityLotに格納します。<br>
-   * 以前のentityLotはクリアされます。
-   *
-   * @param partitionKey パーティションキーの値
-   */
-  public void fetchByPk(final String partitionKey) {
-    this.entityLot.clear();
-    this.table
-        .query(QueryConditional.keyEqualTo(Key.builder().partitionValue(partitionKey).build()))
-        .items()
-        .forEach(this.entityLot::add);
   }
 
   /**

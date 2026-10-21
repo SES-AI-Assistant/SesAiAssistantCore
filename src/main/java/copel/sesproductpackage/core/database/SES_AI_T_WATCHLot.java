@@ -7,7 +7,9 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 【Entityクラス】 ウォッチ管理テーブル(SES_AI_T_WATCH)のLotクラス.
@@ -30,14 +32,6 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
       "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id "
           + "FROM SES_AI_T_WATCH WHERE target_id = ? AND target_type = ?";
 
-  /** SELECT文（WHERE句あり）. */
-  private static final String SELECT_SQL =
-      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id "
-          + "FROM SES_AI_T_WATCH WHERE ";
-
-  /** DELETE期限切れSQL. */
-  private static final String DELETE_EXPIRED_SQL = "DELETE FROM SES_AI_T_WATCH WHERE ttl < NOW()";
-
   /** DELETE期限切れSQL（テナントIDなし、バッチ用）. */
   private static final String DELETE_EXPIRED_WITHOUT_TENANT_SQL =
       "DELETE FROM SES_AI_T_WATCH WHERE ttl < NOW()";
@@ -49,11 +43,6 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
   @Override
   protected String getSelectAllSql() {
     return SELECT_ALL_SQL;
-  }
-
-  @Override
-  protected String getSelectSql() {
-    return SELECT_SQL;
   }
 
   /**
@@ -101,7 +90,7 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
     if (userId == null) {
       return;
     }
-    java.util.Map<String, String> query = new java.util.HashMap<>();
+    Map<String, String> query = new HashMap<>();
     query.put("user_id", userId);
     this.selectByQueryPaged(connection, tenantId, SELECT_ALL_SQL, query, true, page, size);
   }
@@ -155,19 +144,6 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
               return paramIndex + 2;
             });
     this.entityLot = results;
-  }
-
-  /**
-   * 期限切れのレコードをDBから削除します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @return 削除したレコード数
-   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   */
-  public int deleteExpired(final Connection connection, final String tenantId) throws SQLException {
-    return executeDelete(
-        connection, DELETE_EXPIRED_SQL, tenantId, (stmt, paramIndex) -> paramIndex);
   }
 
   /**

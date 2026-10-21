@@ -7,6 +7,8 @@ import copel.sesproductpackage.core.unit.Permission;
 import copel.sesproductpackage.core.unit.Plan;
 import copel.sesproductpackage.core.unit.Role;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
@@ -40,7 +42,7 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
       "INSERT INTO SES_AI_WEBAPP_M_USER (user_id, user_name, role_cd, plan_cd, register_date, "
           + "register_user) VALUES (?, ?, ?, ?, ?, ?)";
 
-  /** SELECT文. */
+  /** SELECT文（tenant_id 条件を手書きする。実行テンプレートが TenantFilterSql を通さないため）. */
   private static final String SELECT_SQL =
       "SELECT user_id, user_name, role_cd, plan_cd, register_date, register_user, tenant_id FROM "
           + "SES_AI_WEBAPP_M_USER WHERE user_id = ? AND tenant_id = ?";
@@ -50,7 +52,7 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
       "SELECT user_id, user_name, role_cd, plan_cd, register_date, register_user, tenant_id FROM "
           + "SES_AI_WEBAPP_M_USER WHERE user_id = ?";
 
-  /** UPDATE文. */
+  /** UPDATE文（tenant_id 条件を手書きする。実行テンプレートが TenantFilterSql を通さないため）. */
   private static final String UPDATE_SQL =
       "UPDATE SES_AI_WEBAPP_M_USER SET user_id = ?, user_name = ?, role_cd = ?, plan_cd = ?, "
           + "register_date = ?, register_user = ? WHERE user_id = ? AND tenant_id = ?";
@@ -60,7 +62,7 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
       "UPDATE SES_AI_WEBAPP_M_USER SET user_id = ?, user_name = ?, role_cd = ?, plan_cd = ?, "
           + "register_date = ?, register_user = ?, tenant_id = ? WHERE user_id = ?";
 
-  /** DELETE文. */
+  /** DELETE文（tenant_id 条件を手書きする。実行テンプレートが TenantFilterSql を通さないため）. */
   private static final String DELETE_SQL =
       "DELETE FROM SES_AI_WEBAPP_M_USER WHERE user_id = ? AND tenant_id = ?";
 
@@ -128,10 +130,8 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
     if (!hasSystemUseAuth()) {
       return new HashSet<>();
     }
-    Set<Permission> permissions = new HashSet<>();
-    if (this.role != null) {
-      permissions.addAll(this.role.getPermissions());
-    }
+    // hasSystemUseAuth() が true のため、ロールは null ではない
+    Set<Permission> permissions = new HashSet<>(this.role.getPermissions());
     if (this.plan != null) {
       permissions.addAll(this.plan.getPermissions());
     }
@@ -142,40 +142,35 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
   }
 
   /**
-   * {@link Permission#REGISTER_INFO_LIST_IMPORT} を付与する条件（プレミアムプラン以上かつ一般ロール以上）を満たすか.
+   * INSERT 文と UPDATE 文で共通の列（1番目から6番目）に、項目の値を順に設定します.
+   *
+   * @param stmt 値を設定する準備文
+   * @throws SQLException 値の設定に失敗した場合
+   */
+  private void bindCommonColumns(final PreparedStatement stmt) throws SQLException {
+    stmt.setString(1, this.userId);
+    stmt.setString(2, this.userName);
+    stmt.setString(3, this.role == null ? null : this.role.getCode());
+    stmt.setString(4, this.plan == null ? null : this.plan.getCode());
+    stmt.setTimestamp(5, this.registerDate == null ? null : this.registerDate.toTimestamp());
+    stmt.setString(6, this.registerUser);
+  }
+
+  /**
+   * {@link Permission#REGISTER_INFO_LIST_IMPORT} を付与する条件（プレミアムプラン以上）を満たすか.
+   *
+   * <p>一般ロール以上の条件は {@link #getPermissions()} で満たしている。システム利用不可のロールは権限を返す前に空集合にするため、ここでは判定しない。
    *
    * @return 付与してよい場合 true
    */
   private boolean isEligibleForRegisterInfoListImport() {
-    if (this.plan == null || this.plan == Plan.FREE) {
-      return false;
-    }
-    if (this.role == null) {
-      return false;
-    }
-    try {
-      int roleNum = Integer.parseInt(this.role.getCode(), 10);
-      int generalMin = Integer.parseInt(Role.システムユーザー.getCode(), 10);
-      return roleNum >= generalMin;
-    } catch (NumberFormatException e) {
-      return false;
-    }
+    return this.plan != null && this.plan != Plan.FREE;
   }
 
   @Override
   public int insert(Connection connection) throws SQLException {
     return executeInsertWithoutTenantFilter(
-        connection,
-        INSERT_SQL,
-        (stmt) -> {
-          stmt.setString(1, this.userId);
-          stmt.setString(2, this.userName);
-          stmt.setString(3, this.role == null ? null : this.role.getCode());
-          stmt.setString(4, this.plan == null ? null : this.plan.getCode());
-          stmt.setTimestamp(5, this.registerDate == null ? null : this.registerDate.toTimestamp());
-          stmt.setString(6, this.registerUser);
-        },
-        "SES_AI_WEBAPP_M_USER.insert");
+        connection, INSERT_SQL, this::bindCommonColumns, "SES_AI_WEBAPP_M_USER.insert");
   }
 
   @Override
@@ -193,15 +188,7 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
               stmt.setString(1, this.userId);
               stmt.setString(2, this.tenantId);
             },
-            (rs) -> {
-              this.userId = rs.getString("user_id");
-              this.userName = rs.getString("user_name");
-              this.role = Role.getEnum(rs.getString("role_cd"));
-              this.plan = Plan.getEnum(rs.getString("plan_cd"));
-              this.registerDate = new OriginalDateTime(rs.getString("register_date"));
-              this.registerUser = rs.getString("register_user");
-              this.tenantId = rs.getString("tenant_id");
-            },
+            this::fillFromResultSet,
             "SES_AI_WEBAPP_M_USER.selectByPk");
   }
 
@@ -222,16 +209,26 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
             connection,
             SELECT_WITHOUT_TENANT_ID_SQL,
             (stmt) -> stmt.setString(1, this.userId),
-            (rs) -> {
-              this.userId = rs.getString("user_id");
-              this.userName = rs.getString("user_name");
-              this.role = Role.getEnum(rs.getString("role_cd"));
-              this.plan = Plan.getEnum(rs.getString("plan_cd"));
-              this.registerDate = new OriginalDateTime(rs.getString("register_date"));
-              this.registerUser = rs.getString("register_user");
-              this.tenantId = rs.getString("tenant_id");
-            },
+            this::fillFromResultSet,
             "SES_AI_WEBAPP_M_USER.selectByPkWithoutTenantId");
+  }
+
+  /**
+   * 1行分の結果セットの値を、このユーザーの項目へ設定します.
+   *
+   * <p>ロールとプランは列のコードから列挙値へ変換する。プランのコードが定義外の場合は {@link Plan#getEnum(String)} が FREE を返す。
+   *
+   * @param rs 1行分の結果セット
+   * @throws SQLException 値の読み取りに失敗した場合
+   */
+  private void fillFromResultSet(final ResultSet rs) throws SQLException {
+    this.userId = rs.getString("user_id");
+    this.userName = rs.getString("user_name");
+    this.role = Role.getEnum(rs.getString("role_cd"));
+    this.plan = Plan.getEnum(rs.getString("plan_cd"));
+    this.registerDate = new OriginalDateTime(rs.getString("register_date"));
+    this.registerUser = rs.getString("register_user");
+    this.tenantId = rs.getString("tenant_id");
   }
 
   @Override
@@ -243,12 +240,7 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
         connection,
         UPDATE_SQL,
         (stmt) -> {
-          stmt.setString(1, this.userId);
-          stmt.setString(2, this.userName);
-          stmt.setString(3, this.role == null ? null : this.role.getCode());
-          stmt.setString(4, this.plan == null ? null : this.plan.getCode());
-          stmt.setTimestamp(5, this.registerDate == null ? null : this.registerDate.toTimestamp());
-          stmt.setString(6, this.registerUser);
+          bindCommonColumns(stmt);
           stmt.setString(7, this.userId);
           stmt.setString(8, this.tenantId);
         },

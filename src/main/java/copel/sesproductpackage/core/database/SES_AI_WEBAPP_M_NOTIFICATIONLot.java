@@ -20,12 +20,6 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
           + "p256dh, auth, enabled, notify_all_match, register_date, register_user, tenant_id FROM "
           + "SES_AI_WEBAPP_M_NOTIFICATION";
 
-  /** SELECT文（WHERE句あり）. */
-  private static final String SELECT_SQL =
-      "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, "
-          + "p256dh, auth, enabled, notify_all_match, register_date, register_user, tenant_id FROM "
-          + "SES_AI_WEBAPP_M_NOTIFICATION WHERE ";
-
   /** SELECT文（user_id検索）. */
   private static final String SELECT_BY_USER_ID_SQL =
       "SELECT notification_id, user_id, device_type, device_name, push_notification_endpoint, "
@@ -45,11 +39,6 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
   @Override
   protected String getSelectAllSql() {
     return SELECT_ALL_SQL;
-  }
-
-  @Override
-  protected String getSelectSql() {
-    return SELECT_SQL;
   }
 
   @Override

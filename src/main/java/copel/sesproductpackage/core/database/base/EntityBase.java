@@ -488,7 +488,8 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @param baseSql 基本SQL
    * @param tenantId テナントID（必須）
    * @return tenant_id フィルターが付加された SQL
-   * @throws IllegalArgumentException tenantId が null または空文字列の場合
+   * @throws IllegalArgumentException tenantId が null または空文字列の場合、または TenantFilterSql
+   *     が拒否する形（括弧内の副問い合わせ、SQL コメント、解析できない表の指定など）の場合
    */
   protected String addTenantIdFilter(final String baseSql, final String tenantId) {
     return new TenantFilterSql(baseSql).withTenantFilter(tenantId);

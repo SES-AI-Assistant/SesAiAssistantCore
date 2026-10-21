@@ -10,7 +10,9 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * マッチング・案件・要員を結合したEntityのLotクラス.
@@ -35,24 +37,12 @@ public class SES_AI_T_MATCH_JOB_PERSONLot extends EntityLotBase<SES_AI_T_MATCH_J
           + "SES_AI_T_PERSON p ON m.person_id = p.person_id ORDER BY "
           + "m.register_date DESC";
 
-  /** SELECT文（WHERE句あり）. */
-  private static final String SELECT_SQL =
-      "SELECT m.matching_id, m.user_id, m.job_id, m.person_id, m.job_content, m.person_content, "
-          + "m.status_cd, m.evaluation_text, m.score, m.must_evaluation_text, "
-          + "m.want_evaluation_text, m.place_evaluation_text, m.office_evaluation_text, "
-          + "m.other_evaluation_text, m.profit, m.register_date, m.register_user, "
-          + "m.tenant_id, j.title AS job_title, j.unit_price AS job_unit_price, p.name "
-          + "AS person_name, p.age AS person_age, p.gender AS person_gender, "
-          + "p.unit_price AS person_unit_price FROM SES_AI_T_MATCH m LEFT JOIN "
-          + "SES_AI_T_JOB j ON m.job_id = j.job_id LEFT JOIN "
-          + "SES_AI_T_PERSON p ON m.person_id = p.person_id WHERE ";
-
   /**
    * ページング付き条件検索用のSELECT文（WHERE句を含まない）.
    *
-   * <p>{@link copel.sesproductpackage.core.database.base.EntityLotBase#selectByQueryPaged}
-   * はbaseSqlに「WHERE」が含まれるかどうかで条件追加の挙動を変えるため、 末尾に「WHERE 」を含む{@link #SELECT_SQL}をそのまま渡すと 「WHERE AND
-   * ...」という不正なSQLが生成されてしまう。 そのためページング条件検索専用に、WHERE句を含まない版を別途用意する。
+   * <p>{@link copel.sesproductpackage.core.database.base.EntityLotBase#selectByQueryPaged} は
+   * baseSql に「WHERE」が含まれるかどうかで条件追加の挙動を変えるため、WHERE 句を含まない版を用意する。 WHERE 句を含む版を渡すと「WHERE AND
+   * ...」という不正なSQLが生成されてしまう。
    */
   private static final String SELECT_BASE_SQL_FOR_PAGED_QUERY =
       "SELECT m.matching_id, m.user_id, m.job_id, m.person_id, m.job_content, m.person_content, "
@@ -63,16 +53,12 @@ public class SES_AI_T_MATCH_JOB_PERSONLot extends EntityLotBase<SES_AI_T_MATCH_J
           + "AS person_name, p.age AS person_age, p.gender AS person_gender, "
           + "p.unit_price AS person_unit_price FROM SES_AI_T_MATCH m LEFT JOIN "
           + "SES_AI_T_JOB j ON m.job_id = j.job_id LEFT JOIN "
-          + "SES_AI_T_PERSON p ON m.person_id = p.person_id ";
+          + "SES_AI_T_PERSON p ON m.person_id = p.person_id ORDER BY "
+          + "m.register_date DESC, m.matching_id";
 
   @Override
   protected String getSelectAllSql() {
     return SELECT_ALL_SQL;
-  }
-
-  @Override
-  protected String getSelectSql() {
-    return SELECT_SQL;
   }
 
   @Override
@@ -105,7 +91,7 @@ public class SES_AI_T_MATCH_JOB_PERSONLot extends EntityLotBase<SES_AI_T_MATCH_J
     if (jobId == null) {
       return;
     }
-    java.util.Map<String, String> query = new java.util.HashMap<>();
+    Map<String, String> query = new HashMap<>();
     query.put("m.job_id", jobId);
     this.selectByQueryPaged(
         connection, tenantId, SELECT_BASE_SQL_FOR_PAGED_QUERY, query, true, page, size);
@@ -128,7 +114,7 @@ public class SES_AI_T_MATCH_JOB_PERSONLot extends EntityLotBase<SES_AI_T_MATCH_J
     if (personId == null) {
       return;
     }
-    java.util.Map<String, String> query = new java.util.HashMap<>();
+    Map<String, String> query = new HashMap<>();
     query.put("m.person_id", personId);
     this.selectByQueryPaged(
         connection, tenantId, SELECT_BASE_SQL_FOR_PAGED_QUERY, query, true, page, size);

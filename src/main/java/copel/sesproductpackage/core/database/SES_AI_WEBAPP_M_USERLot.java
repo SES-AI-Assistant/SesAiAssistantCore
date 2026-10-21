@@ -21,11 +21,6 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
       "SELECT user_id, user_name, role_cd, plan_cd, register_date, register_user, tenant_id FROM "
           + "SES_AI_WEBAPP_M_USER";
 
-  /** SELECT文（WHERE句あり）. */
-  private static final String SELECT_SQL =
-      "SELECT user_id, user_name, role_cd, plan_cd, register_date, register_user, tenant_id FROM "
-          + "SES_AI_WEBAPP_M_USER WHERE ";
-
   public SES_AI_WEBAPP_M_USERLot() {
     super();
   }
@@ -33,11 +28,6 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
   @Override
   protected String getSelectAllSql() {
     return SELECT_ALL_SQL;
-  }
-
-  @Override
-  protected String getSelectSql() {
-    return SELECT_SQL;
   }
 
   @Override
@@ -94,17 +84,16 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
       this.pageSize = size;
       this.currentPageIndex = page;
 
-      if (totalCount == 0) {
-        return;
+      // 件数が 0 件の場合は一覧の問い合わせを行わない（出口を1つにするため条件分岐で囲む）
+      if (totalCount != 0) {
+        // ページング検索
+        int offset = (page - 1) * size;
+        String sql = SELECT_ALL_SQL + " LIMIT " + size + " OFFSET " + offset;
+        List<SES_AI_WEBAPP_M_USER> results =
+            executeQueryWithoutTenantFilter(
+                connection, sql, this::mapResultSet, (s, paramIndex) -> paramIndex);
+        this.entityLot.addAll(results);
       }
-
-      // ページング検索
-      int offset = (page - 1) * size;
-      String sql = SELECT_ALL_SQL + " LIMIT " + size + " OFFSET " + offset;
-      List<SES_AI_WEBAPP_M_USER> results =
-          executeQueryWithoutTenantFilter(
-              connection, sql, this::mapResultSet, (s, paramIndex) -> paramIndex);
-      this.entityLot.addAll(results);
     }
   }
 

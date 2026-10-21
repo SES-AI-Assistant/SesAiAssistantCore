@@ -18,11 +18,6 @@ public class SES_AI_M_SENDERLot extends EntityLotBase<SES_AI_M_SENDER> {
   private static final String SELECT_ALL_SQL =
       "SELECT from_id, from_name, register_date, register_user, tenant_id FROM SES_AI_M_SENDER";
 
-  /** SELECT文（WHERE句あり）. */
-  private static final String SELECT_SQL =
-      "SELECT from_id, from_name, register_date, register_user, tenant_id FROM SES_AI_M_SENDER "
-          + "WHERE ";
-
   public SES_AI_M_SENDERLot() {
     super();
   }
@@ -30,11 +25,6 @@ public class SES_AI_M_SENDERLot extends EntityLotBase<SES_AI_M_SENDER> {
   @Override
   protected String getSelectAllSql() {
     return SELECT_ALL_SQL;
-  }
-
-  @Override
-  protected String getSelectSql() {
-    return SELECT_SQL;
   }
 
   @Override

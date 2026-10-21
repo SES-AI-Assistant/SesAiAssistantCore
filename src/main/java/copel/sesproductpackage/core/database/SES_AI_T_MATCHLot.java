@@ -25,21 +25,9 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
           + "register_date, register_user, tenant_id FROM SES_AI_T_MATCH ORDER BY "
           + "register_date DESC";
 
-  /** SELECT文（WHERE句あり）. */
-  private static final String SELECT_SQL =
-      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, "
-          + "evaluation_text, score, must_evaluation_text, want_evaluation_text, "
-          + "place_evaluation_text, office_evaluation_text, other_evaluation_text, profit, "
-          + "register_date, register_user, tenant_id FROM SES_AI_T_MATCH WHERE ";
-
   @Override
   protected String getSelectAllSql() {
     return SELECT_ALL_SQL;
-  }
-
-  @Override
-  protected String getSelectSql() {
-    return SELECT_SQL;
   }
 
   @Override
@@ -79,61 +67,6 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
    */
   public boolean isExistByJobId(final String jobId) {
     return jobId != null && this.entityLot.stream().anyMatch(e -> jobId.equals(e.getJobId()));
-  }
-
-  /**
-   * 引数の要員IDを持つレコードが存在するかどうかを判定する.
-   *
-   * @param personId 要員ID
-   * @return 存在すればtrue、それ以外はfalse
-   */
-  public boolean isExistByPersonId(final String personId) {
-    return personId != null
-        && this.entityLot.stream().anyMatch(e -> personId.equals(e.getPersonId()));
-  }
-
-  /**
-   * 案件IDが一致するレコードを指定件数取得し、このLotに格納します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param jobId 案件ID
-   * @param page ページ番号
-   * @param size 1ページあたりの件数
-   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   */
-  public void selectByJobIdPaged(
-      Connection connection, String tenantId, String jobId, int page, int size)
-      throws SQLException {
-    requireConnection(connection);
-    if (jobId == null) {
-      return;
-    }
-    java.util.Map<String, String> query = new java.util.HashMap<>();
-    query.put("job_id", jobId);
-    this.selectByQueryPaged(connection, tenantId, SELECT_SQL, query, true, page, size);
-  }
-
-  /**
-   * 要員IDが一致するレコードを指定件数取得し、このLotに格納します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param personId 要員ID
-   * @param page ページ番号
-   * @param size 1ページあたりの件数
-   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   */
-  public void selectByPersonIdPaged(
-      Connection connection, String tenantId, String personId, int page, int size)
-      throws SQLException {
-    requireConnection(connection);
-    if (personId == null) {
-      return;
-    }
-    java.util.Map<String, String> query = new java.util.HashMap<>();
-    query.put("person_id", personId);
-    this.selectByQueryPaged(connection, tenantId, SELECT_SQL, query, true, page, size);
   }
 
   @Override

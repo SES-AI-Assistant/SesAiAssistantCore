@@ -122,7 +122,8 @@ public class SES_AI_M_SENDER extends EntityBase {
    * 送信者マスタに該当IDの送信者が存在するかを判定する.
    *
    * @param connection DB接続
-   * @return 存在する場合はtrue、存在しない場合またはconnectionがnullの場合はfalse
+   * @return 存在する場合はtrue、存在しない場合はfalse
+   * @throws IllegalArgumentException 送信者IDが設定されていて、DB接続がnullの場合
    * @throws SQLException SQL実行エラー時
    */
   public boolean isExist(Connection connection) throws SQLException {
