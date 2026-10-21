@@ -1,421 +1,827 @@
 package copel.sesproductpackage.core.database;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import copel.sesproductpackage.core.search.FulltextCondition;
 import copel.sesproductpackage.core.search.JobDetailFilterCondition;
 import copel.sesproductpackage.core.unit.Area;
-import copel.sesproductpackage.core.unit.LogicalOperators;
-import copel.sesproductpackage.core.unit.LogicalOperators.LogicalOperatorType;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
-import java.lang.reflect.Field;
+import copel.sesproductpackage.tools.testsupport.db.JdbcMocks;
+import copel.sesproductpackage.tools.testsupport.db.MockDbConnection;
+import copel.sesproductpackage.tools.testsupport.jdbc.MockResultSetBuilder;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
+/** {@link SES_AI_T_JOBLot} の単体テスト。 */
 class SES_AI_T_JOBLotTest {
 
-  private Connection mockConn;
-  private PreparedStatement mockStmt;
-  private ResultSet mockRs;
+  /** テナントID。 */
+  private static final String TENANT_ID = "T001";
 
-  @BeforeEach
-  void setUp() throws SQLException {
-    mockConn = mock(Connection.class);
-    mockStmt = mock(PreparedStatement.class);
-    mockRs = mock(ResultSet.class);
+  /** 取得結果の列距離を含まない。 */
+  private static final String[] COLUMNS = {
+    "job_id",
+    "from_group",
+    "from_id",
+    "from_name",
+    "mail_subject",
+    "raw_content",
+    "content_summary",
+    "unit_price",
+    "title",
+    "overview",
+    "must_skills",
+    "want_skills",
+    "start_date",
+    "place",
+    "area",
+    "office_requirements",
+    "other_requirements",
+    "register_date",
+    "register_user",
+    "ttl",
+    "tenant_id"
+  };
 
-    when(mockConn.prepareStatement(anyString())).thenReturn(mockStmt);
-    when(mockStmt.executeQuery()).thenReturn(mockRs);
+  /** 取得結果の列距離を含む。 */
+  private static final String[] COLUMNS_WITH_DISTANCE = {
+    "job_id",
+    "from_group",
+    "from_id",
+    "from_name",
+    "mail_subject",
+    "raw_content",
+    "content_summary",
+    "unit_price",
+    "title",
+    "overview",
+    "must_skills",
+    "want_skills",
+    "start_date",
+    "place",
+    "area",
+    "office_requirements",
+    "other_requirements",
+    "register_date",
+    "register_user",
+    "ttl",
+    "tenant_id",
+    "distance"
+  };
+
+  /**
+   * 案件を1行分与える結果セットを作る。距離を含むかどうかを指定する。
+   *
+   * @param withDistance 距離の列を含める場合は true
+   * @param tenantId テナントID
+   * @return 1行の結果セット
+   * @throws SQLException 結果セットの作成中に例外が起きた場合
+   */
+  private static ResultSet row(final boolean withDistance, final String tenantId)
+      throws SQLException {
+    List<Object> values =
+        new java.util.ArrayList<>(
+            List.of(
+                "0123456789",
+                "G001",
+                "S001",
+                "送信者",
+                "件名",
+                "原文",
+                "要約",
+                new BigDecimal(1_500_000),
+                "Javaエンジニア",
+                "概要",
+                "Java",
+                "AWS",
+                "2026-02-01 00:00:00",
+                "東京",
+                "関東_首都圏",
+                3,
+                "その他",
+                "2026-01-15 10:00:00",
+                "U001",
+                "2026-02-15 10:00:00",
+                tenantId));
+    if (withDistance) {
+      values.add(0.1);
+    }
+    return MockResultSetBuilder.builder()
+        .columns(withDistance ? COLUMNS_WITH_DISTANCE : COLUMNS)
+        .row(values.toArray())
+        .build();
   }
 
-  private void setupDefaultResultSet() throws SQLException {
-    when(mockRs.next()).thenReturn(true).thenReturn(false);
-    when(mockRs.getString("job_id")).thenReturn("jid1");
-    when(mockRs.getString("from_group")).thenReturn("fg1");
-    when(mockRs.getString("from_id")).thenReturn("fid1");
-    when(mockRs.getString("from_name")).thenReturn("fname1");
-    when(mockRs.getString("raw_content")).thenReturn("raw1");
-    when(mockRs.getString("content_summary")).thenReturn("summary1");
-    when(mockRs.getString("register_date")).thenReturn("2023-01-01 12:00:00");
-    when(mockRs.getString("register_user")).thenReturn("user1");
-    when(mockRs.getString("ttl")).thenReturn("2024-01-01 12:00:00");
-    when(mockRs.getString("tenant_id")).thenReturn("test-tenant");
-    when(mockRs.getDouble("distance")).thenReturn(0.5);
+  /**
+   * 件数の問い合わせと結果の問い合わせに、それぞれ別の準備文を返すように設定する。
+   *
+   * @param connection 接続のモック
+   * @param count 件数
+   * @param rows 行の結果セット
+   * @return 件数の準備文のモック
+   * @throws SQLException 設定中に例外が起きた場合
+   */
+  private static PreparedStatement stubCountAndRows(
+      final Connection connection, final long count, final ResultSet rows) throws SQLException {
+    PreparedStatement countStatement = mock(PreparedStatement.class);
+    when(countStatement.executeQuery())
+        .thenReturn(MockResultSetBuilder.builder().columns("cnt").row(count).build());
+    PreparedStatement rowStatement = mock(PreparedStatement.class);
+    when(rowStatement.executeQuery()).thenReturn(rows);
+    when(connection.prepareStatement(anyString())).thenReturn(rowStatement);
+    when(connection.prepareStatement(contains("COUNT(*)"))).thenReturn(countStatement);
+    return countStatement;
   }
 
-  private Vector createTestVector() throws Exception {
-    Vector vector = new Vector(null);
-    Field valueField = Vector.class.getDeclaredField("value");
-    valueField.setAccessible(true);
-    valueField.set(vector, new float[] {1.0f, 2.0f});
-    return vector;
+  /**
+   * 検索用のベクトルを生成する。
+   *
+   * @return 検索用のベクトル
+   */
+  /**
+   * 単価・エリア・出社要件が NULL の案件の1行分の結果セットを作る。
+   *
+   * @param tenantId テナントID
+   * @return 1行の結果セット
+   * @throws SQLException 結果セットの作成中に例外が起きた場合
+   */
+  private static ResultSet rowWithNullOptionals(final String tenantId) throws SQLException {
+    return MockResultSetBuilder.builder()
+        .columns(COLUMNS)
+        .row(
+            "0123456789",
+            "G001",
+            "S001",
+            "送信者",
+            "件名",
+            "原文",
+            "要約",
+            null,
+            "Javaエンジニア",
+            "概要",
+            "Java",
+            "AWS",
+            "2026-02-01 00:00:00",
+            "東京",
+            null,
+            null,
+            "その他",
+            "2026-01-15 10:00:00",
+            "U001",
+            "2026-02-15 10:00:00",
+            tenantId)
+        .build();
   }
 
-  @Test
-  void testSelectAll() throws SQLException {
-    setupDefaultResultSet();
-    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    lot.selectAll(mockConn, "test-tenant");
-    assertEquals(1, lot.size());
+  private static Vector vector() {
+    return new Vector(null);
   }
 
-  @Test
-  void testSelectAllWithoutTenantFilter() throws SQLException {
-    setupDefaultResultSet();
-    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    lot.selectAllWithoutTenantFilter(mockConn);
-    assertEquals(1, lot.size());
+  /**
+   * 案件IDを持つ案件を生成する。
+   *
+   * @param jobId 案件ID
+   * @return 生成した案件
+   */
+  private static SES_AI_T_JOB jobOf(final String jobId) {
+    SES_AI_T_JOB job = new SES_AI_T_JOB(TENANT_ID);
+    job.setJobId(jobId);
+    job.setRawContent("原文");
+    return job;
   }
 
-  @Test
-  void testSearchByRawContentSingle() throws SQLException {
-    setupDefaultResultSet();
-    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    lot.searchByRawContent(mockConn, "test-tenant", "query");
-    assertEquals(1, lot.size());
-  }
+  @Nested
+  class getSelectAllSql {
 
-  @Test
-  void testSearchByRawContentMultiple() throws SQLException {
-    setupDefaultResultSet();
-    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    List<LogicalOperators> queries = new ArrayList<>();
-    queries.add(new LogicalOperators(LogicalOperatorType.AND, "val1"));
-    queries.add(new LogicalOperators(LogicalOperatorType.OR, "val2"));
-    queries.add(null);
-    lot.searchByRawContent(mockConn, "test-tenant", "first", queries);
-    assertEquals(1, lot.size());
+    @Nested
+    class 正常系 {
 
-    setupDefaultResultSet();
-    SES_AI_T_JOBLot lot2 = new SES_AI_T_JOBLot();
-    lot2.searchByRawContent(mockConn, "test-tenant", "first", null);
-    assertEquals(1, lot2.size());
-
-    assertThrows(IllegalArgumentException.class, () -> lot2.selectAll(null, "test-tenant"));
-    assertEquals(0, lot2.size());
-  }
-
-  @Test
-  void testSelectByAndQuery() throws SQLException {
-    setupDefaultResultSet();
-    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    Map<String, Object> query = new HashMap<>();
-    query.put("col1", "val1");
-    query.put("col2", "val2");
-    lot.selectByAndQuery(mockConn, "test-tenant", query);
-    assertEquals(1, lot.size());
-
-    setupDefaultResultSet();
-    SES_AI_T_JOBLot lot2 = new SES_AI_T_JOBLot();
-    lot2.selectByAndQuery(mockConn, "test-tenant", Collections.emptyMap());
-    assertEquals(0, lot2.size());
-  }
-
-  @Test
-  void testSelectByOrQuery() throws SQLException {
-    setupDefaultResultSet();
-    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    Map<String, Object> query = new HashMap<>();
-    query.put("col1", "val1");
-    query.put("col2", "val2");
-    lot.selectByOrQuery(mockConn, "test-tenant", query);
-    assertEquals(1, lot.size());
-
-    setupDefaultResultSet();
-    SES_AI_T_JOBLot lot2 = new SES_AI_T_JOBLot();
-    lot2.selectByOrQuery(mockConn, "test-tenant", Collections.emptyMap());
-    assertEquals(0, lot2.size());
-  }
-
-  @Test
-  void testGetEntityByPk() throws SQLException {
-    setupDefaultResultSet();
-    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    lot.selectAll(mockConn, "test-tenant");
-
-    assertNotNull(lot.getEntityByPk("jid1"));
-    assertNull(lot.getEntityByPk("nonexistent"));
-    assertNull(lot.getEntityByPk(null));
-  }
-
-  @Test
-  void testToJobSelectionText() throws SQLException {
-    setupDefaultResultSet();
-    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    lot.selectAll(mockConn, "test-tenant");
-
-    assertFalse(lot.to案件選出用文章().isEmpty());
-
-    SES_AI_T_JOBLot emptyLot = new SES_AI_T_JOBLot();
-    assertTrue(emptyLot.to案件選出用文章().isEmpty());
-  }
-
-  @Test
-  void testRetrieveWithThresholdOverloads() throws Exception {
-    setupDefaultResultSet();
-    when(mockRs.getLong(1)).thenReturn(1L);
-    when(mockRs.next()).thenReturn(true, true, false);
-    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    lot.retrieveWithThreshold(mockConn, "test-tenant", createTestVector(), 0.0, 5);
-    assertEquals(1, lot.size());
-    assertEquals(0.5, lot.get(0).getDistance());
-
-    setupDefaultResultSet();
-    when(mockRs.getLong(1)).thenReturn(1L);
-    when(mockRs.next()).thenReturn(true, true, false);
-    lot.retrieveWithThreshold(mockConn, "test-tenant", createTestVector(), 0.8, 10);
-    assertEquals(1, lot.size());
-
-    SES_AI_T_JOBLot emptyLot2 = new SES_AI_T_JOBLot();
-    assertThrows(
-        IllegalArgumentException.class,
-        () ->
-            emptyLot2.retrievePagedWithThreshold(
-                null, "test-tenant", createTestVector(), 0.8, 1, 10));
-    assertTrue(emptyLot2.isEmpty());
-    emptyLot2.retrievePagedWithThreshold(mockConn, "test-tenant", null, 0.8, 1, 10);
-    assertTrue(emptyLot2.isEmpty());
-
-    when(mockRs.next()).thenReturn(false);
-    when(mockRs.getLong(1)).thenReturn(0L);
-    emptyLot2.retrievePagedWithThreshold(mockConn, "test-tenant", createTestVector(), 0.8, 1, 10);
-    assertTrue(emptyLot2.isEmpty());
-  }
-
-  @Test
-  void testSearchByRawContentPagedFulltextConditions() throws SQLException {
-    setupDefaultResultSet();
-    when(mockRs.getLong(1)).thenReturn(1L);
-    when(mockRs.next()).thenReturn(true, true, false);
-    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    List<FulltextCondition> conds = new ArrayList<>();
-    conds.add(new FulltextCondition("AND", "java", false));
-    conds.add(new FulltextCondition("OR", "aws", false));
-    lot.searchByRawContentPaged(mockConn, "test-tenant", conds, 1, 5);
-    assertEquals(1, lot.size());
-
-    SES_AI_T_JOBLot empty = new SES_AI_T_JOBLot();
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> empty.searchByRawContentPaged(null, "test-tenant", conds, 1, 5));
-    assertTrue(empty.isEmpty());
-  }
-
-  @Test
-  void testRetrieveWithFilter2Values() throws Exception {
-    setupDefaultResultSet();
-    // 件数（COUNT）クエリが rs.next() を1回消費するため、件数分の戻り値を先に返す
-    when(mockRs.next()).thenReturn(true, true, false);
-    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    Vector testVector = createTestVector();
-    Money price = new Money(new java.math.BigDecimal("100.00"));
-    OriginalDateTime startDate = new OriginalDateTime("2023-12-31 23:59:59");
-
-    lot.retrieveWithFilter(mockConn, "test-tenant", testVector, price, startDate, 0.5, 5);
-    assertEquals(1, lot.size());
-
-    SES_AI_T_JOBLot empty = new SES_AI_T_JOBLot();
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> empty.retrieveWithFilter(null, "test-tenant", testVector, price, startDate, 0.5, 5));
-    assertTrue(empty.isEmpty());
-  }
-
-  @Test
-  void testRetrieveWithFilter4Values() throws Exception {
-    setupDefaultResultSet();
-    // 件数（COUNT）クエリが rs.next() を1回消費するため、件数分の戻り値を先に返す
-    when(mockRs.next()).thenReturn(true, true, false);
-    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    Vector testVector = createTestVector();
-    Money price = new Money(new java.math.BigDecimal("100.00"));
-    OriginalDateTime startDate = new OriginalDateTime("2023-12-31 23:59:59");
-
-    lot.retrieveWithFilter(
-        mockConn, "test-tenant", testVector, price, startDate, 3, Area.関東_首都圏, 0.5, 5);
-    assertEquals(1, lot.size());
-
-    SES_AI_T_JOBLot empty = new SES_AI_T_JOBLot();
-    assertThrows(
-        IllegalArgumentException.class,
-        () ->
-            empty.retrieveWithFilter(
-                null, "test-tenant", testVector, price, startDate, 3, Area.関東_首都圏, 0.5, 5));
-    assertTrue(empty.isEmpty());
-  }
-
-  @Test
-  void testSearchByJobWithDetailFilter() throws SQLException {
-    // 全文検索条件
-    FulltextCondition condition1 = new FulltextCondition("AND", "Java", false);
-    FulltextCondition condition2 = new FulltextCondition("AND", "Spring Boot", false);
-
-    // 詳細フィルター条件を設定
-    JobDetailFilterCondition detailFilter = new JobDetailFilterCondition();
-    detailFilter.setMinPrice(new Money(new java.math.BigDecimal("50.00")));
-    detailFilter.setMaxPrice(new Money(new java.math.BigDecimal("150.00")));
-    detailFilter.setStartDate(new OriginalDateTime("2023-01-01 00:00:00"));
-    detailFilter.setArea(Area.関東_首都圏);
-    detailFilter.setOfficeRequirements(3);
-
-    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-
-    // 詳細フィルター付き全文検索
-    assertDoesNotThrow(
-        () ->
-            lot.searchByJobWithDetailFilter(
-                mockConn, "test-tenant", List.of(condition1, condition2), detailFilter, 1, 10));
-  }
-
-  @Test
-  void testSearchByJobWithDetailFilterNullFilter() throws SQLException {
-    // 全文検索条件
-    FulltextCondition condition = new FulltextCondition("OR", "Java", false);
-
-    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-
-    // nullフィルターでも例外が発生しないことを確認
-    assertDoesNotThrow(
-        () ->
-            lot.searchByJobWithDetailFilter(
-                mockConn, "test-tenant", List.of(condition), null, 1, 10));
-  }
-
-  @Test
-  void testRetrieveByJobVectorWithDetailFilter() throws Exception {
-    setupDefaultResultSet();
-
-    // 詳細フィルター条件を設定
-    JobDetailFilterCondition detailFilter = new JobDetailFilterCondition();
-    detailFilter.setMinPrice(new Money(new java.math.BigDecimal("50.00")));
-    detailFilter.setMaxPrice(new Money(new java.math.BigDecimal("150.00")));
-    detailFilter.setStartDate(new OriginalDateTime("2023-01-01 00:00:00"));
-
-    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    Vector testVector = createTestVector();
-
-    // 詳細フィルター付きベクトル検索
-    assertDoesNotThrow(
-        () ->
-            lot.retrieveByJobVectorWithDetailFilter(
-                mockConn, "test-tenant", testVector, 0.5, detailFilter, 1, 10));
-  }
-
-  @Test
-  void testRetrieveByJobVectorWithDetailFilterNullFilter() throws Exception {
-    setupDefaultResultSet();
-
-    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    Vector testVector = createTestVector();
-
-    // nullフィルターでも例外が発生しないことを確認
-    assertDoesNotThrow(
-        () ->
-            lot.retrieveByJobVectorWithDetailFilter(
-                mockConn, "test-tenant", testVector, 0.5, null, 1, 10));
-  }
-
-  @Test
-  void testRetrieveByJobVectorWithDetailFilterNullFilterBindsTenantIdBeforeLimitOffset()
-      throws Exception {
-    // tenant_id は addTenantIdFilter により LIMIT/OFFSET より前（4番目）に挿入されるため、
-    // 同じ位置でバインドされている必要がある（過去にLIMIT/OFFSETがtenant_idの位置に
-    // バインドされ、character varying = integer の型不一致エラーが発生した不具合の再発防止）
-    PreparedStatement mockCountStmt = mock(PreparedStatement.class);
-    PreparedStatement mockDataStmt = mock(PreparedStatement.class);
-    ResultSet mockCountRs = mock(ResultSet.class);
-    ResultSet mockDataRs = mock(ResultSet.class);
-
-    ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
-    when(mockConn.prepareStatement(sqlCaptor.capture()))
-        .thenReturn(mockCountStmt)
-        .thenReturn(mockDataStmt);
-    when(mockCountStmt.executeQuery()).thenReturn(mockCountRs);
-    when(mockCountRs.next()).thenReturn(true);
-    when(mockCountRs.getLong(1)).thenReturn(1L);
-    when(mockDataStmt.executeQuery()).thenReturn(mockDataRs);
-    when(mockDataRs.next()).thenReturn(true, false);
-    when(mockDataRs.getString("job_id")).thenReturn("jid1");
-    when(mockDataRs.getString("tenant_id")).thenReturn("test-tenant");
-    when(mockDataRs.getDouble("distance")).thenReturn(0.5);
-
-    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    Vector testVector = createTestVector();
-
-    lot.retrieveByJobVectorWithDetailFilter(mockConn, "test-tenant", testVector, 0.5, null, 1, 10);
-
-    assertEquals(1, lot.size());
-
-    List<String> capturedSqls = sqlCaptor.getAllValues();
-    String pagedSql = capturedSqls.get(1);
-    assertTrue(pagedSql.contains("ORDER BY distance ASC LIMIT ?"));
-    assertTrue(pagedSql.contains("OFFSET ?"));
-
-    verify(mockDataStmt).setString(4, "test-tenant");
-    verify(mockDataStmt).setInt(5, 10);
-    verify(mockDataStmt).setInt(6, 0);
-  }
-
-  @Test
-  void testSearchByJobWithDetailFilterWhereClauseHasNoTableAlias() throws SQLException {
-    // 全文検索条件
-    FulltextCondition condition = new FulltextCondition("AND", "Java", false);
-
-    // 詳細フィルター条件を設定（SELECT_RAW_CONTENT_FOR_FULLTEXTのFROM句にはエイリアスが無いため、
-    // WHERE句に "j." エイリアスが付与されると「missing FROM-clause entry」エラーとなる回帰を検出する）
-    JobDetailFilterCondition detailFilter = new JobDetailFilterCondition();
-    detailFilter.setMinPrice(new Money(new java.math.BigDecimal("50.00")));
-    detailFilter.setMaxPrice(new Money(new java.math.BigDecimal("150.00")));
-
-    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-
-    lot.searchByJobWithDetailFilter(
-        mockConn, "test-tenant", List.of(condition), detailFilter, 1, 10);
-
-    ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
-    verify(mockConn, atLeastOnce()).prepareStatement(sqlCaptor.capture());
-    for (String executedSql : sqlCaptor.getAllValues()) {
-      assertFalse(
-          executedSql.contains("j.unit_price"), "WHERE句にテーブルエイリアス j が付与されていないこと: " + executedSql);
+      /**
+       * 全件の SQL が案件の表から全件を読む SELECT 文であることを確かめる。 全件の一覧を取得する基になる。
+       *
+       * @given 案件Lot
+       * @when getSelectAllSql を実行する
+       * @then SES_AI_T_JOB から全件を読む SELECT 文を返す
+       */
+      @Test
+      void 全件の取得の場合_案件の表からのSELECT文を返す() {
+        assertThat(new SES_AI_T_JOBLot().getSelectAllSql())
+            .startsWith("SELECT")
+            .contains("FROM SES_AI_T_JOB");
+      }
     }
   }
 
-  @Test
-  void testRetrieveByJobVectorWithDetailFilterWhereClauseHasNoTableAlias() throws Exception {
-    setupDefaultResultSet();
+  @Nested
+  class getSelectLikeSql {
 
-    // ベクトル検索SQLのFROM句にはエイリアスが無いため、WHERE句に "j." エイリアスが付与されると
-    // 「missing FROM-clause entry」エラーとなる回帰を検出する
-    JobDetailFilterCondition detailFilter = new JobDetailFilterCondition();
-    detailFilter.setMinPrice(new Money(new java.math.BigDecimal("50.00")));
-    detailFilter.setStartDate(new OriginalDateTime("2023-01-01 00:00:00"));
+    @Nested
+    class 正常系 {
 
-    SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
-    Vector testVector = createTestVector();
+      /**
+       * 全文検索の SQL が原文の LIKE 条件を持つことを確かめる。 原文の全文検索の基になる。
+       *
+       * @given 案件Lot
+       * @when getSelectLikeSql を実行する
+       * @then 原文の LIKE 条件を持つ SELECT 文を返す
+       */
+      @Test
+      void 全文検索の場合_原文のLIKE条件を含むSELECT文を返す() {
+        assertThat(new SES_AI_T_JOBLot().getSelectLikeSql()).contains("raw_content LIKE ?");
+      }
+    }
+  }
 
-    lot.retrieveByJobVectorWithDetailFilter(
-        mockConn, "test-tenant", testVector, 0.5, detailFilter, 1, 10);
+  @Nested
+  class selectAll {
 
-    ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
-    verify(mockConn, atLeastOnce()).prepareStatement(sqlCaptor.capture());
-    for (String executedSql : sqlCaptor.getAllValues()) {
-      assertFalse(
-          executedSql.contains("j.unit_price"), "WHERE句にテーブルエイリアス j が付与されていないこと: " + executedSql);
-      assertFalse(
-          executedSql.contains("j.start_date"), "WHERE句にテーブルエイリアス j が付与されていないこと: " + executedSql);
+    @Nested
+    class 正常系 {
+
+      /**
+       * テナントの案件を全件読み込み、項目を変換することを確かめる。 画面の一覧は自テナントの案件だけを表示する。
+       *
+       * @given SELECT の結果が 1 行テナントID "T001"、単価 1500000
+       * @when selectAll を接続とテナントID "T001" で実行する
+       * @then 案件IDが "0123456789" の1件の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void 結果が1行の場合_変換した1件の一覧を返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(connection, row(false, TENANT_ID));
+        SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+
+        lot.selectAll(connection, TENANT_ID);
+
+        assertThat(lot.size()).isEqualTo(1);
+        assertThat(lot.get(0).getJobId()).isEqualTo("0123456789");
+        assertThat(lot.get(0).getUnitPrice().getValue())
+            .isEqualByComparingTo(new BigDecimal(1_500_000));
+      }
+
+      /**
+       * 単価・エリア・出社要件が NULL の行を読み込み、対応する項目を未設定にすることを確かめる。 未入力の案件を一覧で壊さない。
+       *
+       * @given SELECT の結果が 1 行、単価・エリア・出社要件が NULL
+       * @when selectAll を接続とテナントID "T001" で実行する
+       * @then 単価・エリア・出社要件を未設定にした1件の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void 任意の項目がNULLの行の場合_未設定の項目を持つ1件の一覧を返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(connection, rowWithNullOptionals(TENANT_ID));
+        SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+
+        lot.selectAll(connection, TENANT_ID);
+
+        assertThat(lot.size()).isEqualTo(1);
+        assertThat(lot.get(0).getUnitPrice().getValue()).isNull();
+        assertThat(lot.get(0).getArea()).isNull();
+        assertThat(lot.get(0).getOfficeRequirements()).isNull();
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * テナントIDが null の場合に検索を拒否することを確かめる。 テナントの無い検索は全テナントの案件を返す。
+       *
+       * @given テナントIDが null
+       * @when selectAll を接続と null のテナントIDで実行する
+       * @then IllegalArgumentExceptionを投げる
+       */
+      @MockDbConnection
+      @Test
+      void テナントIDがnullの場合_IllegalArgumentExceptionを投げる(final Connection connection) {
+        assertThatThrownBy(() -> new SES_AI_T_JOBLot().selectAll(connection, null))
+            .isInstanceOf(IllegalArgumentException.class);
+      }
+    }
+
+    @Nested
+    class テナント隔離 {
+
+      /**
+       * 検索の条件にテナントIDを渡して、他テナントの案件を読まないことを確かめる。 他テナントの案件が一覧に出ると、契約社の情報が漏えいする。
+       *
+       * @given SELECT の結果が 0 行
+       * @when selectAll を接続とテナントID "T001" で実行する
+       * @then tenant_id の位置に "T001" を設定し、空の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void テナントIDがT001の場合_T001で絞り込んだ空の一覧を返す(final Connection connection) throws SQLException {
+        PreparedStatement statement =
+            JdbcMocks.stubQuery(
+                connection, MockResultSetBuilder.builder().columns(COLUMNS).build());
+
+        new SES_AI_T_JOBLot().selectAll(connection, TENANT_ID);
+
+        verify(statement).setString(1, TENANT_ID);
+      }
+    }
+  }
+
+  @Nested
+  class selectAllWithoutTenantFilter {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * テナントの条件を付けずに全テナントの案件を読み込むことを確かめる。 バッチ処理は全テナントの案件を対象にする。
+       *
+       * @given SELECT の結果が 1 行テナントID "T002"
+       * @when selectAllWithoutTenantFilter を接続で実行する
+       * @then テナントIDが "T002" の1件の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void 結果が1行の場合_テナントを問わず1件の一覧を返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(connection, row(false, "T002"));
+        SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+
+        lot.selectAllWithoutTenantFilter(connection);
+
+        assertThat(lot.size()).isEqualTo(1);
+        assertThat(lot.get(0).getTenantId()).isEqualTo("T002");
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * DB 接続が null の場合に検索を拒否することを確かめる。 接続が無いまま SQL を実行できない。
+       *
+       * @given 接続が null
+       * @when selectAllWithoutTenantFilter を null の接続で実行する
+       * @then IllegalArgumentExceptionを投げる
+       */
+      @Test
+      void 接続がnullの場合_IllegalArgumentExceptionを投げる() {
+        assertThatThrownBy(() -> new SES_AI_T_JOBLot().selectAllWithoutTenantFilter(null))
+            .isInstanceOf(IllegalArgumentException.class);
+      }
+    }
+  }
+
+  @Nested
+  class retrieveWithFilter_Connection_String_Vector_Money_OriginalDateTime_double_int {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 価格、開始日、出社要件、エリアで絞り込んだ類似検索で、件数と行を読み込むことを確かめる。 出社要件とエリアが揃う案件を候補として並べる。
+       *
+       * @given 件数が 1 件、検索の結果が 1 行、出社要件が 3、エリアが 関東_首都圏
+       * @when retrieveWithFilter を価格、開始日、出社要件、エリアで実行する
+       * @then 1件の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void 出社要件とエリアの条件の場合_1件の一覧を返す(final Connection connection) throws SQLException {
+        stubCountAndRows(connection, 1L, row(true, TENANT_ID));
+        SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+
+        lot.retrieveWithFilter(
+            connection,
+            TENANT_ID,
+            vector(),
+            new Money(1_000_000L),
+            new OriginalDateTime("2026-01-01 00:00:00"),
+            3,
+            Area.関東_首都圏,
+            0.8,
+            10);
+
+        assertThat(lot.size()).isEqualTo(1);
+      }
+
+      /**
+       * 件数の問い合わせにテナントIDを条件として渡すことを確かめる。 他テナントの案件を件数に含めない。
+       *
+       * @given 件数が 0 件、テナントID "T001"
+       * @when retrieveWithFilter を価格と開始日のみで実行する
+       * @then 件数の条件の5番目に "T001" を設定し、空の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void テナントIDがT001の場合_件数の条件にT001を設定して空の一覧を返す(final Connection connection) throws SQLException {
+        PreparedStatement countStatement =
+            stubCountAndRows(
+                connection, 0L, MockResultSetBuilder.builder().columns(COLUMNS).build());
+        SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+
+        lot.retrieveWithFilter(
+            connection,
+            TENANT_ID,
+            vector(),
+            new Money(1_000_000L),
+            new OriginalDateTime("2026-01-01 00:00:00"),
+            0.8,
+            10);
+
+        assertThat(lot.isEmpty()).isTrue();
+        verify(countStatement).setString(5, TENANT_ID);
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * ベクトルが null の場合に検索を行わないことを確かめる。 検索の基準が無いと全件を返してしまう。
+       *
+       * @given ベクトルが null
+       * @when retrieveWithFilter を接続、テナントID "T001"、ベクトル null で実行する
+       * @then SQL の準備を呼ばない
+       */
+      @MockDbConnection
+      @Test
+      void ベクトルがnullの場合_DBを呼ばない(final Connection connection) throws SQLException {
+        new SES_AI_T_JOBLot()
+            .retrieveWithFilter(
+                connection,
+                TENANT_ID,
+                null,
+                new Money(1_000_000L),
+                new OriginalDateTime("2026-01-01 00:00:00"),
+                0.8,
+                10);
+
+        verify(connection, never()).prepareStatement(anyString());
+      }
+    }
+  }
+
+  @Nested
+  class retrieveWithFilter_Connection_String_Vector_Money_OriginalDateTime_int_Area_double_int {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 価格と開始日で絞り込んだ類似検索で、件数と行を読み込むことを確かめる。 条件に合う案件を候補として並べる。
+       *
+       * @given 件数が 1 件、検索の結果が 1 行、単価の上限が 1000000 円、開始日が 2026-01-01
+       * @when retrieveWithFilter を価格と開始日のみで実行する
+       * @then 1件の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void 価格と開始日の条件の場合_1件の一覧を返す(final Connection connection) throws SQLException {
+        stubCountAndRows(connection, 1L, row(true, TENANT_ID));
+        SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+
+        lot.retrieveWithFilter(
+            connection,
+            TENANT_ID,
+            vector(),
+            new Money(1_000_000L),
+            new OriginalDateTime("2026-01-01 00:00:00"),
+            0.8,
+            10);
+
+        assertThat(lot.size()).isEqualTo(1);
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * ベクトルが null の場合に検索を行わないことを確かめる。 検索の基準が無いと全件を返してしまう。
+       *
+       * @given ベクトルが null、エリアが関東_首都圏
+       * @when retrieveWithFilter を接続、テナントID "T001"、ベクトル null で実行する
+       * @then SQL の準備を呼ばない
+       */
+      @MockDbConnection
+      @Test
+      void ベクトルがnullの場合_DBを呼ばない(final Connection connection) throws SQLException {
+        new SES_AI_T_JOBLot()
+            .retrieveWithFilter(
+                connection,
+                TENANT_ID,
+                null,
+                new Money(1_000_000L),
+                new OriginalDateTime("2026-01-01 00:00:00"),
+                3,
+                Area.関東_首都圏,
+                0.8,
+                10);
+
+        verify(connection, never()).prepareStatement(anyString());
+      }
+
+      /**
+       * エリアが null の場合に検索を行わないことを確かめる。 エリアの条件が無い検索は絞り込みの前提を欠く。
+       *
+       * @given ベクトルあり、エリアが null
+       * @when retrieveWithFilter を接続、テナントID "T001"、エリア null で実行する
+       * @then SQL の準備を呼ばない
+       */
+      @MockDbConnection
+      @Test
+      void エリアがnullの場合_DBを呼ばない(final Connection connection) throws SQLException {
+        new SES_AI_T_JOBLot()
+            .retrieveWithFilter(
+                connection,
+                TENANT_ID,
+                vector(),
+                new Money(1_000_000L),
+                new OriginalDateTime("2026-01-01 00:00:00"),
+                3,
+                null,
+                0.8,
+                10);
+
+        verify(connection, never()).prepareStatement(anyString());
+      }
+    }
+  }
+
+  @Nested
+  class getEntityByPk {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 案件IDが一致する案件を一覧から返すことを確かめる。 選出された案件の詳細を取り出す。
+       *
+       * @given 一覧に案件ID "J001" と "J002" の案件がある
+       * @when getEntityByPk を "J002" で実行する
+       * @then 案件ID "J002" の案件を返す
+       */
+      @Test
+      void 案件IDが一致する要素がある場合_該当の案件を返す() {
+        SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+        lot.add(jobOf("J001"));
+        lot.add(jobOf("J002"));
+
+        assertThat(lot.getEntityByPk("J002").getJobId()).isEqualTo("J002");
+      }
+
+      /**
+       * 案件IDが一致する要素が無い場合に null を返すことを確かめる。 存在しない案件を取り出すと誤った詳細を表示する。
+       *
+       * @given 一覧に案件ID "J001" の案件がある
+       * @when getEntityByPk を "J999" で実行する
+       * @then nullを返す
+       */
+      @Test
+      void 案件IDが一致する要素が無い場合_nullを返す() {
+        SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+        lot.add(jobOf("J001"));
+
+        assertThat(lot.getEntityByPk("J999")).isNull();
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 案件IDが null の場合に null を返すことを確かめる。 キーの無い検索は先頭の案件を誤って返す。
+       *
+       * @given 一覧に案件ID "J001" の案件がある
+       * @when getEntityByPk を null で実行する
+       * @then nullを返す
+       */
+      @Test
+      void 案件IDがnullの場合_nullを返す() {
+        SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+        lot.add(jobOf("J001"));
+
+        assertThat(lot.getEntityByPk(null)).isNull();
+      }
+    }
+  }
+
+  @Nested
+  class to案件選出用文章 {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 一覧の各案件を人目の番号を付けて連結した文章を返すことを確かめる。 LLM に候補を番号で示す。
+       *
+       * @given 一覧に案件ID "J001" と "J002" の案件が2件ある
+       * @when to案件選出用文章 を実行する
+       * @then 1人目と2人目の番号を付けた文章を返す
+       */
+      @Test
+      void 一覧に2件ある場合_番号を付けて連結した文章を返す() {
+        SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+        lot.add(jobOf("J001"));
+        lot.add(jobOf("J002"));
+
+        assertThat(lot.to案件選出用文章()).startsWith("1人目：").contains("2人目：");
+      }
+    }
+  }
+
+  @Nested
+  class searchByJobWithDetailFilter {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 全文検索の条件と詳細条件出社要件を組み合わせて件数と行を読み込むことを確かめる。 条件に合う案件だけを候補にする。
+       *
+       * @given 件数が 1 件、検索の結果が 1 行、キーワード "Java"、出社要件が 3
+       * @when searchByJobWithDetailFilter を接続、テナントID "T001"、条件、詳細条件で実行する
+       * @then 件数に 1 を保持し、1件の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void 詳細条件がある場合_件数を保持して1件の一覧を返す(final Connection connection) throws SQLException {
+        stubCountAndRows(connection, 1L, row(false, TENANT_ID));
+        JobDetailFilterCondition detail = new JobDetailFilterCondition();
+        detail.setOfficeRequirements(3);
+        SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+
+        lot.searchByJobWithDetailFilter(
+            connection,
+            TENANT_ID,
+            List.of(new FulltextCondition("AND", "Java", false)),
+            detail,
+            1,
+            10);
+
+        assertThat(lot.getTotalCount()).isEqualTo(1L);
+        assertThat(lot.size()).isEqualTo(1);
+      }
+
+      /**
+       * 詳細条件が null の場合に全文検索の条件だけで件数と行を読み込むことを確かめる。 詳細条件を省いた検索も行えるようにする。
+       *
+       * @given 件数が 1 件、検索の結果が 1 行、詳細条件が null
+       * @when searchByJobWithDetailFilter を接続、テナントID "T001"、条件、詳細条件 null で実行する
+       * @then 1件の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void 詳細条件がnullの場合_全文検索の条件だけで1件の一覧を返す(final Connection connection) throws SQLException {
+        stubCountAndRows(connection, 1L, row(false, TENANT_ID));
+        SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+
+        lot.searchByJobWithDetailFilter(
+            connection,
+            TENANT_ID,
+            List.of(new FulltextCondition("AND", "Java", false)),
+            null,
+            1,
+            10);
+
+        assertThat(lot.size()).isEqualTo(1);
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 全文検索の条件が null の場合に検索を行わないことを確かめる。 条件の無い検索は全件の一覧になるおそれがある。
+       *
+       * @given 全文検索の条件が null
+       * @when searchByJobWithDetailFilter を接続、テナントID "T001"、詳細条件 null で実行する
+       * @then SQL の準備を呼ばない
+       */
+      @MockDbConnection
+      @Test
+      void 全文検索の条件がnullの場合_DBを呼ばない(final Connection connection) throws SQLException {
+        new SES_AI_T_JOBLot().searchByJobWithDetailFilter(connection, TENANT_ID, null, null, 1, 10);
+
+        verify(connection, never()).prepareStatement(anyString());
+      }
+
+      /**
+       * 全文検索の条件が空の場合に検索を行わないことを確かめる。 キーワードの無い検索は条件を組み立てられない。
+       *
+       * @given 全文検索の条件が空のリスト
+       * @when searchByJobWithDetailFilter を接続、テナントID "T001"、詳細条件 null で実行する
+       * @then SQL の準備を呼ばない
+       */
+      @MockDbConnection
+      @Test
+      void 全文検索の条件が空の場合_DBを呼ばない(final Connection connection) throws SQLException {
+        new SES_AI_T_JOBLot()
+            .searchByJobWithDetailFilter(connection, TENANT_ID, List.of(), null, 1, 10);
+
+        verify(connection, never()).prepareStatement(anyString());
+      }
+    }
+  }
+
+  @Nested
+  class retrieveByJobVectorWithDetailFilter {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * ベクトルの類似検索と詳細条件最低単価を組み合わせて件数と行を読み込むことを確かめる。 条件に合う案件を類似度の高い順に並べる。
+       *
+       * @given 件数が 1 件、検索の結果が 1 行距離 0.1、最低単価が 1000000 円
+       * @when retrieveByJobVectorWithDetailFilter を接続、テナントID "T001"、類似度 0.8、詳細条件で実行する
+       * @then 件数に 1 を保持し、1件の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void 詳細条件がある場合_件数を保持して1件の一覧を返す(final Connection connection) throws SQLException {
+        stubCountAndRows(connection, 1L, row(true, TENANT_ID));
+        JobDetailFilterCondition detail = new JobDetailFilterCondition();
+        detail.setMinPrice(new Money(1_000_000L));
+        SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+
+        lot.retrieveByJobVectorWithDetailFilter(
+            connection, TENANT_ID, vector(), 0.8, detail, 1, 10);
+
+        assertThat(lot.getTotalCount()).isEqualTo(1L);
+        assertThat(lot.size()).isEqualTo(1);
+      }
+
+      /**
+       * 詳細条件が null の場合にベクトルの検索だけで1件の一覧を返すことを確かめる。 詳細条件を省いた類似検索も行えるようにする。
+       *
+       * @given 件数が 1 件、検索の結果が 1 行、詳細条件が null
+       * @when retrieveByJobVectorWithDetailFilter を接続、テナントID "T001"、類似度 0.8、詳細条件 null で実行する
+       * @then 1件の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void 詳細条件がnullの場合_ベクトルの検索だけで1件の一覧を返す(final Connection connection) throws SQLException {
+        stubCountAndRows(connection, 1L, row(true, TENANT_ID));
+        SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+
+        lot.retrieveByJobVectorWithDetailFilter(connection, TENANT_ID, vector(), 0.8, null, 1, 10);
+
+        assertThat(lot.size()).isEqualTo(1);
+      }
+
+      /**
+       * 件数の問い合わせが行を返さない場合に、件数を0のまま空の一覧を返すことを確かめる。 件数が取れないときは一覧の問い合わせを行わない。
+       *
+       * @given 件数の問い合わせの結果が 0 行
+       * @when retrieveByJobVectorWithDetailFilter を接続、テナントID "T001"、類似度 0.8、詳細条件 null で実行する
+       * @then 件数に 0 を保持し、空の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void 件数の結果が0行の場合_件数0の空の一覧を返す(final Connection connection) throws SQLException {
+        PreparedStatement countStatement = mock(PreparedStatement.class);
+        when(countStatement.executeQuery())
+            .thenReturn(MockResultSetBuilder.builder().columns("cnt").build());
+        when(connection.prepareStatement(contains("COUNT(*)"))).thenReturn(countStatement);
+        SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+
+        lot.retrieveByJobVectorWithDetailFilter(connection, TENANT_ID, vector(), 0.8, null, 1, 10);
+
+        assertThat(lot.getTotalCount()).isEqualTo(0L);
+        assertThat(lot.isEmpty()).isTrue();
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * ベクトルが null の場合に検索を行わないことを確かめる。 検索の基準が無いと、全件を距離順に返してしまう。
+       *
+       * @given ベクトルが null
+       * @when retrieveByJobVectorWithDetailFilter を接続、テナントID "T001" で実行する
+       * @then SQL の準備を呼ばない
+       */
+      @MockDbConnection
+      @Test
+      void ベクトルがnullの場合_DBを呼ばない(final Connection connection) throws SQLException {
+        new SES_AI_T_JOBLot()
+            .retrieveByJobVectorWithDetailFilter(connection, TENANT_ID, null, 0.8, null, 1, 10);
+
+        verify(connection, never()).prepareStatement(anyString());
+      }
     }
   }
 }

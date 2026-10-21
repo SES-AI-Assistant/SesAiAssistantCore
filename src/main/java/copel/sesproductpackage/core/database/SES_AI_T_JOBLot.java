@@ -1,11 +1,10 @@
 package copel.sesproductpackage.core.database;
 
-import copel.sesproductpackage.core.database.base.EntityLotBase;
+import copel.sesproductpackage.core.database.base.SesAiTableLotBase;
 import copel.sesproductpackage.core.search.FulltextCondition;
 import copel.sesproductpackage.core.search.FulltextConditionsWhereClause;
 import copel.sesproductpackage.core.search.JobDetailFilterCondition;
 import copel.sesproductpackage.core.unit.Area;
-import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
@@ -20,23 +19,10 @@ import java.util.List;
  *
  * @author Copel Co., Ltd.
  */
-public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
-  /** 全文検索SQL. */
-  private static final String SELECT_LIKE_SQL =
-      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
-          + "unit_price, title, overview, must_skills, want_skills, start_date, "
-          + "place, area, office_requirements, other_requirements, register_date, "
-          + "register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE raw_content LIKE ?";
+public class SES_AI_T_JOBLot extends SesAiTableLotBase<SES_AI_T_JOB> {
 
   /** 複合条件全文検索用 SELECT 接頭辞（末尾に WHERE を含む）. */
   private static final String SELECT_RAW_CONTENT_FOR_FULLTEXT =
-      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
-          + "unit_price, title, overview, must_skills, want_skills, start_date, "
-          + "place, area, office_requirements, other_requirements, register_date, "
-          + "register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE ";
-
-  /** 検索SQL. */
-  private static final String SELECT_SQL =
       "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
           + "unit_price, title, overview, must_skills, want_skills, start_date, "
           + "place, area, office_requirements, other_requirements, register_date, "
@@ -76,37 +62,16 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
           + "unit_price >= ? AND start_date <= ? AND office_requirements <= ? AND area "
           + "= ? AND 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
 
-  /** 全文検索＋価格・開始日フィルタ用SQL. */
-  private static final String SELECT_RAW_CONTENT_WITH_FILTER_2_VALUES_FOR_FULLTEXT =
+  /** 全文検索（raw_content の LIKE）用 SELECT 文（WHERE句を含む）. */
+  private static final String SELECT_LIKE_SQL =
       "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
-          + "unit_price, title, overview, must_skills, want_skills, start_date, place, area, "
-          + "office_requirements, other_requirements, register_date, register_user, ttl, "
-          + "tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date "
-          + "<= ? AND "
-          + "raw_content LIKE ?";
-
-  /** 全文検索＋価格・開始日・オフィス要件・エリアフィルタ用SQL. */
-  private static final String SELECT_RAW_CONTENT_WITH_FILTER_4_VALUES_FOR_FULLTEXT =
-      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
-          + "unit_price, title, overview, must_skills, want_skills, start_date, place, area, "
-          + "office_requirements, other_requirements, register_date, register_user, ttl, "
-          + "tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date "
-          + "<= ? AND "
-          + "office_requirements <= ? AND area = ? AND raw_content LIKE ?";
+          + "unit_price, title, overview, must_skills, want_skills, start_date, "
+          + "place, area, office_requirements, other_requirements, register_date, "
+          + "register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE raw_content LIKE ?";
 
   /** コンストラクタ. */
   public SES_AI_T_JOBLot() {
     super();
-  }
-
-  @Override
-  protected String getSelectSql() {
-    return SELECT_SQL;
-  }
-
-  @Override
-  protected String getSelectLikeSql() {
-    return SELECT_LIKE_SQL;
   }
 
   @Override
@@ -140,322 +105,6 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
     List<SES_AI_T_JOB> results =
         executeQueryWithoutTenantFilter(
             connection, SELECT_ALL_SQL, this::mapResultSet, (stmt, paramIndex) -> paramIndex);
-    this.entityLot.addAll(results);
-  }
-
-  /**
-   * 類似度閾値を用いてベクトル検索を実行し結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param query 検索ベクトル
-   * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
-   * @param limit 取得上限件数
-   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   */
-  public void retrieveWithThreshold(
-      Connection connection, String tenantId, Vector query, double similarityThreshold, int limit)
-      throws SQLException {
-    this.retrievePagedWithThreshold(connection, tenantId, query, similarityThreshold, 1, limit);
-  }
-
-  /**
-   * 類似度閾値を用いてベクトル検索をページングで実行し結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param query 検索ベクトル
-   * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
-   * @param page ページ番号(1-based)
-   * @param size 1ページあたりの件数
-   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   */
-  public void retrievePagedWithThreshold(
-      Connection connection,
-      String tenantId,
-      Vector query,
-      double similarityThreshold,
-      int page,
-      int size)
-      throws SQLException {
-    requireConnection(connection);
-    if (query == null) {
-      return;
-    }
-
-    executeVectorPagedQuery(
-        connection,
-        RETRIEVE_WITH_THRESHOLD_SQL_WITHOUT_LIMIT,
-        tenantId,
-        query.toString(),
-        similarityThreshold,
-        (stmt, paramIndex, vectorValue, threshold) -> {
-          stmt.setString(paramIndex, vectorValue);
-          stmt.setDouble(paramIndex + 1, threshold);
-          return paramIndex + 2;
-        },
-        page,
-        size,
-        rs -> {
-          SES_AI_T_JOB entity = mapResultSet(rs);
-          try {
-            entity.setDistance(rs.getDouble("distance"));
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
-          return entity;
-        },
-        (stmt, paramIndex, vectorValue, threshold) -> {
-          stmt.setString(paramIndex, vectorValue);
-          stmt.setString(paramIndex + 1, vectorValue);
-          stmt.setDouble(paramIndex + 2, threshold);
-          return paramIndex + 3;
-        });
-  }
-
-  /**
-   * raw_contentカラムで全文検索を実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param query 検索条件Map
-   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   */
-  public void searchByRawContent(
-      final Connection connection, final String tenantId, final String query) throws SQLException {
-    this.searchByField(connection, tenantId, "raw_content", query);
-  }
-
-  /**
-   * raw_contentカラムに対して複数条件で全文検索を実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param firstLikeQuery 1つ目のLIKE句の検索条件
-   * @param query 検索条件リスト
-   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   */
-  public void searchByRawContent(
-      final Connection connection,
-      final String tenantId,
-      final String firstLikeQuery,
-      final List<LogicalOperators> query)
-      throws SQLException {
-    this.searchByField(connection, tenantId, "raw_content", firstLikeQuery, query);
-  }
-
-  /**
-   * raw_contentカラムで全文検索をページングで実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param query 検索文字列
-   * @param page ページ番号(1-based)
-   * @param size 1ページあたりの件数
-   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   */
-  public void searchByRawContentPaged(
-      final Connection connection,
-      final String tenantId,
-      final String query,
-      final int page,
-      final int size)
-      throws SQLException {
-    this.searchByFieldPaged(connection, tenantId, "raw_content", query, page, size);
-  }
-
-  /**
-   * raw_contentカラムに対して複数条件で全文検索をページングで実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param firstLikeQuery 1つ目のLIKE句の検索条件
-   * @param query 検索条件リスト
-   * @param page ページ番号(1-based)
-   * @param size 1ページあたりの件数
-   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   */
-  public void searchByRawContentPaged(
-      final Connection connection,
-      final String tenantId,
-      final String firstLikeQuery,
-      final List<LogicalOperators> query,
-      final int page,
-      final int size)
-      throws SQLException {
-    this.searchByFieldPaged(connection, tenantId, "raw_content", firstLikeQuery, query, page, size);
-  }
-
-  /**
-   * raw_content に対して複合条件（AND/OR/NOT）で全文検索をページング実行します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param conditions API の conditions 配列と同一の論理
-   * @param page ページ番号(1-based)
-   * @param size 1ページあたりの件数
-   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   */
-  public void searchByRawContentPaged(
-      final Connection connection,
-      final String tenantId,
-      final List<FulltextCondition> conditions,
-      final int page,
-      final int size)
-      throws SQLException {
-    FulltextConditionsWhereClause.Built built =
-        FulltextConditionsWhereClause.build("raw_content", conditions);
-    this.selectByDynamicWherePaged(
-        connection,
-        tenantId,
-        SELECT_RAW_CONTENT_FOR_FULLTEXT,
-        built.getWhereClauseWithoutWhereKeyword(),
-        built.getLikeParams(),
-        page,
-        size);
-  }
-
-  /**
-   * raw_contentカラムで価格と開始日の条件を付けて全文検索を実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param query 検索文字列
-   * @param price 最低価格（単価がこの値以上のもの）
-   * @param startDate 最遅開始日（開始日がこの日付以前のもの）
-   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   */
-  public void searchByRawContentWithFilter(
-      final Connection connection,
-      final String tenantId,
-      final String query,
-      final Money price,
-      final OriginalDateTime startDate)
-      throws SQLException {
-    this.searchByRawContentWithFilterPaged(
-        connection, tenantId, query, price, startDate, 1, Integer.MAX_VALUE);
-  }
-
-  /**
-   * raw_contentカラムで価格・開始日・オフィス要件・エリアの条件を付けて全文検索を実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param query 検索文字列
-   * @param price 最低価格（単価がこの値以上のもの）
-   * @param startDate 最遅開始日（開始日がこの日付以前のもの）
-   * @param officeRequirements 最大オフィス要件（オフィス要件がこの値以下のもの）
-   * @param area 対象エリア（エリアがこの値と一致するもの）
-   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   */
-  public void searchByRawContentWithFilter(
-      final Connection connection,
-      final String tenantId,
-      final String query,
-      final Money price,
-      final OriginalDateTime startDate,
-      final int officeRequirements,
-      final Area area)
-      throws SQLException {
-    this.searchByRawContentWithFilterPaged(
-        connection,
-        tenantId,
-        query,
-        price,
-        startDate,
-        officeRequirements,
-        area,
-        1,
-        Integer.MAX_VALUE);
-  }
-
-  /**
-   * raw_contentカラムで価格と開始日の条件を付けてページング全文検索を実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param query 検索文字列
-   * @param price 最低価格（単価がこの値以上のもの）
-   * @param startDate 最遅開始日（開始日がこの日付以前のもの）
-   * @param page ページ番号(1-based)
-   * @param size 1ページあたりの件数
-   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   */
-  public void searchByRawContentWithFilterPaged(
-      final Connection connection,
-      final String tenantId,
-      final String query,
-      final Money price,
-      final OriginalDateTime startDate,
-      final int page,
-      final int size)
-      throws SQLException {
-    this.entityLot = new ArrayList<>();
-    requireConnection(connection);
-    if (query == null) {
-      return;
-    }
-
-    List<SES_AI_T_JOB> results =
-        executeQuery(
-            connection,
-            SELECT_RAW_CONTENT_WITH_FILTER_2_VALUES_FOR_FULLTEXT,
-            tenantId,
-            this::mapResultSet,
-            (stmt, paramIndex) -> {
-              stmt.setBigDecimal(paramIndex, price.getValue());
-              stmt.setTimestamp(paramIndex + 1, startDate.toTimestamp());
-              stmt.setString(paramIndex + 2, "%" + query + "%");
-              return paramIndex + 3;
-            });
-    this.entityLot.addAll(results);
-  }
-
-  /**
-   * raw_contentカラムで価格・開始日・オフィス要件・エリアの条件を付けてページング全文検索を実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param query 検索文字列
-   * @param price 最低価格（単価がこの値以上のもの）
-   * @param startDate 最遅開始日（開始日がこの日付以前のもの）
-   * @param officeRequirements 最大オフィス要件（オフィス要件がこの値以下のもの）
-   * @param area 対象エリア（エリアがこの値と一致するもの）
-   * @param page ページ番号(1-based)
-   * @param size 1ページあたりの件数
-   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   */
-  public void searchByRawContentWithFilterPaged(
-      final Connection connection,
-      final String tenantId,
-      final String query,
-      final Money price,
-      final OriginalDateTime startDate,
-      final int officeRequirements,
-      final Area area,
-      final int page,
-      final int size)
-      throws SQLException {
-    this.entityLot = new ArrayList<>();
-    requireConnection(connection);
-    if (query == null || area == null) {
-      return;
-    }
-
-    List<SES_AI_T_JOB> results =
-        executeQuery(
-            connection,
-            SELECT_RAW_CONTENT_WITH_FILTER_4_VALUES_FOR_FULLTEXT,
-            tenantId,
-            this::mapResultSet,
-            (stmt, paramIndex) -> {
-              stmt.setBigDecimal(paramIndex, price.getValue());
-              stmt.setTimestamp(paramIndex + 1, startDate.toTimestamp());
-              stmt.setInt(paramIndex + 2, officeRequirements);
-              stmt.setString(paramIndex + 3, area.name());
-              stmt.setString(paramIndex + 4, "%" + query + "%");
-              return paramIndex + 5;
-            });
     this.entityLot.addAll(results);
   }
 
@@ -514,8 +163,39 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       double similarityThreshold,
       int limit)
       throws SQLException {
-    this.retrieveWithFilterPaged(
-        connection, tenantId, query, price, startDate, similarityThreshold, 1, limit);
+    requireConnection(connection);
+    if (query == null) {
+      return;
+    }
+
+    executeVectorPagedQuery(
+        connection,
+        RETRIEVE_WITH_FILTER_2_VALUES_SQL_WITHOUT_LIMIT,
+        tenantId,
+        query.toString(),
+        similarityThreshold,
+        (stmt, paramIndex, vectorValue, threshold) -> {
+          stmt.setBigDecimal(paramIndex, price.getValue());
+          stmt.setTimestamp(paramIndex + 1, startDate.toTimestamp());
+          stmt.setString(paramIndex + 2, vectorValue);
+          stmt.setDouble(paramIndex + 3, threshold);
+          return paramIndex + 4;
+        },
+        1,
+        limit,
+        rs -> {
+          SES_AI_T_JOB entity = mapResultSet(rs);
+          entity.setDistance(rs.getDouble("distance"));
+          return entity;
+        },
+        (stmt, paramIndex, vectorValue, threshold) -> {
+          stmt.setString(paramIndex, vectorValue);
+          stmt.setBigDecimal(paramIndex + 1, price.getValue());
+          stmt.setTimestamp(paramIndex + 2, startDate.toTimestamp());
+          stmt.setString(paramIndex + 3, vectorValue);
+          stmt.setDouble(paramIndex + 4, threshold);
+          return paramIndex + 5;
+        });
   }
 
   /**
@@ -543,108 +223,6 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       double similarityThreshold,
       int limit)
       throws SQLException {
-    this.retrieveWithFilterPaged(
-        connection,
-        tenantId,
-        query,
-        price,
-        startDate,
-        officeAvailability,
-        area,
-        similarityThreshold,
-        1,
-        limit);
-  }
-
-  /**
-   * 価格と開始日でフィルタされたベクトル検索をページングで実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param query 検索ベクトル
-   * @param price 最低価格（単価がこの値以上のもの）
-   * @param startDate 最遅開始日（開始日がこの日付以前のもの）
-   * @param similarityThreshold 類似度閾値(0.0～1.0)
-   * @param page ページ番号(1-based)
-   * @param size 1ページあたりの件数
-   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   */
-  public void retrieveWithFilterPaged(
-      Connection connection,
-      String tenantId,
-      Vector query,
-      Money price,
-      OriginalDateTime startDate,
-      double similarityThreshold,
-      int page,
-      int size)
-      throws SQLException {
-    requireConnection(connection);
-    if (query == null) {
-      return;
-    }
-
-    executeVectorPagedQuery(
-        connection,
-        RETRIEVE_WITH_FILTER_2_VALUES_SQL_WITHOUT_LIMIT,
-        tenantId,
-        query.toString(),
-        similarityThreshold,
-        (stmt, paramIndex, vectorValue, threshold) -> {
-          stmt.setBigDecimal(paramIndex, price.getValue());
-          stmt.setTimestamp(paramIndex + 1, startDate.toTimestamp());
-          stmt.setString(paramIndex + 2, vectorValue);
-          stmt.setDouble(paramIndex + 3, threshold);
-          return paramIndex + 4;
-        },
-        page,
-        size,
-        rs -> {
-          SES_AI_T_JOB entity = mapResultSet(rs);
-          try {
-            entity.setDistance(rs.getDouble("distance"));
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
-          return entity;
-        },
-        (stmt, paramIndex, vectorValue, threshold) -> {
-          stmt.setString(paramIndex, vectorValue);
-          stmt.setBigDecimal(paramIndex + 1, price.getValue());
-          stmt.setTimestamp(paramIndex + 2, startDate.toTimestamp());
-          stmt.setString(paramIndex + 3, vectorValue);
-          stmt.setDouble(paramIndex + 4, threshold);
-          return paramIndex + 5;
-        });
-  }
-
-  /**
-   * 価格・開始日・オフィス要件・エリアでフィルタされたベクトル検索をページングで実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param query 検索ベクトル
-   * @param price 最低価格（単価がこの値以上のもの）
-   * @param startDate 最遅開始日（開始日がこの日付以前のもの）
-   * @param officeAvailability 最大オフィス要件（オフィス要件がこの値以下のもの）
-   * @param area 対象エリア（エリアがこの値と一致するもの）
-   * @param similarityThreshold 類似度閾値(0.0～1.0)
-   * @param page ページ番号(1-based)
-   * @param size 1ページあたりの件数
-   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   */
-  public void retrieveWithFilterPaged(
-      Connection connection,
-      String tenantId,
-      Vector query,
-      Money price,
-      OriginalDateTime startDate,
-      int officeAvailability,
-      Area area,
-      double similarityThreshold,
-      int page,
-      int size)
-      throws SQLException {
     requireConnection(connection);
     if (query == null || area == null) {
       return;
@@ -665,15 +243,11 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
           stmt.setDouble(paramIndex + 5, threshold);
           return paramIndex + 6;
         },
-        page,
-        size,
+        1,
+        limit,
         rs -> {
           SES_AI_T_JOB entity = mapResultSet(rs);
-          try {
-            entity.setDistance(rs.getDouble("distance"));
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
+          entity.setDistance(rs.getDouble("distance"));
           return entity;
         },
         (stmt, paramIndex, vectorValue, threshold) -> {
@@ -731,9 +305,8 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
     StringBuilder mergedWhere = new StringBuilder();
     mergedWhere.append(ftBuilt.getWhereClauseWithoutWhereKeyword());
     if (!detailFilterWhere.isEmpty()) {
-      if (mergedWhere.length() > 0) {
-        mergedWhere.append(" AND ");
-      }
+      // 全文検索の条件は必ず括弧付きの空でない句になるため、区切りの AND を常に付ける
+      mergedWhere.append(" AND ");
       mergedWhere
           .append('(')
           .append(detailFilterWhere.getWhereClauseWithoutWhereKeyword())
@@ -854,109 +427,16 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       final int size,
       final String countQueryPart)
       throws SQLException {
-    requireConnection(connection);
-    if (query == null) {
-      return;
-    }
-
-    // (1) 全件数を取得 (countQueryPart があれば、tenant_id フィルターを適用)
-    if (countQueryPart != null) {
-      String countSql = "SELECT COUNT(*) FROM " + countQueryPart;
-      countSql = addTenantIdFilter(countSql, tenantId);
-      try (java.sql.PreparedStatement preparedStatement = connection.prepareStatement(countSql)) {
-        int paramIndex = 1;
-        String vectorStr = query.toString();
-        preparedStatement.setString(paramIndex++, vectorStr);
-        preparedStatement.setDouble(paramIndex++, similarityThreshold);
-        // 詳細フィルターパラメータをバインド
-        if (filterParams != null) {
-          for (Object param : filterParams) {
-            bindParameter(preparedStatement, paramIndex++, param);
-          }
-        }
-        setTenantIdParameter(preparedStatement, paramIndex, tenantId);
-        try (ResultSet resultSet = preparedStatement.executeQuery()) {
-          if (resultSet.next()) {
-            this.totalCount = resultSet.getLong(1);
-          }
-        }
-      }
-    } else {
-      this.totalCount = size;
-    }
-
-    this.pageSize = size;
-    this.currentPageIndex = page;
-
-    if (this.totalCount == 0 && countQueryPart != null) {
-      return;
-    }
-
-    // (2) ページング実行（tenant_id フィルターを適用）
-    String pagedSql = sql + " LIMIT ? OFFSET ?";
-    List<SES_AI_T_JOB> results =
-        executeQuery(
-            connection,
-            pagedSql,
-            tenantId,
-            this::mapResultSet,
-            (stmt, paramIndex) -> {
-              int idx = paramIndex;
-              String vectorStr = query.toString();
-              stmt.setString(idx, vectorStr);
-              stmt.setString(idx + 1, vectorStr);
-              stmt.setDouble(idx + 2, similarityThreshold);
-              // 詳細フィルターパラメータをバインド
-              int filterParamStartIdx = idx + 3;
-              if (filterParams != null) {
-                for (int i = 0; i < filterParams.size(); i++) {
-                  bindParameter(stmt, filterParamStartIdx + i, filterParams.get(i));
-                }
-              }
-              int nextIdx = filterParamStartIdx + (filterParams != null ? filterParams.size() : 0);
-              // nextIdx は addTenantIdFilter が挿入する tenant_id 用プレースホルダーの位置のため
-              // 空けておき、LIMIT/OFFSET はその直後にバインドする
-              stmt.setInt(nextIdx + 1, size);
-              stmt.setInt(nextIdx + 2, (page - 1) * size);
-              return nextIdx;
-            });
-    this.entityLot = results;
-  }
-
-  /**
-   * PreparedStatementにパラメータを型に応じてバインドするヘルパーメソッド.
-   *
-   * @param stmt PreparedStatement
-   * @param paramIndex パラメータインデックス（1-based）
-   * @param param バインドするパラメータ値
-   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   */
-  protected void bindParameter(
-      final java.sql.PreparedStatement stmt, final int paramIndex, final Object param)
-      throws SQLException {
-    if (param instanceof Money) {
-      stmt.setBigDecimal(paramIndex, ((Money) param).getValue());
-    } else if (param instanceof OriginalDateTime) {
-      stmt.setTimestamp(paramIndex, ((OriginalDateTime) param).toTimestamp());
-    } else if (param instanceof Area) {
-      stmt.setString(paramIndex, ((Area) param).name());
-    } else if (param instanceof Integer) {
-      stmt.setInt(paramIndex, (Integer) param);
-    } else if (param instanceof String) {
-      stmt.setString(paramIndex, (String) param);
-    } else if (param instanceof java.math.BigDecimal) {
-      stmt.setBigDecimal(paramIndex, (java.math.BigDecimal) param);
-    } else if (param instanceof java.sql.Timestamp) {
-      stmt.setTimestamp(paramIndex, (java.sql.Timestamp) param);
-    } else if (param instanceof Enum<?>) {
-      stmt.setString(paramIndex, ((Enum<?>) param).name());
-    } else if (param instanceof Double) {
-      stmt.setDouble(paramIndex, (Double) param);
-    } else if (param instanceof Long) {
-      stmt.setLong(paramIndex, (Long) param);
-    } else {
-      stmt.setObject(paramIndex, param);
-    }
+    this.executeVectorWithFilterPaged(
+        connection,
+        tenantId,
+        sql + " LIMIT ? OFFSET ?",
+        "SELECT COUNT(*) FROM " + countQueryPart,
+        query,
+        filterParams,
+        similarityThreshold,
+        page,
+        size);
   }
 
   /**
@@ -966,6 +446,28 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
    * @return マッピング済みの案件情報エンティティ
    * @throws SQLException DB操作エラー
    */
+  @Override
+  protected String getSelectLikeSql() {
+    return SELECT_LIKE_SQL;
+  }
+
+  @Override
+  protected String getThresholdSql() {
+    return RETRIEVE_WITH_THRESHOLD_SQL_WITHOUT_LIMIT;
+  }
+
+  @Override
+  protected String getRawContentFulltextSql() {
+    return SELECT_RAW_CONTENT_FOR_FULLTEXT;
+  }
+
+  @Override
+  protected SES_AI_T_JOB mapResultSetWithDistance(ResultSet resultSet) throws SQLException {
+    SES_AI_T_JOB entity = mapResultSet(resultSet);
+    entity.setDistance(resultSet.getDouble("distance"));
+    return entity;
+  }
+
   @Override
   protected SES_AI_T_JOB mapResultSet(ResultSet resultSet) throws SQLException {
     String tenantId = resultSet.getString("tenant_id");

@@ -5,6 +5,7 @@ import copel.sesproductpackage.core.database.base.SesAiTableEntityBase;
 import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.unit.OfficeAvailability;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
 import java.math.BigDecimal;
@@ -12,7 +13,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import lombok.Data;
@@ -271,6 +271,7 @@ public class SES_AI_T_PERSON extends SesAiTableEntityBase {
     // 比較用にURLをマスキング
     String maskedText = textToCheck.replaceAll("https?://[^\\s]+", "");
 
+    SES_AI_T_PERSON result = null;
     try (PreparedStatement preparedStatement = connection.prepareStatement(FIND_SIMILAR_SQL)) {
       preparedStatement.setString(1, tenantId);
       preparedStatement.setString(2, maskedText);
@@ -278,15 +279,14 @@ public class SES_AI_T_PERSON extends SesAiTableEntityBase {
       preparedStatement.setDouble(4, similarityThreshold);
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
-          SES_AI_T_PERSON result = new SES_AI_T_PERSON(tenantId);
+          result = new SES_AI_T_PERSON(tenantId);
           result.setPersonId(resultSet.getString("person_id"));
           BigDecimal unitPriceValue = resultSet.getBigDecimal("unit_price");
           result.setUnitPrice(unitPriceValue == null ? Money.empty() : new Money(unitPriceValue));
-          return result;
         }
       }
     }
-    return null;
+    return result;
   }
 
   // ================================
@@ -501,7 +501,7 @@ public class SES_AI_T_PERSON extends SesAiTableEntityBase {
    * @return 経験リスト
    */
   public List<String> getExperiencesAsList() {
-    return this.experiences == null ? Arrays.asList() : Arrays.asList(this.experiences.split("\n"));
+    return splitLines(this.experiences);
   }
 
   /**
@@ -510,9 +510,7 @@ public class SES_AI_T_PERSON extends SesAiTableEntityBase {
    * @return その他条件リスト
    */
   public List<String> getOtherRequirementsAsList() {
-    return this.otherRequirements == null
-        ? Arrays.asList()
-        : Arrays.asList(this.otherRequirements.split("\n"));
+    return splitLines(this.otherRequirements);
   }
 
   /**
@@ -521,9 +519,7 @@ public class SES_AI_T_PERSON extends SesAiTableEntityBase {
    * @return NG条件リスト
    */
   public List<String> getNgRequirementsAsList() {
-    return this.ngRequirements == null
-        ? Arrays.asList()
-        : Arrays.asList(this.ngRequirements.split("\n"));
+    return splitLines(this.ngRequirements);
   }
 
   /**
@@ -549,11 +545,11 @@ public class SES_AI_T_PERSON extends SesAiTableEntityBase {
     // 1. 名前
     sb.append("■名前: ").append(this.name).append("\n");
     // 2. 年齢
-    if (this.age > 0) {
+    if (this.age != null && this.age > 0) {
       sb.append("■年齢: ").append(this.age).append("歳\n");
     }
     // 2. 性別
-    sb.append("■性別: ").append(this.gender.toJapanese()).append("\n");
+    sb.append("■性別: ").append(this.gender != null ? this.gender.toJapanese() : "-").append("\n");
     // 3. 国籍
     sb.append("■国籍: ").append(this.nationality).append("\n");
     // 4. 稼働開始可能月
@@ -561,28 +557,19 @@ public class SES_AI_T_PERSON extends SesAiTableEntityBase {
       sb.append("■開始: ").append(this.startDate.month()).append("\n");
     }
     // 5. 単価
-    if (targetPrice != null && !targetPrice.isEmpty()) {
-      if (targetPrice.isNegotiable()) {
-        sb.append("■単価: ")
-            .append(this.unitPrice.multiply(multiplier).toJapaneseFormat())
-            .append("\n");
-      } else {
-        sb.append("■単価: ").append(targetPrice.toJapaneseFormat()).append("\n");
-      }
-    }
+    appendTargetPriceLine(sb, targetPrice, this.unitPrice, multiplier);
     // 6. 所属形態
     // TODO: organizationの型をOrganization型にし、1社インクリメントしてセットする実装をする
     // 7. 場所
-    if (this.place != null && !this.place.isEmpty()) {
+    // setPlace は空の値を null に正規化するため、null のみを判定する
+    if (this.place != null) {
       sb.append("■場所: ").append(this.place).append("\n");
     }
     // 8. 出社可否
-    if (this.officeAvailability == 0) {
-      sb.append("■出社: ").append("フルリモート希望\n");
-    } else if (this.officeAvailability == 5) {
-      sb.append("■出社: ").append("常駐可").append("\n");
-    } else {
-      sb.append("■出社: ").append("週").append(this.officeAvailability).append("まで可").append("\n");
+    if (this.officeAvailability != null) {
+      sb.append("■出社: ")
+          .append(new OfficeAvailability(this.officeAvailability).toDisplayString())
+          .append("\n");
     }
     // 9. 経歴
     if (this.experiences != null && !this.experiences.isEmpty()) {

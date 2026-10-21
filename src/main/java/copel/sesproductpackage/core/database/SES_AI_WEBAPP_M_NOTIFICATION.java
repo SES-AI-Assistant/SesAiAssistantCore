@@ -4,6 +4,7 @@ import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -95,19 +96,7 @@ public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
         connection,
         INSERT_SQL,
         this.tenantId,
-        (stmt) -> {
-          stmt.setString(1, this.notificationId);
-          stmt.setString(2, this.userId);
-          stmt.setString(3, this.deviceType);
-          stmt.setString(4, this.deviceName);
-          stmt.setString(5, this.pushNotificationEndpoint);
-          stmt.setString(6, this.p256dh);
-          stmt.setString(7, this.auth);
-          stmt.setBoolean(8, this.enabled != null && this.enabled);
-          stmt.setBoolean(9, this.notifyAllMatch != null && this.notifyAllMatch);
-          stmt.setTimestamp(10, this.registerDate == null ? null : this.registerDate.toTimestamp());
-          stmt.setString(11, this.registerUser);
-        },
+        this::bindColumns,
         "SES_AI_WEBAPP_M_NOTIFICATION.insert");
   }
 
@@ -147,20 +136,33 @@ public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
         UPDATE_SQL,
         this.tenantId,
         (stmt) -> {
-          stmt.setString(1, this.notificationId);
-          stmt.setString(2, this.userId);
-          stmt.setString(3, this.deviceType);
-          stmt.setString(4, this.deviceName);
-          stmt.setString(5, this.pushNotificationEndpoint);
-          stmt.setString(6, this.p256dh);
-          stmt.setString(7, this.auth);
-          stmt.setBoolean(8, this.enabled != null && this.enabled);
-          stmt.setBoolean(9, this.notifyAllMatch != null && this.notifyAllMatch);
-          stmt.setTimestamp(10, this.registerDate == null ? null : this.registerDate.toTimestamp());
-          stmt.setString(11, this.registerUser);
+          // SET 句の列（1番目から11番目）は INSERT 文と同じ並び
+          bindColumns(stmt);
           stmt.setString(12, this.notificationId);
         },
         "SES_AI_WEBAPP_M_NOTIFICATION.updateByPk");
+  }
+
+  /**
+   * INSERT 文と UPDATE 文で共通の列（1番目から11番目）に、項目の値を順に設定します.
+   *
+   * <p>有効フラグと全件通知フラグが未設定（null）の場合は false を設定する。
+   *
+   * @param stmt 値を設定する準備文
+   * @throws SQLException 値の設定に失敗した場合
+   */
+  private void bindColumns(final PreparedStatement stmt) throws SQLException {
+    stmt.setString(1, this.notificationId);
+    stmt.setString(2, this.userId);
+    stmt.setString(3, this.deviceType);
+    stmt.setString(4, this.deviceName);
+    stmt.setString(5, this.pushNotificationEndpoint);
+    stmt.setString(6, this.p256dh);
+    stmt.setString(7, this.auth);
+    stmt.setBoolean(8, this.enabled != null && this.enabled);
+    stmt.setBoolean(9, this.notifyAllMatch != null && this.notifyAllMatch);
+    stmt.setTimestamp(10, this.registerDate == null ? null : this.registerDate.toTimestamp());
+    stmt.setString(11, this.registerUser);
   }
 
   @Override

@@ -12,6 +12,7 @@ import copel.sesproductpackage.core.util.SsmParameterKey;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
@@ -73,7 +74,8 @@ public class SES_AI_TENANT_MONTHLY_INGEST_COUNT
   public static String resolveTableName() {
     String tableName =
         Properties.get(SsmParameterKey.TENANT_MONTHLY_INGEST_COUNT_TABLE_NAME.getKey());
-    if (tableName == null || tableName.isBlank()) {
+    // Properties.get は未設定のとき空文字を返すが、null でも既定名に倒すため requireNonNullElse で正規化する
+    if (Objects.requireNonNullElse(tableName, "").isBlank()) {
       return DEFAULT_TABLE_NAME;
     }
     return tableName;

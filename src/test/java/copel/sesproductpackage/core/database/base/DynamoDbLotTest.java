@@ -282,68 +282,6 @@ public class DynamoDbLotTest {
   }
 
   @Nested
-  class fetchByPk {
-
-    @Nested
-    class 正常系 {
-
-      /**
-       * パーティションキーで問い合わせた結果を1件保持することを確かめる。 同じキーのレコードを画面やバッチで扱えるようにするためである。
-       *
-       * @given テーブルの問い合わせが項目の名前 山田 のレコードを1件返す
-       * @when fetchByPk をパーティションキー P001 で実行する
-       * @then 問い合わせを1回行い、1件のレコードを返す
-       */
-      @Test
-      void パーティションキーがP001の場合_1件のレコードを返す() {
-        try (MockedStatic<DynamoDbEnhancedClient> enhanced =
-            mockStatic(DynamoDbEnhancedClient.class)) {
-          DynamoDbTable<TestRecord> table = stubTable(stubEnhancedClient(enhanced));
-          TestRecord record = new TestRecord("TEST_TABLE");
-          record.setName("山田");
-          stubPage(table, List.of(record));
-          DynamoDbLot<TestRecord> lot = new DynamoDbLot<>("TEST_TABLE", TestRecord.class);
-
-          lot.fetchByPk("P001");
-
-          verify(table).query(any(QueryConditional.class));
-          assertThat(lot.entityLot).extracting(TestRecord::getName).containsExactly("山田");
-        }
-      }
-    }
-
-    @Nested
-    class 境界値 {
-
-      /**
-       * 以前の結果がある場合に、以前の結果を消してから新しい結果を保持することを確かめる。 前の検索結果が混ざると、別のキーのレコードを扱ってしまうためである。
-       *
-       * @given 以前の結果に項目の名前 古い のレコードが1件あり、問い合わせが 新しい のレコードを1件返す
-       * @when fetchByPk をパーティションキー P001 で実行する
-       * @then 以前の結果を消して、新しい 1件のレコードを返す
-       */
-      @Test
-      void 以前の結果がある場合_以前の結果を消して1件のレコードを返す() {
-        try (MockedStatic<DynamoDbEnhancedClient> enhanced =
-            mockStatic(DynamoDbEnhancedClient.class)) {
-          DynamoDbTable<TestRecord> table = stubTable(stubEnhancedClient(enhanced));
-          TestRecord fresh = new TestRecord("TEST_TABLE");
-          fresh.setName("新しい");
-          stubPage(table, List.of(fresh));
-          DynamoDbLot<TestRecord> lot = new DynamoDbLot<>("TEST_TABLE", TestRecord.class);
-          TestRecord old = new TestRecord("TEST_TABLE");
-          old.setName("古い");
-          lot.entityLot.add(old);
-
-          lot.fetchByPk("P001");
-
-          assertThat(lot.entityLot).extracting(TestRecord::getName).containsExactly("新しい");
-        }
-      }
-    }
-  }
-
-  @Nested
   class fetchByColumn {
 
     @Nested

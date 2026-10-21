@@ -18,7 +18,8 @@ import java.util.regex.Pattern;
  *
  * <p>安全に書き換えられない形は、テナント条件の付け損ないを避けるため書き換えず、{@link IllegalArgumentException} で拒否します。
  * 拒否する形は、USING・NATURAL・集合演算、FROM 句の副問い合わせ、ON 句の無い LEFT/RIGHT/FULL 結合、INSERT 文、外側に句が続く EXISTS 文、
- * UPDATE の FROM 句、主テーブルのテナント条件を手書きした SQL などです。
+ * UPDATE の FROM 句、括弧の中の副問い合わせ（SELECT を含む括弧）、主テーブルのテナント条件を手書きした SQL などです。
+ * 括弧の中の副問い合わせは、そこに書いた表へテナント条件が付かないため拒否します（先頭の SELECT EXISTS の括弧は中身を書き換えます）。
  *
  * @author Copel Co., Ltd.
  */
@@ -57,6 +58,10 @@ final class TenantFilterSql {
   /** 結合の前置語（JOIN の前に付くもの）。 */
   private static final Set<String> JOIN_MODIFIERS =
       Set.of("INNER", "LEFT", "RIGHT", "FULL", "CROSS");
+
+  /** 括弧の直後（空白を読み飛ばした先）に現れる SELECT という単語。 SELECT の後ろに文字が続く識別子は含めない。 */
+  private static final Pattern SELECT_AT =
+      Pattern.compile("\\s*SELECT(?![A-Za-z0-9_])", Pattern.CASE_INSENSITIVE);
 
   /** 安全に書き換えられないため拒否するキーワード。 */
   private static final Set<String> REJECTED =
@@ -133,6 +138,9 @@ final class TenantFilterSql {
     }
 
     SqlScan scan = new SqlScan(trimmed);
+    if (scan.hasSubquery) {
+      throw new IllegalArgumentException("括弧の中の副問い合わせにはテナント条件を付けられません");
+    }
     for (Keyword keyword : scan.keywords) {
       if (REJECTED.contains(keyword.word)) {
         throw new IllegalArgumentException("テナント条件を安全に付けられない句です: " + keyword.word);
@@ -226,6 +234,9 @@ final class TenantFilterSql {
     /** 最上位のキーワードを出現順に並べた一覧。 */
     private final List<Keyword> keywords = new ArrayList<>();
 
+    /** 括弧の直後に SELECT が現れた（括弧の中に副問い合わせがある）場合は true。 */
+    private boolean hasSubquery;
+
     /**
      * SQL を先頭から走査して、キーワードと括弧の対応を求めます.
      *
@@ -263,6 +274,9 @@ final class TenantFilterSql {
           mask(i, end);
           i = end;
         } else if (c == '(') {
+          if (isSelectAt(text, i + 1)) {
+            hasSubquery = true;
+          }
           mask(i, i + 1, depth);
           opens.push(i);
           depth++;
@@ -275,6 +289,12 @@ final class TenantFilterSql {
           depth--;
           mask(i, i + 1, depth + 1);
           i++;
+        } else if (text.startsWith("--", i)) {
+          // 行コメントの後ろに付けた条件はコメントとして無視されるため、拒否する（リテラル内の -- は上の分岐で読み飛ばし済み）
+          throw new IllegalArgumentException("SQL コメントを含むSQLはテナント条件を安全に付けられません");
+        } else if (text.startsWith("/*", i)) {
+          // ブロックコメントで副問い合わせの括弧と SELECT の間を隠せるため、拒否する
+          throw new IllegalArgumentException("SQL コメントを含むSQLはテナント条件を安全に付けられません");
         } else if (c == ',' && depth == 0) {
           keywords.add(new Keyword(",", i, i + 1));
           i++;
@@ -327,6 +347,21 @@ final class TenantFilterSql {
       if (depth > 0) {
         mask(from, to);
       }
+    }
+
+    /**
+     * 指定の位置から空白を読み飛ばした先が SELECT という単語かを返します.
+     *
+     * <p>括弧の直後に SELECT があると、その括弧は副問い合わせになる。副問い合わせの中の表には、主テーブルのテナント条件を付けられないため拒否する。
+     *
+     * @param text 走査する SQL
+     * @param from 検査を始める位置（括弧の次の位置）
+     * @return SELECT という単語であれば true
+     */
+    static boolean isSelectAt(final String text, final int from) {
+      Matcher matcher = SELECT_AT.matcher(text);
+      matcher.region(from, text.length());
+      return matcher.lookingAt();
     }
 
     /**

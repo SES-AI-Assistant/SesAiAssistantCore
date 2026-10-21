@@ -20,20 +20,10 @@ public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUT
       "SELECT channel_type, route_key, register_date, register_user, tenant_id FROM "
           + "SES_AI_M_INGEST_ROUTE";
 
-  /** チャネルタイプとルートキーで検索するSELECT文. */
-  private static final String SELECT_BY_CHANNEL_AND_ROUTE_SQL =
-      "SELECT channel_type, route_key, register_date, register_user, tenant_id FROM "
-          + "SES_AI_M_INGEST_ROUTE WHERE channel_type = ? AND route_key = ?";
-
   /** チャネルタイプとルートキーで検索するSELECT文（テナントID指定なし）. */
   private static final String SELECT_BY_CHANNEL_AND_ROUTE_WITHOUT_TENANT_SQL =
       "SELECT channel_type, route_key, register_date, register_user, tenant_id FROM "
           + "SES_AI_M_INGEST_ROUTE WHERE channel_type = ? AND route_key = ?";
-
-  /** SELECT文（WHERE句あり）. */
-  private static final String SELECT_SQL =
-      "SELECT channel_type, route_key, register_date, register_user, tenant_id FROM "
-          + "SES_AI_M_INGEST_ROUTE WHERE ";
 
   public SES_AI_M_INGEST_ROUTELot() {
     super();
@@ -42,11 +32,6 @@ public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUT
   @Override
   protected String getSelectAllSql() {
     return SELECT_ALL_SQL;
-  }
-
-  @Override
-  protected String getSelectSql() {
-    return SELECT_SQL;
   }
 
   @Override
@@ -86,40 +71,6 @@ public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUT
     ingestRoute.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
     ingestRoute.setRegisterUser(resultSet.getString("register_user"));
     return ingestRoute;
-  }
-
-  /**
-   * チャネルタイプとルートキーで検索し、該当するレコードを取得する（テナント対応）.
-   *
-   * @param connection DB接続
-   * @param tenantId テナントID
-   * @param channelType チャネルタイプ (LINE / EMAIL)
-   * @param routeKey ルートキー (メールアドレス、LINE ID など)
-   * @throws SQLException DB例外
-   */
-  public void selectByChannelTypeAndRouteKey(
-      final Connection connection,
-      final String tenantId,
-      final ChannelType channelType,
-      final String routeKey)
-      throws SQLException {
-    requireConnection(connection);
-    if (channelType == null || routeKey == null) {
-      this.entityLot = new ArrayList<>();
-      return;
-    }
-    List<SES_AI_M_INGEST_ROUTE> results =
-        executeQuery(
-            connection,
-            SELECT_BY_CHANNEL_AND_ROUTE_SQL,
-            tenantId,
-            this::mapResultSet,
-            (stmt, paramIndex) -> {
-              stmt.setString(paramIndex, channelType.getValue());
-              stmt.setString(paramIndex + 1, routeKey);
-              return paramIndex + 2;
-            });
-    this.entityLot = results;
   }
 
   /**

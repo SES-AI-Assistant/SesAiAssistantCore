@@ -18,6 +18,36 @@ class TenantFilterSqlTest {
     class 正常系 {
 
       /**
+       * 文字列リテラル内の -- はコメントではないため、拒否せずテナント条件を付けることを確かめる。 値に -- を含む正当な検索を誤って拒否しないためである。
+       *
+       * @given 基本SQLのWHERE句の文字列リテラルに "--x" を含む
+       * @when withTenantFilter をテナントID T001 で実行する
+       * @then 文字列リテラルを残し、AND でテナント条件を付けたSQLを返す
+       */
+      @Test
+      void 文字列リテラル内の二重ハイフンの場合_テナント条件を付けたSQLを返す() {
+        assertThat(
+                new TenantFilterSql("SELECT id FROM T WHERE name = '--x'")
+                    .withTenantFilter(TENANT_ID))
+            .isEqualTo("SELECT id FROM T WHERE name = '--x' AND tenant_id = ?");
+      }
+
+      /**
+       * 演算子の - と / はコメントではないため、拒否せずテナント条件を付けることを確かめる。 計算式を含む正当な検索を誤って拒否しないためである。
+       *
+       * @given 基本SQLのWHERE句に a - 1 と b / 2 の計算式を含む
+       * @when withTenantFilter をテナントID T001 で実行する
+       * @then 計算式を残し、AND でテナント条件を付けたSQLを返す
+       */
+      @Test
+      void 演算子の減算と除算の場合_テナント条件を付けたSQLを返す() {
+        assertThat(
+                new TenantFilterSql("SELECT id FROM T WHERE a - 1 = 0 AND b / 2 = 1")
+                    .withTenantFilter(TENANT_ID))
+            .isEqualTo("SELECT id FROM T WHERE a - 1 = 0 AND b / 2 = 1 AND tenant_id = ?");
+      }
+
+      /**
        * WHERE 句の無い SELECT 文に、テナントIDの条件を WHERE 句として付けることを確かめる。 テナント条件は必ず付けて、他テナントの行を返さないためである。
        *
        * @given 基本SQLが SELECT id FROM T の形
@@ -273,19 +303,18 @@ class TenantFilterSqlTest {
       }
 
       /**
-       * 副問い合わせの中の FROM と WHERE を句の区切りと誤認せず、外側の句だけを書き換えることを確かめる。 内側の句を書き換えると、副問い合わせの結果が変わるためである。
+       * 括弧の中の関数の引数が SELECT で始まる識別子の場合に、副問い合わせとみなさないことを確かめる。 識別子を副問い合わせと誤認すると、通常の SQL を拒否してしまう。
        *
-       * @given 基本SQLの WHERE 句に IN の副問い合わせがあり、その中に FROM と WHERE がある
+       * @given 基本SQLの WHERE 句に selected_at を引数に取る関数がある
        * @when withTenantFilter をテナントID T001 で実行する
-       * @then 副問い合わせは変えず、主テーブルの条件を末尾に付けたSQLを返す
+       * @then 関数を変えず、AND でテナント条件を付けたSQLを返す
        */
       @Test
-      void R1副問い合わせのFROMとWHEREを区切りと誤認しない場合_主テーブルの条件だけを付けたSQLを返す() {
+      void 括弧内が文字列SELECTで始まる識別子の場合_テナント条件を付けたSQLを返す() {
         assertThat(
-                new TenantFilterSql("SELECT id FROM T WHERE id IN (SELECT x FROM U WHERE y = ?)")
+                new TenantFilterSql("SELECT id FROM T WHERE f(selected_at) = ?")
                     .withTenantFilter(TENANT_ID))
-            .isEqualTo(
-                "SELECT id FROM T WHERE id IN (SELECT x FROM U WHERE y = ?) AND tenant_id = ?");
+            .isEqualTo("SELECT id FROM T WHERE f(selected_at) = ? AND tenant_id = ?");
       }
 
       /**
@@ -318,24 +347,6 @@ class TenantFilterSqlTest {
                     .withTenantFilter(TENANT_ID))
             .isEqualTo(
                 "SELECT a.id FROM T1 a INNER JOIN T2 b ON (f(a.x, b.y) = a.id) AND b.tenant_id = a.tenant_id WHERE a.z = ? AND a.tenant_id = ?");
-      }
-
-      /**
-       * 括弧の中の ORDER BY と LIMIT を外側の句の区切りと誤認せず、テナント条件を外側の WHERE 句に付けることを確かめる。
-       * 括弧の中で区切ると、副問い合わせの途中に条件が入って構文が壊れるためである。
-       *
-       * @given 基本SQLの WHERE 句の副問い合わせに ORDER BY と LIMIT がある
-       * @when withTenantFilter をテナントID T001 で実行する
-       * @then 副問い合わせは変えず、主テーブルの条件を WHERE 句の末尾に付けたSQLを返す
-       */
-      @Test
-      void R4括弧内のORDER句とLIMIT句を区切りと誤認しない場合_WHERE句の末尾に付けたSQLを返す() {
-        assertThat(
-                new TenantFilterSql(
-                        "SELECT id FROM T WHERE id IN (SELECT id FROM U ORDER BY id LIMIT 1)")
-                    .withTenantFilter(TENANT_ID))
-            .isEqualTo(
-                "SELECT id FROM T WHERE id IN (SELECT id FROM U ORDER BY id LIMIT 1) AND tenant_id = ?");
       }
 
       /**
@@ -595,6 +606,86 @@ class TenantFilterSqlTest {
     class 異常系 {
 
       /**
+       * 行コメントの後ろに条件を付けると条件がコメントに入るため、書き換えず拒否することを確かめる。 テナント条件が無効になり他テナントを読むおそれがあるためである。
+       *
+       * @given 基本SQLにコメントを含む
+       * @when withTenantFilter をテナントID T001 で実行する
+       * @then IllegalArgumentExceptionを投げる
+       */
+      @Test
+      void 行コメントを含む場合_IllegalArgumentExceptionを投げる() {
+        assertThatThrownBy(
+                () ->
+                    new TenantFilterSql("SELECT id FROM T WHERE a = 1 -- note")
+                        .withTenantFilter(TENANT_ID))
+            .isInstanceOf(IllegalArgumentException.class);
+      }
+
+      /**
+       * 改行の後に続く行コメントを含む場合に、書き換えず拒否することを確かめる。 改行の後ろでも行コメントは同じく条件を隠すためである。
+       *
+       * @given 基本SQLにコメントを含む
+       * @when withTenantFilter をテナントID T001 で実行する
+       * @then IllegalArgumentExceptionを投げる
+       */
+      @Test
+      void 改行付き行コメントを含む場合_IllegalArgumentExceptionを投げる() {
+        assertThatThrownBy(
+                () ->
+                    new TenantFilterSql("SELECT id FROM T WHERE a = 1\n-- note\nAND b = 2")
+                        .withTenantFilter(TENANT_ID))
+            .isInstanceOf(IllegalArgumentException.class);
+      }
+
+      /**
+       * ブロックコメントを含む場合に、書き換えず拒否することを確かめる。 コメントで句や括弧の対応を隠して、テナント条件の位置を誤らせるおそれがあるためである。
+       *
+       * @given 基本SQLにコメントを含む
+       * @when withTenantFilter をテナントID T001 で実行する
+       * @then IllegalArgumentExceptionを投げる
+       */
+      @Test
+      void ブロックコメントを含む場合_IllegalArgumentExceptionを投げる() {
+        assertThatThrownBy(
+                () ->
+                    new TenantFilterSql("SELECT id FROM T /* x */ WHERE a = 1")
+                        .withTenantFilter(TENANT_ID))
+            .isInstanceOf(IllegalArgumentException.class);
+      }
+
+      /**
+       * 括弧内の副問い合わせにブロックコメントがある場合に、書き換えず拒否することを確かめる。 コメントで SELECT の位置を隠すと、副問い合わせの拒否を抜けるためである。
+       *
+       * @given 基本SQLにコメントを含む
+       * @when withTenantFilter をテナントID T001 で実行する
+       * @then IllegalArgumentExceptionを投げる
+       */
+      @Test
+      void 括弧内コメント付き副問い合わせの場合_IllegalArgumentExceptionを投げる() {
+        assertThatThrownBy(
+                () ->
+                    new TenantFilterSql("SELECT id FROM T WHERE id IN (/*x*/SELECT x FROM U)")
+                        .withTenantFilter(TENANT_ID))
+            .isInstanceOf(IllegalArgumentException.class);
+      }
+
+      /**
+       * 括弧と SELECT の間に空白がある副問い合わせも拒否することを確かめる。 空白の有無で判定が変わると、拒否を逃れる書き方ができてしまう。
+       *
+       * @given 基本SQLの WHERE 句に括弧の直後に空白を挟んだ SELECT の副問い合わせがある
+       * @when withTenantFilter をテナントID T001 で実行する
+       * @then IllegalArgumentExceptionを投げる
+       */
+      @Test
+      void 括弧と副問い合わせの間に空白がある場合_IllegalArgumentExceptionを投げる() {
+        assertThatThrownBy(
+                () ->
+                    new TenantFilterSql("SELECT id FROM T WHERE id IN ( SELECT x FROM U)")
+                        .withTenantFilter(TENANT_ID))
+            .isInstanceOf(IllegalArgumentException.class);
+      }
+
+      /**
        * テナントIDが null の場合に例外を投げることを確かめる。 テナントIDの無い条件は全テナントの行を対象にするためである。
        *
        * @given テナントIDが null
@@ -774,6 +865,22 @@ class TenantFilterSqlTest {
                 () ->
                     new TenantFilterSql(
                             "SELECT * FROM T1 a INNER JOIN (SELECT id FROM U) b ON b.id = a.id")
+                        .withTenantFilter(TENANT_ID))
+            .isInstanceOf(IllegalArgumentException.class);
+      }
+
+      /**
+       * 主テーブルの指定に別名が2つ続く場合に、書き換えず例外で拒否することを確かめる。 表と別名の対応が決まらず、テナント条件を付けられないためである。
+       *
+       * @given FROM句が "T1 a b" の SQL
+       * @when withTenantFilter をテナントID T001 で実行する
+       * @then IllegalArgumentException を投げる
+       */
+      @Test
+      void 主テーブルの指定に別名が2つ続く場合_IllegalArgumentExceptionを投げる() {
+        assertThatThrownBy(
+                () ->
+                    new TenantFilterSql("SELECT * FROM T1 a b WHERE a.id = 1")
                         .withTenantFilter(TENANT_ID))
             .isInstanceOf(IllegalArgumentException.class);
       }
@@ -1027,27 +1134,94 @@ class TenantFilterSqlTest {
                 () -> new TenantFilterSql("UPDATE T SET tenant_id = ?").withTenantFilter(TENANT_ID))
             .isInstanceOf(IllegalArgumentException.class);
       }
+
+      /**
+       * WHERE 句の括弧の中の副問い合わせを拒否することを確かめる。 副問い合わせの表にはテナント条件が付かず、他テナントの行を含むおそれがある。
+       *
+       * @given 基本SQLの WHERE 句に IN の副問い合わせがある
+       * @when withTenantFilter をテナントID T001 で実行する
+       * @then IllegalArgumentExceptionを投げる
+       */
+      @Test
+      void WHERE句の括弧内に副問い合わせがある場合_IllegalArgumentExceptionを投げる() {
+        assertThatThrownBy(
+                () ->
+                    new TenantFilterSql(
+                            "SELECT id FROM T WHERE id IN (SELECT x FROM U WHERE y = ?)")
+                        .withTenantFilter(TENANT_ID))
+            .isInstanceOf(IllegalArgumentException.class);
+      }
+
+      /**
+       * 括弧の中の ORDER BY と LIMIT を含む副問い合わせも拒否することを確かめる。 句の区切りに関係なく、副問い合わせの表にはテナント条件が付かない。
+       *
+       * @given 基本SQLの WHERE 句に ORDER BY と LIMIT を持つ副問い合わせがある
+       * @when withTenantFilter をテナントID T001 で実行する
+       * @then IllegalArgumentExceptionを投げる
+       */
+      @Test
+      void 括弧内にORDER句とLIMIT句がある副問い合わせの場合_IllegalArgumentExceptionを投げる() {
+        assertThatThrownBy(
+                () ->
+                    new TenantFilterSql(
+                            "SELECT id FROM T WHERE id IN (SELECT id FROM U ORDER BY id LIMIT 1)")
+                        .withTenantFilter(TENANT_ID))
+            .isInstanceOf(IllegalArgumentException.class);
+      }
+
+      /**
+       * 副問い合わせの中に tenant_id の条件があっても拒否することを確かめる。 副問い合わせ内の条件で主テーブルの条件を代えられない。
+       *
+       * @given 基本SQLの WHERE 句に tenant_id を含む副問い合わせがある
+       * @when withTenantFilter をテナントID T001 で実行する
+       * @then IllegalArgumentExceptionを投げる
+       */
+      @Test
+      void 副問い合わせにtenant_idの条件がある場合_IllegalArgumentExceptionを投げる() {
+        assertThatThrownBy(
+                () ->
+                    new TenantFilterSql(
+                            "SELECT id FROM T WHERE x = ? AND id IN (SELECT id FROM U WHERE tenant_id = ?)")
+                        .withTenantFilter(TENANT_ID))
+            .isInstanceOf(IllegalArgumentException.class);
+      }
+
+      /**
+       * SELECT 句の括弧の中の副問い合わせを拒否することを確かめる。 結果の列に別の表の値が混ざるため、テナント条件の付け損ないを防ぐ。
+       *
+       * @given 基本SQLの SELECT 句に括弧で囲んだ副問い合わせがある
+       * @when withTenantFilter をテナントID T001 で実行する
+       * @then IllegalArgumentExceptionを投げる
+       */
+      @Test
+      void SELECT句に副問い合わせがある場合_IllegalArgumentExceptionを投げる() {
+        assertThatThrownBy(
+                () ->
+                    new TenantFilterSql("SELECT (SELECT 1 FROM U) AS x FROM T WHERE a = ?")
+                        .withTenantFilter(TENANT_ID))
+            .isInstanceOf(IllegalArgumentException.class);
+      }
+
+      /**
+       * WHERE 句の EXISTS の副問い合わせを拒否することを確かめる。 EXISTS の中の表にはテナント条件が付かない。
+       *
+       * @given 基本SQLの WHERE 句に EXISTS の副問い合わせがある
+       * @when withTenantFilter をテナントID T001 で実行する
+       * @then IllegalArgumentExceptionを投げる
+       */
+      @Test
+      void WHERE句にEXISTSの副問い合わせがある場合_IllegalArgumentExceptionを投げる() {
+        assertThatThrownBy(
+                () ->
+                    new TenantFilterSql(
+                            "SELECT id FROM T WHERE EXISTS (SELECT 1 FROM U WHERE U.id = T.id)")
+                        .withTenantFilter(TENANT_ID))
+            .isInstanceOf(IllegalArgumentException.class);
+      }
     }
 
     @Nested
     class テナント隔離 {
-
-      /**
-       * 副問い合わせの中に tenant_id の条件があっても、主テーブルの条件を必ず付けることを確かめる。 副問い合わせの条件で主テーブルの条件を省くと、他テナントの行が返るためである。
-       *
-       * @given 基本SQLの WHERE 句に副問い合わせがあり、その中に tenant_id = ? がある
-       * @when withTenantFilter をテナントID T001 で実行する
-       * @then 副問い合わせは変えず、主テーブルの条件を末尾に付けたSQLを返す
-       */
-      @Test
-      void WHERE句の副問い合わせにテナント条件がある場合_主テーブルの条件を付けたSQLを返す() {
-        assertThat(
-                new TenantFilterSql(
-                        "SELECT id FROM T WHERE x = ? AND id IN (SELECT id FROM U WHERE tenant_id = ?)")
-                    .withTenantFilter(TENANT_ID))
-            .isEqualTo(
-                "SELECT id FROM T WHERE x = ? AND id IN (SELECT id FROM U WHERE tenant_id = ?) AND tenant_id = ?");
-      }
 
       /**
        * 別名付きの tenant_id を OR で書いた SQL を拒否することを確かめる。 OR の一方だけがテナント条件を満たす行を返すと、他テナントの行が漏れるためである。

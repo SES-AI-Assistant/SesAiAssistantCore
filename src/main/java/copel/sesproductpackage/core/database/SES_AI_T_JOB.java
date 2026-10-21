@@ -165,53 +165,9 @@ public class SES_AI_T_JOB extends SesAiTableEntityBase {
   }
 
   /**
-   * 画面・通知に表示するための場所を取得します.
-   *
-   * <p>場所は記載が無ければnullになるため、文字列連結やString.formatにそのまま渡すと「null」と表示されてしまう。
-   * 要約文やプッシュ通知で表記を揃えるため、未設定の場合は「不明」を返す.
-   *
-   * @return 場所。未設定の場合は「不明」
-   */
-  public String getPlaceForDisplay() {
-    return OriginalStringUtils.isUnspecified(this.place) ? "不明" : this.place;
-  }
-
-  /**
-   * 画面・通知に表示するための案件名を取得します.
-   *
-   * <p>案件名はDB上nullを許容しており、そのまま通知文に埋め込むと「【null】」と表示されてしまうため、 未設定（LLMが返す「Unknown」を含む）の場合は「案件名不明」を返す.
-   *
-   * @return 案件名。未設定の場合は「案件名不明」
-   */
-  public String getTitleForDisplay() {
-    return OriginalStringUtils.isUnspecified(this.title) ? "案件名不明" : this.title;
-  }
-
-  /**
-   * 画面・通知に表示するための出社要件を取得します.
-   *
-   * <p>出社要求日数は0がフルリモート、5が常駐を意味するため（JobInfoSchemaの定義）、「週0日」のような
-   * 不自然な表示にならないよう要約文（getSummaryWithTargetPrice）と同じ表記に揃える。未設定（null）の場合も 「null」と表示されないよう「不明」を返す.
-   *
-   * @return 出社要件（例: 「フルリモート」「常駐（品川駅）」「週3日（品川駅）」「不明」）
-   */
-  public String getOfficeRequirementsForDisplay() {
-    if (this.officeRequirements == null) {
-      return "不明";
-    }
-    if (this.officeRequirements == 0) {
-      return "フルリモート";
-    }
-    if (this.officeRequirements == 5) {
-      return "常駐（" + this.getPlaceForDisplay() + "）";
-    }
-    return "週" + this.officeRequirements + "日（" + this.getPlaceForDisplay() + "）";
-  }
-
-  /**
    * プッシュ通知に表示するための出社要件を取得します.
    *
-   * <p>通知は1行あたりの表示幅が狭いため、{@link #getOfficeRequirementsForDisplay()} と異なり場所を付けずに短く表記する。
+   * <p>通知は1行あたりの表示幅が狭いため、場所を付けずに短く表記する。
    * また「不明」の表示は情報量が無く行を圧迫するだけなので、未設定（null）の場合はnullを返し、呼び出し側で項目ごと省略させる.
    *
    * @return 出社要件（例: 「フルリモート」「常駐」「週3出社」）。未設定の場合はnull
@@ -228,6 +184,29 @@ public class SES_AI_T_JOB extends SesAiTableEntityBase {
       return "常駐";
     }
     return "週" + this.officeRequirements + "出社";
+  }
+
+  /**
+   * 画面・通知に表示するための場所を取得します.
+   *
+   * <p>場所は記載が無ければnullになるため、文字列連結やString.formatにそのまま渡すと「null」と表示されてしまう。
+   * 要約文やプッシュ通知で表記を揃えるため、未設定の場合は「不明」を返す.
+   *
+   * @return 場所。未設定の場合は「不明」
+   */
+  private String getPlaceForDisplay() {
+    return OriginalStringUtils.isUnspecified(this.place) ? "不明" : this.place;
+  }
+
+  /**
+   * 画面・通知に表示するための案件名を取得します.
+   *
+   * <p>案件名はDB上nullを許容しており、そのまま通知文に埋め込むと「【null】」と表示されてしまうため、 未設定（LLMが返す「Unknown」を含む）の場合は「案件名不明」を返す.
+   *
+   * @return 案件名。未設定の場合は「案件名不明」
+   */
+  private String getTitleForDisplay() {
+    return OriginalStringUtils.isUnspecified(this.title) ? "案件名不明" : this.title;
   }
 
   /**
@@ -266,6 +245,7 @@ public class SES_AI_T_JOB extends SesAiTableEntityBase {
     }
     String maskedText = textToCheck.replaceAll("https?://[^\\s]+", "");
 
+    SES_AI_T_JOB result = null;
     try (PreparedStatement preparedStatement = connection.prepareStatement(FIND_SIMILAR_SQL)) {
       preparedStatement.setString(1, tenantId);
       preparedStatement.setString(2, maskedText);
@@ -273,15 +253,14 @@ public class SES_AI_T_JOB extends SesAiTableEntityBase {
       preparedStatement.setDouble(4, similarityThreshold);
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
-          SES_AI_T_JOB result = new SES_AI_T_JOB(tenantId);
+          result = new SES_AI_T_JOB(tenantId);
           result.setJobId(resultSet.getString("job_id"));
           BigDecimal unitPriceValue = resultSet.getBigDecimal("unit_price");
           result.setUnitPrice(unitPriceValue == null ? Money.empty() : new Money(unitPriceValue));
-          return result;
         }
       }
     }
-    return null;
+    return result;
   }
 
   // ================================
@@ -536,24 +515,18 @@ public class SES_AI_T_JOB extends SesAiTableEntityBase {
       sb.append("■開始: ").append(this.startDate.month()).append("\n");
     }
     // 6. 単価
-    if (targetPrice != null && !targetPrice.isEmpty()) {
-      if (targetPrice.isNegotiable()) {
-        sb.append("■単価: ")
-            .append(this.unitPrice.multiply(multiplier).toJapaneseFormat())
-            .append("\n");
+    appendTargetPriceLine(sb, targetPrice, this.unitPrice, multiplier);
+    // 7. 出社要件、場所（出社要件が未設定の場合は両方の行を出さない）
+    if (this.officeRequirements != null) {
+      if (this.officeRequirements == 0) {
+        sb.append("■出社要件: ").append("フルリモート\n");
+      } else if (this.officeRequirements == 5) {
+        sb.append("■出社要件: ").append("常駐").append("\n");
+        sb.append("■場所: ").append(this.getPlaceForDisplay()).append("\n");
       } else {
-        sb.append("■単価: ").append(targetPrice.toJapaneseFormat()).append("\n");
+        sb.append("■出社要件: ").append("週").append(this.officeRequirements).append("\n");
+        sb.append("■場所: ").append(this.getPlaceForDisplay()).append("\n");
       }
-    }
-    // 7. 出社要件、場所
-    if (this.officeRequirements == 0) {
-      sb.append("■出社要件: ").append("フルリモート\n");
-    } else if (this.officeRequirements == 5) {
-      sb.append("■出社要件: ").append("常駐").append("\n");
-      sb.append("■場所: ").append(this.getPlaceForDisplay()).append("\n");
-    } else {
-      sb.append("■出社要件: ").append("週").append(this.officeRequirements).append("\n");
-      sb.append("■場所: ").append(this.getPlaceForDisplay()).append("\n");
     }
     // 8. その他
     if (this.otherRequirements != null && !this.otherRequirements.isEmpty()) {
