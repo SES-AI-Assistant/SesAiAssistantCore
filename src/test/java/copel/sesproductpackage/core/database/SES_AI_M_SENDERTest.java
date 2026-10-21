@@ -17,7 +17,7 @@ class SES_AI_M_SENDERTest {
     SES_AI_M_SENDER entity = new SES_AI_M_SENDER("test-tenant");
     Connection connection = mock(Connection.class);
 
-    assertEquals(0, entity.insert(null));
+    assertThrows(IllegalArgumentException.class, () -> entity.insert(null));
     entity.selectByPk(null);
     entity.setFromId(null);
     entity.selectByPk(connection);
@@ -107,6 +107,6 @@ class SES_AI_M_SENDERTest {
     assertFalse(sender.isExist(connection));
 
     sender.setFromId("S1");
-    assertFalse(sender.isExist(null));
+    assertThrows(IllegalArgumentException.class, () -> sender.isExist(null));
   }
 }

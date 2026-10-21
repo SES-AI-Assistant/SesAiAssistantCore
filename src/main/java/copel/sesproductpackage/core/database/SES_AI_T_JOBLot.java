@@ -24,21 +24,21 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
   /** 全文検索SQL. */
   private static final String SELECT_LIKE_SQL =
       "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
-          + "unit_price, vector_data, title, overview, must_skills, want_skills, start_date, "
+          + "unit_price, title, overview, must_skills, want_skills, start_date, "
           + "place, area, office_requirements, other_requirements, register_date, "
           + "register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE raw_content LIKE ?";
 
   /** 複合条件全文検索用 SELECT 接頭辞（末尾に WHERE を含む）. */
   private static final String SELECT_RAW_CONTENT_FOR_FULLTEXT =
       "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
-          + "unit_price, vector_data, title, overview, must_skills, want_skills, start_date, "
+          + "unit_price, title, overview, must_skills, want_skills, start_date, "
           + "place, area, office_requirements, other_requirements, register_date, "
           + "register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE ";
 
   /** 検索SQL. */
   private static final String SELECT_SQL =
       "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
-          + "unit_price, vector_data, title, overview, must_skills, want_skills, start_date, "
+          + "unit_price, title, overview, must_skills, want_skills, start_date, "
           + "place, area, office_requirements, other_requirements, register_date, "
           + "register_user, ttl, tenant_id FROM SES_AI_T_JOB WHERE ";
 
@@ -54,7 +54,8 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
           + "unit_price, title, overview, must_skills, want_skills, start_date, place, area, "
           + "office_requirements, other_requirements, register_date, register_user, ttl, "
-          + "vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE 1 - "
+          + "vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB "
+          + "WHERE 1 - "
           + "(vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
 
   /** ベクトル検索＋価格・開始日フィルタ用SQL（ページング用・LIMIT/OFFSET除外）. */
@@ -80,7 +81,8 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
           + "unit_price, title, overview, must_skills, want_skills, start_date, place, area, "
           + "office_requirements, other_requirements, register_date, register_user, ttl, "
-          + "tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date <= ? AND "
+          + "tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date "
+          + "<= ? AND "
           + "raw_content LIKE ?";
 
   /** 全文検索＋価格・開始日・オフィス要件・エリアフィルタ用SQL. */
@@ -88,7 +90,8 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
           + "unit_price, title, overview, must_skills, want_skills, start_date, place, area, "
           + "office_requirements, other_requirements, register_date, register_user, ttl, "
-          + "tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date <= ? AND "
+          + "tenant_id FROM SES_AI_T_JOB WHERE unit_price >= ? AND start_date "
+          + "<= ? AND "
           + "office_requirements <= ? AND area = ? AND raw_content LIKE ?";
 
   /** コンストラクタ. */
@@ -175,7 +178,8 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       int page,
       int size)
       throws SQLException {
-    if (connection == null || query == null) {
+    requireConnection(connection);
+    if (query == null) {
       return;
     }
 
@@ -185,6 +189,11 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
         tenantId,
         query.toString(),
         similarityThreshold,
+        (stmt, paramIndex, vectorValue, threshold) -> {
+          stmt.setString(paramIndex, vectorValue);
+          stmt.setDouble(paramIndex + 1, threshold);
+          return paramIndex + 2;
+        },
         page,
         size,
         rs -> {
@@ -382,7 +391,8 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       final int size)
       throws SQLException {
     this.entityLot = new ArrayList<>();
-    if (connection == null || query == null) {
+    requireConnection(connection);
+    if (query == null) {
       return;
     }
 
@@ -427,7 +437,8 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       final int size)
       throws SQLException {
     this.entityLot = new ArrayList<>();
-    if (connection == null || query == null || area == null) {
+    requireConnection(connection);
+    if (query == null || area == null) {
       return;
     }
 
@@ -568,7 +579,8 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       int page,
       int size)
       throws SQLException {
-    if (connection == null || query == null) {
+    requireConnection(connection);
+    if (query == null) {
       return;
     }
 
@@ -578,6 +590,13 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
         tenantId,
         query.toString(),
         similarityThreshold,
+        (stmt, paramIndex, vectorValue, threshold) -> {
+          stmt.setBigDecimal(paramIndex, price.getValue());
+          stmt.setTimestamp(paramIndex + 1, startDate.toTimestamp());
+          stmt.setString(paramIndex + 2, vectorValue);
+          stmt.setDouble(paramIndex + 3, threshold);
+          return paramIndex + 4;
+        },
         page,
         size,
         rs -> {
@@ -589,12 +608,13 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
           }
           return entity;
         },
-        (stmt, paramIndex, vectorValue, similarityThreshold2) -> {
+        (stmt, paramIndex, vectorValue, threshold) -> {
           stmt.setString(paramIndex, vectorValue);
           stmt.setBigDecimal(paramIndex + 1, price.getValue());
           stmt.setTimestamp(paramIndex + 2, startDate.toTimestamp());
           stmt.setString(paramIndex + 3, vectorValue);
-          return paramIndex + 4;
+          stmt.setDouble(paramIndex + 4, threshold);
+          return paramIndex + 5;
         });
   }
 
@@ -625,29 +645,26 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       int page,
       int size)
       throws SQLException {
-    if (connection == null || query == null || area == null) {
+    requireConnection(connection);
+    if (query == null || area == null) {
       return;
     }
 
-    // COUNT SQL 用のパラメータバインダー（SELECT句がないため、vectorValue をスキップ）
-    EntityLotBase.VectorParameterBinder countBinder =
-        (stmt, paramIndex, vectorValue, similarityThreshold2) -> {
-          stmt.setBigDecimal(paramIndex, price.getValue());
-          stmt.setTimestamp(paramIndex + 1, startDate.toTimestamp());
-          stmt.setInt(paramIndex + 2, officeAvailability);
-          stmt.setString(paramIndex + 3, area.name());
-          stmt.setString(paramIndex + 4, vectorValue);
-          stmt.setDouble(paramIndex + 5, similarityThreshold2);
-          return paramIndex + 6;
-        };
-
-    executeVectorPagedQueryWithCountBinder(
+    executeVectorPagedQuery(
         connection,
         RETRIEVE_WITH_FILTER_4_VALUES_SQL_WITHOUT_LIMIT,
         tenantId,
         query.toString(),
         similarityThreshold,
-        countBinder,
+        (stmt, paramIndex, vectorValue, threshold) -> {
+          stmt.setBigDecimal(paramIndex, price.getValue());
+          stmt.setTimestamp(paramIndex + 1, startDate.toTimestamp());
+          stmt.setInt(paramIndex + 2, officeAvailability);
+          stmt.setString(paramIndex + 3, area.name());
+          stmt.setString(paramIndex + 4, vectorValue);
+          stmt.setDouble(paramIndex + 5, threshold);
+          return paramIndex + 6;
+        },
         page,
         size,
         rs -> {
@@ -659,14 +676,14 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
           }
           return entity;
         },
-        (stmt, paramIndex, vectorValue, similarityThreshold2) -> {
+        (stmt, paramIndex, vectorValue, threshold) -> {
           stmt.setString(paramIndex, vectorValue);
           stmt.setBigDecimal(paramIndex + 1, price.getValue());
           stmt.setTimestamp(paramIndex + 2, startDate.toTimestamp());
           stmt.setInt(paramIndex + 3, officeAvailability);
           stmt.setString(paramIndex + 4, area.name());
           stmt.setString(paramIndex + 5, vectorValue);
-          stmt.setDouble(paramIndex + 6, similarityThreshold2);
+          stmt.setDouble(paramIndex + 6, threshold);
           return paramIndex + 7;
         });
   }
@@ -693,7 +710,8 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       final int page,
       final int size)
       throws SQLException {
-    if (connection == null || conditions == null || conditions.isEmpty()) {
+    requireConnection(connection);
+    if (conditions == null || conditions.isEmpty()) {
       return;
     }
 
@@ -716,7 +734,10 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       if (mergedWhere.length() > 0) {
         mergedWhere.append(" AND ");
       }
-      mergedWhere.append(detailFilterWhere.getWhereClauseWithoutWhereKeyword());
+      mergedWhere
+          .append('(')
+          .append(detailFilterWhere.getWhereClauseWithoutWhereKeyword())
+          .append(')');
     }
 
     // (4) selectByDynamicWhereWithFilterPagedを呼び出してページング検索を実行
@@ -755,7 +776,8 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       final int page,
       final int size)
       throws SQLException {
-    if (connection == null || query == null) {
+    requireConnection(connection);
+    if (query == null) {
       return;
     }
 
@@ -771,7 +793,10 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
     StringBuilder whereClause = new StringBuilder();
     whereClause.append("1 - (vector_data <=> ?::vector) >= ?");
     if (!detailFilterWhere.isEmpty()) {
-      whereClause.append(" AND ").append(detailFilterWhere.getWhereClauseWithoutWhereKeyword());
+      whereClause
+          .append(" AND (")
+          .append(detailFilterWhere.getWhereClauseWithoutWhereKeyword())
+          .append(')');
     }
 
     // (3) ベクトル検索SQLを構築
@@ -829,7 +854,8 @@ public class SES_AI_T_JOBLot extends EntityLotBase<SES_AI_T_JOB> {
       final int size,
       final String countQueryPart)
       throws SQLException {
-    if (connection == null || query == null) {
+    requireConnection(connection);
+    if (query == null) {
       return;
     }
 

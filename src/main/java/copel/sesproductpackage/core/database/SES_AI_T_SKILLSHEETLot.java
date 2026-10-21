@@ -22,44 +22,45 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
   /** 全文検索SQL(file_contentカラム). */
   private static final String SELECT_FILE_CONTENT_LIKE_SQL =
       "SELECT from_group, from_id, from_name, file_id, file_name, file_content, "
-          + "file_content_summary, vector_data, register_date, register_user, ttl, tenant_id FROM "
+          + "file_content_summary, register_date, register_user, ttl, tenant_id FROM "
           + "SES_AI_T_SKILLSHEET WHERE file_content LIKE ?";
 
   /** 複合条件全文検索用 SELECT 接頭辞（末尾に WHERE を含む）. */
   private static final String SELECT_FILE_CONTENT_FOR_FULLTEXT =
       "SELECT from_group, from_id, from_name, file_id, file_name, file_content, "
-          + "file_content_summary, vector_data, register_date, register_user, ttl, tenant_id FROM "
+          + "file_content_summary, register_date, register_user, ttl, tenant_id FROM "
           + "SES_AI_T_SKILLSHEET WHERE ";
 
   /** 全文検索SQL. */
   private static final String SELECT_LIKE_SQL =
       "SELECT from_group, from_id, from_name, file_id, file_name, file_content, "
-          + "file_content_summary, vector_data, register_date, register_user, ttl, tenant_id FROM "
+          + "file_content_summary, register_date, register_user, ttl, tenant_id FROM "
           + "SES_AI_T_SKILLSHEET WHERE ";
 
   /** 検索SQL. */
   private static final String SELECT_SQL =
       "SELECT from_group, from_id, from_name, file_id, file_name, file_content, "
-          + "file_content_summary, vector_data, register_date, register_user, ttl, tenant_id FROM "
+          + "file_content_summary, register_date, register_user, ttl, tenant_id FROM "
           + "SES_AI_T_SKILLSHEET WHERE ";
 
   /** SELECT文(file_name検索). */
   private static final String SELECT_BY_FILE_NAME_SQL =
       "SELECT from_group, from_id, from_name, file_id, file_name, file_content, "
-          + "file_content_summary, vector_data, register_date, register_user, ttl, tenant_id FROM "
+          + "file_content_summary, register_date, register_user, ttl, tenant_id FROM "
           + "SES_AI_T_SKILLSHEET WHERE file_name = ?";
 
   /** 類似度閾値ベクトル検索用SQL（ページング用・LIMIT/OFFSET除外）. */
   private static final String RETRIEVE_WITH_THRESHOLD_SQL_WITHOUT_LIMIT =
       "SELECT from_group, from_id, from_name, file_id, file_name, file_content, "
-          + "file_content_summary, register_date, register_user, ttl, vector_data <=> ?::vector AS "
+          + "file_content_summary, register_date, register_user, ttl, "
+          + "vector_data <=> ?::vector AS "
           + "distance, tenant_id FROM SES_AI_T_SKILLSHEET WHERE 1 - (vector_data <=> "
           + "?::vector) >= ? ORDER BY distance ASC";
 
   /** 期限切れスキルシート取得SQL前半（テナントIDあり）. */
   private static final String SELECT_EXPIRED_SKILLSHEETS_PREFIX =
       "SELECT from_group, from_id, from_name, file_id, file_name, file_content, "
-          + "file_content_summary, vector_data, register_date, register_user, ttl, tenant_id "
+          + "file_content_summary, register_date, register_user, ttl, tenant_id "
           + "FROM SES_AI_T_SKILLSHEET "
           + "WHERE ((ttl IS NOT NULL AND ttl < NOW()) "
           + "   OR (ttl IS NULL AND register_date IS NOT NULL AND (register_date + INTERVAL '";
@@ -73,7 +74,7 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
   /** 期限切れスキルシート取得SQL前半（テナントIDなし、バッチ用）. */
   private static final String SELECT_EXPIRED_SKILLSHEETS_WITHOUT_TENANT_PREFIX =
       "SELECT from_group, from_id, from_name, file_id, file_name, file_content, "
-          + "file_content_summary, vector_data, register_date, register_user, ttl, tenant_id "
+          + "file_content_summary, register_date, register_user, ttl, tenant_id "
           + "FROM SES_AI_T_SKILLSHEET "
           + "WHERE ((ttl IS NOT NULL AND ttl < NOW()) "
           + "   OR (ttl IS NULL AND register_date IS NOT NULL AND (register_date + INTERVAL '";
@@ -87,14 +88,14 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
   /** 要員に紐づくスキルシート取得SQL（テナントIDあり）. */
   private static final String SELECT_BUNDLED_WITH_PERSON_SQL =
       "SELECT from_group, from_id, from_name, file_id, file_name, file_content, "
-          + "file_content_summary, vector_data, register_date, register_user, ttl, tenant_id "
+          + "file_content_summary, register_date, register_user, ttl, tenant_id "
           + "FROM SES_AI_T_SKILLSHEET "
           + "WHERE from_group = ? AND from_id = ? AND DATE(register_date) = DATE(?)";
 
   /** 要員に紐づくスキルシート取得SQL（テナントIDなし、バッチ用）. */
   private static final String SELECT_BUNDLED_WITH_PERSON_WITHOUT_TENANT_SQL =
       "SELECT from_group, from_id, from_name, file_id, file_name, file_content, "
-          + "file_content_summary, vector_data, register_date, register_user, ttl, tenant_id "
+          + "file_content_summary, register_date, register_user, ttl, tenant_id "
           + "FROM SES_AI_T_SKILLSHEET "
           + "WHERE from_group = ? AND from_id = ? AND DATE(register_date) = DATE(?)";
 
@@ -116,7 +117,7 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
   /** SELECT_ALL_SQL - 全件取得（登録日降順）. */
   private static final String SELECT_ALL_SQL =
       "SELECT from_group, from_id, from_name, file_id, file_name, file_content, "
-          + "file_content_summary, vector_data, register_date, register_user, ttl, tenant_id FROM "
+          + "file_content_summary, register_date, register_user, ttl, tenant_id FROM "
           + "SES_AI_T_SKILLSHEET ORDER BY register_date DESC";
 
   @Override
@@ -196,7 +197,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
       final int page,
       final int size)
       throws SQLException {
-    if (connection == null || query == null) {
+    requireConnection(connection);
+    if (query == null) {
       return;
     }
 
@@ -206,6 +208,11 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
         tenantId,
         query.toString(),
         similarityThreshold,
+        (stmt, paramIndex, vectorValue, threshold) -> {
+          stmt.setString(paramIndex, vectorValue);
+          stmt.setDouble(paramIndex + 1, threshold);
+          return paramIndex + 2;
+        },
         page,
         size,
         rs -> {
@@ -363,7 +370,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
   public void selectByFileName(
       final Connection connection, final String tenantId, final String fileName)
       throws SQLException {
-    if (connection == null || fileName == null) {
+    requireConnection(connection);
+    if (fileName == null) {
       this.entityLot = new ArrayList<>();
       return;
     }
@@ -447,7 +455,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
   public void selectBundledWithPerson(
       final Connection connection, final String tenantId, final SES_AI_T_PERSON person)
       throws SQLException {
-    if (connection == null || person == null) {
+    requireConnection(connection);
+    if (person == null) {
       return;
     }
     try (PreparedStatement preparedStatement =
@@ -479,7 +488,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
    */
   public void selectBundledWithPersonWithoutTenantFilter(
       final Connection connection, final SES_AI_T_PERSON person) throws SQLException {
-    if (connection == null || person == null) {
+    requireConnection(connection);
+    if (person == null) {
       return;
     }
     List<SES_AI_T_SKILLSHEET> results =

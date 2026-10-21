@@ -1,6 +1,7 @@
 package copel.sesproductpackage.core.database;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.api.gpt.Transformer;
@@ -10,6 +11,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class SES_AI_T_JOBTest {
@@ -93,34 +95,34 @@ class SES_AI_T_JOBTest {
     assertNotNull(job.toString());
 
     // Null checks
-    assertEquals(0, job.insert(null));
-    job.selectByPk(null);
+    assertThrows(IllegalArgumentException.class, () -> job.insert(null));
+    assertThrows(IllegalArgumentException.class, () -> job.selectByPk(null));
     job.setJobId(null);
     job.selectByPk(connection);
 
-    // tenantId null check - selectByPk should return null when tenantId is null
+    // tenantId null check - selectByPk throws IllegalArgumentException when tenantId is null
     job.setJobId("J1");
     job.setTenantId(null);
-    job.selectByPk(connection);
+    assertThrows(IllegalArgumentException.class, () -> job.selectByPk(connection));
 
     // updateByPk return values
     job.setJobId("J1");
     job.setTenantId("default");
     assertTrue(job.updateByPk(connection));
-    assertFalse(job.updateByPk(null));
+    assertThrows(IllegalArgumentException.class, () -> job.updateByPk(null));
     job.setJobId(null);
     assertFalse(job.updateByPk(connection));
 
     // tenantId null check - updateByPk should return false when tenantId is null
     job.setJobId("J1");
     job.setTenantId(null);
-    assertFalse(job.updateByPk(connection));
+    assertThrows(IllegalArgumentException.class, () -> job.updateByPk(connection));
 
     // deleteByPk return values
     job.setJobId("J1");
     job.setTenantId("default");
     assertTrue(job.deleteByPk(connection));
-    assertFalse(job.deleteByPk(null));
+    assertThrows(IllegalArgumentException.class, () -> job.deleteByPk(null));
 
     // vectorData populated paths
     copel.sesproductpackage.core.unit.Vector vec =
@@ -425,5 +427,66 @@ class SES_AI_T_JOBTest {
     job.setPlace("Unknown");
 
     assertNull(job.getPlace());
+  }
+
+  @Nested
+  class updateByPk {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * ベクトルデータがある場合に、ベクトルの文字列を8番目にバインドして行を更新することを確かめる。 登録時に埋め込んだベクトルを DB に保存するためである。
+       *
+       * @given 要約が "要約" で埋め込み結果が 0.5 と 1.0 のベクトル、テナントIDが "T001"、キーが "J001"
+       * @when updateByPk を接続で実行する
+       * @then vector_data に COALESCE の形の SQL を準備し、8番目に {@code "[0.5,1.0]"} を設定して1を返す
+       */
+      @Test
+      void ベクトルデータがある場合_ベクトルを8番目に設定して行を更新する() throws Exception {
+        Transformer transformer = mock(Transformer.class);
+        when(transformer.embedding("要約")).thenReturn(new float[] {0.5f, 1.0f});
+        SES_AI_T_JOB entity = new SES_AI_T_JOB("T001");
+        entity.setJobId("J001");
+        entity.setContentSummary("要約");
+        entity.embedding(transformer);
+        Connection connection = mock(Connection.class);
+        PreparedStatement statement = mock(PreparedStatement.class);
+        when(connection.prepareStatement(anyString())).thenReturn(statement);
+        when(statement.executeUpdate()).thenReturn(1);
+
+        assertTrue(entity.updateByPk(connection));
+
+        verify(connection).prepareStatement(contains("COALESCE(?::vector, vector_data)"));
+        verify(statement).setString(8, "[0.5,1.0]");
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * ベクトルデータが無い場合に、8番目に null をバインドして既存のベクトルを残すことを確かめる。 埋め込みを作り直さない更新で、DB の vector_data を NULL
+       * で上書きしないためである。
+       *
+       * @given ベクトルデータが無く、テナントIDが "T001"、キーが "J001"
+       * @when updateByPk を接続で実行する
+       * @then vector_data に COALESCE の形の SQL を準備し、8番目に null を設定して1を返す
+       */
+      @Test
+      void ベクトルデータが無い場合_既存のベクトルを残して行を更新する() throws Exception {
+        SES_AI_T_JOB entity = new SES_AI_T_JOB("T001");
+        entity.setJobId("J001");
+        Connection connection = mock(Connection.class);
+        PreparedStatement statement = mock(PreparedStatement.class);
+        when(connection.prepareStatement(anyString())).thenReturn(statement);
+        when(statement.executeUpdate()).thenReturn(1);
+
+        assertTrue(entity.updateByPk(connection));
+
+        verify(connection).prepareStatement(contains("COALESCE(?::vector, vector_data)"));
+        verify(statement).setString(8, null);
+      }
+    }
   }
 }

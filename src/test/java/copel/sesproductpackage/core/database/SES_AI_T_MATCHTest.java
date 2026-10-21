@@ -56,7 +56,7 @@ class SES_AI_T_MATCHTest {
     assertFalse(match.hasJobId());
     assertFalse(match.hasPersonId());
 
-    assertEquals(0, match.insert(null));
+    assertThrows(IllegalArgumentException.class, () -> match.insert(null));
     when(ps.executeUpdate()).thenReturn(1);
     match.setStatus(MatchingStatus.提案中);
     match.setProfit(new Money(100000L));
@@ -65,7 +65,7 @@ class SES_AI_T_MATCHTest {
     match.setProfit(null);
     assertEquals(1, match.insert(conn));
 
-    match.selectByPk(null);
+    assertThrows(IllegalArgumentException.class, () -> match.selectByPk(null));
     match.setMatchingId(null);
     match.selectByPk(conn);
     match.setMatchingId("id");
@@ -111,7 +111,7 @@ class SES_AI_T_MATCHTest {
     match.setRegisterDate(null);
     assertTrue(match.updateByPk(conn));
 
-    assertFalse(match.updateByPk(null));
+    assertThrows(IllegalArgumentException.class, () -> match.updateByPk(null));
     match.setMatchingId(null);
     assertFalse(match.updateByPk(conn));
     match.setMatchingId("id");
@@ -120,7 +120,7 @@ class SES_AI_T_MATCHTest {
     when(ps.executeUpdate()).thenReturn(0);
     assertFalse(match.updateByPk(conn));
 
-    assertFalse(match.deleteByPk(null));
+    assertThrows(IllegalArgumentException.class, () -> match.deleteByPk(null));
     match.setMatchingId(null);
     assertFalse(match.deleteByPk(conn));
     match.setMatchingId("id");

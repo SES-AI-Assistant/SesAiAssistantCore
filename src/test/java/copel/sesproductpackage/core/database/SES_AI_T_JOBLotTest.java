@@ -104,7 +104,7 @@ class SES_AI_T_JOBLotTest {
     lot2.searchByRawContent(mockConn, "test-tenant", "first", null);
     assertEquals(1, lot2.size());
 
-    lot2.selectAll(null, "test-tenant");
+    assertThrows(IllegalArgumentException.class, () -> lot2.selectAll(null, "test-tenant"));
     assertEquals(0, lot2.size());
   }
 
@@ -180,7 +180,11 @@ class SES_AI_T_JOBLotTest {
     assertEquals(1, lot.size());
 
     SES_AI_T_JOBLot emptyLot2 = new SES_AI_T_JOBLot();
-    emptyLot2.retrievePagedWithThreshold(null, "test-tenant", createTestVector(), 0.8, 1, 10);
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            emptyLot2.retrievePagedWithThreshold(
+                null, "test-tenant", createTestVector(), 0.8, 1, 10));
     assertTrue(emptyLot2.isEmpty());
     emptyLot2.retrievePagedWithThreshold(mockConn, "test-tenant", null, 0.8, 1, 10);
     assertTrue(emptyLot2.isEmpty());
@@ -204,7 +208,9 @@ class SES_AI_T_JOBLotTest {
     assertEquals(1, lot.size());
 
     SES_AI_T_JOBLot empty = new SES_AI_T_JOBLot();
-    empty.searchByRawContentPaged(null, "test-tenant", conds, 1, 5);
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> empty.searchByRawContentPaged(null, "test-tenant", conds, 1, 5));
     assertTrue(empty.isEmpty());
   }
 
@@ -222,7 +228,9 @@ class SES_AI_T_JOBLotTest {
     assertEquals(1, lot.size());
 
     SES_AI_T_JOBLot empty = new SES_AI_T_JOBLot();
-    empty.retrieveWithFilter(null, "test-tenant", testVector, price, startDate, 0.5, 5);
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> empty.retrieveWithFilter(null, "test-tenant", testVector, price, startDate, 0.5, 5));
     assertTrue(empty.isEmpty());
   }
 
@@ -241,8 +249,11 @@ class SES_AI_T_JOBLotTest {
     assertEquals(1, lot.size());
 
     SES_AI_T_JOBLot empty = new SES_AI_T_JOBLot();
-    empty.retrieveWithFilter(
-        null, "test-tenant", testVector, price, startDate, 3, Area.関東_首都圏, 0.5, 5);
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            empty.retrieveWithFilter(
+                null, "test-tenant", testVector, price, startDate, 3, Area.関東_首都圏, 0.5, 5));
     assertTrue(empty.isEmpty());
   }
 

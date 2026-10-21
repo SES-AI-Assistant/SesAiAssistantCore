@@ -180,7 +180,8 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
   void testRetrieveByPersonOrSkillSheetSummaryPaged_nullConnection() throws SQLException {
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
     List<FulltextCondition> conditions = List.of(new FulltextCondition("AND", "Java", false));
-    assertDoesNotThrow(
+    assertThrows(
+        IllegalArgumentException.class,
         () -> lot.searchByPersonOrSkillSheetSummaryPaged(null, "test-tenant", conditions, 1, 20));
     assertEquals(0, lot.size());
   }
@@ -217,11 +218,11 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
   void testRetrieveByPersonOrSkillSheetSummaryInnerJoinPaged_nullConnection() {
     SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
     List<FulltextCondition> conditions = List.of(new FulltextCondition("AND", "TWINPOS", false));
-    assertDoesNotThrow(
+    assertThrows(
+        IllegalArgumentException.class,
         () ->
             lot.searchByPersonOrSkillSheetSummaryInnerJoinPaged(
                 null, "test-tenant", conditions, 1, 20));
-    assertEquals(0, lot.size());
   }
 
   @Test

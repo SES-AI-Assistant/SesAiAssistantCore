@@ -22,12 +22,12 @@ class SES_AI_M_TENANTTest {
     when(ps.executeQuery()).thenReturn(rs);
     when(rs.next()).thenReturn(false);
 
-    assertEquals(0, entity.insert(null));
-    entity.selectByPk(null);
+    assertThrows(IllegalArgumentException.class, () -> entity.insert(null));
+    assertThrows(IllegalArgumentException.class, () -> entity.selectByPk(null));
     entity.selectByPk(connection);
-    assertFalse(entity.updateByPk(null));
+    assertThrows(IllegalArgumentException.class, () -> entity.updateByPk(null));
     assertFalse(entity.updateByPk(connection));
-    assertFalse(entity.deleteByPk(null));
+    assertThrows(IllegalArgumentException.class, () -> entity.deleteByPk(null));
     assertFalse(entity.deleteByPk(connection));
 
     entity.setRegisterDate(null);

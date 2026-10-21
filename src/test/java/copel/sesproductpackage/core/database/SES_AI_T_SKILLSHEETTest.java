@@ -80,6 +80,7 @@ class SES_AI_T_SKILLSHEETTest {
 
     when(rs.next()).thenReturn(true);
     when(rs.getString(anyString())).thenReturn("val");
+    when(rs.getString("vector_data")).thenReturn("[0.1,0.2]");
     ss.selectByPk(connection);
     ss.selectByPkWithoutRawContent(connection);
   }
@@ -92,7 +93,7 @@ class SES_AI_T_SKILLSHEETTest {
 
     SES_AI_T_SKILLSHEET ss = new SES_AI_T_SKILLSHEET("test-tenant");
 
-    assertEquals(0, ss.insert(null));
+    assertThrows(IllegalArgumentException.class, () -> ss.insert(null));
 
     ss.setTenantId("default");
     ss.setSkillSheet(null);

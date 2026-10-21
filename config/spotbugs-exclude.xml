@@ -5,11 +5,10 @@
   1. EI_EXPOSE_REP / EI_EXPOSE_REP2（配列・コレクションの内部表現の露出）:
      Lombok の @Data による DTO（OpenAI の API 応答、LLM 用スキーマ、内部 SQS 用 Entity など）が、
      配列やリストをそのまま受け渡す設計のため。防御的コピーを入れると、既存の呼び出し側の挙動（参照の共有）が変わるため除外する。
-  2. その他: 挙動を変えずに直せないため、理由を付けて個別に除外する。いずれも次の作業で見直す対象（PR① では挙動変更を行わない）。
+  2. その他: 挙動を変えずに直せないため、理由を付けて個別に除外する。いずれも次の作業で見直す対象（挙動は変えない）。
      - MS_EXPOSE_REP / EI_EXPOSE_STATIC_REP2 / ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD: 静的な DynamoDB クライアントを共有インスタンスとして保持・返す設計（クライアントはスレッドセーフ）。
      - CT_CONSTRUCTOR_THROW: 空の tenantId を生成時に拒否するための意図的な例外。
      - RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE / WMI_WRONG_MAP_ITERATOR: 既存の検索処理の挙動を保つため、そのまま残す。
-     - CO_SELF_NO_OBJECT: 距離による比較を compareTo として提供している（Comparable は実装していない）。
      - NP_TOSTRING_COULD_RETURN_NULL: OriginalDateTime.toString は日時が未設定のとき null を返す。戻り値の仕様（null か空文字か）は
        呼び出し側の期待に関わるため、この PR では変えず、仕様を決めてから別に扱う。
      - DM_DEFAULT_ENCODING: Properties.load（static void load(S3Client)）は、S3 から取得した設定ファイルを
@@ -148,13 +147,16 @@
     <Class name="copel.sesproductpackage.core.database.base.EntityBase"/>
     <Bug pattern="CT_CONSTRUCTOR_THROW"/>
   </Match>
+  <!-- EntityBase.executeInsert: INSERT 文は呼び出し側が定数で渡すSQLに tenant_id の列と ? を追加するだけで、
+       外部入力を連結しない。UT で INSERT 文の変換結果を確かめるため、変換を executeInsert 内に展開した（1回しか使わない private 補助を除いた）。 -->
+  <Match>
+    <Class name="copel.sesproductpackage.core.database.base.EntityBase"/>
+    <Method name="executeInsert"/>
+    <Bug pattern="SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING"/>
+  </Match>
   <Match>
     <Class name="copel.sesproductpackage.core.database.base.EntityLotBase"/>
     <Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE,WMI_WRONG_MAP_ITERATOR"/>
-  </Match>
-  <Match>
-    <Class name="copel.sesproductpackage.core.database.base.SesAiTableEntityBase"/>
-    <Bug pattern="CO_SELF_NO_OBJECT"/>
   </Match>
   <Match>
     <Class name="copel.sesproductpackage.core.unit.OriginalDateTime"/>

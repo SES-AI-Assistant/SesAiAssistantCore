@@ -82,9 +82,7 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
   public void selectAllPagedWithoutTenantId(
       final Connection connection, final int page, final int size) throws SQLException {
     this.entityLot = new ArrayList<>();
-    if (connection == null) {
-      return;
-    }
+    requireConnection(connection);
 
     try (var stmt = connection.createStatement()) {
       // 全件数を取得

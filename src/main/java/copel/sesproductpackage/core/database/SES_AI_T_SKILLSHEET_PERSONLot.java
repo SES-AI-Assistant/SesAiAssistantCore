@@ -528,26 +528,22 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       final int size,
       final String countQueryPart)
       throws SQLException {
-    if (connection == null || query == null) {
+    requireConnection(connection);
+    if (query == null) {
       return;
     }
 
     // (1) 全件数を取得 (countQueryPart があれば、tenant_id フィルターを適用)
     if (countQueryPart != null) {
-      String countSql = COUNT_SQL_PREFIX + countQueryPart;
-      countSql = addTenantIdFilter(countSql, tenantId);
-      try (PreparedStatement preparedStatement = connection.prepareStatement(countSql)) {
-        int paramIndex = 1;
-        final String vectorStr = query.toString();
-        preparedStatement.setString(paramIndex++, vectorStr);
-        preparedStatement.setDouble(paramIndex++, similarityThreshold);
-        setTenantIdParameter(preparedStatement, paramIndex, tenantId);
-        try (ResultSet resultSet = preparedStatement.executeQuery()) {
-          if (resultSet.next()) {
-            this.totalCount = resultSet.getLong(1);
-          }
-        }
-      }
+      executeCountQuery(
+          connection,
+          COUNT_SQL_PREFIX + countQueryPart,
+          tenantId,
+          (stmt, paramIndex) -> {
+            stmt.setString(paramIndex, query.toString());
+            stmt.setDouble(paramIndex + 1, similarityThreshold);
+            return paramIndex + 2;
+          });
     } else {
       // 簡易的に limit を totalCount とする (countQueryPartがない場合)
       this.totalCount = size;
@@ -595,32 +591,29 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       final int size,
       final String countQueryPart)
       throws SQLException {
-    if (connection == null || query == null) {
+    requireConnection(connection);
+    if (query == null) {
       return;
     }
 
     // (1) 全件数を取得 (countQueryPart があれば、tenant_id フィルターを適用)
     if (countQueryPart != null) {
-      String countSql = COUNT_SQL_PREFIX + countQueryPart;
-      countSql = addTenantIdFilter(countSql, tenantId);
-      try (PreparedStatement preparedStatement = connection.prepareStatement(countSql)) {
-        int paramIndex = 1;
-        final String vectorStr = query.toString();
-        preparedStatement.setBigDecimal(paramIndex++, price.getValue());
-        preparedStatement.setTimestamp(paramIndex++, startDate.toTimestamp());
-        if (officeRequirements != null && area != null) {
-          preparedStatement.setInt(paramIndex++, officeRequirements);
-          preparedStatement.setString(paramIndex++, area.name());
-        }
-        preparedStatement.setString(paramIndex++, vectorStr);
-        preparedStatement.setDouble(paramIndex++, similarityThreshold);
-        setTenantIdParameter(preparedStatement, paramIndex, tenantId);
-        try (ResultSet resultSet = preparedStatement.executeQuery()) {
-          if (resultSet.next()) {
-            this.totalCount = resultSet.getLong(1);
-          }
-        }
-      }
+      executeCountQuery(
+          connection,
+          COUNT_SQL_PREFIX + countQueryPart,
+          tenantId,
+          (stmt, paramIndex) -> {
+            int idx = paramIndex;
+            stmt.setBigDecimal(idx++, price.getValue());
+            stmt.setTimestamp(idx++, startDate.toTimestamp());
+            if (officeRequirements != null && area != null) {
+              stmt.setInt(idx++, officeRequirements);
+              stmt.setString(idx++, area.name());
+            }
+            stmt.setString(idx++, query.toString());
+            stmt.setDouble(idx++, similarityThreshold);
+            return idx;
+          });
     } else {
       this.totalCount = size;
     }
@@ -693,32 +686,29 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       final int size,
       final String countQueryPart)
       throws SQLException {
-    if (connection == null || query == null) {
+    requireConnection(connection);
+    if (query == null) {
       return;
     }
 
     // (1) 全件数を取得 (countQueryPart があれば、tenant_id フィルターを適用)
     if (countQueryPart != null) {
-      String countSql = COUNT_SQL_PREFIX + countQueryPart;
-      countSql = addTenantIdFilter(countSql, tenantId);
-      try (PreparedStatement preparedStatement = connection.prepareStatement(countSql)) {
-        int paramIndex = 1;
-        final String vectorStr = query.toString();
-        preparedStatement.setString(paramIndex++, vectorStr);
-        preparedStatement.setDouble(paramIndex++, similarityThreshold);
-        // 詳細フィルターパラメータをバインド
-        if (filterParams != null) {
-          for (Object param : filterParams) {
-            bindParameter(preparedStatement, paramIndex++, param);
-          }
-        }
-        setTenantIdParameter(preparedStatement, paramIndex, tenantId);
-        try (ResultSet resultSet = preparedStatement.executeQuery()) {
-          if (resultSet.next()) {
-            this.totalCount = resultSet.getLong(1);
-          }
-        }
-      }
+      executeCountQuery(
+          connection,
+          COUNT_SQL_PREFIX + countQueryPart,
+          tenantId,
+          (stmt, paramIndex) -> {
+            int idx = paramIndex;
+            stmt.setString(idx++, query.toString());
+            stmt.setDouble(idx++, similarityThreshold);
+            // 詳細フィルターパラメータをバインド
+            if (filterParams != null) {
+              for (Object param : filterParams) {
+                bindParameter(stmt, idx++, param);
+              }
+            }
+            return idx;
+          });
     } else {
       this.totalCount = size;
     }
@@ -951,8 +941,8 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
         SELECT_BY_PERSON_OR_SKILLSHEET_SUMMARY_WITH_FILTER_2_VALUES_PREFIX,
         built.getWhereClauseWithoutWhereKeyword(),
         built.getLikeParams(),
-        price,
-        startDate,
+        price == null ? null : price.getValue(),
+        startDate == null ? null : startDate.toTimestamp(),
         null,
         null,
         page,
@@ -993,8 +983,8 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
         SELECT_BY_PERSON_OR_SKILLSHEET_SUMMARY_WITH_FILTER_4_VALUES_PREFIX,
         built.getWhereClauseWithoutWhereKeyword(),
         built.getLikeParams(),
-        price,
-        startDate,
+        price == null ? null : price.getValue(),
+        startDate == null ? null : startDate.toTimestamp(),
         officeRequirements,
         area,
         page,
@@ -1172,7 +1162,8 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       final int page,
       final int size)
       throws SQLException {
-    if (connection == null || conditions == null || conditions.isEmpty()) {
+    requireConnection(connection);
+    if (conditions == null || conditions.isEmpty()) {
       return;
     }
 
@@ -1194,7 +1185,10 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       if (mergedWhere.length() > 0) {
         mergedWhere.append(" AND ");
       }
-      mergedWhere.append(detailFilterWhere.getWhereClauseWithoutWhereKeyword());
+      mergedWhere
+          .append('(')
+          .append(detailFilterWhere.getWhereClauseWithoutWhereKeyword())
+          .append(')');
     }
 
     // (4) selectByDynamicWhereWithFilterPagedを呼び出してページング検索を実行
@@ -1233,7 +1227,8 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       final int page,
       final int size)
       throws SQLException {
-    if (connection == null || query == null) {
+    requireConnection(connection);
+    if (query == null) {
       return;
     }
 
@@ -1247,7 +1242,10 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
     StringBuilder whereClause = new StringBuilder();
     whereClause.append("1 - (p.vector_data <=> ?::vector) >= ?");
     if (!detailFilterWhere.isEmpty()) {
-      whereClause.append(" AND ").append(detailFilterWhere.getWhereClauseWithoutWhereKeyword());
+      whereClause
+          .append(" AND (")
+          .append(detailFilterWhere.getWhereClauseWithoutWhereKeyword())
+          .append(')');
     }
 
     // (3) ベクトル検索SQLを構築
@@ -1258,8 +1256,8 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
             + "s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, "
             + "p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, "
             + "p.office_availability, p.organization, p.experiences, "
-            + "p.ng_requirements, p.other_requirements, p.url, p.vector_data "
-            + "<=> ?::vector AS distance, p.tenant_id "
+            + "p.ng_requirements, p.other_requirements, p.url, p.vector_data <=> "
+            + "?::vector AS distance, p.tenant_id "
             + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
             + "WHERE "
             + whereClause.toString()
@@ -1310,6 +1308,35 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
       entity.setDistance(resultSet.getDouble("distance"));
     }
     return entity;
+  }
+
+  /**
+   * 件数の問い合わせを実行し、総件数を保持します.
+   *
+   * <p>件数の SQL には tenant_id の条件を付けます。binder が WHERE 句のパラメータを順にバインドし、続けて tenant_id をバインドします。
+   *
+   * @param connection DBコネクション
+   * @param countSql 件数の SQL（tenant_id の条件は付けない）
+   * @param tenantId テナントID
+   * @param binder WHERE 句のパラメータをバインドする処理（次のパラメータ位置を返す）
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   */
+  private void executeCountQuery(
+      final Connection connection,
+      final String countSql,
+      final String tenantId,
+      final PreparedStatementBinder binder)
+      throws SQLException {
+    try (PreparedStatement preparedStatement =
+        connection.prepareStatement(addTenantIdFilter(countSql, tenantId))) {
+      int paramIndex = binder.bind(preparedStatement, 1);
+      setTenantIdParameter(preparedStatement, paramIndex, tenantId);
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        if (resultSet.next()) {
+          this.totalCount = resultSet.getLong(1);
+        }
+      }
+    }
   }
 
   private boolean hasColumn(ResultSet rs, String columnName) throws SQLException {

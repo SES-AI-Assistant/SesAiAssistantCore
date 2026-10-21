@@ -1,6 +1,7 @@
 package copel.sesproductpackage.core.database;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.*;
 
 import copel.sesproductpackage.core.api.gpt.Transformer;
@@ -13,6 +14,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class SES_AI_T_PERSONTest {
@@ -205,7 +207,7 @@ class SES_AI_T_PERSONTest {
     person.setFileId("fid1");
     assertTrue(person.updateFileIdByPk(connection));
 
-    assertFalse(person.updateFileIdByPk(null));
+    assertThrows(IllegalArgumentException.class, () -> person.updateFileIdByPk(null));
     person.setPersonId(null);
     assertFalse(person.updateFileIdByPk(connection));
 
@@ -249,10 +251,10 @@ class SES_AI_T_PERSONTest {
   @Test
   void testNullCases() throws SQLException {
     SES_AI_T_PERSON person = new SES_AI_T_PERSON("test-tenant");
-    assertEquals(0, person.insert(null));
-    assertFalse(person.updateByPk(null));
-    assertFalse(person.deleteByPk(null));
-    person.selectByPk(null);
+    assertThrows(IllegalArgumentException.class, () -> person.insert(null));
+    assertThrows(IllegalArgumentException.class, () -> person.updateByPk(null));
+    assertThrows(IllegalArgumentException.class, () -> person.deleteByPk(null));
+    assertThrows(IllegalArgumentException.class, () -> person.selectByPk(null));
 
     Connection connection = mock(Connection.class);
     person.setPersonId(null);
@@ -422,5 +424,66 @@ class SES_AI_T_PERSONTest {
     person.setPlace("Unknown");
 
     assertNull(person.getPlace());
+  }
+
+  @Nested
+  class updateByPk {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * ベクトルデータがある場合に、ベクトルの文字列を9番目にバインドして行を更新することを確かめる。 登録時に埋め込んだベクトルを DB に保存するためである。
+       *
+       * @given 要約が "要約" で埋め込み結果が 0.5 と 1.0 のベクトル、テナントIDが "T001"、キーが "P001"
+       * @when updateByPk を接続で実行する
+       * @then vector_data に COALESCE の形の SQL を準備し、9番目に {@code "[0.5,1.0]"} を設定して1を返す
+       */
+      @Test
+      void ベクトルデータがある場合_ベクトルを9番目に設定して行を更新する() throws Exception {
+        Transformer transformer = mock(Transformer.class);
+        when(transformer.embedding("要約")).thenReturn(new float[] {0.5f, 1.0f});
+        SES_AI_T_PERSON entity = new SES_AI_T_PERSON("T001");
+        entity.setPersonId("P001");
+        entity.setContentSummary("要約");
+        entity.embedding(transformer);
+        Connection connection = mock(Connection.class);
+        PreparedStatement statement = mock(PreparedStatement.class);
+        when(connection.prepareStatement(anyString())).thenReturn(statement);
+        when(statement.executeUpdate()).thenReturn(1);
+
+        assertTrue(entity.updateByPk(connection));
+
+        verify(connection).prepareStatement(contains("COALESCE(?::vector, vector_data)"));
+        verify(statement).setString(9, "[0.5,1.0]");
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * ベクトルデータが無い場合に、9番目に null をバインドして既存のベクトルを残すことを確かめる。 埋め込みを作り直さない更新で、DB の vector_data を NULL
+       * で上書きしないためである。
+       *
+       * @given ベクトルデータが無く、テナントIDが "T001"、キーが "P001"
+       * @when updateByPk を接続で実行する
+       * @then vector_data に COALESCE の形の SQL を準備し、9番目に null を設定して1を返す
+       */
+      @Test
+      void ベクトルデータが無い場合_既存のベクトルを残して行を更新する() throws Exception {
+        SES_AI_T_PERSON entity = new SES_AI_T_PERSON("T001");
+        entity.setPersonId("P001");
+        Connection connection = mock(Connection.class);
+        PreparedStatement statement = mock(PreparedStatement.class);
+        when(connection.prepareStatement(anyString())).thenReturn(statement);
+        when(statement.executeUpdate()).thenReturn(1);
+
+        assertTrue(entity.updateByPk(connection));
+
+        verify(connection).prepareStatement(contains("COALESCE(?::vector, vector_data)"));
+        verify(statement).setString(9, null);
+      }
+    }
   }
 }

@@ -105,7 +105,8 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
   public void selectByJobIdPaged(
       Connection connection, String tenantId, String jobId, int page, int size)
       throws SQLException {
-    if (connection == null || jobId == null) {
+    requireConnection(connection);
+    if (jobId == null) {
       return;
     }
     java.util.Map<String, String> query = new java.util.HashMap<>();
@@ -126,7 +127,8 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
   public void selectByPersonIdPaged(
       Connection connection, String tenantId, String personId, int page, int size)
       throws SQLException {
-    if (connection == null || personId == null) {
+    requireConnection(connection);
+    if (personId == null) {
       return;
     }
     java.util.Map<String, String> query = new java.util.HashMap<>();

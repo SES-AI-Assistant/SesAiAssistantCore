@@ -67,7 +67,9 @@ class SES_AI_T_PERSONLotTest {
     SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
     lot.selectAll(mockConn, "test-tenant");
     assertEquals(1, lot.size());
-    assertDoesNotThrow(() -> new SES_AI_T_PERSONLot().selectAll(null, "test-tenant"));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> new SES_AI_T_PERSONLot().selectAll(null, "test-tenant"));
   }
 
   @Test
@@ -292,7 +294,11 @@ class SES_AI_T_PERSONLotTest {
     assertEquals(1, lot.size());
 
     SES_AI_T_PERSONLot emptyLot2 = new SES_AI_T_PERSONLot();
-    emptyLot2.retrievePagedWithThreshold(null, "test-tenant", createTestVector(), 0.8, 1, 10);
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            emptyLot2.retrievePagedWithThreshold(
+                null, "test-tenant", createTestVector(), 0.8, 1, 10));
     assertTrue(emptyLot2.isEmpty());
     emptyLot2.retrievePagedWithThreshold(mockConn, "test-tenant", null, 0.8, 1, 10);
     assertTrue(emptyLot2.isEmpty());

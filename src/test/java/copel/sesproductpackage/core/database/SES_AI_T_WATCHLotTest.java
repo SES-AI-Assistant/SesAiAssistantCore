@@ -46,7 +46,8 @@ class SES_AI_T_WATCHLotTest {
     assertFalse(lot.containsById(null));
     assertFalse(lot.containsById(""));
 
-    lot.selectByUserId(null, "test-tenant", "u1");
+    assertThrows(
+        IllegalArgumentException.class, () -> lot.selectByUserId(null, "test-tenant", "u1"));
     lot.selectByUserId(mockConnection, "test-tenant", null);
   }
 
@@ -82,7 +83,9 @@ class SES_AI_T_WATCHLotTest {
     assertEquals("u1", lot.get(0).getUserId());
     assertEquals("job001", lot.get(0).getTargetId());
 
-    lot.selectByTargetId(null, "test-tenant", "job001", SES_AI_T_WATCH.TargetType.JOB);
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> lot.selectByTargetId(null, "test-tenant", "job001", SES_AI_T_WATCH.TargetType.JOB));
     lot.selectByTargetId(mockConnection, "test-tenant", null, SES_AI_T_WATCH.TargetType.JOB);
     lot.selectByTargetId(mockConnection, "test-tenant", "job001", null);
   }

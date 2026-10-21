@@ -69,7 +69,7 @@ class SES_AI_T_SKILLSHEETLotTest {
   @Test
   void testSelectAllWithNullConnection() throws SQLException {
     SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
-    lot.selectAll(null, "test-tenant");
+    assertThrows(IllegalArgumentException.class, () -> lot.selectAll(null, "test-tenant"));
     assertTrue(lot.isEmpty());
   }
 
@@ -179,7 +179,11 @@ class SES_AI_T_SKILLSHEETLotTest {
     assertEquals(1, lot.size());
 
     SES_AI_T_SKILLSHEETLot emptyLot2 = new SES_AI_T_SKILLSHEETLot();
-    emptyLot2.retrievePagedWithThreshold(null, "test-tenant", createTestVector(), 0.8, 1, 10);
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            emptyLot2.retrievePagedWithThreshold(
+                null, "test-tenant", createTestVector(), 0.8, 1, 10));
     assertTrue(emptyLot2.isEmpty());
     emptyLot2.retrievePagedWithThreshold(mockConn, "test-tenant", null, 0.8, 1, 10);
     assertTrue(emptyLot2.isEmpty());

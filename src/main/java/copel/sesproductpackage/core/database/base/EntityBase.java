@@ -5,8 +5,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import lombok.Data;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +25,30 @@ public abstract class EntityBase implements Comparable<EntityBase> {
   /** 登録ユーザー / register_user */
   @Column(required = true, physicalName = "register_user", logicalName = "登録ユーザー")
   protected String registerUser;
+
+  /**
+   * DBコネクションが null でないことを確かめます.
+   *
+   * @param conn DBコネクション
+   * @throws IllegalArgumentException DBコネクションが null の場合
+   */
+  protected static void requireConnection(final Connection conn) {
+    if (conn == null) {
+      throw new IllegalArgumentException("DBコネクションは null にできません");
+    }
+  }
+
+  /**
+   * テナントIDが null または空文字列でないことを確かめます.
+   *
+   * @param tenantId テナントID
+   * @throws IllegalArgumentException テナントIDが null または空文字列の場合
+   */
+  protected static void requireTenantId(final String tenantId) {
+    if (tenantId == null || tenantId.isEmpty()) {
+      throw new IllegalArgumentException("TenantId must not be null or empty");
+    }
+  }
 
   /** テナントID / tenant_id */
   @Column(physicalName = "tenant_id", logicalName = "テナントID")
@@ -123,7 +145,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @param logLabel ログ出力用ラベル
    * @return 挿入行数
    * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   * @throws IllegalArgumentException tenantId が null または空文字列の場合
+   * @throws IllegalArgumentException DBコネクションが null の場合、またはテナントIDが null または空文字列の場合
    */
   protected int executeInsert(
       final Connection conn,
@@ -132,11 +154,28 @@ public abstract class EntityBase implements Comparable<EntityBase> {
       final PreparedStatementBinder paramBinder,
       final String logLabel)
       throws SQLException {
-    if (conn == null || tenantId == null || tenantId.isEmpty()) {
-      return 0;
-    }
+    requireConnection(conn);
+    requireTenantId(tenantId);
 
-    String modifiedSql = addTenantIdToInsert(sql);
+    // VALUES 句の直前の列リストに tenant_id を、VALUES 句の値リストに ? を追加する
+    String upperSql = sql.toUpperCase();
+    int valuesIndex = upperSql.indexOf("VALUES");
+    if (valuesIndex < 0) {
+      throw new IllegalArgumentException("INSERT SQL must contain VALUES clause");
+    }
+    String beforeValues = sql.substring(0, valuesIndex);
+    String afterValues = sql.substring(valuesIndex);
+    int lastParenBeforeValues = beforeValues.lastIndexOf(')');
+    if (lastParenBeforeValues < 0) {
+      throw new IllegalArgumentException("Column list must be in parentheses");
+    }
+    int lastParenInValues = afterValues.lastIndexOf(')');
+    if (lastParenInValues < 0) {
+      throw new IllegalArgumentException("VALUES clause must have parentheses");
+    }
+    String columnList = beforeValues.substring(0, lastParenBeforeValues) + ", tenant_id)";
+    String valuesPart = afterValues.substring(0, lastParenInValues) + ", ?)";
+    String modifiedSql = columnList + " " + valuesPart;
     logSql(modifiedSql, logLabel);
 
     try (PreparedStatement stmt = conn.prepareStatement(modifiedSql)) {
@@ -157,6 +196,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @param logLabel ログ出力用ラベル
    * @return 挿入行数
    * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   * @throws IllegalArgumentException DBコネクションが null の場合
    */
   protected int executeInsertWithoutTenantFilter(
       final Connection conn,
@@ -164,9 +204,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
       final PreparedStatementBinder paramBinder,
       final String logLabel)
       throws SQLException {
-    if (conn == null) {
-      return 0;
-    }
+    requireConnection(conn);
 
     logSql(sql, logLabel);
 
@@ -189,7 +227,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @param logLabel ログ出力用ラベル
    * @return データが存在する場合は true、存在しない場合は false
    * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   * @throws IllegalArgumentException tenantId が null または空文字列の場合
+   * @throws IllegalArgumentException DBコネクションが null の場合、またはテナントIDが null または空文字列の場合
    */
   protected boolean executeSelectByPk(
       final Connection conn,
@@ -199,27 +237,25 @@ public abstract class EntityBase implements Comparable<EntityBase> {
       final ResultSetMapper resultMapper,
       final String logLabel)
       throws SQLException {
-    if (conn == null || tenantId == null || tenantId.isEmpty()) {
-      return false;
-    }
+    requireConnection(conn);
+    requireTenantId(tenantId);
 
     String filteredSql = addTenantIdFilter(baseSql, tenantId);
     logSql(filteredSql, logLabel);
 
+    boolean found = false;
     try (PreparedStatement stmt = conn.prepareStatement(filteredSql)) {
       paramBinder.bind(stmt);
-      // tenant_id 条件は addTenantIdFilter により SQL 末尾（EXISTS の場合は括弧内末尾）に付加されるため、
-      // バインド位置は元SQLのプレースホルダ数 + 1 となる（PK が複数列でも取り違えないため）
+      // tenant_id 条件の位置は元SQLのプレースホルダ数 + 1（PK が複数列でも第2列を上書きしないため）
       setTenantIdParameter(stmt, countParameterPlaceholders(baseSql) + 1, tenantId);
-
       try (ResultSet rs = stmt.executeQuery()) {
-        if (rs.next()) {
+        found = rs.next();
+        if (found) {
           resultMapper.map(rs);
-          return true;
         }
       }
     }
-    return false;
+    return found;
   }
 
   /**
@@ -234,6 +270,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @param logLabel ログ出力用ラベル
    * @return データが存在する場合は true、存在しない場合は false
    * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   * @throws IllegalArgumentException DBコネクションが null の場合
    */
   protected boolean executeSelectByPkWithoutTenantFilter(
       final Connection conn,
@@ -242,23 +279,21 @@ public abstract class EntityBase implements Comparable<EntityBase> {
       final ResultSetMapper resultMapper,
       final String logLabel)
       throws SQLException {
-    if (conn == null) {
-      return false;
-    }
+    requireConnection(conn);
 
     logSql(sql, logLabel);
 
+    boolean found = false;
     try (PreparedStatement stmt = conn.prepareStatement(sql)) {
       paramBinder.bind(stmt);
-
       try (ResultSet rs = stmt.executeQuery()) {
-        if (rs.next()) {
+        found = rs.next();
+        if (found) {
           resultMapper.map(rs);
-          return true;
         }
       }
     }
-    return false;
+    return found;
   }
 
   /**
@@ -273,7 +308,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @param logLabel ログ出力用ラベル
    * @return レコードが存在する場合は true、存在しない場合は false
    * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   * @throws IllegalArgumentException tenantId が null または空文字列の場合
+   * @throws IllegalArgumentException DBコネクションが null の場合、またはテナントIDが null または空文字列の場合
    */
   protected boolean executeExists(
       final Connection conn,
@@ -282,59 +317,22 @@ public abstract class EntityBase implements Comparable<EntityBase> {
       final PreparedStatementBinder paramBinder,
       final String logLabel)
       throws SQLException {
-    if (conn == null || tenantId == null || tenantId.isEmpty()) {
-      return false;
-    }
+    requireConnection(conn);
+    requireTenantId(tenantId);
 
     String filteredSql = addTenantIdFilter(baseSql, tenantId);
     logSql(filteredSql, logLabel);
 
+    boolean exists = false;
     try (PreparedStatement stmt = conn.prepareStatement(filteredSql)) {
       paramBinder.bind(stmt);
       // tenant_id 条件の位置は元SQLのプレースホルダ数 + 1（PK が複数列でも第2列を上書きしないため）
       setTenantIdParameter(stmt, countParameterPlaceholders(baseSql) + 1, tenantId);
       try (ResultSet rs = stmt.executeQuery()) {
-        if (rs.next()) {
-          return rs.getBoolean(1);
-        }
+        exists = rs.next() && rs.getBoolean(1);
       }
     }
-    return false;
-  }
-
-  /**
-   * EXISTS クエリ実行テンプレートメソッド（tenantId フィルタなし）.
-   *
-   * <p>マスタテーブルの確認など、tenantId フィルタリングが不要な場合に使用します。
-   *
-   * @param conn DBコネクション（null の場合は false を返す）
-   * @param sql EXISTS SQL文
-   * @param paramBinder パラメータバインディング処理
-   * @param logLabel ログ出力用ラベル
-   * @return レコードが存在する場合は true、存在しない場合は false
-   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   */
-  protected boolean executeExistsWithoutTenantFilter(
-      final Connection conn,
-      final String sql,
-      final PreparedStatementBinder paramBinder,
-      final String logLabel)
-      throws SQLException {
-    if (conn == null) {
-      return false;
-    }
-
-    logSql(sql, logLabel);
-
-    try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-      paramBinder.bind(stmt);
-      try (ResultSet rs = stmt.executeQuery()) {
-        if (rs.next()) {
-          return rs.getBoolean(1);
-        }
-      }
-    }
-    return false;
+    return exists;
   }
 
   /**
@@ -349,7 +347,6 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @param logLabel ログ出力用ラベル
    * @return 更新が成功した場合は true、失敗した場合は false
    * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   * @throws IllegalArgumentException tenantId が null または空文字列の場合
    */
   protected boolean executeUpdateByPk(
       final Connection conn,
@@ -358,19 +355,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
       final PreparedStatementBinder paramBinder,
       final String logLabel)
       throws SQLException {
-    if (conn == null || tenantId == null || tenantId.isEmpty()) {
-      return false;
-    }
-
-    String filteredSql = addTenantIdFilter(baseSql, tenantId);
-    logSql(filteredSql, logLabel);
-
-    try (PreparedStatement stmt = conn.prepareStatement(filteredSql)) {
-      paramBinder.bind(stmt);
-      setTenantIdParameter(stmt, countParameterPlaceholders(baseSql) + 1, tenantId);
-
-      return stmt.executeUpdate() > 0;
-    }
+    return executeTenantFilteredUpdate(conn, baseSql, tenantId, paramBinder, logLabel);
   }
 
   /**
@@ -384,6 +369,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @param logLabel ログ出力用ラベル
    * @return 更新が成功した場合は true、失敗した場合は false
    * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   * @throws IllegalArgumentException DBコネクションが null の場合
    */
   protected boolean executeUpdateByPkWithoutTenantFilter(
       final Connection conn,
@@ -391,9 +377,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
       final PreparedStatementBinder paramBinder,
       final String logLabel)
       throws SQLException {
-    if (conn == null) {
-      return false;
-    }
+    requireConnection(conn);
 
     logSql(sql, logLabel);
 
@@ -415,7 +399,6 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @param logLabel ログ出力用ラベル
    * @return 削除が成功した場合は true、失敗した場合は false
    * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
-   * @throws IllegalArgumentException tenantId が null または空文字列の場合
    */
   protected boolean executeDeleteByPk(
       final Connection conn,
@@ -424,16 +407,40 @@ public abstract class EntityBase implements Comparable<EntityBase> {
       final PreparedStatementBinder paramBinder,
       final String logLabel)
       throws SQLException {
-    if (conn == null || tenantId == null || tenantId.isEmpty()) {
-      return false;
-    }
+    // tenant_id 条件の位置は元SQLのプレースホルダ数 + 1（PK が複数列でも第2列を上書きしないため）
+    return executeTenantFilteredUpdate(conn, baseSql, tenantId, paramBinder, logLabel);
+  }
+
+  /**
+   * tenant_id 条件付きの UPDATE または DELETE を実行します.
+   *
+   * <p>UPDATE と DELETE は SQL の組み立てと実行が同じため、共通の処理にまとめています。 tenant_id 条件は元SQLのプレースホルダ数 + 1
+   * の位置にバインドします。
+   *
+   * @param conn DBコネクション（null の場合は false を返す）
+   * @param baseSql UPDATE または DELETE の SQL文
+   * @param tenantId テナントID（必須。null または空文字列の場合は false を返す）
+   * @param paramBinder パラメータバインディング処理
+   * @param logLabel ログ出力用ラベル
+   * @return 1件以上更新または削除した場合は true、そうでない場合は false
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   * @throws IllegalArgumentException DBコネクションが null の場合、またはテナントIDが null または空文字列の場合
+   */
+  private boolean executeTenantFilteredUpdate(
+      final Connection conn,
+      final String baseSql,
+      final String tenantId,
+      final PreparedStatementBinder paramBinder,
+      final String logLabel)
+      throws SQLException {
+    requireConnection(conn);
+    requireTenantId(tenantId);
 
     String filteredSql = addTenantIdFilter(baseSql, tenantId);
     logSql(filteredSql, logLabel);
 
     try (PreparedStatement stmt = conn.prepareStatement(filteredSql)) {
       paramBinder.bind(stmt);
-      // tenant_id 条件の位置は元SQLのプレースホルダ数 + 1（PK が複数列でも第2列を上書きしないため）
       setTenantIdParameter(stmt, countParameterPlaceholders(baseSql) + 1, tenantId);
 
       return stmt.executeUpdate() > 0;
@@ -451,6 +458,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @param logLabel ログ出力用ラベル
    * @return 削除が成功した場合は true、失敗した場合は false
    * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   * @throws IllegalArgumentException DBコネクションが null の場合
    */
   protected boolean executeDeleteByPkWithoutTenantFilter(
       final Connection conn,
@@ -458,9 +466,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
       final PreparedStatementBinder paramBinder,
       final String logLabel)
       throws SQLException {
-    if (conn == null) {
-      return false;
-    }
+    requireConnection(conn);
 
     logSql(sql, logLabel);
 
@@ -485,53 +491,7 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * @throws IllegalArgumentException tenantId が null または空文字列の場合
    */
   protected String addTenantIdFilter(final String baseSql, final String tenantId) {
-    if (tenantId == null || tenantId.isEmpty()) {
-      throw new IllegalArgumentException("TenantId must not be null or empty");
-    }
-    if (baseSql == null) {
-      throw new IllegalArgumentException("baseSql must not be null");
-    }
-
-    String trimmedSql = baseSql.trim();
-    String upperSql = trimmedSql.toUpperCase();
-
-    // SELECT EXISTS の場合は特別処理（括弧内のWHERE句に tenant_id を挿入）
-    if (upperSql.startsWith("SELECT EXISTS") && upperSql.contains(" WHERE ")) {
-      int lastParenIndex = trimmedSql.lastIndexOf(')');
-      if (lastParenIndex > 0) {
-        return trimmedSql.substring(0, lastParenIndex)
-            + " AND tenant_id = ?"
-            + trimmedSql.substring(lastParenIndex);
-      }
-    }
-
-    // WHERE句が含まれているかチェック
-    boolean hasWhereClause = upperSql.contains(" WHERE ");
-
-    // FROM句からテーブルエイリアスを自動抽出
-    Pattern pattern =
-        Pattern.compile(
-            "FROM\\s+\\S+\\s+([a-zA-Z_]\\w*)(?:\\s|,|JOIN|WHERE|$)", Pattern.CASE_INSENSITIVE);
-    Matcher matcher = pattern.matcher(trimmedSql);
-    String tableAlias = null;
-    if (matcher.find()) {
-      String alias = matcher.group(1);
-      // WHERE, JOIN, ON などの予約語がテーブルエイリアスと誤検出されないようフィルタ
-      if (!alias.matches("(?i)WHERE|JOIN|ON|AND|OR|LIMIT|ORDER|GROUP|OFFSET|UNION")) {
-        tableAlias = alias;
-      }
-    }
-
-    String tenantIdCondition =
-        tableAlias != null && !tableAlias.isEmpty()
-            ? tableAlias + ".tenant_id = ?"
-            : "tenant_id = ?";
-
-    if (hasWhereClause) {
-      return trimmedSql + " AND " + tenantIdCondition;
-    } else {
-      return trimmedSql + " WHERE " + tenantIdCondition;
-    }
+    return new TenantFilterSql(baseSql).withTenantFilter(tenantId);
   }
 
   /**
@@ -565,44 +525,12 @@ public abstract class EntityBase implements Comparable<EntityBase> {
   }
 
   /**
-   * INSERT SQL に tenant_id カラムを自動追加します.
-   *
-   * @param sql 元の INSERT SQL（tenant_id を含まない）
-   * @return tenant_id カラムが追加された SQL
-   */
-  private String addTenantIdToInsert(final String sql) {
-    String upperSql = sql.toUpperCase();
-    int valuesIndex = upperSql.indexOf("VALUES");
-    if (valuesIndex < 0) {
-      throw new IllegalArgumentException("INSERT SQL must contain VALUES clause");
-    }
-
-    String beforeValues = sql.substring(0, valuesIndex);
-    String afterValues = sql.substring(valuesIndex);
-
-    int lastParenBeforeValues = beforeValues.lastIndexOf(')');
-    if (lastParenBeforeValues < 0) {
-      throw new IllegalArgumentException("Column list must be in parentheses");
-    }
-
-    int lastParenInValues = afterValues.lastIndexOf(')');
-    if (lastParenInValues < 0) {
-      throw new IllegalArgumentException("VALUES clause must have parentheses");
-    }
-
-    String columnList = beforeValues.substring(0, lastParenBeforeValues) + ", tenant_id)";
-    String valuesPart = afterValues.substring(0, lastParenInValues) + ", ?)";
-
-    return columnList + " " + valuesPart;
-  }
-
-  /**
    * SQL 内のパラメータプレースホルダー（?）の数を数えます.
    *
    * @param sql SQL文
    * @return プレースホルダーの数
    */
-  private int countParameterPlaceholders(final String sql) {
+  static int countParameterPlaceholders(final String sql) {
     int count = 0;
     for (char c : sql.toCharArray()) {
       if (c == '?') {
