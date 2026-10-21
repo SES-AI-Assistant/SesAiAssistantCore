@@ -79,7 +79,8 @@ class SES_AI_WEBAPP_M_NOTIFICATIONLotTest {
   @Test
   void testSelectByUserIdWithNullConnection() throws SQLException {
     SES_AI_WEBAPP_M_NOTIFICATIONLot lot = new SES_AI_WEBAPP_M_NOTIFICATIONLot();
-    lot.selectByUserId(null, "test-tenant", "U1");
+    assertThrows(
+        IllegalArgumentException.class, () -> lot.selectByUserId(null, "test-tenant", "U1"));
     assertEquals(0, lot.size());
   }
 

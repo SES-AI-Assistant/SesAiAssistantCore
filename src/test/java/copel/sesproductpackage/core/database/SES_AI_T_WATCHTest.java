@@ -27,7 +27,7 @@ class SES_AI_T_WATCHTest {
 
     SES_AI_T_WATCH watch = new SES_AI_T_WATCH("test-tenant");
 
-    watch.insert(null);
+    assertThrows(IllegalArgumentException.class, () -> watch.insert(null));
     watch.setUserId("u");
     watch.setTenantId("default");
     watch.setTargetId("t");
@@ -64,7 +64,7 @@ class SES_AI_T_WATCHTest {
     when(rs.next()).thenReturn(false);
     assertFalse(watch.isExistByTargetId(conn));
 
-    watch.selectByPk(null);
+    assertThrows(IllegalArgumentException.class, () -> watch.selectByPk(null));
     watch.setUserId(null);
     watch.selectByPk(conn);
     watch.setUserId("u");
@@ -85,7 +85,7 @@ class SES_AI_T_WATCHTest {
     assertNotNull(watch.getTtl());
     assertTrue(watch.getTtl().isEmpty());
 
-    watch.updateByPk(null);
+    assertThrows(IllegalArgumentException.class, () -> watch.updateByPk(null));
     watch.setUserId(null);
     watch.updateByPk(conn);
     watch.setUserId("u");
@@ -109,7 +109,7 @@ class SES_AI_T_WATCHTest {
     when(ps.executeUpdate()).thenReturn(1);
     assertTrue(watchNoRegDate.updateByPk(conn));
 
-    watch.deleteByPk(null);
+    assertThrows(IllegalArgumentException.class, () -> watch.deleteByPk(null));
     watch.setUserId(null);
     watch.deleteByPk(conn);
     watch.setUserId("u");

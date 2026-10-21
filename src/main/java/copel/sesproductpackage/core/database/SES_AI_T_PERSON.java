@@ -49,7 +49,7 @@ public class SES_AI_T_PERSON extends SesAiTableEntityBase {
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
       "SELECT person_id, from_group, from_id, from_name, mail_subject, raw_content, "
-          + "content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, "
+          + "content_summary, file_id, unit_price, name, age, gender, nationality, "
           + "start_date, place, area, office_availability, organization, experiences, "
           + "ng_requirements, other_requirements, url, register_date, register_user, ttl "
           + "FROM SES_AI_T_PERSON WHERE person_id = ?";
@@ -58,7 +58,8 @@ public class SES_AI_T_PERSON extends SesAiTableEntityBase {
   private static final String UPDATE_SQL =
       "UPDATE SES_AI_T_PERSON SET from_group = ?, from_id = ?, from_name = ?, mail_subject = ?, "
           + "raw_content = ?, content_summary = ?, file_id = ?, unit_price = ?, vector_data = "
-          + "?::vector, name = ?, age = ?, gender = ?, nationality = ?, start_date = ?, place "
+          + "COALESCE(?::vector, vector_data), name = ?, age = ?, gender = ?, nationality = "
+          + "?, start_date = ?, place "
           + "= ?, area = ?, office_availability = ?, organization = ?, experiences = ?, "
           + "ng_requirements = ?, other_requirements = ?, url = ?, ttl = ? WHERE "
           + "person_id = ?";
@@ -212,7 +213,9 @@ public class SES_AI_T_PERSON extends SesAiTableEntityBase {
    * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public boolean updateFileIdByPk(final Connection connection) throws SQLException {
-    if (connection == null || this.personId == null || this.tenantId == null) {
+    requireConnection(connection);
+    requireTenantId(this.tenantId);
+    if (this.personId == null) {
       return false;
     }
     try (PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_FILE_ID_SQL)) {
@@ -235,7 +238,8 @@ public class SES_AI_T_PERSON extends SesAiTableEntityBase {
    */
   public static int clearFileIdWhereFileId(final Connection connection, final String fileId)
       throws SQLException {
-    if (connection == null || fileId == null) {
+    requireConnection(connection);
+    if (fileId == null) {
       return 0;
     }
     try (PreparedStatement preparedStatement =

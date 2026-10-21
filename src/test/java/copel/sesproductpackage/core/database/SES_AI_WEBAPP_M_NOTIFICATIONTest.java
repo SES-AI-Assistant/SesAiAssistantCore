@@ -17,7 +17,7 @@ class SES_AI_WEBAPP_M_NOTIFICATIONTest {
     SES_AI_WEBAPP_M_NOTIFICATION notification = new SES_AI_WEBAPP_M_NOTIFICATION("test-tenant");
     Connection connection = mock(Connection.class);
 
-    assertEquals(0, notification.insert(null));
+    assertThrows(IllegalArgumentException.class, () -> notification.insert(null));
 
     notification.selectByPk(null);
     notification.setNotificationId(null);

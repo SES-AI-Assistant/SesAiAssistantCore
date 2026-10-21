@@ -91,7 +91,8 @@ public class SES_AI_WEBAPP_M_NOTIFICATIONLot extends EntityLotBase<SES_AI_WEBAPP
    */
   public void selectByUserId(
       final Connection connection, final String tenantId, final String userId) throws SQLException {
-    if (connection == null || userId == null) {
+    requireConnection(connection);
+    if (userId == null) {
       this.entityLot = new ArrayList<>();
       return;
     }

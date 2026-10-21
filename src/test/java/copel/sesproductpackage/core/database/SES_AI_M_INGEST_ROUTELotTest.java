@@ -180,7 +180,9 @@ class SES_AI_M_INGEST_ROUTELotTest {
   @Test
   void testSelectByChannelTypeAndRouteKeyWithNullConnection() throws SQLException {
     SES_AI_M_INGEST_ROUTELot lot = new SES_AI_M_INGEST_ROUTELot();
-    lot.selectByChannelTypeAndRouteKey(null, "test-tenant", ChannelType.LINE, "ch123");
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> lot.selectByChannelTypeAndRouteKey(null, "test-tenant", ChannelType.LINE, "ch123"));
 
     assertEquals(0, lot.size());
   }
@@ -223,7 +225,9 @@ class SES_AI_M_INGEST_ROUTELotTest {
   @Test
   void testSelectByChannelTypeAndRouteKeyWithoutTenantIdWithNullConnection() throws SQLException {
     SES_AI_M_INGEST_ROUTELot lot = new SES_AI_M_INGEST_ROUTELot();
-    lot.selectByChannelTypeAndRouteKeyWithoutTenantId(null, ChannelType.LINE, "ch123");
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> lot.selectByChannelTypeAndRouteKeyWithoutTenantId(null, ChannelType.LINE, "ch123"));
 
     assertEquals(0, lot.size());
   }

@@ -81,7 +81,8 @@ public class SES_AI_T_WATCH_JOB_PERSONLot extends EntityLotBase<SES_AI_T_WATCH_J
   public void selectByUserIdPaged(
       Connection connection, String tenantId, String userId, int page, int size)
       throws SQLException {
-    if (connection == null || userId == null) {
+    requireConnection(connection);
+    if (userId == null) {
       return;
     }
     java.util.Map<String, String> query = new java.util.HashMap<>();

@@ -17,7 +17,7 @@ class SES_AI_M_GROUPTest {
     SES_AI_M_GROUP entity = new SES_AI_M_GROUP("test-tenant");
     Connection connection = mock(Connection.class);
 
-    assertEquals(0, entity.insert(null));
+    assertThrows(IllegalArgumentException.class, () -> entity.insert(null));
     entity.selectByPk(null);
     entity.setFromGroup(null);
     entity.selectByPk(connection);

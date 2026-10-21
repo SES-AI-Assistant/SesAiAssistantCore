@@ -91,7 +91,7 @@ class SES_AI_WEBAPP_M_USERTest {
     SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER("test-tenant");
     Connection connection = mock(Connection.class);
 
-    assertEquals(0, user.insert(null));
+    assertThrows(IllegalArgumentException.class, () -> user.insert(null));
 
     user.selectByPk(null);
     user.setUserId(null);

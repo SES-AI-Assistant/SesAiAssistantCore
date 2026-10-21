@@ -18,7 +18,7 @@ class SES_AI_M_INGEST_ROUTETest {
     SES_AI_M_INGEST_ROUTE entity = new SES_AI_M_INGEST_ROUTE("test-tenant");
     Connection connection = mock(Connection.class);
 
-    assertEquals(0, entity.insert(null));
+    assertThrows(IllegalArgumentException.class, () -> entity.insert(null));
     entity.selectByPk(null);
     entity.selectByPk(connection);
     assertFalse(entity.updateByPk(null));
@@ -205,6 +205,6 @@ class SES_AI_M_INGEST_ROUTETest {
     route.setRouteKey("route1");
     route.setTenantId("T1");
 
-    assertEquals(0, route.insert(null));
+    assertThrows(IllegalArgumentException.class, () -> route.insert(null));
   }
 }

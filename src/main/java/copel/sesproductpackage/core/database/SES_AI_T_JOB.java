@@ -47,14 +47,15 @@ public class SES_AI_T_JOB extends SesAiTableEntityBase {
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
       "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
-          + "unit_price, vector_data, title, overview, must_skills, want_skills, start_date, "
+          + "unit_price, title, overview, must_skills, want_skills, start_date, "
           + "place, area, office_requirements, other_requirements, register_date, "
           + "register_user, ttl FROM SES_AI_T_JOB WHERE job_id = ?";
 
   /** UPDATE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String UPDATE_SQL =
       "UPDATE SES_AI_T_JOB SET from_group = ?, from_id = ?, from_name = ?, mail_subject = ?, "
-          + "raw_content = ?, content_summary = ?, unit_price = ?, vector_data = ?::vector, title "
+          + "raw_content = ?, content_summary = ?, unit_price = ?, vector_data = "
+          + "COALESCE(?::vector, vector_data), title "
           + "= ?, overview = ?, must_skills = ?, want_skills = ?, start_date = ?, place = ?, "
           + "area = ?, office_requirements = ?, other_requirements = ?, ttl = ? WHERE "
           + "job_id = ?";

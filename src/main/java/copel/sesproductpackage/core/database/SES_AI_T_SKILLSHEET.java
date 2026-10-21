@@ -35,13 +35,15 @@ public class SES_AI_T_SKILLSHEET extends SesAiTableEntityBase {
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
       "SELECT from_group, from_id, from_name, file_id, file_name, file_content, "
-          + "file_content_summary, register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET "
+          + "file_content_summary, register_date, register_user, ttl FROM "
+          + "SES_AI_T_SKILLSHEET "
           + "WHERE file_id = ?";
 
   /** SELECT文(原文抜き、tenantId フィルタなし、テンプレートメソッドが自動追加する). */
   private static final String SELECT_WITHOUT_CONTENT_SQL =
       "SELECT from_group, from_id, from_name, file_id, file_name, file_content_summary, "
-          + "register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE file_id = ?";
+          + "register_date, register_user, ttl FROM SES_AI_T_SKILLSHEET WHERE "
+          + "file_id = ?";
 
   /** 重複チェック用SQL. */
   private static final String CHECK_SQL =

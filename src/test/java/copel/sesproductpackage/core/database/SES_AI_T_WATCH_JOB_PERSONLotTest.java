@@ -320,7 +320,9 @@ class SES_AI_T_WATCH_JOB_PERSONLotTest {
 
   @Test
   void testSelectByUserIdPagedWithNullConnection() throws SQLException {
-    lot.selectByUserIdPaged(null, "test-tenant", "user-123", 1, 10);
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> lot.selectByUserIdPaged(null, "test-tenant", "user-123", 1, 10));
     assertEquals(0, lot.size());
   }
 

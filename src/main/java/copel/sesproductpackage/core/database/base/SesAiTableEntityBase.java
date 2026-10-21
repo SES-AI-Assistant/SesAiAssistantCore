@@ -88,6 +88,7 @@ public abstract class SesAiTableEntityBase extends EntityBase {
    */
   public boolean uniqueCheck(final Connection connection, final double similarityThreshold)
       throws SQLException {
+    boolean unique = true;
     try (PreparedStatement preparedStatement = connection.prepareStatement(getCheckSql())) {
       preparedStatement.setString(1, this.tenantId);
       preparedStatement.setString(2, this.getRawContent());
@@ -95,11 +96,11 @@ public abstract class SesAiTableEntityBase extends EntityBase {
       preparedStatement.setDouble(4, similarityThreshold);
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
-          return resultSet.getInt(1) < 1;
+          unique = resultSet.getInt(1) < 1;
         }
-        return true;
       }
     }
+    return unique;
   }
 
   /**
@@ -122,14 +123,4 @@ public abstract class SesAiTableEntityBase extends EntityBase {
    * @return SQL
    */
   protected abstract String getCheckSql();
-
-  /**
-   * このレコードのユークリッド距離で比較する.
-   *
-   * @param o SesAiTableEntityBase
-   * @return このレコードの方が小さければtrue、遠ければfalse
-   */
-  public int compareTo(SesAiTableEntityBase o) {
-    return Double.compare(this.getDistance(), o.getDistance());
-  }
 }

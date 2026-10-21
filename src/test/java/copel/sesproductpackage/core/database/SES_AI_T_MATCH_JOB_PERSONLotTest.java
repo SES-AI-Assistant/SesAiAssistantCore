@@ -205,7 +205,9 @@ class SES_AI_T_MATCH_JOB_PERSONLotTest {
 
   @Test
   void testSelectByJobIdPagedWithNullConnection() throws SQLException {
-    lot.selectByJobIdPaged(null, "test-tenant", "J1", 1, 10);
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> lot.selectByJobIdPaged(null, "test-tenant", "J1", 1, 10));
     assertEquals(0, lot.size());
   }
 
@@ -230,7 +232,9 @@ class SES_AI_T_MATCH_JOB_PERSONLotTest {
 
   @Test
   void testSelectByPersonIdPagedWithNullConnection() throws SQLException {
-    lot.selectByPersonIdPaged(null, "test-tenant", "P1", 1, 10);
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> lot.selectByPersonIdPaged(null, "test-tenant", "P1", 1, 10));
     assertEquals(0, lot.size());
   }
 

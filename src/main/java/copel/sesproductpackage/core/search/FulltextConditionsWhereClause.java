@@ -74,7 +74,7 @@ public final class FulltextConditionsWhereClause {
       firstSeg = false;
       ors.append('(').append(segAnd).append(')');
     }
-    return new Built(ors.toString(), params);
+    return new Built("(" + ors + ")", params);
   }
 
   /**
@@ -146,7 +146,7 @@ public final class FulltextConditionsWhereClause {
       firstSeg = false;
       ors.append('(').append(segAnd).append(')');
     }
-    return new Built(ors.toString(), params);
+    return new Built("(" + ors + ")", params);
   }
 
   static List<List<FulltextCondition>> splitSegments(final List<FulltextCondition> conditions) {

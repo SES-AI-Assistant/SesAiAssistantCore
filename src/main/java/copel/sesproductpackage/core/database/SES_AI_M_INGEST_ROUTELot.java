@@ -103,7 +103,8 @@ public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUT
       final ChannelType channelType,
       final String routeKey)
       throws SQLException {
-    if (connection == null || channelType == null || routeKey == null) {
+    requireConnection(connection);
+    if (channelType == null || routeKey == null) {
       this.entityLot = new ArrayList<>();
       return;
     }
@@ -134,7 +135,8 @@ public class SES_AI_M_INGEST_ROUTELot extends EntityLotBase<SES_AI_M_INGEST_ROUT
   public void selectByChannelTypeAndRouteKeyWithoutTenantId(
       final Connection connection, final ChannelType channelType, final String routeKey)
       throws SQLException {
-    if (connection == null || channelType == null || routeKey == null) {
+    requireConnection(connection);
+    if (channelType == null || routeKey == null) {
       this.entityLot = new ArrayList<>();
       return;
     }

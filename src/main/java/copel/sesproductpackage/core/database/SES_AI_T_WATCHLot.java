@@ -36,8 +36,7 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
           + "FROM SES_AI_T_WATCH WHERE ";
 
   /** DELETE期限切れSQL. */
-  private static final String DELETE_EXPIRED_SQL =
-      "DELETE FROM SES_AI_T_WATCH WHERE ttl < NOW() AND tenant_id = ?";
+  private static final String DELETE_EXPIRED_SQL = "DELETE FROM SES_AI_T_WATCH WHERE ttl < NOW()";
 
   /** DELETE期限切れSQL（テナントIDなし、バッチ用）. */
   private static final String DELETE_EXPIRED_WITHOUT_TENANT_SQL =
@@ -98,7 +97,8 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
       final int page,
       final int size)
       throws SQLException {
-    if (connection == null || userId == null) {
+    requireConnection(connection);
+    if (userId == null) {
       return;
     }
     java.util.Map<String, String> query = new java.util.HashMap<>();
@@ -138,7 +138,8 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
       final String targetId,
       final TargetType targetType)
       throws SQLException {
-    if (connection == null || targetId == null || targetType == null) {
+    requireConnection(connection);
+    if (targetId == null || targetType == null) {
       this.entityLot = new ArrayList<>();
       return;
     }
