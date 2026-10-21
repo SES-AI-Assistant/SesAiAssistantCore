@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 結合テスト（IT）のログ設定。failsafe が logback.configurationFile で指定する。
+     アプリの INFO 以上のログはケースごとのファイル（target/it-results/logs）に ItLogRecorder が書き出すため、
+     コンソールには WARN 以上だけを出し、テストの結果を読みやすくする -->
+<configuration>
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener"/>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>WARN</level>
+        </filter>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level [%logger{0}] %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="software.amazon.awssdk" level="ERROR"/>
+    <logger name="com.amazonaws" level="ERROR"/>
+    <logger name="org.testcontainers" level="WARN"/>
+    <logger name="tc" level="WARN"/>
+    <logger name="com.github.dockerjava" level="WARN"/>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+    </root>
+</configuration>
