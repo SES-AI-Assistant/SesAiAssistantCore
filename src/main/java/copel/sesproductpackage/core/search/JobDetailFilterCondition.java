@@ -3,8 +3,6 @@ package copel.sesproductpackage.core.search;
 import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -33,96 +31,50 @@ public class JobDetailFilterCondition {
   /**
    * この条件から WHERE句（WHERE キーワードなし）とパラメータリストを構築します.
    *
-   * @param tableAlias テーブルエイリアス（例: "j"）。null の場合はエイリアスなしで構築
-   * @return WHERE句とパラメータを含む WhereClauseAndParams オブジェクト
+   * <p>単価は値を持たない {@link Money#empty()} の場合も条件に含めない。値が null のまま SQL のパラメータに渡すと組み立てに失敗するため。
+   *
+   * @param tableAlias テーブルエイリアス（例: "j"）。null または空の場合はエイリアスなしで構築
+   * @return WHERE句とパラメータを含む {@link WhereClauseAndParams} オブジェクト
+   * @throws IllegalArgumentException テーブルエイリアスが識別子でない場合
    */
   public WhereClauseAndParams buildWhereClause(final String tableAlias) {
-    StringBuilder whereClause = new StringBuilder();
-    List<Object> params = new ArrayList<>();
-
-    String prefix = tableAlias != null && !tableAlias.isEmpty() ? tableAlias + "." : "";
+    WhereClauseBuilder builder = new WhereClauseBuilder(tableAlias);
 
     // 開始月フィルター（startDate 以降）
     if (this.startDate != null) {
-      if (whereClause.length() > 0) {
-        whereClause.append(" AND ");
-      }
-      whereClause.append(prefix).append("start_date >= ?");
-      params.add(this.startDate);
+      builder.and(builder.column("start_date") + " >= ?", this.startDate);
     }
 
     // エリアフィルター
     if (this.area != null) {
-      if (whereClause.length() > 0) {
-        whereClause.append(" AND ");
-      }
-      whereClause.append(prefix).append("area = ?");
-      params.add(this.area);
+      builder.and(builder.column("area") + " = ?", this.area);
     }
 
     // 出社要件フィルター（ユーザーが許容できる出社日数の上限を指定するため officeRequirements 以下を検索対象とする。
     // 例：フルリモート(0)を指定した場合、出社を伴う案件(1以上)を除外する必要がある）
     if (this.officeRequirements != null) {
-      if (whereClause.length() > 0) {
-        whereClause.append(" AND ");
-      }
-      whereClause.append(prefix).append("office_requirements <= ?");
-      params.add(this.officeRequirements);
+      builder.and(builder.column("office_requirements") + " <= ?", this.officeRequirements);
     }
 
     // 最小単価フィルター（minPrice 以上）
-    if (this.minPrice != null) {
-      if (whereClause.length() > 0) {
-        whereClause.append(" AND ");
-      }
-      whereClause.append(prefix).append("unit_price >= ?");
-      params.add(this.minPrice.getValue());
+    if (this.minPrice != null && this.minPrice.hasValue()) {
+      builder.and(builder.column("unit_price") + " >= ?", this.minPrice.getValue());
     }
 
     // 最大単価フィルター（maxPrice 以下）
-    if (this.maxPrice != null) {
-      if (whereClause.length() > 0) {
-        whereClause.append(" AND ");
-      }
-      whereClause.append(prefix).append("unit_price <= ?");
-      params.add(this.maxPrice.getValue());
+    if (this.maxPrice != null && this.maxPrice.hasValue()) {
+      builder.and(builder.column("unit_price") + " <= ?", this.maxPrice.getValue());
     }
 
-    return new WhereClauseAndParams(whereClause.toString(), params);
+    return builder.build();
   }
 
   /**
    * この条件から WHERE句を構築します（テーブルエイリアスなし）.
    *
-   * @return WHERE句とパラメータを含む WhereClauseAndParams オブジェクト
+   * @return WHERE句とパラメータを含む {@link WhereClauseAndParams} オブジェクト
    */
   public WhereClauseAndParams buildWhereClause() {
     return buildWhereClause(null);
-  }
-
-  /** WHERE句とパラメータを保持する内部クラス. */
-  public static final class WhereClauseAndParams {
-    private final String whereClauseWithoutWhereKeyword;
-    private final List<Object> params;
-
-    WhereClauseAndParams(final String whereClauseWithoutWhereKeyword, final List<Object> params) {
-      this.whereClauseWithoutWhereKeyword = whereClauseWithoutWhereKeyword;
-      this.params = List.copyOf(params);
-    }
-
-    /** WHERE句（WHERE キーワードなし）を返します. */
-    public String getWhereClauseWithoutWhereKeyword() {
-      return whereClauseWithoutWhereKeyword;
-    }
-
-    /** プレースホルダ用パラメータリストを返します. */
-    public List<Object> getParams() {
-      return params;
-    }
-
-    /** WHERE句が空でないかを確認します. */
-    public boolean isEmpty() {
-      return whereClauseWithoutWhereKeyword == null || whereClauseWithoutWhereKeyword.isEmpty();
-    }
   }
 }

@@ -1,71 +1,111 @@
 package copel.sesproductpackage.core.internal;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
-import com.amazonaws.services.sqs.model.SendMessageRequest;
-import com.amazonaws.services.sqs.model.SendMessageResult;
+import copel.sesproductpackage.tools.testsupport.config.TestProperty;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
+/** {@link SesAiAssistantWebAppNotifierSqsEntity} の単体テスト。 */
+@TestProperty(
+    key = "infrastructure/messaging/notifier-queue/url",
+    value = "https://sqs.ap-northeast-1.amazonaws.com/123/notifier-queue")
 class SesAiAssistantWebAppNotifierSqsEntityTest {
 
-  private MockedStatic<AmazonSQSClientBuilder> mockedBuilder;
-  private AmazonSQS mockSqs;
+  /** SQS クライアントのビルダーの静的メソッドのモック。テスト後に解除する。 */
+  private MockedStatic<AmazonSQSClientBuilder> builderStatic;
 
+  /** SQS クライアントの作成をモックに差し替える。 生成時に実 AWS へ接続しないようにするため。 */
   @BeforeEach
-  void setUp() {
-    mockedBuilder = mockStatic(AmazonSQSClientBuilder.class);
-    mockSqs = mock(AmazonSQS.class);
-    AmazonSQSClientBuilder mockB = mock(AmazonSQSClientBuilder.class);
-    lenient().when(mockB.withRegion(any(Regions.class))).thenReturn(mockB);
-    lenient().when(mockB.withEndpointConfiguration(any())).thenReturn(mockB);
-    lenient().when(mockB.withCredentials(any())).thenReturn(mockB);
-    when(mockB.build()).thenReturn(mockSqs);
-    mockedBuilder.when(AmazonSQSClientBuilder::standard).thenReturn(mockB);
+  void SQSクライアントの作成をモックに差し替える() {
+    builderStatic = mockStatic(AmazonSQSClientBuilder.class);
+    AmazonSQSClientBuilder builder = mock(AmazonSQSClientBuilder.class);
+    lenient().when(builder.withRegion(any(Regions.class))).thenReturn(builder);
+    lenient().when(builder.withEndpointConfiguration(any())).thenReturn(builder);
+    lenient().when(builder.withCredentials(any())).thenReturn(builder);
+    when(builder.build()).thenReturn(mock(AmazonSQS.class));
+    builderStatic.when(AmazonSQSClientBuilder::standard).thenReturn(builder);
   }
 
+  /** SQS クライアントの作成のモックを解除する。 */
   @AfterEach
-  void tearDown() {
-    mockedBuilder.close();
+  void SQSクライアントの作成のモックを解除する() {
+    builderStatic.close();
   }
 
-  @Test
-  void testGetMessageBody() throws Exception {
-    SesAiAssistantWebAppNotifierRequestEntity request =
-        new SesAiAssistantWebAppNotifierRequestEntity(
-            "user1", "test title", "test body", "/icon.png", "/badge.png", "test-tag", "/");
-    SesAiAssistantWebAppNotifierSqsEntity entity =
-        new SesAiAssistantWebAppNotifierSqsEntity(request);
-
-    String json = entity.getMessageBody();
-    assertTrue(json.contains("\"user_id\":\"user1\""));
-    assertTrue(json.contains("\"title\":\"test title\""));
-    assertTrue(json.contains("\"body\":\"test body\""));
-    assertTrue(json.contains("\"icon\":\"/icon.png\""));
-    assertTrue(json.contains("\"badge\":\"/badge.png\""));
-    assertTrue(json.contains("\"tag\":\"test-tag\""));
-    assertTrue(json.contains("\"url\":\"/\""));
+  /**
+   * テストで使うプッシュ通知の内容を作る。
+   *
+   * @return 全項目を持つプッシュ通知リクエスト
+   */
+  private static SesAiAssistantWebAppNotifierRequestEntity 全項目のリクエストを作る() {
+    return new SesAiAssistantWebAppNotifierRequestEntity(
+        "U001", "新着", "案件が届きました", "/icon.png", "/badge.png", "job", "/jobs");
   }
 
-  @Test
-  void testSendMessage() throws Exception {
-    SesAiAssistantWebAppNotifierRequestEntity request =
-        new SesAiAssistantWebAppNotifierRequestEntity(
-            "user1", "title", "body", "/icon.png", "/badge.png", "tag", "/");
-    SesAiAssistantWebAppNotifierSqsEntity entity =
-        new SesAiAssistantWebAppNotifierSqsEntity(request);
+  @Nested
+  class getMessageBody {
 
-    SendMessageResult mockRes = new SendMessageResult().withMessageId("msg123");
-    when(mockSqs.sendMessage(any(SendMessageRequest.class))).thenReturn(mockRes);
+    @Nested
+    class 正常系 {
 
-    SendMessageResult result = entity.sendMessage();
-    assertTrue(result.getMessageId().equals("msg123"));
+      /**
+       * 通知の全項目を、スネークケースのキーを持つ JSON で返すことを確かめる。 Web Push の受信側はこのキー名で内容を読むためである。
+       *
+       * @given ユーザーIDが "U001"、タイトルが "新着"、本文が "案件が届きました"、残りの項目が全て値を持つ "job"、遷移先が "/jobs"
+       * @when getMessageBody を実行する
+       * @then 全項目をスネークケースのキーに入れた JSON 本文を返す
+       */
+      @Test
+      void 全項目を持つ場合_スネークケースのキーでJSON本文を返す() throws Exception {
+        SesAiAssistantWebAppNotifierSqsEntity target =
+            new SesAiAssistantWebAppNotifierSqsEntity(全項目のリクエストを作る());
+
+        String json = target.getMessageBody();
+
+        assertThat(json)
+            .contains("\"user_id\":\"U001\"")
+            .contains("\"title\":\"新着\"")
+            .contains("\"body\":\"案件が届きました\"")
+            .contains("\"icon\":\"/icon.png\"")
+            .contains("\"badge\":\"/badge.png\"")
+            .contains("\"tag\":\"job\"")
+            .contains("\"url\":\"/jobs\"");
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 任意の項目が null の場合に、そのキーの値を null として出力することを確かめる。 タグや遷移先を省略した通知でも、受信側が項目の欠落に気付けるようにするためである。
+       *
+       * @given ユーザーIDが "U001"、タイトルが "新着"、それ以外の項目が null
+       * @when getMessageBody を実行する
+       * @then 省略した項目を null として含む JSON 本文を返す
+       */
+      @Test
+      void 任意の項目がnullの場合_そのキーをnullとしたJSON本文を返す() throws Exception {
+        SesAiAssistantWebAppNotifierSqsEntity target =
+            new SesAiAssistantWebAppNotifierSqsEntity(
+                new SesAiAssistantWebAppNotifierRequestEntity(
+                    "U001", "新着", null, null, null, null, null));
+
+        String json = target.getMessageBody();
+
+        assertThat(json).contains("\"body\":null").contains("\"url\":null");
+      }
+    }
   }
 }

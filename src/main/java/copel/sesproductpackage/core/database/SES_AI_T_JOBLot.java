@@ -4,6 +4,7 @@ import copel.sesproductpackage.core.database.base.SesAiTableLotBase;
 import copel.sesproductpackage.core.search.FulltextCondition;
 import copel.sesproductpackage.core.search.FulltextConditionsWhereClause;
 import copel.sesproductpackage.core.search.JobDetailFilterCondition;
+import copel.sesproductpackage.core.search.WhereClauseAndParams;
 import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
@@ -296,7 +297,7 @@ public class SES_AI_T_JOBLot extends SesAiTableLotBase<SES_AI_T_JOB> {
     // (2) 詳細フィルターのWHERE句とパラメータを構築
     // SELECT_RAW_CONTENT_FOR_FULLTEXT のFROM句に "j" エイリアスが存在しないため、
     // エイリアス無しでWHERE句を構築する（付与すると「missing FROM-clause entry」エラーとなる）
-    JobDetailFilterCondition.WhereClauseAndParams detailFilterWhere =
+    WhereClauseAndParams detailFilterWhere =
         (detailFilter != null)
             ? detailFilter.buildWhereClause()
             : new JobDetailFilterCondition().buildWhereClause();
@@ -357,7 +358,7 @@ public class SES_AI_T_JOBLot extends SesAiTableLotBase<SES_AI_T_JOB> {
     // (1) 詳細フィルターのWHERE句とパラメータを構築
     // ベクトル検索SQLのFROM句に "j" エイリアスが存在しないため、
     // エイリアス無しでWHERE句を構築する（付与すると「missing FROM-clause entry」エラーとなる）
-    JobDetailFilterCondition.WhereClauseAndParams detailFilterWhere =
+    WhereClauseAndParams detailFilterWhere =
         (detailFilter != null)
             ? detailFilter.buildWhereClause()
             : new JobDetailFilterCondition().buildWhereClause();

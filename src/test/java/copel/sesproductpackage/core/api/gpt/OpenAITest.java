@@ -15,6 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -665,5 +666,43 @@ class OpenAITest {
    */
   private static InputStream stream(final String text) {
     return new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
+  }
+
+  @Nested
+  class openDefault {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * URL を指定した場合に、通信を行わずに HTTP 接続を開くことを確かめる。 既定の接続は接続を開くだけで、通信は後から行うためである。
+       *
+       * @given 送信先が "http://127.0.0.1/embedding" の URL
+       * @when openDefault を実行する
+       * @then HttpURLConnection を返す
+       */
+      @Test
+      void URLを指定する場合_HttpURLConnectionを返す() throws IOException {
+        assertThat(OpenAI.openDefault("http://127.0.0.1/embedding"))
+            .isInstanceOf(HttpURLConnection.class);
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * URL の形式が不正な場合に例外を投げることを確かめる。 形式の誤った送信先へ接続を試みないためである。
+       *
+       * @given 送信先が "不正なURL" の文字列
+       * @when openDefault を実行する
+       * @then MalformedURLException を投げる
+       */
+      @Test
+      void URLの形式が不正な場合_MalformedURLExceptionを投げる() {
+        assertThatThrownBy(() -> OpenAI.openDefault("不正なURL"))
+            .isInstanceOf(MalformedURLException.class);
+      }
+    }
   }
 }
