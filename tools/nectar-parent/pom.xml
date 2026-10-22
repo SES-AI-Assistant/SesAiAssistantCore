@@ -23,6 +23,9 @@
     <!-- Core と tools の版。Core と tools を同じ版で配布しているため1つのプロパティで管理する。
          ${project.version} にすると子の版に置き換わってしまうため、本 pom の version と別に書く（版を上げるときは両方を変える） -->
     <nectar.version>0.0.1-SNAPSHOT</nectar.version>
+    <!-- IT1 の PostgreSQL をホストに公開するポート。Core は DB の接続先を起動時に環境変数から1回だけ読むため固定する。
+         他のリポジトリの IT1 と同時に実行してもぶつからないよう、IT1 を持つリポジトリは pom の properties でリポジトリごとに別の番号に上書きする -->
+    <nectar.it.db-port>55400</nectar.it.db-port>
   </properties>
 
   <!-- distributionManagement は書かない。子に継承され、子で mvn deploy すると各リポジトリの成果物が Core の GitHub Packages に公開されてしまうため。
@@ -61,6 +64,13 @@
         <version>${nectar.version}</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+      <!-- IT1 を持つリポジトリは、版なし・test スコープで宣言する。Core より先に宣言すること（tools/README.md 7章） -->
+      <dependency>
+        <groupId>com.github.SES-AI-Assistant</groupId>
+        <artifactId>nectar-it-support</artifactId>
+        <version>${nectar.version}</version>
+        <scope>test</scope>
       </dependency>
       <!-- 子の pom は Core を版なしで宣言する -->
       <dependency>
@@ -184,6 +194,12 @@
         <version>2.43.0</version>
         <configuration>
           <java>
+            <!-- IT1 のコード（src/it/java）も UT と同じ書式にそろえる -->
+            <includes>
+              <include>src/main/java/**/*.java</include>
+              <include>src/test/java/**/*.java</include>
+              <include>src/it/java/**/*.java</include>
+            </includes>
             <googleJavaFormat>
               <version>1.17.0</version>
               <style>GOOGLE</style>
@@ -315,6 +331,90 @@
             <id>nectar-ut-spec</id>
             <goals>
               <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!--
+        IT1（結合テスト）: src/it/java の *IT クラスを failsafe で実行する。Docker が必要。
+        src/it が無いリポジトリでは対象のテストが無いため何も実行しない。CI の mvn verify は -DskipITs で止め、IT1 は専用のワークフローで実行する。
+        IT1 を持つリポジトリは、pom で nectar-it-support を test スコープ・Core より先に宣言し、nectar.it.db-port を別の番号に上書きする。
+        使い方は tools/README.md の 7 章を参照する
+      -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <executions>
+          <!-- IT のコードを src/it/java に置き、テストのクラスパスにだけ加える。
+               UT ではないため src/test/java には置かず、UT 仕様の検査とカバレッジの対象から外す -->
+          <execution>
+            <id>add-it-source</id>
+            <phase>generate-test-sources</phase>
+            <goals>
+              <goal>add-test-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>src/it/java</source>
+              </sources>
+            </configuration>
+          </execution>
+          <execution>
+            <id>add-it-resource</id>
+            <phase>generate-test-resources</phase>
+            <goals>
+              <goal>add-test-resource</goal>
+            </goals>
+            <configuration>
+              <resources>
+                <resource>
+                  <directory>src/it/resources</directory>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <version>3.2.5</version>
+        <configuration>
+          <!-- package で作る JAR は Lambda 用に Core（古い commons-compress を同梱）を含むため、JAR ではなくコンパイル結果を使う -->
+          <classesDirectory>${project.build.outputDirectory}</classesDirectory>
+          <!-- JaCoCo のエージェントを付けない。IT の実行結果を UT のカバレッジ 100% の判定に混ぜないため、@{argLine} を使わない -->
+          <argLine>--add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+          <!-- Core は DB の接続先・認証情報・設定の環境を、起動時に環境変数から1回だけ読む。そのため値をここで固定し、
+               コンテナの PostgreSQL も DB_PORT のポートで公開する（ItEnvironment）。このポートを別のプロセスが使っていると、コンテナの起動に失敗する -->
+          <environmentVariables>
+            <DB_HOST>localhost</DB_HOST>
+            <DB_PORT>${nectar.it.db-port}</DB_PORT>
+            <DB_NAME>nectar</DB_NAME>
+            <DB_USERNAME>nectar</DB_USERNAME>
+            <DB_PASSWORD>nectar</DB_PASSWORD>
+            <ENVIRONMENT>dev</ENVIRONMENT>
+            <AWS_REGION>ap-northeast-1</AWS_REGION>
+            <AWS_ACCESS_KEY_ID>test</AWS_ACCESS_KEY_ID>
+            <AWS_SECRET_ACCESS_KEY>test</AWS_SECRET_ACCESS_KEY>
+          </environmentVariables>
+          <systemPropertyVariables>
+            <!-- テスト項目書は IT の JavaDoc から作り、docs に出力してコミットする（実行結果を含めない）。
+                 実行結果のレポート（HTML）とケースごとのログ・SQL は target/it-results に出力し、CI ではレポートを Artifact に保存する -->
+            <nectar.it.title>${project.artifactId}</nectar.it.title>
+            <nectar.it.spec.file>${project.basedir}/docs/IT1テスト項目書.md</nectar.it.spec.file>
+            <nectar.it.report.file>${project.build.directory}/it-results/IT1テスト結果.html</nectar.it.report.file>
+            <nectar.it.summary.file>${project.build.directory}/it-results/IT1テスト結果.md</nectar.it.summary.file>
+            <nectar.it.log.dir>${project.build.directory}/it-results/logs</nectar.it.log.dir>
+            <nectar.it.source.dir>${project.basedir}/src/it/java</nectar.it.source.dir>
+            <logback.configurationFile>logback-it.xml</logback.configurationFile>
+          </systemPropertyVariables>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
             </goals>
           </execution>
         </executions>

@@ -11,6 +11,8 @@ Nectar の Java リポジトリ（Lambda・Web API）で、ビルド・UT・静�
 | `nectar-bom` | JUnit・Mockito・AssertJ などの版を統一する | 親 pom が読み込む |
 | `nectar-test-support` | UT 用の部品（時刻の固定、設定値の差し替え、DB 接続のモック）と、UT 用のログ設定 | 親 pom が `test` スコープで依存に加える |
 | `nectar-ut-spec-plugin` | UT がルールどおりか検査し、テスト仕様書 HTML を出力する | 親 pom が `verify` で実行する |
+| `nectar-it-support` | IT1（結合テスト）用の部品（DB と AWS のコンテナ、ログと SQL の記録、テスト項目書と実行結果の出力） | IT1 を持つリポジトリが `test` スコープで宣言する（7 章） |
+| `nectar-it-support` | IT1（結合テスト）用の部品（DB と AWS のコンテナ、ログと SQL の記録、テスト項目書と実行結果の出力） | IT1 を持つリポジトリが `test` スコープで宣言する（7 章） |
 
 ```
 各リポジトリの pom.xml ──<parent>──▶ nectar-parent
@@ -196,6 +198,7 @@ Core は Core 自身を配布する（`distributionManagement` を pom に残す
 (cd tools/nectar-bom && mvn clean install)
 (cd tools/nectar-ut-spec-plugin && mvn clean install)
 (cd tools/nectar-test-support && mvn clean install)
+(cd tools/nectar-it-support && mvn clean install)
 (cd tools/nectar-parent && mvn clean install)
 ```
 
@@ -206,7 +209,7 @@ Core は Core 自身を配布する（`distributionManagement` を pom に残す
 ### 6.2 配布
 
 `.github/workflows/deploy-tools.yml` が、`main` への push のうち `tools/**` に変更があった場合と、手動実行で GitHub Packages に配布します。
-配布の順は `nectar-bom` → `nectar-ut-spec-plugin` → `nectar-test-support` → `nectar-parent` です。
+配布の順は `nectar-bom` → `nectar-ut-spec-plugin` → `nectar-test-support` → `nectar-it-support` → `nectar-parent` です。
 `nectar-parent` の配布先は、pom ではなく `deploy-tools.yml` の `altDeploymentRepository` で指定しています（pom に書くと子に継承され、子で `mvn deploy` したときに各リポジトリの成果物が公開されてしまうため）。
 
 各リポジトリの CI は配布済みの `nectar-parent` を取得するため、ツールを変えた場合は、Core の PR を先にマージして `deploy-tools.yml` の成功を確かめてから、各リポジトリの PR をマージします。
@@ -219,3 +222,74 @@ Core とツールは同じ版（現在 `0.0.1-SNAPSHOT`）で配布していま�
 
 Core リポジトリは Public のため、配布したパッケージも公開扱いで、保存量・転送量ともに無料です。
 Core リポジトリを Private にすると、Free プランの上限（保存 500MB、転送 月 1GB）が掛かり、CI からの取得も転送量に数えられます（`GITHUB_TOKEN` ではなく PAT で取得しているため）。
+
+## 7. IT1（結合テスト）
+
+DB と AWS に本物と同じ通信で接続し、実装の組み合わせでしか確かめられないことだけを確かめるテストです。
+UT（モックで分岐を網羅する）と役割を分け、IT1 は「DB・AWS と結合して初めて分かること」だけに絞ります（Lambda で数件〜10件程度）。
+
+### 7.1 仕組み
+
+```
+各リポジトリ src/it/java の *IT クラス ──使う──▶ nectar-it-support
+   （ケースと、そのモジュール固有の設定だけ）       ├─ ItEnvironment   : 1つのコンテナ（PostgreSQL + pgvector と moto: S3・SSM・DynamoDB・SQS）を起動する
+                                                     ├─ ItLogRecorder   : ケースごとにアプリのログと、アプリが実行した SQL を記録する
+                                                     ├─ ItDocumentWriter: テスト項目書（Markdown）と実行結果（HTML・Markdown）を出力する
+                                                     └─ StatementLog    : PostgreSQL のログから、バインド値を埋めた SQL を取り出す
+nectar-parent ── failsafe・環境変数・システムプロパティ・src/it の取り込み・整形 を設定済み
+```
+
+- 1リポジトリ1コンテナです。コンテナは JVM の中で1回だけ起動し、JVM の終了時に削除します。ケースの前に `reset()` で DB・キュー・DynamoDB を空に戻します（冪等）
+- テストデータは SQL の INSERT で直接入れます（Entity は使いません）
+- 親 pom が `mvn verify` の中で `*IT` を実行します（CI の検査は `-DskipITs` で IT1 を止め、IT1 は専用のワークフローで実行します）
+- Docker が必要です。初回はイメージのビルドに数分かかります
+
+### 7.2 各リポジトリでやること
+
+1. `pom.xml`
+   - `nectar-it-support` を **Core より先に** 宣言します（版・スコープは親 pom で管理）。Core の jar は古い commons-compress のクラスを同梱しており、後に置くと Testcontainers が古いクラスを読んで失敗します
+   - `<properties>` に `nectar.it.db-port` を **リポジトリごとに別の番号** で書きます（他のリポジトリの IT1 と同時に実行してもぶつからないように）。LINE は 55401
+2. `src/it/resources/it-env/ddl.sql`: 本番の DDL から、そのモジュールが使うテーブルの `CREATE TABLE` だけを写します（先頭に `CREATE EXTENSION vector` と `pg_trgm`）
+3. `src/it/java/.../XxxItEnvironment.java`: `ItEnvironment.builder(...)` に、そのモジュール固有の値（DDL、キュー、SSM のパラメータ、設定ファイルのバケット、DynamoDB のテーブル、空にするテーブル）を渡し、業務に沿った操作（「経路を登録する」など）を `execute(sql, ...)` で包みます。お手本は `AwsLambdaLineMssageReceiver` の `LineItEnvironment` です
+4. `src/it/java/.../XxxIT.java`: テストケースです。`@RegisterExtension static final ItLogRecorder LOGS = new ItLogRecorder();` を宣言します。メソッドの JavaDoc（本文と `@given` `@when` `@then`）がそのままテスト項目書になります
+5. `.github/workflows/it1.yml`: LINE のものをコピーします。`paths` で `src/**` と `pom.xml` の変更があったときだけ動かします
+
+`docs/IT1テスト項目書.md` は自動生成です。手で直さず、テストの JavaDoc を直して `mvn clean verify` で再生成します。
+
+### 7.3 コマンド
+
+| コマンド | 用途 |
+| :--- | :--- |
+| `mvn clean verify` | CI と同じ全検査に加えて IT1 を実行する（手元ではこれ） |
+| `mvn clean test-compile failsafe:integration-test failsafe:verify` | IT1 だけを実行する（it1.yml が使う） |
+| `mvn clean verify -DskipITs` | IT1 を除く全検査（ci.yml が使う） |
+
+実行後の確認先: `target/it-results/IT1テスト結果.html`（ケースごとの結果・ログ・SQL）、`target/it-results/logs/`（ケースごとのログ JSON と SQL）。
+
+### 7.4 ログと SQL の確認（何を自動で確かめ、何を人が読むか）
+
+| 確認 | 方法 | 自動か |
+| :--- | :--- | :--- |
+| 出力（レスポンス、SQS のメッセージ、DB・DynamoDB の状態） | テストのアサーション | 自動 |
+| 想定外の WARN 以上のログ | `ItLogRecorder` がケースの終了時に検査し、出ていれば失敗にする。意図したものだけ `LOGS.allowWarnings()` で許可し、内容を `LOGS.warnings()` で確かめる | 自動（既定で有効） |
+| 判断の分岐を通ったことを示すログ（重複と判定した、など） | `LOGS.messages()` に目的のメッセージがあることをアサーションする | 必要なケースだけ自動 |
+| 実行された SQL | PostgreSQL が受け取った SQL を、バインド値を埋めて記録する。`LOGS.sqls()` でアサーションできる（例: `tenant_id = 'T001'` で絞っていること） | 重要な条件（テナント隔離など）だけ自動、それ以外は目視 |
+| ログ全体・SQL 全体の内容 | 実行結果の HTML を読んで確かめる | 目視（人または AI） |
+
+ログや SQL の全文を期待値と一致させるテストは作りません。文言や項目の追加で壊れやすく、本当に守りたい振る舞いを確かめる力は増えないためです。
+その代わり、**HTTP が 200 でも期待と違う動きをしていないか** を、次の3点で確かめます。
+(1) 副作用（SQS・DB・DynamoDB）を必ずアサーションする、(2) 想定外の WARN 以上を失敗にする、(3) 実行結果の HTML でログと SQL を読む。
+
+SQL は Core がログに出すものではなく、**PostgreSQL のログ** から読みます（`log_statement=all`、`log_parameter_max_length=-1`）。
+そのため Core の実装とログのずれがなく、バインド値を埋めた「DB が実際に受け取った SQL」を見られます。
+テストの準備・確認に使う接続は `application_name=it-setup` で区別し、アプリの SQL に混ぜません。
+
+### 7.5 Core を変えたときの確認
+
+Core の変更は、Core を使うすべてのリポジトリに影響します。Core のクラスやメソッドを変えたら、それを呼んでいるリポジトリを特定し、
+そのリポジトリで Core を取り込み直して IT1 を実行し、ログと SQL が期待どおりか読みます（手順は `.claude/skills/run-it1-tests/SKILL.md`）。
+
+### 7.6 範囲と今後
+
+- `nectar-it-support` 自体には、カバレッジ 100% と UT 仕様の検査を掛けていません。コンテナに依存する部品は、各リポジトリの IT1 を実行して確かめるためです。コンテナに依存しない `StatementLog` は UT があります
+- Gemini・OpenAI を呼ぶモジュールのために、同じコンテナに WireMock を足せる拡張口は未実装です。必要になったときに `Dockerfile` と `ItEnvironment.Builder` に足します

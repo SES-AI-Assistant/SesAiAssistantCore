@@ -54,7 +54,16 @@ jobs:
           GITHUB_ACTOR: ${{ secrets.GITHUB_ACTOR }}
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
 
-      # nectar-parent は上の3つを参照する親 pom のため、最後に配布する。
+      # nectar-it-support は IT1（結合テスト）用の共通部品。Core（provided）と nectar-bom を使うため、それらの配布後に配布する。
+      # 自身の UT は skip しない。コンテナに依存する部品は、各リポジトリの IT1 を実行して確かめる
+      - name: nectar-it-support をビルドしてデプロイ
+        working-directory: tools/nectar-it-support
+        run: mvn -B deploy --settings ${GITHUB_WORKSPACE}/.github/maven-settings.xml
+        env:
+          GITHUB_ACTOR: ${{ secrets.GITHUB_ACTOR }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+
+      # nectar-parent は上の4つを参照する親 pom のため、最後に配布する。
       # 配布先は pom に書かずここで指定する（pom に書くと子に継承され、子の mvn deploy で各リポジトリの成果物が公開されるため）
       - name: nectar-parent をビルドしてデプロイ
         working-directory: tools/nectar-parent

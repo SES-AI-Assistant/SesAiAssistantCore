@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.github.SES-AI-Assistant</groupId>
+  <artifactId>nectar-it-support</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>jar</packaging>
+  <name>Nectar IT Support</name>
+  <description>Nectar の Java リポジトリで IT1（結合テスト）を書くための共通部品（DB と AWS のコンテナ、ログと SQL の記録、テスト項目書と実行結果の出力）</description>
+
+  <properties>
+    <!-- source/target ではなく release を指定する（CI は JDK 17 で動作する） -->
+    <maven.compiler.release>17</maven.compiler.release>
+    <!-- ソースと成果物の文字コードを UTF-8 に固定する（日本語の JavaDoc とログを文字化けさせないため） -->
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!-- Testcontainers の版。Core の jar は古い commons-compress を同梱しているため、利用側は nectar-it-support を Core より先に宣言する -->
+    <testcontainers.version>2.0.5</testcontainers.version>
+  </properties>
+
+  <!-- GitHub Packages へ mvn deploy する際のリポジトリ（Core の pom と同一） -->
+  <distributionManagement>
+    <repository>
+      <id>github</id>
+      <url>https://maven.pkg.github.com/SES-AI-Assistant/SesAiAssistantCore</url>
+    </repository>
+    <snapshotRepository>
+      <id>github</id>
+      <url>https://maven.pkg.github.com/SES-AI-Assistant/SesAiAssistantCore</url>
+    </snapshotRepository>
+  </distributionManagement>
+
+  <!-- nectar-bom と Core は GitHub Packages に配布されているため、そのリポジトリを参照する -->
+  <repositories>
+    <repository>
+      <id>github</id>
+      <url>https://maven.pkg.github.com/SES-AI-Assistant/SesAiAssistantCore</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- 依存ライブラリの版は nectar-bom で統一する（先に nectar-bom を配布すること） -->
+      <dependency>
+        <groupId>com.github.SES-AI-Assistant</groupId>
+        <artifactId>nectar-bom</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!-- 利用側の IT が使うライブラリ。利用側は nectar-it-support を test スコープで1つ宣言すれば、これらも test スコープで揃う -->
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+      <version>${testcontainers.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+    </dependency>
+    <!-- 実行結果を受け取り、テスト項目書と実行結果を出力するリスナーで使う -->
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-launcher</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+    </dependency>
+    <!-- テスト項目書の各列をテストの JavaDoc から読み取る -->
+    <dependency>
+      <groupId>com.github.javaparser</groupId>
+      <artifactId>javaparser-core</artifactId>
+    </dependency>
+
+    <!--
+      利用側の Core を使うため provided とする。AWS SDK・Jackson・SLF4J・Logback・PostgreSQL ドライバは Core が持ち込む。
+    -->
+    <dependency>
+      <groupId>com.github.SES-AI-Assistant</groupId>
+      <artifactId>sesaiassistantcore</artifactId>
+      <version>0.0.1-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- ケースのログを本番（CloudWatch Logs）と同じ JSON の形式で書き出す。Lambda の各リポジトリが持つ -->
+    <dependency>
+      <groupId>net.logstash.logback</groupId>
+      <artifactId>logstash-logback-encoder</artifactId>
+      <version>7.2</version>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- JDKバージョンチェック（Core と同じ範囲） -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>3.4.1</version>
+        <executions>
+          <execution>
+            <id>enforce-java-version</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireJavaVersion>
+                  <version>[17,23)</version>
+                  <message>MavenがJava 17以上23未満で動作している必要があります。JAVA_HOME を対応JDKに設定してください。現在のバージョンは mvn -version で確認できます。</message>
+                </requireJavaVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+      </plugin>
+
+      <!-- 整形: 利用側と同じ google-java-format。直すときは mvn spotless:apply。
+           カバレッジ 100% と UT 仕様の検査は掛けない。コンテナに依存する部品は、利用側の IT1 を実行して確かめるため -->
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>2.43.0</version>
+        <configuration>
+          <java>
+            <googleJavaFormat>
+              <version>1.17.0</version>
+              <style>GOOGLE</style>
+            </googleJavaFormat>
+          </java>
+        </configuration>
+        <executions>
+          <execution>
+            <id>spotless-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
