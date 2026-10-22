@@ -55,8 +55,20 @@ public class OpenAI implements Transformer {
    * <p>テストで必要な理由: 実際の HTTP 通信を行わずに、成功・失敗の応答を再現するため。 URL
    * の生成そのものを差し替える方法は、クラスの読み込みまで巻き込んで失敗したため採らなかった。
    */
-  static ConnectionOpener connectionOpener =
-      endpoint -> (HttpURLConnection) new URL(endpoint).openConnection();
+  static ConnectionOpener connectionOpener = OpenAI::openDefault;
+
+  /**
+   * 既定の接続として、URL から HTTP 接続を開きます。
+   *
+   * <p>接続を開くだけで、この時点では通信を行わない。通信は呼び出し側が接続を使ったときに行う。
+   *
+   * @param endpoint 送信先の URL
+   * @return HTTP 接続
+   * @throws IOException 接続を開けなかった場合（URL の形式が不正な場合を含む）
+   */
+  static HttpURLConnection openDefault(final String endpoint) throws IOException {
+    return (HttpURLConnection) new URL(endpoint).openConnection();
+  }
 
   /** OpenAI APIのエンベディング処理のエンドポイント. */
   private static final String EMBEDDING_API_URL = Properties.get("OPEN_AI_EMBEDDING_API_URL");

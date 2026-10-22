@@ -4,6 +4,7 @@ import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.search.FulltextCondition;
 import copel.sesproductpackage.core.search.FulltextConditionsWhereClause;
 import copel.sesproductpackage.core.search.PersonDetailFilterCondition;
+import copel.sesproductpackage.core.search.WhereClauseAndParams;
 import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
@@ -553,7 +554,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
             "p.raw_content", List.of("s.file_content_summary"), conditions);
 
     // (2) 詳細フィルターのWHERE句とパラメータを構築
-    PersonDetailFilterCondition.WhereClauseAndParams detailFilterWhere =
+    WhereClauseAndParams detailFilterWhere =
         (detailFilter != null)
             ? detailFilter.buildWhereClause("p")
             : new PersonDetailFilterCondition().buildWhereClause("p");
@@ -611,7 +612,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
     }
 
     // (1) 詳細フィルターのWHERE句とパラメータを構築
-    PersonDetailFilterCondition.WhereClauseAndParams detailFilterWhere =
+    WhereClauseAndParams detailFilterWhere =
         (detailFilter != null)
             ? detailFilter.buildWhereClause("p")
             : new PersonDetailFilterCondition().buildWhereClause("p");
