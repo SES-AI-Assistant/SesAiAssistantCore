@@ -7,9 +7,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import java.io.IOException;
+import java.util.Optional;
 
 /** Core共通で使用するObjectMapper */
 public class ObjectMapperFactory {
+  /** インスタンス化を禁止する。すべての操作は静的メンバーで提供する。 */
+  private ObjectMapperFactory() {}
+
   /** ObjectMapperインスタンス. */
   public static final ObjectMapper OBJECT_MAPPER = createGptObjectMapper();
 
@@ -34,13 +38,12 @@ public class ObjectMapperFactory {
               p.skipChildren();
               return null;
             }
-            String value = p.getValueAsString();
-            if (value == null) return null;
-            String trimmed = value.trim();
-            if (trimmed.equalsIgnoreCase("null")) {
-              return null;
-            }
-            return trimmed;
+            // getValueAsString が null を返す場合（JSON の null トークン）と、前後の空白を除いた値が "null"（大文字小文字を問わない）の場合は
+            // null とする
+            return Optional.ofNullable(p.getValueAsString())
+                .map(String::trim)
+                .filter(value -> !"null".equalsIgnoreCase(value))
+                .orElse(null);
           }
         };
     module.addDeserializer(String.class, stringDeserializer);

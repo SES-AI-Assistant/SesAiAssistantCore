@@ -1,197 +1,250 @@
 package copel.sesproductpackage.core.util;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.slf4j.LoggerFactory;
 
-/**
- * {@link ConfigSource} の単体テスト。
- *
- * <p>環境変数 {@link ConfigSource#LAMBDA_FUNCTION_NAME_ENV} は直接変更できないため、Lambda 上かどうかの判定は関数名を引数に取る
- * {@code isMemory(String)} で確かめる。
- *
- * @author Copel Co., Ltd.
- */
+/** {@link ConfigSource} の単体テスト。 */
 class ConfigSourceTest {
 
-  /** テストの前に設定読み込み元のプロパティの値を退避する。 */
-  private String originalConfigSource;
+  /** テスト前の読み込み元の設定値。テスト後に元へ戻すために保存する。 */
+  private String 読み込み元の設定値;
 
-  /** テストの前に設定読み込み元のプロパティの値を退避する。 */
+  /** WARN ログを記録するアペンダー。 */
+  private ListAppender<ILoggingEvent> logs;
+
   @BeforeEach
-  void setUp() {
-    originalConfigSource = System.getProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
+  void 設定値とログを準備する() {
+    読み込み元の設定値 = System.getProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
+    logs = new ListAppender<>();
+    logs.start();
+    ((Logger) LoggerFactory.getLogger(ConfigSource.class)).addAppender(logs);
   }
 
-  /** テストの後に設定読み込み元のプロパティを復元する。後続のテストの設定が変わらないようにする。 */
   @AfterEach
-  void tearDown() {
-    if (originalConfigSource == null) {
+  void 設定値とログを元に戻す() {
+    ((Logger) LoggerFactory.getLogger(ConfigSource.class)).detachAppender(logs);
+    if (読み込み元の設定値 == null) {
       System.clearProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
     } else {
-      System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, originalConfigSource);
+      System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, 読み込み元の設定値);
     }
   }
 
-  /** {@link ConfigSource#isMemory(String)} のテスト。 */
+  /**
+   * 読み込み元の設定値を指定の値にする。
+   *
+   * @param value 設定する読み込み元の値
+   */
+  private static void 読み込み元を設定する(final String value) {
+    System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, value);
+  }
+
+  /**
+   * 警告ログの件数を数える。
+   *
+   * @return 警告ログの件数
+   */
+  private int 警告の件数() {
+    return (int) logs.list.stream().filter(event -> event.getLevel() == Level.WARN).count();
+  }
+
   @Nested
   class isMemory {
 
-    /** 正常系のテスト。 */
     @Nested
     class 正常系 {
 
       /**
-       * ConfigSource#isMemory がシステムプロパティが memory で Lambda の関数名がないときに true を返すことを確かめる。 テスト実行時だけ
-       * memory の判定を通すことで、本番の経路を守る。
+       * 読み込み元が memory で Lambda 上でない場合は true を返すことを確かめる。 memory を判定しないとテスト用の設定がオフラインで使えないので、true
+       * を返す。
        *
-       * @given システムプロパティ "nectar.config.source" が "memory" で、Lambda の関数名が null である
-       * @when isMemory を Lambda の関数名 null で呼び出す
+       * @given 読み込み元が memory、AWS_LAMBDA_FUNCTION_NAME が未設定
+       * @when 引数なしの isMemory を実行する
        * @then true を返す
        */
       @Test
-      void システムプロパティがmemoryでLambdaの関数名がない場合_trueを返す() {
-        System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, ConfigSource.CONFIG_SOURCE_MEMORY);
+      void 読み込み元がmemoryの場合_trueを返す() {
+        読み込み元を設定する(ConfigSource.CONFIG_SOURCE_MEMORY);
 
-        assertTrue(ConfigSource.INSTANCE.isMemory(null));
+        assertThat(ConfigSource.INSTANCE.isMemory()).isTrue();
+      }
+    }
+  }
+
+  @Nested
+  class isMemory_String {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 読み込み元が memory で Lambda 関数名が無い場合は true を返すことを確かめる。 Lambda
+       * 関数名が無い場合の判定を変えるとテスト環境の判定が変わるので、true を固定する。
+       *
+       * @given 読み込み元が memory、Lambda 関数名が null
+       * @when isMemory を Lambda 関数名 null で実行する
+       * @then true を返す
+       */
+      @Test
+      void 読み込み元がmemoryでLambda関数名がない場合_trueを返す() {
+        読み込み元を設定する(ConfigSource.CONFIG_SOURCE_MEMORY);
+
+        assertThat(ConfigSource.INSTANCE.isMemory(null)).isTrue();
       }
 
       /**
-       * ConfigSource#isMemory がLambdaの関数名が空文字のときは Lambda 上とみなさないことを確かめる。 環境変数が空で設定されている環境を、Lambda
-       * と誤判定しない。
+       * 読み込み元が memory で 2 回続けて判定した場合、2 回目は警告を出さないことを確かめる。 警告ログが毎回出ると埋もれてしまうので、2 回目の判定では出さない。
        *
-       * @given システムプロパティ "nectar.config.source" が "memory" で、Lambda の関数名が空文字である
-       * @when isMemory を Lambda の関数名 "" で呼び出す
-       * @then true を返す
+       * @given 読み込み元が memory、Lambda 関数名が null
+       * @when isMemory を 2 回続けて実行する
+       * @then 2 回目の判定で警告ログを増やさない
        */
       @Test
-      void Lambdaの関数名が空文字の場合_trueを返す() {
-        System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, ConfigSource.CONFIG_SOURCE_MEMORY);
+      void 二回続けて判定した場合_何もしない() {
+        読み込み元を設定する(ConfigSource.CONFIG_SOURCE_MEMORY);
+        ConfigSource.INSTANCE.isMemory(null);
+        int before = 警告の件数();
 
-        assertTrue(ConfigSource.INSTANCE.isMemory(""));
+        ConfigSource.INSTANCE.isMemory(null);
+
+        assertThat(警告の件数() - before).isZero();
       }
     }
 
-    /** 認可のテスト。 */
     @Nested
-    class 認可 {
+    class 異常系 {
 
       /**
-       * ConfigSource#isMemory がLambda上ではシステムプロパティが memory でも false を返すことを確かめる。 Lambda で誤って memory
-       * を設定しても、設定値が空のまま起動することを防ぐ。
+       * Lambda 上で動いている場合は memory を無効にすることを確かめる。 Lambda 上でテスト用の設定が有効になると本番の設定が読まれなくなるので、false を返す。
        *
-       * @given システムプロパティ "nectar.config.source" が "memory" で、Lambda の関数名が "nectar-web-api" である
-       * @when isMemory を Lambda の関数名 "nectar-web-api" で呼び出す
+       * @given 読み込み元が memory、Lambda 関数名が "ses-info-register"
+       * @when isMemory を Lambda 関数名で実行する
        * @then false を返す
        */
       @Test
-      void Lambdaの関数名がある場合_falseを返す() {
-        System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, ConfigSource.CONFIG_SOURCE_MEMORY);
+      void Lambda関数名がある場合_falseを返す() {
+        読み込み元を設定する(ConfigSource.CONFIG_SOURCE_MEMORY);
 
-        assertFalse(ConfigSource.INSTANCE.isMemory("nectar-web-api"));
+        assertThat(ConfigSource.INSTANCE.isMemory("ses-info-register")).isFalse();
+      }
+
+      /**
+       * 読み込み元が本番の場合は memory ではないと判定することを確かめる。 本番の読み込み経路を変えると本番の設定が誤って読まれなくなるので、false を固定する。
+       *
+       * @given 読み込み元が "production"
+       * @when isMemory を Lambda 関数名 null で実行する
+       * @then false を返す
+       */
+      @Test
+      void 読み込み元が本番の場合_falseを返す() {
+        読み込み元を設定する("production");
+
+        assertThat(ConfigSource.INSTANCE.isMemory(null)).isFalse();
+      }
+
+      /**
+       * 読み込み元の値が memory と大文字小文字だけ異なる場合は memory ではないと判定することを確かめる。 完全一致以外を memory
+       * と判定すると誤った切り替えが起きるので、大文字は false にする。
+       *
+       * @given 読み込み元が "MEMORY"
+       * @when isMemory を Lambda 関数名 null で実行する
+       * @then false を返す
+       */
+      @Test
+      void 読み込み元の値が大文字の場合_falseを返す() {
+        読み込み元を設定する("MEMORY");
+
+        assertThat(ConfigSource.INSTANCE.isMemory(null)).isFalse();
       }
     }
 
-    /** 境界値のテスト。 */
     @Nested
     class 境界値 {
 
       /**
-       * ConfigSource#isMemory がシステムプロパティが未設定のとき false を返すことを確かめる。 未設定は本番の実行環境であり、memory
-       * として扱うと本番の読み込みが止まる。
+       * Lambda 関数名が空文字の場合は Lambda 上ではないとみなし true を返すことを確かめる。 空の関数名を Lambda
+       * 上と誤判定するとテスト設定が使えなくなるので、true にする。
        *
-       * @given システムプロパティ "nectar.config.source" が未設定で、Lambda の関数名が null である
-       * @when isMemory を Lambda の関数名 null で呼び出す
-       * @then false を返す
+       * @given 読み込み元が memory、Lambda 関数名が空文字
+       * @when isMemory を空文字で実行する
+       * @then true を返す
        */
-      @Test
-      void システムプロパティが未設定の場合_falseを返す() {
-        System.clearProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
+      @ValueSource(strings = {""})
+      @ParameterizedTest
+      void Lambda関数名が空文字の場合_trueを返す(final String name) {
+        読み込み元を設定する(ConfigSource.CONFIG_SOURCE_MEMORY);
 
-        assertFalse(ConfigSource.INSTANCE.isMemory(null));
+        assertThat(ConfigSource.INSTANCE.isMemory(name)).isTrue();
       }
 
       /**
-       * ConfigSource#isMemory が大文字の値を memory として扱わないことを確かめる。 大文字小文字を区別しないと、意図しない表記で本番の判定が変わる。
+       * 読み込み元が未設定の場合は memory ではないと判定することを確かめる。 未設定時の既定の読み込み経路を変えると本番の挙動が変わるので、false を固定する。
        *
-       * @given システムプロパティ "nectar.config.source" が "MEMORY" で、Lambda の関数名が null である
-       * @when isMemory を Lambda の関数名 null で呼び出す
+       * @given 読み込み元が未設定
+       * @when isMemory を Lambda 関数名 null で実行する
        * @then false を返す
        */
       @Test
-      void システムプロパティがMEMORYの場合_falseを返す() {
-        System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, "MEMORY");
+      void 読み込み元が未設定の場合_falseを返す() {
+        System.clearProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
 
-        assertFalse(ConfigSource.INSTANCE.isMemory(null));
+        assertThat(ConfigSource.INSTANCE.isMemory(null)).isFalse();
       }
     }
   }
 
-  /** {@link ConfigSource#requireMemory(String)} のテスト。 */
   @Nested
   class requireMemory {
 
-    /** 正常系のテスト。 */
     @Nested
     class 正常系 {
 
       /**
-       * ConfigSource#requireMemory がシステムプロパティが memory のとき何もしないことを確かめる。 テスト専用の操作を memory
-       * で実行できることを保証する。
+       * 読み込み元が memory の場合は例外を投げずに終わることを確かめる。 テスト専用の操作を memory 以外で拒否しないと本番の設定が書き換わるので、許可する。
        *
-       * @given システムプロパティ "nectar.config.source" が "memory" で、テスト実行環境に Lambda の関数名がない
-       * @when requireMemory を操作名 "テスト操作" で呼び出す
-       * @then 例外を投げず、何もしない
+       * @given 読み込み元が memory
+       * @when requireMemory を操作名つきで実行する
+       * @then 何もしない
        */
       @Test
-      void システムプロパティがmemoryの場合_何もしない() {
-        System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, ConfigSource.CONFIG_SOURCE_MEMORY);
+      void 読み込み元がmemoryの場合_何もしない() {
+        読み込み元を設定する(ConfigSource.CONFIG_SOURCE_MEMORY);
 
-        assertDoesNotThrow(() -> ConfigSource.INSTANCE.requireMemory("テスト操作"));
+        assertThatCode(() -> ConfigSource.INSTANCE.requireMemory("テスト操作"))
+            .doesNotThrowAnyException();
       }
     }
 
-    /** 認可のテスト。 */
     @Nested
-    class 認可 {
+    class 異常系 {
 
       /**
-       * ConfigSource#requireMemory がシステムプロパティが未設定のとき例外を投げることを確かめる。 本番でテスト専用の操作を通すと、設定値や接続先が差し替わる。
+       * 読み込み元が本番の場合は操作名を含む例外を投げることを確かめる。 テスト専用の操作が本番で実行されると設定が変わるので、操作名つきで拒否する。
        *
-       * @given システムプロパティ "nectar.config.source" が未設定である
-       * @when requireMemory を操作名 "テスト操作" で呼び出す
-       * @then IllegalStateException を投げ、そのメッセージに "テスト操作" を含む
-       */
-      @Test
-      void システムプロパティが未設定の場合_IllegalStateExceptionを投げる() {
-        System.clearProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
-
-        IllegalStateException exception =
-            assertThrows(
-                IllegalStateException.class, () -> ConfigSource.INSTANCE.requireMemory("テスト操作"));
-        assertTrue(exception.getMessage().contains("テスト操作"));
-      }
-
-      /**
-       * ConfigSource#requireMemory がシステムプロパティが file のとき例外を投げることを確かめる。 memory
-       * 以外の読み込み元では、テスト専用の操作を拒否する仕様である。
-       *
-       * @given システムプロパティ "nectar.config.source" が "file" である
-       * @when requireMemory を操作名 "テスト操作" で呼び出す
+       * @given 読み込み元が本番で memory 以外
+       * @when requireMemory を操作名 "テスト操作" で実行する
        * @then IllegalStateException を投げる
        */
       @Test
-      void システムプロパティがfileの場合_IllegalStateExceptionを投げる() {
-        System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, "file");
+      void 読み込み元が本番の場合_IllegalStateExceptionを投げる() {
+        読み込み元を設定する("production");
 
-        assertThrows(
-            IllegalStateException.class, () -> ConfigSource.INSTANCE.requireMemory("テスト操作"));
+        assertThatThrownBy(() -> ConfigSource.INSTANCE.requireMemory("テスト操作"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("テスト操作");
       }
     }
   }

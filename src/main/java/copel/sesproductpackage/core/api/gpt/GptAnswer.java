@@ -3,7 +3,9 @@ package copel.sesproductpackage.core.api.gpt;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
@@ -15,12 +17,6 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class GptAnswer {
-  /** YESを意味する単語. */
-  private static final String[] YES_ARRAY = {"ＹＥＳ", "YES", "yes", "YES.", "yes.", "はい", "はい。"};
-
-  /** NOを意味する単語. */
-  private static final String[] NO_ARRAY = {"ＮＯ", "NO", "no", "NO.", "no.", "いいえ", "いいえ。"};
-
   /** 回答. */
   private String answer;
 
@@ -29,6 +25,8 @@ public class GptAnswer {
    *
    * @param answer 回答
    */
+  // 既存の呼び出し側との互換性を保つため transformerClass は受け取るが使用しない
+  @SuppressWarnings("PMD.UnusedFormalParameter")
   public GptAnswer(final String answer, Class<?> transformerClass) {
     this.answer = answer != null ? answer.trim() : null;
   }
@@ -52,34 +50,6 @@ public class GptAnswer {
   }
 
   /**
-   * この回答がYESを意味する文字列（YES_ARRAYと一致する文字列）から始まる文字列かどうかを判定する.
-   *
-   * @return YESを意味すればtrue、それ以外はfalse
-   */
-  public boolean isYES() {
-    for (final String word : YES_ARRAY) {
-      if (word.startsWith(this.answer)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /**
-   * この回答がNOを意味する文字列（NO_ARRAYと一致する文字列）から始まる文字列かどうかを判定する.
-   *
-   * @return NOを意味すればtrue、それ以外はfalse
-   */
-  public boolean isNO() {
-    for (final String word : NO_ARRAY) {
-      if (word.startsWith(this.answer)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /**
    * この回答が英数字のみであるかどうかを判定する.
    *
    * @return 英数字のみであればtrue、それ以外はfalse
@@ -89,32 +59,13 @@ public class GptAnswer {
   }
 
   /**
-   * この回答が英数字記号のみであるかどうかを判定する.
-   *
-   * @return 英数字記法のみであればtrue、それ以外はfalse
-   */
-  public boolean isAlphanumericWithSymbols() {
-    return this.answer != null
-        && this.answer.matches("^[a-zA-Z0-9!@#$%^&*()_+=\\-\\[\\]{};':\"\\\\|,.<>/?`~]+$");
-  }
-
-  /**
-   * この回答が日本語のみであるかどうかを判定する.
-   *
-   * @return 日本語のみであればtrue、それ以外はfalse
-   */
-  public boolean isJapaneseOnly() {
-    return this.answer != null && this.answer.matches("^[ぁ-んァ-ヶ一-龯ー]+$");
-  }
-
-  /**
    * 引数の文字列と一致する回答であるかどうかを判定する.
    *
    * @param word 比較対象
    * @return 一致するまたはNULL同士であればtrue、それ以外はfalse
    */
   public boolean equals(final String word) {
-    return word != null ? word.equals(this.answer) : word == this.answer;
+    return Objects.equals(word, this.answer);
   }
 
   /**
@@ -128,29 +79,6 @@ public class GptAnswer {
   }
 
   /**
-   * この回答が指定された上限文字数を超えているかどうかを判定する.
-   *
-   * @param maxLength 上限文字数
-   * @return 上限を超えていればtrue、以下ならfalse
-   */
-  public boolean exceedsLength(final int maxLength) {
-    return this.length() > maxLength;
-  }
-
-  /**
-   * この回答から空白と記号を全て削除した文字列を返す.
-   *
-   * @return 空白・記号を削除した文字列、またはnull/空文字の場合はnull
-   */
-  public String removeSymbolsAndWhitespace() {
-    if (this.isEmpty()) {
-      return null;
-    }
-    String cleaned = this.answer.replaceAll("[\\s\\p{Z}\\p{P}]", "");
-    return cleaned.isEmpty() ? null : cleaned;
-  }
-
-  /**
    * この回答を整数型で取得する.
    *
    * @return 整数型の値
@@ -160,28 +88,18 @@ public class GptAnswer {
   }
 
   /**
-   * この回答がJSON配列形式かどうかを判定します.
-   *
-   * @return JSON配列形式であればtrue、それ以外はfalse
-   */
-  public boolean isJsonArrayFormat() {
-    // AIの出力するJSON配列内に `]` が含まれている場合（オブジェクトの配列など）や、
-    // 改行が含まれている場合でも、途中で抽出が打ち切られないように Pattern.DOTALL を指定し、
-    // 「最初の `[` から最後の `]` まで」を確実に取得できるように修正。
-    Pattern pattern = Pattern.compile("\\[.*\\]", Pattern.DOTALL);
-    Matcher matcher = pattern.matcher(this.answer);
-    return matcher.find();
-  }
-
-  /**
    * この回答を配列形式で取得します.
    *
    * @return 配列
-   * @throws JsonProcessingException
-   * @throws JsonMappingException
+   * @throws JsonProcessingException JSON の変換に失敗した場合
+   * @throws JsonMappingException 処理中に異常が発生した場合
    */
   @SuppressWarnings("unchecked")
   public List<String> getAsList() throws JsonMappingException, JsonProcessingException {
+    // 回答が無い場合は、配列が無い場合と同じく空のリストを返す
+    if (this.answer == null) {
+      return new ArrayList<>();
+    }
     // 改行やネストされた括弧が存在しても配列全体を抽出できるよう正規表現を強化。
     Pattern pattern = Pattern.compile("\\[.*\\]", Pattern.DOTALL);
     Matcher matcher = pattern.matcher(this.answer);
@@ -201,7 +119,7 @@ public class GptAnswer {
       // パースされた要素が必ずしもStringとは限らない（AIがJSONオブジェクトで返す場合がある）ため、
       // 盲目的に List<String> へキャストした際の ClassCastException 発生を防止。
       // 要素がStringでない場合は、再度JSON文字列に変換してリストに格納。
-      java.util.List<String> result = new java.util.ArrayList<>();
+      List<String> result = new ArrayList<>();
       for (Object obj : parsedList) {
         if (obj instanceof String) {
           result.add((String) obj);

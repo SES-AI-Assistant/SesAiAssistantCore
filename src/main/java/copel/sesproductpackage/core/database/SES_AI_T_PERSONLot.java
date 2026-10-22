@@ -1,14 +1,10 @@
 package copel.sesproductpackage.core.database;
 
-import copel.sesproductpackage.core.database.base.EntityLotBase;
-import copel.sesproductpackage.core.search.FulltextCondition;
-import copel.sesproductpackage.core.search.FulltextConditionsWhereClause;
+import copel.sesproductpackage.core.database.base.SesAiTableLotBase;
 import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.Gender;
-import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
-import copel.sesproductpackage.core.unit.Vector;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,72 +16,78 @@ import java.util.List;
  *
  * @author Copel Co., Ltd.
  */
-public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
-  /** 全文検索SQL. */
-  private static final String SELECT_LIKE_SQL =
-      "SELECT person_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl, tenant_id FROM SES_AI_T_PERSON WHERE raw_content LIKE ?";
+public class SES_AI_T_PERSONLot extends SesAiTableLotBase<SES_AI_T_PERSON> {
 
   /** 複合条件全文検索用 SELECT 接頭辞（末尾に WHERE を含む）. */
   private static final String SELECT_RAW_CONTENT_FOR_FULLTEXT =
-      "SELECT person_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl, tenant_id FROM SES_AI_T_PERSON WHERE ";
-
-  /** 検索SQL. */
-  private static final String SELECT_SQL =
-      "SELECT person_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl, tenant_id FROM SES_AI_T_PERSON WHERE ";
+      "SELECT person_id, from_group, from_id, from_name, mail_subject, raw_content, "
+          + "content_summary, file_id, unit_price, name, age, gender, nationality, "
+          + "start_date, place, area, office_availability, organization, experiences, "
+          + "ng_requirements, other_requirements, url, register_date, register_user, ttl, "
+          + "tenant_id FROM SES_AI_T_PERSON WHERE ";
 
   /** 検索SQL(指定時間以降検索). */
   private static final String SELECT_SQL_BY_REGISTER_DATE =
-      "SELECT person_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl, tenant_id FROM SES_AI_T_PERSON WHERE register_date >= ?";
+      "SELECT person_id, from_group, from_id, from_name, mail_subject, raw_content, "
+          + "content_summary, file_id, unit_price, name, age, gender, nationality, "
+          + "start_date, place, area, office_availability, organization, experiences, "
+          + "ng_requirements, other_requirements, url, register_date, register_user, ttl, "
+          + "tenant_id FROM SES_AI_T_PERSON WHERE register_date >= ?";
 
   /** 全件検索SQL. */
   private static final String SELECT_ALL_SQL =
-      "SELECT person_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl, tenant_id FROM SES_AI_T_PERSON ORDER BY register_date DESC";
+      "SELECT person_id, from_group, from_id, from_name, mail_subject, raw_content, "
+          + "content_summary, file_id, unit_price, name, age, gender, nationality, "
+          + "start_date, place, area, office_availability, organization, experiences, "
+          + "ng_requirements, other_requirements, url, register_date, register_user, ttl, "
+          + "tenant_id FROM SES_AI_T_PERSON ORDER BY register_date DESC";
 
   /** 類似度閾値ベクトル検索用SQL（ページング用・LIMIT/OFFSET除外）. */
   private static final String RETRIEVE_WITH_THRESHOLD_SQL_WITHOUT_LIMIT =
-      "SELECT person_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, file_id, unit_price, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl, vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_PERSON WHERE 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
-
-  /** 期限切れ要員取得SQL前半（テナントIDあり）. */
-  private static final String SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_PREFIX =
-      "SELECT person_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl, tenant_id "
-          + "FROM SES_AI_T_PERSON "
-          + "WHERE ((ttl IS NOT NULL AND ttl < NOW()) "
-          + "   OR (ttl IS NULL AND register_date IS NOT NULL AND (register_date + INTERVAL '";
-
-  /** 期限切れ要員取得SQL後半（テナントIDあり）. */
-  private static final String SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_SUFFIX =
-      " days') < NOW()) OR (register_date IS NULL)) "
-          + "  AND person_id NOT IN (SELECT DISTINCT person_id FROM SES_AI_T_MATCH) "
-          + "ORDER BY register_date ASC "
-          + "LIMIT ? OFFSET ?";
+      "SELECT person_id, from_group, from_id, from_name, mail_subject, raw_content, "
+          + "content_summary, file_id, unit_price, name, age, gender, nationality, start_date, "
+          + "place, area, office_availability, organization, experiences, ng_requirements, "
+          + "other_requirements, url, register_date, register_user, ttl, "
+          + "vector_data <=> "
+          + "?::vector AS distance, tenant_id FROM SES_AI_T_PERSON WHERE 1 - "
+          + "(vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
 
   /** 期限切れ要員取得SQL前半（テナントIDなし、バッチ用）. */
   private static final String SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_WITHOUT_TENANT_PREFIX =
-      "SELECT person_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl, tenant_id "
+      "SELECT person_id, from_group, from_id, from_name, mail_subject, raw_content, "
+          + "content_summary, file_id, unit_price, name, age, gender, nationality, "
+          + "start_date, place, area, office_availability, organization, experiences, "
+          + "ng_requirements, other_requirements, url, register_date, register_user, ttl, "
+          + "tenant_id "
           + "FROM SES_AI_T_PERSON "
           + "WHERE ((ttl IS NOT NULL AND ttl < NOW()) "
           + "   OR (ttl IS NULL AND register_date IS NOT NULL AND (register_date + INTERVAL '";
 
-  /** 期限切れ要員取得SQL後半（テナントIDなし、バッチ用）. */
+  /**
+   * 期限切れ要員取得SQL後半（テナントIDなし、バッチ用）.
+   *
+   * <p>マッチングの存在確認は {@code NOT IN} ではなく相関の {@code NOT EXISTS} にする。{@code NOT IN} は副問い合わせに NULL
+   * が1件でもあると 全件が不一致になり、期限切れの要員を1件も取得できなくなるため。同じテナントのマッチングだけを除外する。
+   */
   private static final String SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_WITHOUT_TENANT_SUFFIX =
       " days') < NOW()) OR (register_date IS NULL)) "
-          + "  AND person_id NOT IN (SELECT DISTINCT person_id FROM SES_AI_T_MATCH) "
+          + "  AND NOT EXISTS (SELECT 1 FROM SES_AI_T_MATCH m "
+          + "WHERE m.person_id = SES_AI_T_PERSON.person_id "
+          + "AND m.tenant_id = SES_AI_T_PERSON.tenant_id) "
           + "ORDER BY register_date ASC "
           + "LIMIT ? OFFSET ?";
+
+  /** 全文検索（raw_content の LIKE）用 SELECT 文（WHERE句を含む）. */
+  private static final String SELECT_LIKE_SQL =
+      "SELECT person_id, from_group, from_id, from_name, mail_subject, raw_content, "
+          + "content_summary, file_id, unit_price, name, age, gender, nationality, "
+          + "start_date, place, area, office_availability, organization, experiences, "
+          + "ng_requirements, other_requirements, url, register_date, register_user, ttl, "
+          + "tenant_id FROM SES_AI_T_PERSON WHERE raw_content LIKE ?";
 
   /** コンストラクタ. */
   public SES_AI_T_PERSONLot() {
     super();
-  }
-
-  @Override
-  protected String getSelectSql() {
-    return SELECT_SQL;
-  }
-
-  @Override
-  protected String getSelectLikeSql() {
-    return SELECT_LIKE_SQL;
   }
 
   @Override
@@ -128,196 +130,17 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
   }
 
   /**
-   * 引数のファイルIDを持つレコードが存在するかどうかを判定する.
-   *
-   * @param fileId ファイルID
-   * @return 存在すればtrue、それ以外はfalse
-   */
-  public boolean isExistByFileId(final String fileId) {
-    return fileId != null && this.entityLot.stream().anyMatch(e -> fileId.equals(e.getFileId()));
-  }
-
-  /**
-   * 類似度閾値を用いてベクトル検索を実行し結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param query 検索ベクトル
-   * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
-   * @param limit 取得上限件数
-   * @throws SQLException
-   */
-  public void retrieveWithThreshold(
-      Connection connection, String tenantId, Vector query, double similarityThreshold, int limit)
-      throws SQLException {
-    this.retrievePagedWithThreshold(connection, tenantId, query, similarityThreshold, 1, limit);
-  }
-
-  /**
-   * 類似度閾値を用いてベクトル検索をページングで実行し結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param query 検索ベクトル
-   * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
-   * @param page ページ番号(1-based)
-   * @param size 1ページあたりの件数
-   * @throws SQLException
-   */
-  public void retrievePagedWithThreshold(
-      Connection connection,
-      String tenantId,
-      Vector query,
-      double similarityThreshold,
-      int page,
-      int size)
-      throws SQLException {
-    if (connection == null || query == null) {
-      return;
-    }
-
-    executeVectorPagedQuery(
-        connection,
-        RETRIEVE_WITH_THRESHOLD_SQL_WITHOUT_LIMIT,
-        tenantId,
-        query.toString(),
-        similarityThreshold,
-        page,
-        size,
-        rs -> {
-          SES_AI_T_PERSON entity = mapResultSet(rs);
-          try {
-            entity.setDistance(rs.getDouble("distance"));
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
-          return entity;
-        },
-        (stmt, paramIndex, vectorValue, threshold) -> {
-          stmt.setString(paramIndex, vectorValue);
-          stmt.setString(paramIndex + 1, vectorValue);
-          stmt.setDouble(paramIndex + 2, threshold);
-          return paramIndex + 3;
-        });
-  }
-
-  /**
-   * raw_contentカラムで全文検索を実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param query 検索条件Map
-   * @throws SQLException
-   */
-  public void searchByRawContent(
-      final Connection connection, final String tenantId, final String query) throws SQLException {
-    this.searchByField(connection, tenantId, "raw_content", query);
-  }
-
-  /**
-   * raw_contentカラムで全文検索をページングで実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param query 検索文字列
-   * @param page ページ番号(1-based)
-   * @param size 1ページあたりの件数
-   * @throws SQLException
-   */
-  public void searchByRawContentPaged(
-      final Connection connection,
-      final String tenantId,
-      final String query,
-      final int page,
-      final int size)
-      throws SQLException {
-    this.searchByFieldPaged(connection, tenantId, "raw_content", query, page, size);
-  }
-
-  /**
-   * raw_contentカラムに対して複数条件で全文検索を実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param firstLikeQuery 1つ目のLIKE句の検索条件
-   * @param query 検索条件リスト
-   * @throws SQLException
-   */
-  public void searchByRawContent(
-      final Connection connection,
-      final String tenantId,
-      final String firstLikeQuery,
-      final List<LogicalOperators> query)
-      throws SQLException {
-    this.searchByField(connection, tenantId, "raw_content", firstLikeQuery, query);
-  }
-
-  /**
-   * raw_contentカラムに対して複数条件で全文検索をページングで実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param firstLikeQuery 1つ目のLIKE句の検索条件
-   * @param query 検索条件リスト
-   * @param page ページ番号(1-based)
-   * @param size 1ページあたりの件数
-   * @throws SQLException
-   */
-  public void searchByRawContentPaged(
-      final Connection connection,
-      final String tenantId,
-      final String firstLikeQuery,
-      final List<LogicalOperators> query,
-      final int page,
-      final int size)
-      throws SQLException {
-    this.searchByFieldPaged(connection, tenantId, "raw_content", firstLikeQuery, query, page, size);
-  }
-
-  /**
-   * raw_content に対して複合条件（AND/OR/NOT）で全文検索をページング実行します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param conditions API の conditions 配列と同一の論理
-   * @param page ページ番号(1-based)
-   * @param size 1ページあたりの件数
-   * @throws SQLException
-   */
-  public void searchByRawContentPaged(
-      final Connection connection,
-      final String tenantId,
-      final List<FulltextCondition> conditions,
-      final int page,
-      final int size)
-      throws SQLException {
-    FulltextConditionsWhereClause.Built built =
-        FulltextConditionsWhereClause.build("raw_content", conditions);
-    this.selectByDynamicWherePaged(
-        connection,
-        tenantId,
-        SELECT_RAW_CONTENT_FOR_FULLTEXT,
-        built.getWhereClauseWithoutWhereKeyword(),
-        built.getLikeParams(),
-        page,
-        size);
-  }
-
-  /**
    * 指定した時刻以降に登録されたレコードを全て取得する.
    *
    * @param connection DBコネクション
    * @param tenantId テナントID
    * @param fromDate 時刻
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectByRegisterDateAfter(
       final Connection connection, final String tenantId, final OriginalDateTime fromDate)
       throws SQLException {
-    if (connection == null) {
-      this.entityLot = new ArrayList<>();
-      return;
-    }
+    requireConnection(connection);
     List<SES_AI_T_PERSON> results =
         executeQuery(
             connection,
@@ -330,36 +153,6 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
                   fromDate != null ? fromDate.toTimestamp() : new OriginalDateTime().toTimestamp());
               return paramIndex + 1;
             });
-    this.entityLot = results;
-  }
-
-  /**
-   * TTL 期限切れで MATCH に関連していない要員を段階的に取得（チャンク処理用）.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param ttlDays TTL 日数
-   * @param offset オフセット
-   * @param limit 取得上限件数
-   * @throws SQLException
-   */
-  public void selectExpiredPersonsNotInMatch(
-      final Connection connection,
-      final String tenantId,
-      final int ttlDays,
-      final int offset,
-      final int limit)
-      throws SQLException {
-    List<SES_AI_T_PERSON> results =
-        executeTTLExpiredQuery(
-            connection,
-            SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_PREFIX,
-            SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_SUFFIX,
-            tenantId,
-            ttlDays,
-            offset,
-            limit,
-            this::mapResultSet);
     this.entityLot = results;
   }
 
@@ -378,7 +171,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
       final Connection connection, final int ttlDays, final int offset, final int limit)
       throws SQLException {
     List<SES_AI_T_PERSON> results =
-        executeTTLExpiredQueryWithoutTenantFilter(
+        executeTtlExpiredQueryWithoutTenantFilter(
             connection,
             SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_WITHOUT_TENANT_PREFIX,
             SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_WITHOUT_TENANT_SUFFIX,
@@ -425,7 +218,7 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
    * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectAllWithoutTenantId(Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
@@ -443,37 +236,59 @@ public class SES_AI_T_PERSONLot extends EntityLotBase<SES_AI_T_PERSON> {
    * @throws SQLException DB操作エラー
    */
   @Override
+  protected String getSelectLikeSql() {
+    return SELECT_LIKE_SQL;
+  }
+
+  @Override
+  protected String getThresholdSql() {
+    return RETRIEVE_WITH_THRESHOLD_SQL_WITHOUT_LIMIT;
+  }
+
+  @Override
+  protected String getRawContentFulltextSql() {
+    return SELECT_RAW_CONTENT_FOR_FULLTEXT;
+  }
+
+  @Override
+  protected SES_AI_T_PERSON mapResultSetWithDistance(ResultSet resultSet) throws SQLException {
+    SES_AI_T_PERSON entity = mapResultSet(resultSet);
+    entity.setDistance(resultSet.getDouble("distance"));
+    return entity;
+  }
+
+  @Override
   protected SES_AI_T_PERSON mapResultSet(ResultSet resultSet) throws SQLException {
-    SES_AI_T_PERSON sesAiTPerson = new SES_AI_T_PERSON(resultSet.getString("tenant_id"));
-    sesAiTPerson.setPersonId(resultSet.getString("person_id"));
-    sesAiTPerson.setFromGroup(resultSet.getString("from_group"));
-    sesAiTPerson.setFromId(resultSet.getString("from_id"));
-    sesAiTPerson.setFromName(resultSet.getString("from_name"));
-    sesAiTPerson.setMailSubject(resultSet.getString("mail_subject"));
-    sesAiTPerson.setFileId(resultSet.getString("file_id"));
-    sesAiTPerson.setRawContent(resultSet.getString("raw_content"));
-    sesAiTPerson.setContentSummary(resultSet.getString("content_summary"));
+    SES_AI_T_PERSON person = new SES_AI_T_PERSON(resultSet.getString("tenant_id"));
+    person.setPersonId(resultSet.getString("person_id"));
+    person.setFromGroup(resultSet.getString("from_group"));
+    person.setFromId(resultSet.getString("from_id"));
+    person.setFromName(resultSet.getString("from_name"));
+    person.setMailSubject(resultSet.getString("mail_subject"));
+    person.setFileId(resultSet.getString("file_id"));
+    person.setRawContent(resultSet.getString("raw_content"));
+    person.setContentSummary(resultSet.getString("content_summary"));
     java.math.BigDecimal unitPriceValue = resultSet.getBigDecimal("unit_price");
-    sesAiTPerson.setUnitPrice(unitPriceValue == null ? Money.empty() : new Money(unitPriceValue));
-    sesAiTPerson.setName(resultSet.getString("name"));
-    sesAiTPerson.setAge(resultSet.getObject("age") == null ? null : resultSet.getInt("age"));
+    person.setUnitPrice(unitPriceValue == null ? Money.empty() : new Money(unitPriceValue));
+    person.setName(resultSet.getString("name"));
+    person.setAge(resultSet.getObject("age") == null ? null : resultSet.getInt("age"));
     String genderStr = resultSet.getString("gender");
-    sesAiTPerson.setGender(genderStr == null ? null : Gender.valueOf(genderStr));
-    sesAiTPerson.setNationality(resultSet.getString("nationality"));
-    sesAiTPerson.setStartDate(new OriginalDateTime(resultSet.getString("start_date")));
-    sesAiTPerson.setPlace(resultSet.getString("place"));
+    person.setGender(genderStr == null ? null : Gender.valueOf(genderStr));
+    person.setNationality(resultSet.getString("nationality"));
+    person.setStartDate(new OriginalDateTime(resultSet.getString("start_date")));
+    person.setPlace(resultSet.getString("place"));
     String areaStr = resultSet.getString("area");
-    sesAiTPerson.setArea(areaStr == null ? null : Area.valueOf(areaStr));
-    sesAiTPerson.setOfficeAvailability(
+    person.setArea(areaStr == null ? null : Area.valueOf(areaStr));
+    person.setOfficeAvailability(
         resultSet.getObject("office_availability") == null
             ? null
             : resultSet.getInt("office_availability"));
-    sesAiTPerson.setOrganization(resultSet.getString("organization"));
-    sesAiTPerson.setExperiences(resultSet.getString("experiences"));
-    sesAiTPerson.setUrl(resultSet.getString("url"));
-    sesAiTPerson.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-    sesAiTPerson.setRegisterUser(resultSet.getString("register_user"));
-    sesAiTPerson.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-    return sesAiTPerson;
+    person.setOrganization(resultSet.getString("organization"));
+    person.setExperiences(resultSet.getString("experiences"));
+    person.setUrl(resultSet.getString("url"));
+    person.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
+    person.setRegisterUser(resultSet.getString("register_user"));
+    person.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
+    return person;
   }
 }

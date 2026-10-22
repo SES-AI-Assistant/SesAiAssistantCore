@@ -2,6 +2,7 @@ package copel.sesproductpackage.core.database.base;
 
 import copel.sesproductpackage.core.unit.LogicalOperators;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.unit.Vector;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -11,6 +12,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,6 +23,15 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E> {
+  /**
+   * DBコネクションが null でないことを確かめます（Lot の各問い合わせで使う）.
+   *
+   * @param conn DBコネクション
+   * @throws IllegalArgumentException DBコネクションが null の場合
+   */
+  protected static void requireConnection(final Connection conn) {
+    EntityBase.requireConnection(conn);
+  }
 
   /**
    * SELECT 列リストを COUNT(*) に置換する（ページング件数取得用）.
@@ -69,7 +80,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    *
    * @param connection DBコネクション
    * @param tenantId テナントID
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public abstract void selectAll(final Connection connection, final String tenantId)
       throws SQLException;
@@ -81,7 +92,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param tenantId テナントID
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectAllPaged(
       final Connection connection, final String tenantId, final int page, final int size)
@@ -178,15 +189,6 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   }
 
   /**
-   * 全レコード数を設定します.
-   *
-   * @param totalCount 全レコード数
-   */
-  public void setTotalCount(long totalCount) {
-    this.totalCount = totalCount;
-  }
-
-  /**
    * 1ページあたりの表示件数を取得します.
    *
    * @return 1ページあたりの表示件数
@@ -196,30 +198,12 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   }
 
   /**
-   * 1ページあたりの表示件数を設定します.
-   *
-   * @param pageSize 1ページあたりの表示件数
-   */
-  public void setPageSize(int pageSize) {
-    this.pageSize = pageSize;
-  }
-
-  /**
    * 現在のページ番号を取得します.
    *
    * @return 現在のページ番号
    */
   public int getCurrentPageIndex() {
     return currentPageIndex;
-  }
-
-  /**
-   * 現在のページ番号を設定します.
-   *
-   * @param currentPageIndex 現在のページ番号
-   */
-  public void setCurrentPageIndex(int currentPageIndex) {
-    this.currentPageIndex = currentPageIndex;
   }
 
   /**
@@ -235,193 +219,12 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   }
 
   /**
-   * SELECTをAND条件で実行する.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param andQuery カラム名と検索値をkey-valueで持つMap
-   * @throws SQLException
-   */
-  public void selectByAndQuery(
-      final Connection connection, final String tenantId, final Map<String, Object> andQuery)
-      throws SQLException {
-    this.selectByQuery(connection, tenantId, getSelectSql(), andQuery, true);
-  }
-
-  /**
-   * SELECTをOR条件で実行する.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param orQuery カラム名と検索値をkey-valueで持つMap
-   * @throws SQLException
-   */
-  public void selectByOrQuery(
-      final Connection connection, final String tenantId, final Map<String, Object> orQuery)
-      throws SQLException {
-    this.selectByQuery(connection, tenantId, getSelectSql(), orQuery, false);
-  }
-
-  /**
-   * 指定したカラムで全文検索を実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param column 検索対象カラム
-   * @param query 検索文字列
-   * @throws SQLException
-   */
-  public void searchByField(
-      final Connection connection, final String tenantId, final String column, final String query)
-      throws SQLException {
-    this.selectByLikeQuery(connection, tenantId, getSelectLikeSql(), column, query, null);
-  }
-
-  /**
-   * 指定したカラムで全文検索をページングで実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param column 検索対象カラム
-   * @param query 検索文字列
-   * @param page ページ番号(1-based)
-   * @param size 1ページあたりの件数
-   * @throws SQLException
-   */
-  public void searchByFieldPaged(
-      final Connection connection,
-      final String tenantId,
-      final String column,
-      final String query,
-      final int page,
-      final int size)
-      throws SQLException {
-    this.selectByLikeQueryPaged(
-        connection, tenantId, getSelectLikeSql(), column, query, null, page, size);
-  }
-
-  /**
-   * 指定したカラムに対して複数条件で全文検索を実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param column 検索対象カラム
-   * @param firstLikeQuery 1つ目のLIKE句の検索条件
-   * @param query 検索条件リスト
-   * @throws SQLException
-   */
-  public void searchByField(
-      final Connection connection,
-      final String tenantId,
-      final String column,
-      final String firstLikeQuery,
-      final List<LogicalOperators> query)
-      throws SQLException {
-    this.selectByLikeQuery(connection, tenantId, getSelectLikeSql(), column, firstLikeQuery, query);
-  }
-
-  /**
-   * 指定したカラムに対して複数条件で全文検索をページングで実行し、結果をこのLotに保持します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param column 検索対象カラム
-   * @param firstLikeQuery 1つ目のLIKE句の検索条件
-   * @param query 検索条件リスト
-   * @param page ページ番号(1-based)
-   * @param size 1ページあたりの件数
-   * @throws SQLException
-   */
-  public void searchByFieldPaged(
-      final Connection connection,
-      final String tenantId,
-      final String column,
-      final String firstLikeQuery,
-      final List<LogicalOperators> query,
-      final int page,
-      final int size)
-      throws SQLException {
-    this.selectByLikeQueryPaged(
-        connection, tenantId, getSelectLikeSql(), column, firstLikeQuery, query, page, size);
-  }
-
-  /**
-   * 検索用SQL(WHERE句の前まで)を取得します.
-   *
-   * @return SQL
-   */
-  protected String getSelectSql() {
-    return null;
-  }
-
-  /**
    * 全文検索用SQL(WHERE句の前まで)を取得します.
    *
    * @return SQL
    */
   protected String getSelectLikeSql() {
     return null;
-  }
-
-  /**
-   * 条件を指定して検索を実行します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param baseSql 基底SQL
-   * @param query 検索条件Map
-   * @param isAnd AND検索ならtrue, OR検索ならfalse
-   * @throws SQLException
-   */
-  protected void selectByQuery(
-      final Connection connection,
-      final String tenantId,
-      final String baseSql,
-      final Map<String, Object> query,
-      final boolean isAnd)
-      throws SQLException {
-    this.entityLot = new ArrayList<>();
-    if (connection == null || query == null || query.isEmpty()) {
-      return;
-    }
-
-    // SQL 構築（tenantId フィルターなし）
-    StringBuilder sql = new StringBuilder(baseSql);
-    boolean isFirst = true;
-    for (final String columnName : query.keySet()) {
-      if (isFirst) {
-        sql.append(columnName).append(" = ?");
-        isFirst = false;
-      } else {
-        sql.append(isAnd ? " AND " : " OR ").append(columnName).append(" = ?");
-      }
-    }
-
-    // 新しいテンプレートメソッドで実行
-    List<E> results =
-        executeQuery(
-            connection,
-            sql.toString(),
-            tenantId,
-            this::mapResultSet,
-            (stmt, paramIndex) -> {
-              int idx = paramIndex;
-              for (final String columnName : query.keySet()) {
-                Object value = query.get(columnName);
-                if (value instanceof Boolean) {
-                  stmt.setBoolean(idx, (Boolean) value);
-                } else if (value instanceof Integer) {
-                  stmt.setInt(idx, (Integer) value);
-                } else if (value instanceof Long) {
-                  stmt.setLong(idx, (Long) value);
-                } else {
-                  stmt.setString(idx, value != null ? value.toString() : null);
-                }
-                idx++;
-              }
-              return idx;
-            });
-    this.entityLot.addAll(results);
   }
 
   /**
@@ -433,7 +236,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param columnName 検索対象カラム名
    * @param firstLikeQuery 最初の検索ワード
    * @param query 追加の検索条件リスト
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected void selectByLikeQuery(
       final Connection connection,
@@ -444,7 +247,9 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       final List<LogicalOperators> query)
       throws SQLException {
     this.entityLot = new ArrayList<>();
-    if (connection == null || firstLikeQuery == null) {
+    EntityBase.requireConnection(connection);
+    EntityBase.requireTenantId(tenantId);
+    if (firstLikeQuery == null) {
       return;
     }
 
@@ -494,7 +299,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param query 追加の検索条件リスト
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected void selectByLikeQueryPaged(
       final Connection connection,
@@ -507,7 +312,9 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       final int size)
       throws SQLException {
     this.entityLot = new ArrayList<>();
-    if (connection == null || firstLikeQuery == null || baseSql == null) {
+    EntityBase.requireConnection(connection);
+    EntityBase.requireTenantId(tenantId);
+    if (firstLikeQuery == null || baseSql == null) {
       return;
     }
 
@@ -562,12 +369,12 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     }
     sql.append(" LIMIT ? OFFSET ?");
 
-    // 新しいテンプレートメソッドで実行
+    // tenant_id は LIMIT/OFFSET より前に挿入されるため、その順でバインドする
+    final String filteredPagedSql = addTenantIdFilter(sql.toString(), tenantId);
     List<E> results =
-        executeQuery(
+        executeQueryWithoutTenantFilter(
             connection,
-            sql.toString(),
-            tenantId,
+            filteredPagedSql,
             this::mapResultSet,
             (stmt, paramIndex) -> {
               int idx = paramIndex;
@@ -579,9 +386,10 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
                   }
                 }
               }
-              stmt.setInt(idx, size);
-              stmt.setInt(idx + 1, (page - 1) * size);
-              return idx + 2;
+              setTenantIdParameter(stmt, idx++, tenantId);
+              stmt.setInt(idx++, size);
+              stmt.setInt(idx, (page - 1) * size);
+              return idx + 1;
             });
     this.entityLot.addAll(results);
   }
@@ -596,7 +404,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param likeParams プレースホルダに順にバインドする値
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected void selectByDynamicWherePaged(
       final Connection connection,
@@ -608,65 +416,51 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       final int size)
       throws SQLException {
     this.entityLot = new ArrayList<>();
-    if (connection == null || selectSqlPrefix == null || whereClauseWithoutWhere == null) {
+    EntityBase.requireConnection(connection);
+    EntityBase.requireTenantId(tenantId);
+    if (selectSqlPrefix == null || whereClauseWithoutWhere == null) {
       return;
     }
     if (likeParams == null || likeParams.isEmpty()) {
       return;
     }
 
-    // (1) 件数用 SQL 構築（tenantId フィルターなし）
+    // (1) 件数用 SQL 構築（tenant_id フィルターを追加）
     final String fullSelect = selectSqlPrefix + whereClauseWithoutWhere;
-    final String countSql = toCountSql(fullSelect);
-
-    // tenant_id フィルターを追加して実行
-    final String filteredCountSql = addTenantIdFilter(countSql, tenantId);
+    final String filteredCountSql = addTenantIdFilter(toCountSql(fullSelect), tenantId);
     List<Object> countBindValues = new ArrayList<>(likeParams);
     countBindValues.add(tenantId);
     logExecutedSql(filteredCountSql, countBindValues);
 
-    try (PreparedStatement preparedStatement = connection.prepareStatement(filteredCountSql)) {
-      int paramIndex = 1;
-      for (String p : likeParams) {
-        preparedStatement.setString(paramIndex++, p);
-      }
-      setTenantIdParameter(preparedStatement, paramIndex, tenantId);
+    countWithTenantFilter(
+        connection,
+        filteredCountSql,
+        tenantId,
+        (stmt, startIndex) -> {
+          int idx = startIndex;
+          for (String p : likeParams) {
+            stmt.setString(idx++, p);
+          }
+          return idx;
+        });
 
-      try (ResultSet resultSet = preparedStatement.executeQuery()) {
-        if (resultSet.next()) {
-          this.totalCount = resultSet.getLong(1);
-        }
-      }
-    }
-
-    this.pageSize = size;
-    this.currentPageIndex = page;
-
-    if (this.totalCount == 0) {
-      return;
-    }
-
-    // (2) ページング用 SQL（tenantId フィルターなし）
-    final String pagedSql = fullSelect + " LIMIT ? OFFSET ?";
-    final String filteredPagedSql = addTenantIdFilter(pagedSql, tenantId);
-
-    // executeQueryWithoutTenantFilter を使用（filteredPagedSql に既にテナントフィルターが含まれている）
-    List<E> results =
-        executeQueryWithoutTenantFilter(
-            connection,
-            filteredPagedSql,
-            this::mapResultSet,
-            (stmt, paramIndex) -> {
-              int idx = paramIndex;
-              for (String p : likeParams) {
-                stmt.setString(idx++, p);
-              }
-              stmt.setString(idx++, tenantId);
-              stmt.setInt(idx++, size);
-              stmt.setInt(idx, (page - 1) * size);
-              return idx + 1;
-            });
-    this.entityLot.addAll(results);
+    // (2) ページング用 SQL。tenant_id は LIMIT/OFFSET より前に挿入されるため、その順でバインドする
+    selectPagedWithTenantFilter(
+        connection,
+        fullSelect,
+        tenantId,
+        page,
+        size,
+        (stmt, paramIndex) -> {
+          int idx = paramIndex;
+          for (String p : likeParams) {
+            stmt.setString(idx++, p);
+          }
+          stmt.setString(idx++, tenantId);
+          stmt.setInt(idx++, size);
+          stmt.setInt(idx, (page - 1) * size);
+          return idx + 1;
+        });
   }
 
   /**
@@ -685,7 +479,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param areaFilter エリアフィルタ（null可）
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected <
           T extends java.math.BigDecimal, U extends java.time.temporal.Temporal, V extends Enum<?>>
@@ -703,95 +497,43 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
           final int size)
           throws SQLException {
     this.entityLot = new ArrayList<>();
-    if (connection == null || selectSqlPrefix == null || whereClauseWithoutWhere == null) {
+    EntityBase.requireConnection(connection);
+    EntityBase.requireTenantId(tenantId);
+    if (selectSqlPrefix == null || whereClauseWithoutWhere == null) {
       return;
     }
     if (likeParams == null || likeParams.isEmpty()) {
       return;
     }
 
-    // (1) 件数用 SQL 構築（tenantId フィルターなし）
+    // (1) 件数用 SQL 構築（tenant_id フィルターを追加）
     final String fullSelect = selectSqlPrefix + whereClauseWithoutWhere;
-    final String countSql = toCountSql(fullSelect);
+    final String filteredCountSql = addTenantIdFilter(toCountSql(fullSelect), tenantId);
+    logSql(filteredCountSql);
+    countWithTenantFilter(
+        connection,
+        filteredCountSql,
+        tenantId,
+        (stmt, startIndex) ->
+            bindPriceFilters(
+                stmt, startIndex, price, startDate, integerFilter, areaFilter, likeParams));
 
-    // tenant_id フィルターを追加して実行
-    final String filteredCountSql = addTenantIdFilter(countSql, tenantId);
-    try (PreparedStatement preparedStatement = connection.prepareStatement(filteredCountSql)) {
-      int paramIndex = 1;
-      // フィルタ条件をバインド（selectSqlPrefixに含まれている）
-      if (price != null) {
-        if (price instanceof java.math.BigDecimal) {
-          preparedStatement.setBigDecimal(paramIndex++, (java.math.BigDecimal) price);
-        }
-      }
-      if (startDate != null) {
-        if (startDate instanceof java.sql.Timestamp) {
-          preparedStatement.setTimestamp(paramIndex++, (java.sql.Timestamp) startDate);
-        }
-      }
-      if (integerFilter != null && areaFilter != null) {
-        preparedStatement.setInt(paramIndex++, integerFilter);
-        preparedStatement.setString(paramIndex++, areaFilter.name());
-      }
-      // LIKE検索パラメータをバインド
-      for (String p : likeParams) {
-        preparedStatement.setString(paramIndex++, p);
-      }
-      setTenantIdParameter(preparedStatement, paramIndex, tenantId);
-
-      logSql(filteredCountSql);
-
-      try (ResultSet resultSet = preparedStatement.executeQuery()) {
-        if (resultSet.next()) {
-          this.totalCount = resultSet.getLong(1);
-        }
-      }
-    }
-
-    this.pageSize = size;
-    this.currentPageIndex = page;
-
-    if (this.totalCount == 0) {
-      return;
-    }
-
-    // (2) ページング用 SQL（tenantId フィルターなし）
-    final String pagedSql = fullSelect + " LIMIT ? OFFSET ?";
-    final String filteredPagedSql = addTenantIdFilter(pagedSql, tenantId);
-
-    // executeQueryWithoutTenantFilter を使用（filteredPagedSql に既にテナントフィルターが含まれている）
-    List<E> results =
-        executeQueryWithoutTenantFilter(
-            connection,
-            filteredPagedSql,
-            this::mapResultSet,
-            (stmt, paramIndex) -> {
-              int idx = paramIndex;
-              // フィルタ条件をバインド（selectSqlPrefixに含まれている）
-              if (price != null) {
-                if (price instanceof java.math.BigDecimal) {
-                  stmt.setBigDecimal(idx++, (java.math.BigDecimal) price);
-                }
-              }
-              if (startDate != null) {
-                if (startDate instanceof java.sql.Timestamp) {
-                  stmt.setTimestamp(idx++, (java.sql.Timestamp) startDate);
-                }
-              }
-              if (integerFilter != null && areaFilter != null) {
-                stmt.setInt(idx++, integerFilter);
-                stmt.setString(idx++, areaFilter.name());
-              }
-              // LIKE検索パラメータをバインド
-              for (String p : likeParams) {
-                stmt.setString(idx++, p);
-              }
-              stmt.setString(idx++, tenantId);
-              stmt.setInt(idx++, size);
-              stmt.setInt(idx, (page - 1) * size);
-              return idx + 1;
-            });
-    this.entityLot.addAll(results);
+    // (2) ページング用 SQL。tenant_id は LIMIT/OFFSET より前に挿入されるため、その順でバインドする
+    selectPagedWithTenantFilter(
+        connection,
+        fullSelect,
+        tenantId,
+        page,
+        size,
+        (stmt, paramIndex) -> {
+          int idx =
+              bindPriceFilters(
+                  stmt, paramIndex, price, startDate, integerFilter, areaFilter, likeParams);
+          stmt.setString(idx++, tenantId);
+          stmt.setInt(idx++, size);
+          stmt.setInt(idx, (page - 1) * size);
+          return idx + 1;
+        });
   }
 
   /**
@@ -807,7 +549,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param filterParams 詳細フィルターのパラメータリスト
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected void selectByDynamicWhereWithFilterPaged(
       final Connection connection,
@@ -820,33 +562,61 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       final int size)
       throws SQLException {
     this.entityLot = new ArrayList<>();
-    if (connection == null || selectSqlPrefix == null || whereClauseWithoutWhere == null) {
+    EntityBase.requireConnection(connection);
+    EntityBase.requireTenantId(tenantId);
+    if (selectSqlPrefix == null || whereClauseWithoutWhere == null) {
       return;
     }
 
-    // (1) 件数用 SQL 構築（tenantId フィルターなし）
+    // (1) 件数用 SQL 構築（tenant_id フィルターを追加）
     final String fullSelect = selectSqlPrefix + whereClauseWithoutWhere;
-    final String countSql = toCountSql(fullSelect);
+    final String filteredCountSql = addTenantIdFilter(toCountSql(fullSelect), tenantId);
+    logSql(filteredCountSql);
+    countWithTenantFilter(
+        connection,
+        filteredCountSql,
+        tenantId,
+        (stmt, startIndex) -> {
+          int idx = bindLikeAndFilterParams(stmt, startIndex, likeParams, filterParams);
+          return idx;
+        });
 
-    // tenant_id フィルターを追加して実行
-    final String filteredCountSql = addTenantIdFilter(countSql, tenantId);
+    // (2) ページング用 SQL。tenant_id は LIMIT/OFFSET より前に挿入されるため、その順でバインドする
+    selectPagedWithTenantFilter(
+        connection,
+        fullSelect,
+        tenantId,
+        page,
+        size,
+        (stmt, paramIndex) -> {
+          int idx = bindLikeAndFilterParams(stmt, paramIndex, likeParams, filterParams);
+          setTenantIdParameter(stmt, idx++, tenantId);
+          stmt.setInt(idx++, size);
+          stmt.setInt(idx++, (page - 1) * size);
+          return idx;
+        });
+  }
+
+  /**
+   * 件数用の SQL を実行し、総件数を保持します（tenant_id 条件付き）.
+   *
+   * <p>結果の行が無い場合は総件数を変更しません。
+   *
+   * @param connection DBコネクション
+   * @param filteredCountSql tenant_id 条件を付加済みの件数 SQL
+   * @param tenantId テナントID
+   * @param binder 検索条件のパラメータをバインドする処理。次の位置を返すこと
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   */
+  private void countWithTenantFilter(
+      final Connection connection,
+      final String filteredCountSql,
+      final String tenantId,
+      final PreparedStatementBinder binder)
+      throws SQLException {
     try (PreparedStatement preparedStatement = connection.prepareStatement(filteredCountSql)) {
-      int paramIndex = 1;
-      // 全文検索パラメータをバインド
-      if (likeParams != null) {
-        for (String p : likeParams) {
-          preparedStatement.setString(paramIndex++, p);
-        }
-      }
-      // 詳細フィルターパラメータをバインド
-      if (filterParams != null) {
-        for (Object param : filterParams) {
-          bindParameter(preparedStatement, paramIndex++, param);
-        }
-      }
+      int paramIndex = binder.bind(preparedStatement, 1);
       setTenantIdParameter(preparedStatement, paramIndex, tenantId);
-
-      logSql(filteredCountSql);
 
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
@@ -854,7 +624,29 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
         }
       }
     }
+  }
 
+  /**
+   * ページ情報を保持し、ページ分のデータを取得してこのLotに追加します（tenant_id 条件付き）.
+   *
+   * <p>総件数が 0 件の場合はデータ取得を行いません。
+   *
+   * @param connection DBコネクション
+   * @param fullSelect WHERE句までを含む SELECT SQL（LIMIT/OFFSET と tenant_id 条件は含まない）
+   * @param tenantId テナントID
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @param binder パラメータをバインドする処理。tenant_id の後に LIMIT と OFFSET をバインドすること
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   */
+  private void selectPagedWithTenantFilter(
+      final Connection connection,
+      final String fullSelect,
+      final String tenantId,
+      final int page,
+      final int size,
+      final PreparedStatementBinder binder)
+      throws SQLException {
     this.pageSize = size;
     this.currentPageIndex = page;
 
@@ -862,42 +654,114 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       return;
     }
 
-    // (2) ページング用 SQL（tenantId フィルター追加）
-    // addTenantIdFilter は "AND tenant_id = ?" を LIMIT/OFFSET より前に挿入するため、
-    // executeQuery（tenant_id を末尾バインドする前提のテンプレート）は使用できない。
-    // そのため、COUNT SQL と同様に事前にフィルター適用済みSQLを組み立て、
-    // tenant_id を LIMIT/OFFSET より前の正しい位置でバインドする。
-    final String pagedSql = fullSelect + " LIMIT ? OFFSET ?";
-    final String filteredPagedSql = addTenantIdFilter(pagedSql, tenantId);
-
-    // executeQueryWithoutTenantFilter を使用（filteredPagedSql に既にテナントフィルターが含まれている）
+    final String filteredPagedSql = addTenantIdFilter(fullSelect + " LIMIT ? OFFSET ?", tenantId);
     List<E> results =
-        executeQueryWithoutTenantFilter(
-            connection,
-            filteredPagedSql,
-            this::mapResultSet,
-            (stmt, paramIndex) -> {
-              int idx = paramIndex;
-              // 全文検索パラメータをバインド
-              if (likeParams != null) {
-                for (String p : likeParams) {
-                  stmt.setString(idx++, p);
-                }
-              }
-              // 詳細フィルターパラメータをバインド
-              if (filterParams != null) {
-                for (Object param : filterParams) {
-                  bindParameter(stmt, idx++, param);
-                }
-              }
-              // tenant_id をバインド（WHERE句内、LIMIT/OFFSETより前の位置）
-              setTenantIdParameter(stmt, idx++, tenantId);
-              // LIMIT と OFFSET をバインド
-              stmt.setInt(idx++, size);
-              stmt.setInt(idx++, (page - 1) * size);
-              return idx;
-            });
+        executeQueryWithoutTenantFilter(connection, filteredPagedSql, this::mapResultSet, binder);
     this.entityLot.addAll(results);
+  }
+
+  /**
+   * 価格・開始日・整数・エリアの各フィルタと全文検索のパラメータを順にバインドします.
+   *
+   * <p>各フィルタは値が無い場合にバインドせず、プレースホルダの位置も詰めます。
+   *
+   * @param stmt バインド対象の PreparedStatement
+   * @param startIndex 開始パラメータインデックス
+   * @param price 価格フィルタ（null可）
+   * @param startDate 開始日フィルタ（null可）
+   * @param integerFilter 整数フィルタ（null可）
+   * @param areaFilter エリアフィルタ（null可）
+   * @param likeParams LIKE検索パラメータのリスト
+   * @return 次のパラメータインデックス
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   * @throws IllegalArgumentException 価格が BigDecimal、開始日が Timestamp
+   *     でない場合、整数フィルタとエリアフィルタの片方だけが指定された場合
+   */
+  private int bindPriceFilters(
+      final PreparedStatement stmt,
+      final int startIndex,
+      final Object price,
+      final Object startDate,
+      final Integer integerFilter,
+      final Enum<?> areaFilter,
+      final List<String> likeParams)
+      throws SQLException {
+    int idx = startIndex;
+    if (price != null) {
+      if (!(price instanceof java.math.BigDecimal)) {
+        throw new IllegalArgumentException(
+            "価格は BigDecimal で渡してください: " + price.getClass().getName());
+      }
+      stmt.setBigDecimal(idx++, (java.math.BigDecimal) price);
+    }
+    if (startDate != null) {
+      if (!(startDate instanceof java.sql.Timestamp)) {
+        throw new IllegalArgumentException(
+            "開始日は Timestamp で渡してください: " + startDate.getClass().getName());
+      }
+      stmt.setTimestamp(idx++, (java.sql.Timestamp) startDate);
+    }
+    if ((integerFilter == null) != (areaFilter == null)) {
+      throw new IllegalArgumentException("整数フィルタとエリアフィルタは両方そろえて渡してください");
+    }
+    if (integerFilter != null) {
+      stmt.setInt(idx++, integerFilter);
+      stmt.setString(idx++, areaFilter.name());
+    }
+    for (String p : likeParams) {
+      stmt.setString(idx++, p);
+    }
+    return idx;
+  }
+
+  /**
+   * 全文検索のパラメータと詳細フィルターのパラメータを順にバインドします.
+   *
+   * <p>どちらの一覧も null の場合は、その分のバインドを行いません。
+   *
+   * @param stmt バインド対象の PreparedStatement
+   * @param startIndex 開始パラメータインデックス
+   * @param likeParams 全文検索のLIKEパラメータリスト（null可）
+   * @param filterParams 詳細フィルターのパラメータリスト（null可）
+   * @return 次のパラメータインデックス
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   */
+  private int bindLikeAndFilterParams(
+      final PreparedStatement stmt,
+      final int startIndex,
+      final List<String> likeParams,
+      final List<Object> filterParams)
+      throws SQLException {
+    int idx = startIndex;
+    if (likeParams != null) {
+      for (String p : likeParams) {
+        stmt.setString(idx++, p);
+      }
+    }
+    if (filterParams != null) {
+      for (Object param : filterParams) {
+        bindParameter(stmt, idx++, param);
+      }
+    }
+    return idx;
+  }
+
+  /**
+   * PreparedStatement に tenant_id パラメータをバインドします.
+   *
+   * @param stmt バインド対象の PreparedStatement
+   * @param paramIndex パラメータインデックス
+   * @param tenantId テナントID（null 不可）
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   * @throws IllegalArgumentException tenantId が null または空文字列の場合
+   */
+  protected void setTenantIdParameter(
+      final PreparedStatement stmt, final int paramIndex, final String tenantId)
+      throws SQLException {
+    if (tenantId == null || tenantId.isEmpty()) {
+      throw new IllegalArgumentException("TenantId must not be null or empty");
+    }
+    stmt.setString(paramIndex, tenantId);
   }
 
   /**
@@ -906,7 +770,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param stmt PreparedStatement
    * @param paramIndex パラメータインデックス（1-based）
    * @param param バインドするパラメータ値
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected void bindParameter(
       final PreparedStatement stmt, final int paramIndex, final Object param) throws SQLException {
@@ -943,7 +807,8 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param query 検索条件Map
    * @param isAnd AND検索ならtrue, OR検索ならfalse
    * @return 件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   * @throws IllegalArgumentException DBコネクションが null の場合
    */
   protected long countByQuery(
       final Connection connection,
@@ -952,7 +817,8 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       final Map<String, String> query,
       final boolean isAnd)
       throws SQLException {
-    if (connection == null || baseSql == null) {
+    EntityBase.requireConnection(connection);
+    if (baseSql == null) {
       return 0;
     }
 
@@ -978,8 +844,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       }
     }
 
-    // 新しいテンプレートメソッドで実行
-    final int paramCount = query != null ? query.size() : 0;
+    long count = 0;
     try (PreparedStatement preparedStatement =
         connection.prepareStatement(addTenantIdFilter(sql.toString(), tenantId))) {
       int paramIndex = 1;
@@ -993,11 +858,11 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
 
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
-          return resultSet.getLong(1);
+          count = resultSet.getLong(1);
         }
       }
     }
-    return 0;
+    return count;
   }
 
   /**
@@ -1010,7 +875,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param isAnd AND検索ならtrue, OR検索ならfalse
    * @param page ページ番号(1-based)
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected void selectByQueryPaged(
       final Connection connection,
@@ -1022,7 +887,9 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       final int size)
       throws SQLException {
     this.entityLot = new ArrayList<>();
-    if (connection == null || baseSql == null) {
+    EntityBase.requireConnection(connection);
+    EntityBase.requireTenantId(tenantId);
+    if (baseSql == null) {
       return;
     }
 
@@ -1073,10 +940,6 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
     StringBuilder sql =
         new StringBuilder(beforeClause).append(conditionBuilder).append(afterClause);
     sql.append(" LIMIT ? OFFSET ?");
-
-    if (connection == null) {
-      return;
-    }
 
     // tenant_id フィルターを SQL に追加
     final String filteredSql = addTenantIdFilter(sql.toString(), tenantId);
@@ -1165,7 +1028,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
         } else {
           replacement = String.valueOf(value);
         }
-        executedSql = executedSql.replaceFirst("\\?", replacement);
+        executedSql = executedSql.replaceFirst("\\?", Matcher.quoteReplacement(replacement));
       }
     }
 
@@ -1184,10 +1047,12 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   @FunctionalInterface
   protected interface PreparedStatementBinder {
     /**
+     * PreparedStatement に値をバインドし、次のパラメータインデックスを返します。
+     *
      * @param stmt バインド対象の PreparedStatement
      * @param startIndex 開始パラメータインデックス（通常は 1）
      * @return 次のパラメータインデックス（tenantId バインド時に使用）
-     * @throws SQLException
+     * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
      */
     int bind(PreparedStatement stmt, int startIndex) throws SQLException;
   }
@@ -1200,9 +1065,11 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   @FunctionalInterface
   protected interface ResultSetMapper<T> {
     /**
+     * 1行分の ResultSet を、エンティティへ変換します。
+     *
      * @param rs マッピング対象の ResultSet
      * @return マッピング後のエンティティ
-     * @throws SQLException
+     * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
      */
     T map(ResultSet rs) throws SQLException;
   }
@@ -1216,131 +1083,11 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param baseSql 基本SQL（WHERE句を含む場合も含まない場合も可、LIMIT/OFFSETを含む場合も可）
    * @param tenantId テナントID（null 不可）
    * @return tenant_id フィルターが付加された SQL
-   * @throws IllegalArgumentException tenantId が null または空文字列の場合
+   * @throws IllegalArgumentException tenantId が null または空文字列の場合、または TenantFilterSql
+   *     が拒否する形（括弧内の副問い合わせ、SQL コメント、解析できない表の指定など）の場合
    */
   protected String addTenantIdFilter(final String baseSql, final String tenantId) {
-    if (tenantId == null || tenantId.isEmpty()) {
-      throw new IllegalArgumentException("TenantId must not be null or empty");
-    }
-    if (baseSql == null) {
-      throw new IllegalArgumentException("baseSql must not be null");
-    }
-    String trimmedSql = baseSql.trim();
-    String upperSql = trimmedSql.toUpperCase();
-
-    // SELECT EXISTS の場合は特別処理（括弧内のWHERE句に tenant_id を挿入）
-    if (upperSql.startsWith("SELECT EXISTS")) {
-      if (upperSql.contains(" WHERE ")) {
-        int lastParenIndex = trimmedSql.lastIndexOf(')');
-        if (lastParenIndex > 0) {
-          return trimmedSql.substring(0, lastParenIndex)
-              + " AND tenant_id = ?"
-              + trimmedSql.substring(lastParenIndex);
-        }
-      }
-    }
-
-    // ORDER BY / GROUP BY / HAVING / LIMIT / OFFSET の位置を検出
-    int orderByIndex = upperSql.indexOf(" ORDER BY");
-    int groupByIndex = upperSql.indexOf(" GROUP BY");
-    int havingIndex = upperSql.indexOf(" HAVING");
-    int limitIndex = upperSql.indexOf(" LIMIT");
-    int offsetIndex = upperSql.indexOf(" OFFSET");
-
-    // 最初に現れる句の位置を検出（-1は無視）
-    int insertPosition = trimmedSql.length();
-    for (int pos : new int[] {orderByIndex, groupByIndex, havingIndex, limitIndex, offsetIndex}) {
-      if (pos >= 0 && pos < insertPosition) {
-        insertPosition = pos;
-      }
-    }
-
-    String beforeClause = trimmedSql.substring(0, insertPosition).trim();
-    String afterClause =
-        insertPosition < trimmedSql.length()
-            ? " " + trimmedSql.substring(insertPosition).trim()
-            : "";
-
-    // WHERE句内に既に tenant_id フィルターがあるかチェック
-    String beforeClauseUpper = beforeClause.toUpperCase();
-    boolean hasWhereClause = beforeClauseUpper.contains(" WHERE ");
-    if (hasWhereClause) {
-      // WHERE clause のみを抽出して tenant_id チェック（SELECT列のtenant_idと区別）
-      int wherePos = beforeClauseUpper.indexOf(" WHERE ");
-      String whereClausePart = beforeClause.substring(wherePos + " WHERE ".length());
-      if (whereClausePart.toUpperCase().contains("TENANT_ID")) {
-        return baseSql;
-      }
-    }
-
-    // SELECT句からテーブルエイリアス付きの tenant_id を検出（INNER JOIN対応）
-    String selectPart = beforeClause;
-    String tableAlias = null;
-
-    // SELECT句からテーブルエイリアス付きの tenant_id を検出
-    java.util.regex.Pattern pattern =
-        java.util.regex.Pattern.compile(
-            "\\b([a-zA-Z])\\s*\\.\\s*tenant_id\\b", java.util.regex.Pattern.CASE_INSENSITIVE);
-    java.util.regex.Matcher matcher = pattern.matcher(selectPart);
-    if (matcher.find()) {
-      tableAlias = matcher.group(1);
-    } else {
-      // SELECT句に見つからない場合、FROM句で INNER JOIN を検出
-      java.util.regex.Pattern innerJoinPattern =
-          java.util.regex.Pattern.compile(
-              "FROM\\s+\\w+\\s+([a-zA-Z])\\s+INNER\\s+JOIN",
-              java.util.regex.Pattern.CASE_INSENSITIVE);
-      java.util.regex.Matcher innerJoinMatcher = innerJoinPattern.matcher(selectPart);
-      if (innerJoinMatcher.find()) {
-        // INNER JOINの場合、右側のテーブルエイリアスを探す
-        java.util.regex.Pattern rightTablePattern =
-            java.util.regex.Pattern.compile(
-                "INNER\\s+JOIN\\s+\\w+\\s+([a-zA-Z])\\s+ON",
-                java.util.regex.Pattern.CASE_INSENSITIVE);
-        java.util.regex.Matcher rightMatcher = rightTablePattern.matcher(selectPart);
-        if (rightMatcher.find()) {
-          tableAlias = rightMatcher.group(1);
-        }
-      } else {
-        // SELECT句に見つからない場合、FROM句で LEFT JOIN を検出
-        java.util.regex.Pattern leftJoinPattern =
-            java.util.regex.Pattern.compile(
-                "FROM\\s+\\w+\\s+([a-zA-Z])\\s+LEFT\\s+JOIN",
-                java.util.regex.Pattern.CASE_INSENSITIVE);
-        java.util.regex.Matcher leftJoinMatcher = leftJoinPattern.matcher(selectPart);
-        if (leftJoinMatcher.find()) {
-          // LEFT JOINの場合、左側のテーブルエイリアスを返す
-          tableAlias = leftJoinMatcher.group(1);
-        }
-      }
-    }
-
-    String tenantIdFilter = tableAlias != null ? tableAlias + ".tenant_id" : "tenant_id";
-
-    // WHERE句が含まれているかチェック
-    if (hasWhereClause) {
-      return beforeClause + " AND " + tenantIdFilter + " = ?" + afterClause;
-    } else {
-      return beforeClause + " WHERE " + tenantIdFilter + " = ?" + afterClause;
-    }
-  }
-
-  /**
-   * PreparedStatement に tenant_id パラメータをバインドします.
-   *
-   * @param stmt バインド対象の PreparedStatement
-   * @param paramIndex パラメータインデックス
-   * @param tenantId テナントID（null 不可）
-   * @throws SQLException
-   * @throws IllegalArgumentException tenantId が null または空文字列の場合
-   */
-  protected void setTenantIdParameter(
-      final PreparedStatement stmt, final int paramIndex, final String tenantId)
-      throws SQLException {
-    if (tenantId == null || tenantId.isEmpty()) {
-      throw new IllegalArgumentException("TenantId must not be null or empty");
-    }
-    stmt.setString(paramIndex, tenantId);
+    return new TenantFilterSql(baseSql).withTenantFilter(tenantId);
   }
 
   /**
@@ -1355,7 +1102,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param mapper ResultSet → Entity マッピング処理
    * @param binder カスタムパラメータバインド処理
    * @return クエリ実行結果のエンティティリスト
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    * @throws IllegalArgumentException tenantId が null または空文字列の場合
    */
   protected List<E> executeQuery(
@@ -1365,9 +1112,8 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       final ResultSetMapper<E> mapper,
       final PreparedStatementBinder binder)
       throws SQLException {
-    if (conn == null) {
-      return new ArrayList<>();
-    }
+    EntityBase.requireConnection(conn);
+    EntityBase.requireTenantId(tenantId);
 
     // SQL末尾に tenant_id フィルター条件を自動付加
     final String filteredSql = addTenantIdFilter(sql, tenantId);
@@ -1403,7 +1149,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param mapper ResultSet → Entity マッピング処理
    * @param binder カスタムパラメータバインド処理
    * @return クエリ実行結果のエンティティリスト
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected List<E> executeQueryWithoutTenantFilter(
       final Connection conn,
@@ -1411,9 +1157,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       final ResultSetMapper<E> mapper,
       final PreparedStatementBinder binder)
       throws SQLException {
-    if (conn == null) {
-      return new ArrayList<>();
-    }
+    EntityBase.requireConnection(conn);
 
     try (PreparedStatement stmt = conn.prepareStatement(sql)) {
       binder.bind(stmt, 1);
@@ -1427,40 +1171,6 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
         }
       }
       return results;
-    }
-  }
-
-  /**
-   * TenantId フィルター付きのDELETE実行テンプレート.
-   *
-   * <p>SQL末尾に自動的に {@code AND tenant_id = ?} を付加してから実行します。
-   *
-   * @param conn DBコネクション（null の場合は 0 を返す）
-   * @param sql DELETE SQL（WHERE句を含める）
-   * @param tenantId テナントID
-   * @param binder カスタムパラメータバインド処理
-   * @return 削除したレコード数
-   * @throws SQLException
-   */
-  protected int executeDelete(
-      final Connection conn,
-      final String sql,
-      final String tenantId,
-      final PreparedStatementBinder binder)
-      throws SQLException {
-    if (conn == null) {
-      return 0;
-    }
-
-    final String filteredSql = addTenantIdFilter(sql, tenantId);
-
-    try (PreparedStatement stmt = conn.prepareStatement(filteredSql)) {
-      int nextParamIndex = binder.bind(stmt, 1);
-      setTenantIdParameter(stmt, nextParamIndex, tenantId);
-
-      logSql(filteredSql);
-
-      return stmt.executeUpdate();
     }
   }
 
@@ -1474,14 +1184,13 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param sql DELETE SQL（WHERE句を含める）
    * @param binder カスタムパラメータバインド処理
    * @return 削除したレコード数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   * @throws IllegalArgumentException DBコネクションが null の場合
    */
   protected int executeDeleteWithoutTenantFilter(
       final Connection conn, final String sql, final PreparedStatementBinder binder)
       throws SQLException {
-    if (conn == null) {
-      return 0;
-    }
+    EntityBase.requireConnection(conn);
 
     try (PreparedStatement stmt = conn.prepareStatement(sql)) {
       binder.bind(stmt, 1);
@@ -1495,41 +1204,124 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
   /**
    * ベクトル検索パラメータをバインドするインターフェース（VectorPagedQuery用）.
    *
-   * <p>ベクトル値とスレッショルド値以外のパラメータをバインドします。
+   * <p>SQL のプレースホルダーに対応するパラメータ（ベクトル値・スレッショルド値を含む）をバインドします。
    */
   @FunctionalInterface
   protected interface VectorParameterBinder {
     /**
+     * SQL のパラメータを PreparedStatement にバインドします。
+     *
      * @param stmt バインド対象の PreparedStatement
      * @param startIndex 開始パラメータインデックス
      * @param vectorValue ベクトル値（文字列形式）
      * @param similarityThreshold 類似度スレッショルド（0.0で閾値なし）
      * @return 次のパラメータインデックス
-     * @throws SQLException
+     * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
      */
     int bind(PreparedStatement stmt, int startIndex, String vectorValue, double similarityThreshold)
         throws SQLException;
   }
 
   /**
+   * 類似度と詳細条件を付けたベクトル検索を、件数の問い合わせと指定ページの問い合わせで実行し、結果をこのLotに保持します.
+   *
+   * <p>件数の問い合わせは tenant_id フィルターを付けて実行し、件数が0件の場合は指定ページの問い合わせを行いません。
+   * ベクトルは検索と並べ替えの両方で使うため、指定ページの問い合わせでは2回バインドします。
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param pagedSql 指定ページの検索SQL（末尾に LIMIT と OFFSET のプレースホルダを含む）
+   * @param countSql 件数の検索SQL（tenant_id フィルターは付けていない）
+   * @param query 検索ベクトル
+   * @param filterParams 詳細条件のパラメータリスト（空の場合も空のリストを渡す）
+   * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
+   * @param page ページ番号(1-based)
+   * @param size 1ページあたりの件数
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   */
+  protected void executeVectorWithFilterPaged(
+      final Connection connection,
+      final String tenantId,
+      final String pagedSql,
+      final String countSql,
+      final Vector query,
+      final List<Object> filterParams,
+      final double similarityThreshold,
+      final int page,
+      final int size)
+      throws SQLException {
+    EntityBase.requireConnection(connection);
+    try (PreparedStatement preparedStatement =
+        connection.prepareStatement(addTenantIdFilter(countSql, tenantId))) {
+      int paramIndex = 1;
+      String vectorStr = query.toString();
+      preparedStatement.setString(paramIndex++, vectorStr);
+      preparedStatement.setDouble(paramIndex++, similarityThreshold);
+      for (Object param : filterParams) {
+        bindParameter(preparedStatement, paramIndex++, param);
+      }
+      setTenantIdParameter(preparedStatement, paramIndex, tenantId);
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        if (resultSet.next()) {
+          this.totalCount = resultSet.getLong(1);
+        }
+      }
+    }
+
+    this.pageSize = size;
+    this.currentPageIndex = page;
+
+    if (this.totalCount == 0) {
+      return;
+    }
+
+    List<E> results =
+        executeQuery(
+            connection,
+            pagedSql,
+            tenantId,
+            this::mapResultSet,
+            (stmt, paramIndex) -> {
+              int idx = paramIndex;
+              String vectorStr = query.toString();
+              stmt.setString(idx, vectorStr);
+              stmt.setString(idx + 1, vectorStr);
+              stmt.setDouble(idx + 2, similarityThreshold);
+              // 詳細条件のパラメータを、ベクトルの後ろからバインドする
+              int filterParamStartIdx = idx + 3;
+              for (int i = 0; i < filterParams.size(); i++) {
+                bindParameter(stmt, filterParamStartIdx + i, filterParams.get(i));
+              }
+              // nextIdx は addTenantIdFilter が挿入する tenant_id 用プレースホルダーの位置のため空けておく
+              int nextIdx = filterParamStartIdx + filterParams.size();
+              stmt.setInt(nextIdx + 1, size);
+              stmt.setInt(nextIdx + 2, (page - 1) * size);
+              return nextIdx;
+            });
+    this.entityLot = results;
+  }
+
+  /**
    * ベクトル検索 + ページング実行テンプレート（TenantId フィルター必須）.
    *
-   * <p>SQL末尾に自動的に {@code " AND tenant_id = ?"} を付加します。 ページング情報（totalCount, pageSize,
+   * <p>件数の取得と一覧の取得で、バインドする処理を分けて受け取ります。件数の SQL は SELECT 句が無いため、件数用のバインダーで WHERE
+   * 句のパラメータだけを順にバインドします。 SQL 末尾には {@code " AND tenant_id = ?"} を付加します。ページング情報（totalCount, pageSize,
    * currentPageIndex）を自動的に this に設定します。
    *
-   * @param conn DBコネクション
+   * @param conn DBコネクション（null の場合は IllegalArgumentException を投げる）
    * @param baseQuerySql SELECT ... FROM ... WHERE ... のベースSQL（LIMIT/OFFSET なし）
    * @param tenantId テナントID（必須）
    * @param vectorValue ベクトル値（文字列形式、例：「[1.0, 2.0, 3.0]」）
    * @param similarityThreshold 類似度スレッショルド（0.0 で閾値なし、つまり距離計算のみ）
+   * @param countBinder 件数の SQL（SELECT 句なし）のパラメータをバインドする処理
    * @param page ページ番号（1-based）
    * @param size 1ページあたりの件数
    * @param mapper ResultSet → Entity マッピング処理
-   * @param binder ベクトル値・スレッショルド値以外のパラメータをバインドする処理
-   * @throws SQLException
-   * @throws IllegalArgumentException tenantId が null または空文字列の場合
+   * @param binder 一覧の SQL（SELECT 句あり）のパラメータをバインドする処理
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   * @throws IllegalArgumentException DBコネクションが null の場合、またはテナントIDが null または空文字列の場合
    */
-  protected void executeVectorPagedQueryWithCountBinder(
+  protected void executeVectorPagedQuery(
       final Connection conn,
       final String baseQuerySql,
       final String tenantId,
@@ -1542,100 +1334,34 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       final VectorParameterBinder binder)
       throws SQLException {
     if (conn == null) {
-      this.entityLot = new ArrayList<>();
-      this.totalCount = 0;
-      this.pageSize = size;
-      this.currentPageIndex = page;
-      return;
+      throw new IllegalArgumentException("DBコネクションは null にできません");
     }
 
-    // SQL末尾に tenant_id フィルター条件を自動付加
-    final String filteredSql = addTenantIdFilter(baseQuerySql, tenantId);
-
-    // COUNT クエリを実行（COUNT SQL 用の binder を使用）
-    this.totalCount =
-        getCountByVectorForCount(
-            conn, baseQuerySql, tenantId, vectorValue, similarityThreshold, countBinder);
-
-    // データ取得クエリにLIMIT/OFFSETを追加
-    final String pagedSql = filteredSql + " LIMIT ? OFFSET ?";
-
-    try (PreparedStatement stmt = conn.prepareStatement(pagedSql)) {
-      // ユーザー定義のバインド処理（ベクトル値・スレッショルド値以外）
-      int nextParamIndex = binder.bind(stmt, 1, vectorValue, similarityThreshold);
-
-      // tenant_id をバインド
+    // 件数: ORDER BY を除いた COUNT SQL。件数用のバインダーで WHERE 句のパラメータをバインドする
+    final String countSql = addTenantIdFilter(toCountSql(baseQuerySql), tenantId);
+    long count = 0;
+    try (PreparedStatement stmt = conn.prepareStatement(countSql)) {
+      int nextParamIndex = countBinder.bind(stmt, 1, vectorValue, similarityThreshold);
       setTenantIdParameter(stmt, nextParamIndex, tenantId);
-      nextParamIndex++;
-
-      // LIMIT をバインド
-      stmt.setInt(nextParamIndex, size);
-      nextParamIndex++;
-
-      // OFFSET をバインド
-      stmt.setInt(nextParamIndex, (page - 1) * size);
-
-      // SQL をログ出力
-      logSql(pagedSql);
-
-      List<E> results = new ArrayList<>();
+      logSql(countSql);
       try (ResultSet rs = stmt.executeQuery()) {
-        while (rs.next()) {
-          results.add(mapper.map(rs));
+        if (rs.next()) {
+          count = rs.getLong(1);
         }
       }
-
-      this.entityLot = results;
     }
-  }
+    this.totalCount = count;
 
-  protected void executeVectorPagedQuery(
-      final Connection conn,
-      final String baseQuerySql,
-      final String tenantId,
-      final String vectorValue,
-      final double similarityThreshold,
-      final int page,
-      final int size,
-      final ResultSetMapper<E> mapper,
-      final VectorParameterBinder binder)
-      throws SQLException {
-    if (conn == null) {
-      this.entityLot = new ArrayList<>();
-      this.totalCount = 0;
-      this.pageSize = size;
-      this.currentPageIndex = page;
-      return;
-    }
-
-    // SQL末尾に tenant_id フィルター条件を自動付加
-    final String filteredSql = addTenantIdFilter(baseQuerySql, tenantId);
-
-    // COUNT クエリを実行
-    this.totalCount =
-        getCountByVector(conn, baseQuerySql, tenantId, vectorValue, similarityThreshold, binder);
-
-    // データ取得クエリにLIMIT/OFFSETを追加
-    final String pagedSql = filteredSql + " LIMIT ? OFFSET ?";
-
+    // 一覧: tenant_id の後ろに LIMIT と OFFSET をバインドする
+    final String pagedSql = addTenantIdFilter(baseQuerySql, tenantId) + " LIMIT ? OFFSET ?";
     try (PreparedStatement stmt = conn.prepareStatement(pagedSql)) {
-      // ユーザー定義のバインド処理（ベクトル値・スレッショルド値以外）
       int nextParamIndex = binder.bind(stmt, 1, vectorValue, similarityThreshold);
-
-      // tenant_id をバインド
       setTenantIdParameter(stmt, nextParamIndex, tenantId);
       nextParamIndex++;
-
-      // LIMIT をバインド
       stmt.setInt(nextParamIndex, size);
       nextParamIndex++;
-
-      // OFFSET をバインド
       stmt.setInt(nextParamIndex, (page - 1) * size);
-
-      // SQL をログ出力
       logSql(pagedSql);
-
       List<E> results = new ArrayList<>();
       try (ResultSet rs = stmt.executeQuery()) {
         while (rs.next()) {
@@ -1647,148 +1373,6 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
 
     this.pageSize = size;
     this.currentPageIndex = page;
-  }
-
-  /**
-   * ベクトル検索用のCOUNTクエリを実行します（TenantId フィルター必須）.
-   *
-   * @param conn DBコネクション
-   * @param baseQuerySql ベースSQL（LIMIT/OFFSET なし）
-   * @param tenantId テナントID
-   * @param vectorValue ベクトル値
-   * @param similarityThreshold 類似度スレッショルド
-   * @param binder パラメータバインド処理
-   * @return レコード総数
-   * @throws SQLException
-   */
-  private long getCountByVector(
-      final Connection conn,
-      final String baseQuerySql,
-      final String tenantId,
-      final String vectorValue,
-      final double similarityThreshold,
-      final VectorParameterBinder binder)
-      throws SQLException {
-    // COUNT SQL を生成（toCountSql は SELECT を COUNT(*) に置換）
-    final String countSql = addTenantIdFilter(toCountSql(baseQuerySql), tenantId);
-
-    try (PreparedStatement stmt = conn.prepareStatement(countSql)) {
-      // COUNT SQL のパラメータバインディング
-      // SELECT SQL 向けの binder を使用：
-      // binder は SELECT SQL 向けに 1-7 をバインドして 8 を返すため、
-      // COUNT SQL では - 1 で調整して 7 を得る（tenant_id の位置）
-      int nextParamIndex = binder.bind(stmt, 1, vectorValue, similarityThreshold) - 1;
-
-      // tenant_id をバインド
-      setTenantIdParameter(stmt, nextParamIndex, tenantId);
-
-      logSql(countSql);
-
-      try (ResultSet rs = stmt.executeQuery()) {
-        if (rs.next()) {
-          return rs.getLong(1);
-        }
-      }
-    }
-
-    return 0;
-  }
-
-  private long getCountByVectorForCount(
-      final Connection conn,
-      final String baseQuerySql,
-      final String tenantId,
-      final String vectorValue,
-      final double similarityThreshold,
-      final VectorParameterBinder countBinder)
-      throws SQLException {
-    // COUNT SQL を生成（toCountSql は SELECT を COUNT(*) に置換）
-    final String countSql = addTenantIdFilter(toCountSql(baseQuerySql), tenantId);
-
-    try (PreparedStatement stmt = conn.prepareStatement(countSql)) {
-      // COUNT SQL 専用の binder を使用：
-      // COUNT SQL では SELECT句がないため、countBinder は SELECT SQL と異なるパラメータ順序で実装
-      // countBinder は 1-6 をバインドして 7 を返す（tenant_id の位置）
-      int nextParamIndex = countBinder.bind(stmt, 1, vectorValue, similarityThreshold);
-
-      // tenant_id をバインド
-      setTenantIdParameter(stmt, nextParamIndex, tenantId);
-
-      logSql(countSql);
-
-      try (ResultSet rs = stmt.executeQuery()) {
-        if (rs.next()) {
-          return rs.getLong(1);
-        }
-      }
-    }
-
-    return 0;
-  }
-
-  /**
-   * TTL 期限切れレコード取得テンプレート（TenantId フィルター必須）.
-   *
-   * <p>SQL末尾に自動的に {@code " AND tenant_id = ?"} を付加します。 WHERE句に INTERVAL を含む場合、INTERVAL '?' days
-   * のように ?::integer でバインドします。
-   *
-   * @param conn DBコネクション
-   * @param selectPrefix SELECT ... FROM ... WHERE ((ttl IS NOT NULL AND ttl < NOW()) OR ...
-   *     INTERVAL ' のプレフィックス
-   * @param selectSuffix days') < NOW())) ... のサフィックス
-   * @param tenantId テナントID（必須）
-   * @param ttlDays TTL日数（パラメータバインディング用）
-   * @param offset オフセット
-   * @param limit リミット
-   * @param mapper ResultSet → Entity マッピング処理
-   * @return クエリ実行結果のエンティティリスト
-   * @throws SQLException
-   * @throws IllegalArgumentException tenantId が null または空文字列の場合
-   */
-  protected List<E> executeTTLExpiredQuery(
-      final Connection conn,
-      final String selectPrefix,
-      final String selectSuffix,
-      final String tenantId,
-      final int ttlDays,
-      final int offset,
-      final int limit,
-      final ResultSetMapper<E> mapper)
-      throws SQLException {
-    if (conn == null) {
-      return new ArrayList<>();
-    }
-
-    // TTL WHERE句（INTERVAL パラメータなし。直接組み立て）
-    final String baseSql = selectPrefix + ttlDays + selectSuffix;
-
-    // tenant_id フィルター追加
-    final String filteredSql = addTenantIdFilter(baseSql, tenantId);
-
-    try (PreparedStatement stmt = conn.prepareStatement(filteredSql)) {
-      int paramIndex = 1;
-
-      // LIMIT をバインド
-      stmt.setInt(paramIndex, limit);
-      paramIndex++;
-
-      // OFFSET をバインド
-      stmt.setInt(paramIndex, offset);
-      paramIndex++;
-
-      // tenant_id をバインド
-      setTenantIdParameter(stmt, paramIndex, tenantId);
-
-      logSql(filteredSql);
-
-      List<E> results = new ArrayList<>();
-      try (ResultSet rs = stmt.executeQuery()) {
-        while (rs.next()) {
-          results.add(mapper.map(rs));
-        }
-      }
-      return results;
-    }
   }
 
   /**
@@ -1806,9 +1390,9 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @param limit リミット
    * @param mapper ResultSet → Entity マッピング処理
    * @return クエリ実行結果のエンティティリスト
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
-  protected List<E> executeTTLExpiredQueryWithoutTenantFilter(
+  protected List<E> executeTtlExpiredQueryWithoutTenantFilter(
       final Connection conn,
       final String selectPrefix,
       final String selectSuffix,
@@ -1817,9 +1401,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
       final int limit,
       final ResultSetMapper<E> mapper)
       throws SQLException {
-    if (conn == null) {
-      return new ArrayList<>();
-    }
+    EntityBase.requireConnection(conn);
 
     final String sql = selectPrefix + ttlDays + selectSuffix;
 
@@ -1850,7 +1432,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    *
    * @param resultSet レスポンス
    * @return Entity
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected abstract E mapResultSet(ResultSet resultSet) throws SQLException;
 

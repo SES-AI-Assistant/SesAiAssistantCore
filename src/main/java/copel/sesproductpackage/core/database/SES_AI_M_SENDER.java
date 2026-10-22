@@ -25,15 +25,18 @@ public class SES_AI_M_SENDER extends EntityBase {
 
   /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_M_SENDER (from_id, from_name, register_date, register_user) VALUES (?, ?, ?, ?)";
+      "INSERT INTO SES_AI_M_SENDER (from_id, from_name, register_date, register_user) VALUES (?, "
+          + "?, ?, ?)";
 
   /** SELECT文. */
   private static final String SELECT_SQL =
-      "SELECT from_id, from_name, register_date, register_user FROM SES_AI_M_SENDER WHERE from_id = ?";
+      "SELECT from_id, from_name, register_date, register_user FROM SES_AI_M_SENDER WHERE from_id "
+          + "= ?";
 
   /** UPDATE文. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_M_SENDER SET from_name = ?, register_date = ?, register_user = ? WHERE from_id = ?";
+      "UPDATE SES_AI_M_SENDER SET from_name = ?, register_date = ?, register_user = ? WHERE "
+          + "from_id = ?";
 
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_M_SENDER WHERE from_id = ?";
@@ -119,7 +122,8 @@ public class SES_AI_M_SENDER extends EntityBase {
    * 送信者マスタに該当IDの送信者が存在するかを判定する.
    *
    * @param connection DB接続
-   * @return 存在する場合はtrue、存在しない場合またはconnectionがnullの場合はfalse
+   * @return 存在する場合はtrue、存在しない場合はfalse
+   * @throws IllegalArgumentException 送信者IDが設定されていて、DB接続がnullの場合
    * @throws SQLException SQL実行エラー時
    */
   public boolean isExist(Connection connection) throws SQLException {

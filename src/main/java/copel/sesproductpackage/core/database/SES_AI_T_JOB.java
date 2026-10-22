@@ -1,7 +1,7 @@
 package copel.sesproductpackage.core.database;
 
 import copel.sesproductpackage.core.database.base.Column;
-import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
+import copel.sesproductpackage.core.database.base.SesAiTableEntityBase;
 import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
@@ -26,7 +26,7 @@ import lombok.ToString;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
+public class SES_AI_T_JOB extends SesAiTableEntityBase {
 
   public SES_AI_T_JOB(String tenantId) {
     super(tenantId);
@@ -38,23 +38,39 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
   // ================================
   /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_JOB (job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, vector_data, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_T_JOB (job_id, from_group, from_id, from_name, mail_subject, "
+          + "raw_content, content_summary, unit_price, vector_data, title, overview, must_skills, "
+          + "want_skills, start_date, place, area, office_requirements, other_requirements, "
+          + "register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::vector, "
+          + "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
-      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, unit_price, vector_data, title, overview, must_skills, want_skills, start_date, place, area, office_requirements, other_requirements, register_date, register_user, ttl FROM SES_AI_T_JOB WHERE job_id = ?";
+      "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
+          + "unit_price, title, overview, must_skills, want_skills, start_date, "
+          + "place, area, office_requirements, other_requirements, register_date, "
+          + "register_user, ttl FROM SES_AI_T_JOB WHERE job_id = ?";
 
   /** UPDATE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_T_JOB SET from_group = ?, from_id = ?, from_name = ?, mail_subject = ?, raw_content = ?, content_summary = ?, unit_price = ?, vector_data = ?::vector, title = ?, overview = ?, must_skills = ?, want_skills = ?, start_date = ?, place = ?, area = ?, office_requirements = ?, other_requirements = ?, ttl = ? WHERE job_id = ?";
+      "UPDATE SES_AI_T_JOB SET from_group = ?, from_id = ?, from_name = ?, mail_subject = ?, "
+          + "raw_content = ?, content_summary = ?, unit_price = ?, vector_data = "
+          + "COALESCE(?::vector, vector_data), title "
+          + "= ?, overview = ?, must_skills = ?, want_skills = ?, start_date = ?, place = ?, "
+          + "area = ?, office_requirements = ?, other_requirements = ?, ttl = ? WHERE "
+          + "job_id = ?";
 
   /** 重複チェック用SQL. */
   private static final String CHECK_SQL =
-      "SELECT COUNT(*) FROM SES_AI_T_JOB WHERE tenant_id = ? AND raw_content % ? AND similarity(raw_content, ?) > ?";
+      "SELECT COUNT(*) FROM SES_AI_T_JOB WHERE tenant_id = ? AND raw_content % ? AND "
+          + "similarity(raw_content, ?) > ?";
 
   /** 単価等取得用・重複チェックSQL. */
   private static final String FIND_SIMILAR_SQL =
-      "SELECT job_id, unit_price FROM SES_AI_T_JOB WHERE tenant_id = ? AND regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g') % ? AND similarity(regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g'), ?) > ? LIMIT 1";
+      "SELECT job_id, unit_price FROM SES_AI_T_JOB WHERE tenant_id = ? AND "
+          + "regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g') % ? AND "
+          + "similarity(regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g'), ?) > ? LIMIT "
+          + "1";
 
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_T_JOB WHERE job_id = ?";
@@ -149,53 +165,9 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
   }
 
   /**
-   * 画面・通知に表示するための場所を取得します.
-   *
-   * <p>場所は記載が無ければnullになるため、文字列連結やString.formatにそのまま渡すと「null」と表示されてしまう。
-   * 要約文やプッシュ通知で表記を揃えるため、未設定の場合は「不明」を返す.
-   *
-   * @return 場所。未設定の場合は「不明」
-   */
-  public String getPlaceForDisplay() {
-    return OriginalStringUtils.isUnspecified(this.place) ? "不明" : this.place;
-  }
-
-  /**
-   * 画面・通知に表示するための案件名を取得します.
-   *
-   * <p>案件名はDB上nullを許容しており、そのまま通知文に埋め込むと「【null】」と表示されてしまうため、 未設定（LLMが返す「Unknown」を含む）の場合は「案件名不明」を返す.
-   *
-   * @return 案件名。未設定の場合は「案件名不明」
-   */
-  public String getTitleForDisplay() {
-    return OriginalStringUtils.isUnspecified(this.title) ? "案件名不明" : this.title;
-  }
-
-  /**
-   * 画面・通知に表示するための出社要件を取得します.
-   *
-   * <p>出社要求日数は0がフルリモート、5が常駐を意味するため（JobInfoSchemaの定義）、「週0日」のような
-   * 不自然な表示にならないよう要約文（getSummaryWithTargetPrice）と同じ表記に揃える。未設定（null）の場合も 「null」と表示されないよう「不明」を返す.
-   *
-   * @return 出社要件（例: 「フルリモート」「常駐（品川駅）」「週3日（品川駅）」「不明」）
-   */
-  public String getOfficeRequirementsForDisplay() {
-    if (this.officeRequirements == null) {
-      return "不明";
-    }
-    if (this.officeRequirements == 0) {
-      return "フルリモート";
-    }
-    if (this.officeRequirements == 5) {
-      return "常駐（" + this.getPlaceForDisplay() + "）";
-    }
-    return "週" + this.officeRequirements + "日（" + this.getPlaceForDisplay() + "）";
-  }
-
-  /**
    * プッシュ通知に表示するための出社要件を取得します.
    *
-   * <p>通知は1行あたりの表示幅が狭いため、{@link #getOfficeRequirementsForDisplay()} と異なり場所を付けずに短く表記する。
+   * <p>通知は1行あたりの表示幅が狭いため、場所を付けずに短く表記する。
    * また「不明」の表示は情報量が無く行を圧迫するだけなので、未設定（null）の場合はnullを返し、呼び出し側で項目ごと省略させる.
    *
    * @return 出社要件（例: 「フルリモート」「常駐」「週3出社」）。未設定の場合はnull
@@ -212,6 +184,29 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
       return "常駐";
     }
     return "週" + this.officeRequirements + "出社";
+  }
+
+  /**
+   * 画面・通知に表示するための場所を取得します.
+   *
+   * <p>場所は記載が無ければnullになるため、文字列連結やString.formatにそのまま渡すと「null」と表示されてしまう。
+   * 要約文やプッシュ通知で表記を揃えるため、未設定の場合は「不明」を返す.
+   *
+   * @return 場所。未設定の場合は「不明」
+   */
+  private String getPlaceForDisplay() {
+    return OriginalStringUtils.isUnspecified(this.place) ? "不明" : this.place;
+  }
+
+  /**
+   * 画面・通知に表示するための案件名を取得します.
+   *
+   * <p>案件名はDB上nullを許容しており、そのまま通知文に埋め込むと「【null】」と表示されてしまうため、 未設定（LLMが返す「Unknown」を含む）の場合は「案件名不明」を返す.
+   *
+   * @return 案件名。未設定の場合は「案件名不明」
+   */
+  private String getTitleForDisplay() {
+    return OriginalStringUtils.isUnspecified(this.title) ? "案件名不明" : this.title;
   }
 
   /**
@@ -237,7 +232,7 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
    * @param textToCheck チェック対象のテキスト
    * @param similarityThreshold 類似度のしきい値
    * @return 類似レコードが見つかった場合はそのSES_AI_T_JOB、見つからなかった場合はnull
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public static SES_AI_T_JOB findSimilarRecord(
       final Connection connection,
@@ -250,6 +245,7 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
     }
     String maskedText = textToCheck.replaceAll("https?://[^\\s]+", "");
 
+    SES_AI_T_JOB result = null;
     try (PreparedStatement preparedStatement = connection.prepareStatement(FIND_SIMILAR_SQL)) {
       preparedStatement.setString(1, tenantId);
       preparedStatement.setString(2, maskedText);
@@ -257,15 +253,14 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
       preparedStatement.setDouble(4, similarityThreshold);
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
-          SES_AI_T_JOB result = new SES_AI_T_JOB(tenantId);
+          result = new SES_AI_T_JOB(tenantId);
           result.setJobId(resultSet.getString("job_id"));
           BigDecimal unitPriceValue = resultSet.getBigDecimal("unit_price");
           result.setUnitPrice(unitPriceValue == null ? Money.empty() : new Money(unitPriceValue));
-          return result;
         }
       }
     }
-    return null;
+    return result;
   }
 
   // ================================
@@ -488,13 +483,19 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
    * 単価が未指定の場合は単価未記載のサマリを作成する。
    *
    * @param targetPrice 指定単価
-   * @param multiplier 単価倍率
    * @return 案件サマリ
    */
   public String getSummaryWithTargetPrice(Money targetPrice) {
     return getSummaryWithTargetPrice(targetPrice, 0.9);
   }
 
+  /**
+   * 指定した単価と単価倍率に書き換えた案件サマリを作成する。単価倍率の扱いは {@link #getSummaryWithTargetPrice(Money)} と同じ。
+   *
+   * @param targetPrice 指定単価
+   * @param multiplier 単価倍率
+   * @return 案件サマリ
+   */
   public String getSummaryWithTargetPrice(Money targetPrice, double multiplier) {
     StringBuilder sb = new StringBuilder();
     // 1. 案件名
@@ -514,24 +515,18 @@ public class SES_AI_T_JOB extends SES_AI_T_EntityBase {
       sb.append("■開始: ").append(this.startDate.month()).append("\n");
     }
     // 6. 単価
-    if (targetPrice != null && !targetPrice.isEmpty()) {
-      if (targetPrice.isNegotiable()) {
-        sb.append("■単価: ")
-            .append(this.unitPrice.multiply(multiplier).toJapaneseFormat())
-            .append("\n");
+    appendTargetPriceLine(sb, targetPrice, this.unitPrice, multiplier);
+    // 7. 出社要件、場所（出社要件が未設定の場合は両方の行を出さない）
+    if (this.officeRequirements != null) {
+      if (this.officeRequirements == 0) {
+        sb.append("■出社要件: ").append("フルリモート\n");
+      } else if (this.officeRequirements == 5) {
+        sb.append("■出社要件: ").append("常駐").append("\n");
+        sb.append("■場所: ").append(this.getPlaceForDisplay()).append("\n");
       } else {
-        sb.append("■単価: ").append(targetPrice.toJapaneseFormat()).append("\n");
+        sb.append("■出社要件: ").append("週").append(this.officeRequirements).append("\n");
+        sb.append("■場所: ").append(this.getPlaceForDisplay()).append("\n");
       }
-    }
-    // 7. 出社要件、場所
-    if (this.officeRequirements == 0) {
-      sb.append("■出社要件: ").append("フルリモート\n");
-    } else if (this.officeRequirements == 5) {
-      sb.append("■出社要件: ").append("常駐").append("\n");
-      sb.append("■場所: ").append(this.getPlaceForDisplay()).append("\n");
-    } else {
-      sb.append("■出社要件: ").append("週").append(this.officeRequirements).append("\n");
-      sb.append("■場所: ").append(this.getPlaceForDisplay()).append("\n");
     }
     // 8. その他
     if (this.otherRequirements != null && !this.otherRequirements.isEmpty()) {

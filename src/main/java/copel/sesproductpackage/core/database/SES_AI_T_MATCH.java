@@ -31,15 +31,26 @@ public class SES_AI_T_MATCH extends EntityBase {
 
   /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_MATCH (matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, score, must_evaluation_text, want_evaluation_text, place_evaluation_text, office_evaluation_text, other_evaluation_text, profit, register_date, register_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_T_MATCH (matching_id, user_id, job_id, person_id, job_content, "
+          + "person_content, status_cd, evaluation_text, score, must_evaluation_text, "
+          + "want_evaluation_text, place_evaluation_text, office_evaluation_text, "
+          + "other_evaluation_text, profit, register_date, register_user) VALUES (?, ?, ?, "
+          + "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
-      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, score, must_evaluation_text, want_evaluation_text, place_evaluation_text, office_evaluation_text, other_evaluation_text, profit, register_date, register_user FROM SES_AI_T_MATCH WHERE matching_id = ?";
+      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, "
+          + "evaluation_text, score, must_evaluation_text, want_evaluation_text, "
+          + "place_evaluation_text, office_evaluation_text, other_evaluation_text, profit, "
+          + "register_date, register_user FROM SES_AI_T_MATCH WHERE matching_id = ?";
 
   /** UPDATE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_T_MATCH SET user_id = ?, job_id = ?, person_id = ?, job_content = ?, person_content = ?, status_cd = ?, evaluation_text = ?, score = ?, must_evaluation_text = ?, want_evaluation_text = ?, place_evaluation_text = ?, office_evaluation_text = ?, other_evaluation_text = ?, profit = ?, register_date = ?, register_user = ? WHERE matching_id = ?";
+      "UPDATE SES_AI_T_MATCH SET user_id = ?, job_id = ?, person_id = ?, job_content = ?, "
+          + "person_content = ?, status_cd = ?, evaluation_text = ?, score = ?, "
+          + "must_evaluation_text = ?, want_evaluation_text = ?, place_evaluation_text = ?, "
+          + "office_evaluation_text = ?, other_evaluation_text = ?, profit = ?, "
+          + "register_date = ?, register_user = ? WHERE matching_id = ?";
 
   /** DELETE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_T_MATCH WHERE matching_id = ?";

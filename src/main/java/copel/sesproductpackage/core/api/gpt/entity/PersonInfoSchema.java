@@ -5,6 +5,7 @@ import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.ExperienceDuration;
 import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.unit.OfficeAvailability;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
 import java.math.BigDecimal;
@@ -80,7 +81,8 @@ public class PersonInfoSchema {
   @Schema(
       title = "希望単価（万円）",
       description =
-          "月額希望単価を万円単位の数値で設定。例: 80万/800,000円/800K→80、65.5万→65.5、時給2500円(160h)→40。幅がある場合は希望下限。スキル見合い・応相談・未記載は0。",
+          "月額希望単価を万円単位の数値で設定。例: "
+              + "80万/800,000円/800K→80、65.5万→65.5、時給2500円(160h)→40。幅がある場合は希望下限。スキル見合い・応相談・未記載は0。",
       required = true,
       type = "number",
       example = "80")
@@ -111,7 +113,8 @@ public class PersonInfoSchema {
   @Schema(
       title = "地域",
       description =
-          "要員本人の最寄駅または在住地が属する地域。駅名や地名が記載されている場合は、確信が持てなくても最も可能性の高い地域を推定して必ず選ぶこと。要員本人の所在に関する記載が一切無い場合のみその他とする",
+          "要員本人の最寄駅または在住地が属する地域。駅名や地名が記載されている場合は、確信が持てなくても最も可能性の高い地域を推定して必ず選ぶこと。要員本人の所在に関する記載が一切無い場"
+              + "合のみその他とする",
       required = true,
       example = "関東_首都圏")
   private Area area = Area.その他;
@@ -185,7 +188,8 @@ public class PersonInfoSchema {
       sb.append("■年齢: ").append(this.age).append("歳\n");
     }
     // 2. 性別
-    sb.append("■性別: ").append(this.gender.toJapanese()).append("\n");
+    // 性別が未設定の場合は「-」と表示する
+    sb.append("■性別: ").append(this.gender != null ? this.gender.toJapanese() : "-").append("\n");
     // 3. 国籍
     sb.append("■国籍: ").append(this.nationality).append("\n");
     // 4. 稼働開始可能月
@@ -203,13 +207,9 @@ public class PersonInfoSchema {
       sb.append("■場所: ").append(this.place).append("\n");
     }
     // 8. 出社可否
-    if (this.officeAvailability == 0) {
-      sb.append("■出社: ").append("フルリモート希望\n");
-    } else if (this.officeAvailability == 5) {
-      sb.append("■出社: ").append("常駐可").append("\n");
-    } else {
-      sb.append("■出社: ").append("週").append(this.officeAvailability).append("まで可").append("\n");
-    }
+    sb.append("■出社: ")
+        .append(new OfficeAvailability(this.officeAvailability).toDisplayString())
+        .append("\n");
     // 9. 経歴
     if (this.experiences != null && !this.experiences.isEmpty()) {
       sb.append("■経歴\n");
@@ -248,26 +248,7 @@ public class PersonInfoSchema {
    * @return OriginalDateTime
    */
   public OriginalDateTime getStartDateAsOriginalDateTime() {
-    if (this.startYearMonth == null) {
-      OriginalDateTime now = new OriginalDateTime();
-      return OriginalDateTime.fromMonth(
-          now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
-    }
-    String[] parts = this.startYearMonth.split("/");
-    if (parts.length == 2) {
-      try {
-        int year = Integer.parseInt(parts[0]);
-        int month = Integer.parseInt(parts[1]);
-        return OriginalDateTime.fromMonth(year, month);
-      } catch (NumberFormatException e) {
-        OriginalDateTime now = new OriginalDateTime();
-        return OriginalDateTime.fromMonth(
-            now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
-      }
-    }
-    OriginalDateTime now = new OriginalDateTime();
-    return OriginalDateTime.fromMonth(
-        now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
+    return OriginalDateTime.fromYearMonthText(this.startYearMonth);
   }
 
   /**
@@ -322,6 +303,7 @@ public class PersonInfoSchema {
   // ================================================
   // フィールド用のクラス
   // ================================================
+  /** 要員の経験（業務経歴）を表すスキーマです。 */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
@@ -337,7 +319,9 @@ public class PersonInfoSchema {
     @Schema(
         title = "経験月数",
         description =
-            "本文に明記された経験年数や期間を月数に換算した整数（例: 「3年」→36、「1年半」→18、「6ヶ月」→6）。「2〜3年」のような範囲表記は下限、「約5年」は記載の数値で換算すること。本文中に明確な年数や期間の記載がない場合は、推測せず出力しないこと",
+            "本文に明記された経験年数や期間を月数に換算した整数（例: "
+                + "「3年」→36、「1年半」→18、「6ヶ月」→6）。「2〜3年」のような範囲表記は下限、「約5年」は記載の数値で換算すること。本文中に明確な年数や期間の記載がな"
+                + "い場合は、推測せず出力しないこと",
         type = "integer",
         gt = 0,
         example = "36")

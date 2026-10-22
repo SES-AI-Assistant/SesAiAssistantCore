@@ -1,406 +1,273 @@
 package copel.sesproductpackage.core.database;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import copel.sesproductpackage.core.database.SES_AI_T_WATCH.TargetType;
 import copel.sesproductpackage.core.unit.Gender;
+import copel.sesproductpackage.tools.testsupport.db.MockDbConnection;
+import copel.sesproductpackage.tools.testsupport.jdbc.MockResultSetBuilder;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
-/**
- * SES_AI_T_WATCH_JOB_PERSONLot のテストクラス.
- *
- * @author Copel Co., Ltd.
- */
+/** {@link SES_AI_T_WATCH_JOB_PERSONLot} の単体テスト。 */
 class SES_AI_T_WATCH_JOB_PERSONLotTest {
 
-  private SES_AI_T_WATCH_JOB_PERSONLot lot;
-  private Connection connection;
-  private PreparedStatement ps;
-  private ResultSet rs;
+  /** テナントID。 */
+  private static final String TENANT_ID = "T001";
 
-  @BeforeEach
-  void setUp() throws SQLException {
-    lot = new SES_AI_T_WATCH_JOB_PERSONLot();
-    connection = mock(Connection.class);
-    ps = mock(PreparedStatement.class);
-    rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
+  /** 取得結果の列SELECT 文の列の順。 */
+  private static final String[] COLUMNS = {
+    "user_id",
+    "target_id",
+    "target_type",
+    "memo",
+    "register_date",
+    "register_user",
+    "ttl",
+    "tenant_id",
+    "job_title",
+    "job_from_name",
+    "job_mail_subject",
+    "job_content_summary",
+    "job_raw_content",
+    "job_start_date",
+    "job_office_requirements",
+    "job_unit_price",
+    "job_place",
+    "job_area",
+    "person_name",
+    "person_from_name",
+    "person_mail_subject",
+    "person_content_summary",
+    "person_raw_content",
+    "person_age",
+    "person_gender",
+    "person_start_date",
+    "person_office_availability",
+    "person_unit_price",
+    "person_place",
+    "person_area"
+  };
+
+  /**
+   * 案件と要員が結合できた行と、結合できなかった行削除済みの案件と要員、日時と対象種別が未設定の2行を持つ結果セットを作る。
+   *
+   * @return 2行の結果セット
+   * @throws SQLException 結果セットの作成中に例外が起きた場合
+   */
+  private static ResultSet twoRows() throws SQLException {
+    return MockResultSetBuilder.builder()
+        .columns(COLUMNS)
+        .row(
+            "U001",
+            "J001",
+            "JOB",
+            "メモ",
+            "2026-01-15 10:00:00",
+            "U000",
+            "2026-02-15 10:00:00",
+            TENANT_ID,
+            "案件名",
+            "送信者",
+            "件名",
+            "要約",
+            "原文",
+            "2026-03-01 00:00:00",
+            2,
+            new BigDecimal(1_500_000),
+            "東京",
+            "関東",
+            "山田太郎",
+            "要員送信者",
+            "要員件名",
+            "要員要約",
+            "要員原文",
+            35,
+            "Man",
+            "2026-04-01 00:00:00",
+            5,
+            new BigDecimal(500_000),
+            "大阪",
+            "関西")
+        .row(
+            "U002", "J002", null, null, null, "U000", null, TENANT_ID, null, null, null, null, null,
+            null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+            null, null, null)
+        .build();
   }
 
-  @Test
-  void testMapResultSetWithJobFields() throws SQLException {
-    setupResultSetMocks(rs, true, false);
+  @Nested
+  class selectAll {
 
-    SES_AI_T_WATCH_JOB_PERSON entity = lot.mapResultSet(rs);
+    @Nested
+    class 異常系 {
 
-    assertNotNull(entity);
-    assertEquals("user-123", entity.getUserId());
-    assertEquals("target-456", entity.getTargetId());
-    assertEquals(SES_AI_T_WATCH.TargetType.JOB, entity.getTargetType());
-    assertEquals("Test memo", entity.getMemo());
-    assertEquals("test-tenant", entity.getTenantId());
-
-    // JOB フィールドが有効
-    assertEquals("Software Engineer", entity.getJobTitle());
-    assertEquals("田中商事", entity.getJobFromName());
-    assertEquals("Java案件の要約", entity.getJobContentSummary());
-    assertEquals("Java案件の原文", entity.getJobRawContent());
-    assertEquals("2026-04-01 00:00:00", entity.getJobStartDate().toString());
-    assertEquals(3, entity.getJobOfficeRequirements());
-    assertEquals(800000L, entity.getJobUnitPrice().toYenValue());
-    assertEquals("Tokyo", entity.getJobPlace());
-    assertEquals("Kanto", entity.getJobArea());
-
-    // PERSON フィールドが NULL
-    assertNull(entity.getPersonName());
-    assertNull(entity.getPersonFromName());
-    assertNull(entity.getPersonContentSummary());
-    assertNull(entity.getPersonRawContent());
-    assertNull(entity.getPersonAge());
-    assertNull(entity.getPersonGender());
-    assertNull(entity.getPersonStartDate());
-    assertNull(entity.getPersonOfficeAvailability());
-    assertTrue(entity.getPersonUnitPrice().isEmpty());
-    assertNull(entity.getPersonPlace());
-    assertNull(entity.getPersonArea());
+      /**
+       * 全件の取得を呼び出すと、ユーザーIDによる取得を案内する例外を投げることを確かめる。 結合の一覧は必ずページ指定で取得する。
+       *
+       * @given 読み取り専用の結合Lot
+       * @when selectAll を接続とテナントID "T001" で呼び出す
+       * @then UnsupportedOperationExceptionを投げる
+       */
+      @Test
+      void 呼び出された場合_UnsupportedOperationExceptionを投げる() {
+        assertThatThrownBy(
+                () -> new SES_AI_T_WATCH_JOB_PERSONLot().selectAll((Connection) null, TENANT_ID))
+            .isInstanceOf(UnsupportedOperationException.class);
+      }
+    }
   }
 
-  @Test
-  void testMapResultSetWithPersonFields() throws SQLException {
-    setupResultSetMocks(rs, false, true);
+  @Nested
+  class getSelectAllSql {
 
-    SES_AI_T_WATCH_JOB_PERSON entity = lot.mapResultSet(rs);
+    @Nested
+    class 異常系 {
 
-    assertNotNull(entity);
-    assertEquals("user-123", entity.getUserId());
-    assertEquals("target-789", entity.getTargetId());
-    assertEquals(SES_AI_T_WATCH.TargetType.PERSON, entity.getTargetType());
-    assertEquals("Person watch", entity.getMemo());
-    assertEquals("test-tenant", entity.getTenantId());
-
-    // JOB フィールドが NULL
-    assertNull(entity.getJobTitle());
-    assertNull(entity.getJobFromName());
-    assertNull(entity.getJobContentSummary());
-    assertNull(entity.getJobRawContent());
-    assertNull(entity.getJobStartDate());
-    assertNull(entity.getJobOfficeRequirements());
-    assertTrue(entity.getJobUnitPrice().isEmpty());
-    assertNull(entity.getJobPlace());
-    assertNull(entity.getJobArea());
-
-    // PERSON フィールドが有効
-    assertEquals("John Doe", entity.getPersonName());
-    assertEquals("鈴木エージェント", entity.getPersonFromName());
-    assertEquals("要員の要約", entity.getPersonContentSummary());
-    assertEquals("要員の原文", entity.getPersonRawContent());
-    assertEquals(35, entity.getPersonAge());
-    assertEquals(Gender.Man, entity.getPersonGender());
-    assertEquals("2026-05-01 00:00:00", entity.getPersonStartDate().toString());
-    assertEquals(2, entity.getPersonOfficeAvailability());
-    assertEquals(600000L, entity.getPersonUnitPrice().toYenValue());
-    assertEquals("Osaka", entity.getPersonPlace());
-    assertEquals("Kansai", entity.getPersonArea());
+      /**
+       * 全件用の SQL を求めると例外を投げることを確かめる。 結合の一覧は全件ではなくページ指定で取得する。
+       *
+       * @given 読み取り専用の結合Lot
+       * @when selectAllPaged を接続、テナントID "T001"、ページ 1、サイズ 10 で呼び出す
+       * @then UnsupportedOperationExceptionを投げる
+       */
+      @Test
+      void selectAllPagedから呼ばれた場合_UnsupportedOperationExceptionを投げる() {
+        assertThatThrownBy(
+                () ->
+                    new SES_AI_T_WATCH_JOB_PERSONLot()
+                        .selectAllPaged((Connection) null, TENANT_ID, 1, 10))
+            .isInstanceOf(UnsupportedOperationException.class);
+      }
+    }
   }
 
-  @Test
-  void testMapResultSetWithNullJobAndPersonFields() throws SQLException {
-    setupResultSetMocks(rs, false, false);
+  @Nested
+  class selectByUserIdPaged {
 
-    SES_AI_T_WATCH_JOB_PERSON entity = lot.mapResultSet(rs);
+    @Nested
+    class 正常系 {
 
-    assertNotNull(entity);
-    assertEquals("user-123", entity.getUserId());
-    assertEquals("test-tenant", entity.getTenantId());
+      /**
+       * 結合できた行と結合できなかった行の両方を読み込み、項目を変換することを確かめる。 削除済みの案件や要員があっても、ウォッチの一覧を表示する。
+       *
+       * @given 件数が 2 件、SELECT の結果が結合できた行と結合できなかった行の 2 行
+       * @when selectByUserIdPaged を接続、テナントID "T001"、ユーザーID "U001"、ページ 1、サイズ 10 で実行する
+       * @then 件数に 2 を保持し、1件目の対象種別を JOB、2件目の対象種別を null とした2件の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void 結合できた行と結合できなかった行の場合_2件の一覧を返す(final Connection connection) throws SQLException {
+        stubCountAndRows(connection, 2L, twoRows());
+        SES_AI_T_WATCH_JOB_PERSONLot lot = new SES_AI_T_WATCH_JOB_PERSONLot();
 
-    // 全てのJOB/PERSONフィールドが NULL
-    assertNull(entity.getJobTitle());
-    assertNull(entity.getJobStartDate());
-    assertNull(entity.getJobOfficeRequirements());
-    assertTrue(entity.getJobUnitPrice().isEmpty());
-    assertNull(entity.getJobPlace());
-    assertNull(entity.getJobArea());
+        lot.selectByUserIdPaged(connection, TENANT_ID, "U001", 1, 10);
 
-    assertNull(entity.getPersonName());
-    assertNull(entity.getPersonAge());
-    assertNull(entity.getPersonGender());
-    assertNull(entity.getPersonStartDate());
-    assertNull(entity.getPersonOfficeAvailability());
-    assertTrue(entity.getPersonUnitPrice().isEmpty());
-    assertNull(entity.getPersonPlace());
-    assertNull(entity.getPersonArea());
-  }
+        assertThat(lot.getTotalCount()).isEqualTo(2L);
+        assertThat(lot.size()).isEqualTo(2);
+        assertThat(lot.get(0).getTargetType()).isEqualTo(TargetType.JOB);
+        assertThat(lot.get(0).getPersonGender()).isEqualTo(Gender.Man);
+        assertThat(lot.get(0).getTtl().toString()).isEqualTo("2026-02-15 10:00:00");
+        assertThat(lot.get(1).getTargetType()).isNull();
+        assertThat(lot.get(1).getJobUnitPrice().isEmpty()).isTrue();
+        assertThat(lot.get(1).getPersonGender()).isNull();
+      }
+    }
 
-  @Test
-  void testMapResultSetWithNullOptionalFields() throws SQLException {
-    when(rs.getString("tenant_id")).thenReturn("test-tenant");
-    when(rs.getString("user_id")).thenReturn("user-123");
-    when(rs.getString("target_id")).thenReturn("target-456");
-    when(rs.getString("target_type")).thenReturn("JOB");
-    when(rs.getString("memo")).thenReturn(null);
-    when(rs.getString("register_date")).thenReturn(null);
-    when(rs.getString("register_user")).thenReturn("admin");
-    when(rs.getString("ttl")).thenReturn(null);
+    @Nested
+    class 異常系 {
 
-    when(rs.getString("job_title")).thenReturn("Job Title");
-    when(rs.getString("job_start_date")).thenReturn(null);
-    when(rs.getObject("job_office_requirements")).thenReturn(null);
-    when(rs.getBigDecimal("job_unit_price")).thenReturn(null);
-    when(rs.getString("job_place")).thenReturn("Tokyo");
-    when(rs.getString("job_area")).thenReturn("Kanto");
+      /**
+       * DB 接続が null の場合に検索を拒否することを確かめる。 接続が無いまま件数を数えられない。
+       *
+       * @given 接続が null、ユーザーIDが "U001"
+       * @when selectByUserIdPaged を null の接続で実行する
+       * @then IllegalArgumentExceptionを投げる
+       */
+      @Test
+      void 接続がnullの場合_IllegalArgumentExceptionを投げる() {
+        assertThatThrownBy(
+                () ->
+                    new SES_AI_T_WATCH_JOB_PERSONLot()
+                        .selectByUserIdPaged(null, TENANT_ID, "U001", 1, 10))
+            .isInstanceOf(IllegalArgumentException.class);
+      }
+    }
 
-    when(rs.getString("person_name")).thenReturn(null);
-    when(rs.getObject("person_age")).thenReturn(null);
-    when(rs.getString("person_gender")).thenReturn(null);
-    when(rs.getString("person_start_date")).thenReturn(null);
-    when(rs.getObject("person_office_availability")).thenReturn(null);
-    when(rs.getBigDecimal("person_unit_price")).thenReturn(null);
-    when(rs.getString("person_place")).thenReturn(null);
-    when(rs.getString("person_area")).thenReturn(null);
+    @Nested
+    class 境界値 {
 
-    SES_AI_T_WATCH_JOB_PERSON entity = lot.mapResultSet(rs);
+      /**
+       * ユーザーIDが null の場合に検索を行わないことを確かめる。 キーの無い検索は全ユーザーのウォッチを返す。
+       *
+       * @given ユーザーIDが null、テナントIDが "T001"
+       * @when selectByUserIdPaged を接続、テナントID "T001"、ユーザーID null で実行する
+       * @then SQL の準備を呼ばない
+       */
+      @MockDbConnection
+      @Test
+      void ユーザーIDがnullの場合_DBを呼ばない(final Connection connection) throws SQLException {
+        new SES_AI_T_WATCH_JOB_PERSONLot().selectByUserIdPaged(connection, TENANT_ID, null, 1, 10);
 
-    assertNotNull(entity);
-    assertNull(entity.getMemo());
-    assertNull(entity.getRegisterDate());
-    assertNull(entity.getTtl());
-    assertNull(entity.getJobStartDate());
-    assertNull(entity.getJobOfficeRequirements());
-    assertEquals("Tokyo", entity.getJobPlace());
-  }
+        verify(connection, never()).prepareStatement(anyString());
+      }
+    }
 
-  @Test
-  void testMapResultSetWithNullTargetType() throws SQLException {
-    when(rs.getString("tenant_id")).thenReturn("test-tenant");
-    when(rs.getString("user_id")).thenReturn("user-123");
-    when(rs.getString("target_id")).thenReturn("target-456");
-    when(rs.getString("target_type")).thenReturn(null);
-    when(rs.getString("memo")).thenReturn(null);
-    when(rs.getString("register_date")).thenReturn(null);
-    when(rs.getString("register_user")).thenReturn("admin");
-    when(rs.getString("ttl")).thenReturn(null);
+    @Nested
+    class テナント隔離 {
 
-    when(rs.getString("job_title")).thenReturn(null);
-    when(rs.getString("job_start_date")).thenReturn(null);
-    when(rs.getObject("job_office_requirements")).thenReturn(null);
-    when(rs.getBigDecimal("job_unit_price")).thenReturn(null);
-    when(rs.getString("job_place")).thenReturn(null);
-    when(rs.getString("job_area")).thenReturn(null);
+      /**
+       * 件数と行の検索の条件にテナントIDを渡して、他テナントのウォッチを読まないことを確かめる。 他テナントの案件と要員の情報が漏えいする。
+       *
+       * @given 件数が 0 件
+       * @when selectByUserIdPaged を接続、テナントID "T001"、ユーザーID "U001" で実行する
+       * @then 件数の検索の条件に "T001" を設定し、空の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void テナントIDがT001の場合_件数の条件にT001を設定して空の一覧を返す(final Connection connection) throws SQLException {
+        PreparedStatement countStatement = mock(PreparedStatement.class);
+        when(countStatement.executeQuery())
+            .thenReturn(MockResultSetBuilder.builder().columns("cnt").row(0L).build());
+        when(connection.prepareStatement(contains("COUNT(*)"))).thenReturn(countStatement);
+        SES_AI_T_WATCH_JOB_PERSONLot lot = new SES_AI_T_WATCH_JOB_PERSONLot();
 
-    when(rs.getString("person_name")).thenReturn(null);
-    when(rs.getObject("person_age")).thenReturn(null);
-    when(rs.getString("person_gender")).thenReturn(null);
-    when(rs.getString("person_start_date")).thenReturn(null);
-    when(rs.getObject("person_office_availability")).thenReturn(null);
-    when(rs.getBigDecimal("person_unit_price")).thenReturn(null);
-    when(rs.getString("person_place")).thenReturn(null);
-    when(rs.getString("person_area")).thenReturn(null);
+        lot.selectByUserIdPaged(connection, TENANT_ID, "U001", 1, 10);
 
-    SES_AI_T_WATCH_JOB_PERSON entity = lot.mapResultSet(rs);
-
-    assertNull(entity.getTargetType());
-  }
-
-  @Test
-  void testMapResultSetWithZeroOfficeRequirements() throws SQLException {
-    when(rs.getString("tenant_id")).thenReturn("test-tenant");
-    when(rs.getString("user_id")).thenReturn("user-123");
-    when(rs.getString("target_id")).thenReturn("target-456");
-    when(rs.getString("target_type")).thenReturn("JOB");
-    when(rs.getString("memo")).thenReturn("Test");
-    when(rs.getString("register_date")).thenReturn("2026-01-01 10:00:00");
-    when(rs.getString("register_user")).thenReturn("admin");
-    when(rs.getString("ttl")).thenReturn("2026-12-31 23:59:59");
-
-    when(rs.getString("job_title")).thenReturn("Remote Job");
-    when(rs.getString("job_start_date")).thenReturn("2026-04");
-    when(rs.getObject("job_office_requirements")).thenReturn(0);
-    when(rs.getInt("job_office_requirements")).thenReturn(0);
-    when(rs.getBigDecimal("job_unit_price")).thenReturn(new BigDecimal("1000000"));
-    when(rs.getString("job_place")).thenReturn("Remote");
-    when(rs.getString("job_area")).thenReturn("N/A");
-
-    when(rs.getString("person_name")).thenReturn(null);
-    when(rs.getObject("person_age")).thenReturn(null);
-    when(rs.getString("person_gender")).thenReturn(null);
-    when(rs.getString("person_start_date")).thenReturn(null);
-    when(rs.getObject("person_office_availability")).thenReturn(null);
-    when(rs.getBigDecimal("person_unit_price")).thenReturn(null);
-    when(rs.getString("person_place")).thenReturn(null);
-    when(rs.getString("person_area")).thenReturn(null);
-
-    SES_AI_T_WATCH_JOB_PERSON entity = lot.mapResultSet(rs);
-
-    assertEquals(0, entity.getJobOfficeRequirements());
-  }
-
-  @Test
-  void testMapResultSetWithZeroOfficeAvailability() throws SQLException {
-    when(rs.getString("tenant_id")).thenReturn("test-tenant");
-    when(rs.getString("user_id")).thenReturn("user-123");
-    when(rs.getString("target_id")).thenReturn("target-789");
-    when(rs.getString("target_type")).thenReturn("PERSON");
-    when(rs.getString("memo")).thenReturn("Watch person");
-    when(rs.getString("register_date")).thenReturn("2026-01-01 10:00:00");
-    when(rs.getString("register_user")).thenReturn("admin");
-    when(rs.getString("ttl")).thenReturn("2026-12-31 23:59:59");
-
-    when(rs.getString("job_title")).thenReturn(null);
-    when(rs.getString("job_start_date")).thenReturn(null);
-    when(rs.getObject("job_office_requirements")).thenReturn(null);
-    when(rs.getBigDecimal("job_unit_price")).thenReturn(null);
-    when(rs.getString("job_place")).thenReturn(null);
-    when(rs.getString("job_area")).thenReturn(null);
-
-    when(rs.getString("person_name")).thenReturn("Remote Worker");
-    when(rs.getObject("person_age")).thenReturn(28);
-    when(rs.getInt("person_age")).thenReturn(28);
-    when(rs.getString("person_gender")).thenReturn("Woman");
-    when(rs.getString("person_start_date")).thenReturn("2026-05");
-    when(rs.getObject("person_office_availability")).thenReturn(0);
-    when(rs.getInt("person_office_availability")).thenReturn(0);
-    when(rs.getBigDecimal("person_unit_price")).thenReturn(new BigDecimal("750000"));
-    when(rs.getString("person_place")).thenReturn("Remote");
-    when(rs.getString("person_area")).thenReturn("N/A");
-
-    SES_AI_T_WATCH_JOB_PERSON entity = lot.mapResultSet(rs);
-
-    assertEquals(0, entity.getPersonOfficeAvailability());
-  }
-
-  @Test
-  void testGetSelectAllSqlThrowsUnsupportedOperationException() {
-    assertThrows(UnsupportedOperationException.class, () -> lot.getSelectAllSql());
-  }
-
-  @Test
-  void testGetSelectSqlThrowsUnsupportedOperationException() {
-    assertThrows(UnsupportedOperationException.class, () -> lot.getSelectSql());
-  }
-
-  @Test
-  void testSelectAllThrowsUnsupportedOperationException() {
-    assertThrows(
-        UnsupportedOperationException.class, () -> lot.selectAll(connection, "test-tenant"));
-  }
-
-  @Test
-  void testSelectByUserIdPaged() throws SQLException {
-    // 1回目のnext()はCOUNT文用、2回目はデータ取得1件目、3回目でループ終了
-    when(rs.next()).thenReturn(true, true, false);
-    when(rs.getLong(1)).thenReturn(1L);
-    setupResultSetMocks(rs, true, true);
-
-    lot.selectByUserIdPaged(connection, "test-tenant", "user-123", 1, 10);
-
-    assertEquals(1, lot.size());
-    verify(ps, times(2)).executeQuery();
-
-    // ORDER BY句を含むベースSQLに対してWHERE条件が正しくORDER BYより前に
-    // 挿入されていることを検証する（ORDER BYの後にWHEREが来ると構文エラーになるため）。
-    ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
-    verify(connection, times(2)).prepareStatement(sqlCaptor.capture());
-    String pagingSql = sqlCaptor.getAllValues().get(1);
-    String upperPagingSql = pagingSql.toUpperCase();
-    int wherePos = upperPagingSql.indexOf("WHERE");
-    int orderByPos = upperPagingSql.indexOf("ORDER BY");
-    assertTrue(wherePos >= 0, "ページングSQLにWHERE句が存在すること");
-    assertTrue(orderByPos >= 0, "ページングSQLにORDER BY句が存在すること");
-    assertTrue(wherePos < orderByPos, "WHERE句はORDER BY句より前に配置されること");
-    assertEquals(wherePos, upperPagingSql.lastIndexOf("WHERE"), "WHERE句が重複生成されていないこと");
-  }
-
-  @Test
-  void testSelectByUserIdPagedWithNullConnection() throws SQLException {
-    lot.selectByUserIdPaged(null, "test-tenant", "user-123", 1, 10);
-    assertEquals(0, lot.size());
-  }
-
-  @Test
-  void testSelectByUserIdPagedWithNullUserId() throws SQLException {
-    lot.selectByUserIdPaged(connection, "test-tenant", null, 1, 10);
-    assertEquals(0, lot.size());
+        assertThat(lot.isEmpty()).isTrue();
+        verify(countStatement).setString(2, TENANT_ID);
+      }
+    }
   }
 
   /**
-   * ResultSetのモック設定補助メソッド.
+   * 件数の問い合わせと結果の問い合わせに、それぞれ別の準備文を返すように設定する。
    *
-   * @param resultSet モック化されたResultSet
-   * @param includeJobFields JOB関連フィールドを含めるかどうか
-   * @param includePersonFields PERSON関連フィールドを含めるかどうか
-   * @throws SQLException
+   * @param connection 接続のモック
+   * @param count 件数
+   * @param rows 行の結果セット順に返す
+   * @throws SQLException 設定中に例外が起きた場合
    */
-  private void setupResultSetMocks(
-      ResultSet resultSet, boolean includeJobFields, boolean includePersonFields)
-      throws SQLException {
-    when(resultSet.getString("tenant_id")).thenReturn("test-tenant");
-    when(resultSet.getString("user_id")).thenReturn("user-123");
-
-    if (includeJobFields) {
-      when(resultSet.getString("target_id")).thenReturn("target-456");
-      when(resultSet.getString("target_type")).thenReturn("JOB");
-      when(resultSet.getString("memo")).thenReturn("Test memo");
-      when(resultSet.getString("register_date")).thenReturn("2026-01-01 10:00:00");
-      when(resultSet.getString("register_user")).thenReturn("admin");
-      when(resultSet.getString("ttl")).thenReturn("2026-12-31 23:59:59");
-
-      when(resultSet.getString("job_title")).thenReturn("Software Engineer");
-      when(resultSet.getString("job_from_name")).thenReturn("田中商事");
-      when(resultSet.getString("job_content_summary")).thenReturn("Java案件の要約");
-      when(resultSet.getString("job_raw_content")).thenReturn("Java案件の原文");
-      when(resultSet.getString("job_start_date")).thenReturn("2026-04");
-      when(resultSet.getObject("job_office_requirements")).thenReturn(3);
-      when(resultSet.getInt("job_office_requirements")).thenReturn(3);
-      when(resultSet.getBigDecimal("job_unit_price")).thenReturn(new BigDecimal("800000"));
-      when(resultSet.getString("job_place")).thenReturn("Tokyo");
-      when(resultSet.getString("job_area")).thenReturn("Kanto");
-    } else {
-      when(resultSet.getString("target_id")).thenReturn("target-789");
-      when(resultSet.getString("target_type")).thenReturn("PERSON");
-      when(resultSet.getString("memo")).thenReturn("Person watch");
-      when(resultSet.getString("register_date")).thenReturn("2026-01-02 11:00:00");
-      when(resultSet.getString("register_user")).thenReturn("user");
-      when(resultSet.getString("ttl")).thenReturn("2026-12-31 23:59:59");
-
-      when(resultSet.getString("job_title")).thenReturn(null);
-      when(resultSet.getString("job_start_date")).thenReturn(null);
-      when(resultSet.getObject("job_office_requirements")).thenReturn(null);
-      when(resultSet.getBigDecimal("job_unit_price")).thenReturn(null);
-      when(resultSet.getString("job_place")).thenReturn(null);
-      when(resultSet.getString("job_area")).thenReturn(null);
-    }
-
-    if (includePersonFields) {
-      when(resultSet.getString("person_name")).thenReturn("John Doe");
-      when(resultSet.getString("person_from_name")).thenReturn("鈴木エージェント");
-      when(resultSet.getString("person_content_summary")).thenReturn("要員の要約");
-      when(resultSet.getString("person_raw_content")).thenReturn("要員の原文");
-      when(resultSet.getObject("person_age")).thenReturn(35);
-      when(resultSet.getInt("person_age")).thenReturn(35);
-      when(resultSet.getString("person_gender")).thenReturn("Man");
-      when(resultSet.getString("person_start_date")).thenReturn("2026-05");
-      when(resultSet.getObject("person_office_availability")).thenReturn(2);
-      when(resultSet.getInt("person_office_availability")).thenReturn(2);
-      when(resultSet.getBigDecimal("person_unit_price")).thenReturn(new BigDecimal("600000"));
-      when(resultSet.getString("person_place")).thenReturn("Osaka");
-      when(resultSet.getString("person_area")).thenReturn("Kansai");
-    } else {
-      when(resultSet.getString("person_name")).thenReturn(null);
-      when(resultSet.getObject("person_age")).thenReturn(null);
-      when(resultSet.getString("person_gender")).thenReturn(null);
-      when(resultSet.getString("person_start_date")).thenReturn(null);
-      when(resultSet.getObject("person_office_availability")).thenReturn(null);
-      when(resultSet.getBigDecimal("person_unit_price")).thenReturn(null);
-      when(resultSet.getString("person_place")).thenReturn(null);
-      when(resultSet.getString("person_area")).thenReturn(null);
-    }
+  private static void stubCountAndRows(
+      final Connection connection, final long count, final ResultSet rows) throws SQLException {
+    PreparedStatement countStatement = mock(PreparedStatement.class);
+    when(countStatement.executeQuery())
+        .thenReturn(MockResultSetBuilder.builder().columns("cnt").row(count).build());
+    PreparedStatement rowStatement = mock(PreparedStatement.class);
+    when(rowStatement.executeQuery()).thenReturn(rows);
+    when(connection.prepareStatement(anyString())).thenReturn(rowStatement);
+    when(connection.prepareStatement(contains("COUNT(*)"))).thenReturn(countStatement);
   }
 }

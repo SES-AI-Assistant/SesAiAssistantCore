@@ -6,6 +6,9 @@ package copel.sesproductpackage.core.util;
  * @author Copel Co., Ltd.
  */
 public class EnvUtils {
+  /** インスタンス化を禁止する。すべての操作は静的メンバーで提供する。 */
+  private EnvUtils() {}
+
   /**
    * 指定された環境変数の値を取得します.
    *

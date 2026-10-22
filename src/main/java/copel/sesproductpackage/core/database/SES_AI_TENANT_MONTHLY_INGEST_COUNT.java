@@ -3,7 +3,7 @@ package copel.sesproductpackage.core.database;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import copel.sesproductpackage.core.database.SES_AI_M_INGEST_ROUTE.ChannelType;
-import copel.sesproductpackage.core.database.base.DynamoDB;
+import copel.sesproductpackage.core.database.base.DynamoDb;
 import copel.sesproductpackage.core.database.base.DynamoDbClientFactory;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.util.ApplicationClock;
@@ -12,6 +12,7 @@ import copel.sesproductpackage.core.util.SsmParameterKey;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +39,7 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class SES_AI_TENANT_MONTHLY_INGEST_COUNT
-    extends DynamoDB<SES_AI_TENANT_MONTHLY_INGEST_COUNT> {
+    extends DynamoDb<SES_AI_TENANT_MONTHLY_INGEST_COUNT> {
 
   /** デフォルトテーブル名. */
   public static final String DEFAULT_TABLE_NAME = "SES_AI_TENANT_MONTHLY_INGEST_COUNT";
@@ -73,7 +74,8 @@ public class SES_AI_TENANT_MONTHLY_INGEST_COUNT
   public static String resolveTableName() {
     String tableName =
         Properties.get(SsmParameterKey.TENANT_MONTHLY_INGEST_COUNT_TABLE_NAME.getKey());
-    if (tableName == null || tableName.isBlank()) {
+    // Properties.get は未設定のとき空文字を返すが、null でも既定名に倒すため requireNonNullElse で正規化する
+    if (Objects.requireNonNullElse(tableName, "").isBlank()) {
       return DEFAULT_TABLE_NAME;
     }
     return tableName;
@@ -208,7 +210,8 @@ public class SES_AI_TENANT_MONTHLY_INGEST_COUNT
         || channelType == null
         || amount <= 0) {
       log.warn(
-          "increment skipped due to invalid arguments: tenantId={}, yearMonth={}, channelType={}, amount={}",
+          "increment skipped due to invalid arguments: tenantId={}, yearMonth={}, channelType={}, "
+              + "amount={}",
           tenantId,
           yearMonth,
           channelType,
@@ -247,7 +250,8 @@ public class SES_AI_TENANT_MONTHLY_INGEST_COUNT
             .tableName(resolveTableName())
             .key(key)
             .updateExpression(
-                "SET #upd = :now, #tid = if_not_exists(#tid, :tid), #ym = if_not_exists(#ym, :ym), #ct = if_not_exists(#ct, :ct) ADD #cnt :inc")
+                "SET #upd = :now, #tid = if_not_exists(#tid, :tid), #ym = if_not_exists(#ym, :ym), "
+                    + "#ct = if_not_exists(#ct, :ct) ADD #cnt :inc")
             .expressionAttributeNames(expressionAttributeNames)
             .expressionAttributeValues(expressionAttributeValues)
             .build();
@@ -256,7 +260,8 @@ public class SES_AI_TENANT_MONTHLY_INGEST_COUNT
       getDynamoDbClient().updateItem(updateItemRequest);
     } catch (Exception e) {
       log.error(
-          "Failed to increment monthly ingest count: tenantId={}, yearMonth={}, channelType={}, amount={}",
+          "Failed to increment monthly ingest count: tenantId={}, yearMonth={}, channelType={}, "
+              + "amount={}",
           tenantId,
           yearMonth,
           channelType,

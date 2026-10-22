@@ -22,7 +22,7 @@ public enum Role {
   システム管理者("99", EnumSet.allOf(Permission.class));
 
   /** コード値. */
-  private String code;
+  private final String code;
 
   /** 権限セット. */
   private final Set<Permission> permissions;
@@ -69,15 +69,6 @@ public enum Role {
    */
   public String getCode() {
     return code;
-  }
-
-  /**
-   * コード値をセットする.
-   *
-   * @param code コード値
-   */
-  public void setCode(String code) {
-    this.code = code;
   }
 
   /**

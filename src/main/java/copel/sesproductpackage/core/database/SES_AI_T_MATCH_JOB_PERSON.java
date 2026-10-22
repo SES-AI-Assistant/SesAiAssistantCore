@@ -1,9 +1,7 @@
 package copel.sesproductpackage.core.database;
 
 import copel.sesproductpackage.core.database.base.Column;
-import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.Gender;
-import copel.sesproductpackage.core.unit.MatchingStatus;
 import copel.sesproductpackage.core.unit.Money;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -22,76 +20,20 @@ import lombok.ToString;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class SES_AI_T_MATCH_JOB_PERSON extends EntityBase {
+public class SES_AI_T_MATCH_JOB_PERSON extends SES_AI_T_MATCH {
 
+  /**
+   * テナントIDを指定して生成します.
+   *
+   * @param tenantId テナントID
+   */
   public SES_AI_T_MATCH_JOB_PERSON(String tenantId) {
     super(tenantId);
-    this.tenantId = tenantId;
   }
 
-  // ================================
-  // SES_AI_T_MATCH のフィールド
-  // ================================
-
-  /** マッチングID / matching_id */
-  @Column(required = true, primary = true, physicalName = "matching_id", logicalName = "マッチングID")
-  private String matchingId;
-
-  /** 担当者ユーザーID / user_id */
-  @Column(physicalName = "user_id", logicalName = "担当者ユーザーID")
-  private String userId;
-
-  /** 案件ID / job_id */
-  @Column(physicalName = "job_id", logicalName = "案件ID")
-  private String jobId;
-
-  /** 案件内容 / job_content */
-  @Column(physicalName = "job_content", logicalName = "案件内容")
-  private String jobContent;
-
-  /** 要員ID / person_id */
-  @Column(physicalName = "person_id", logicalName = "要員ID")
-  private String personId;
-
-  /** 要員内容 / person_content */
-  @Column(physicalName = "person_content", logicalName = "要員内容")
-  private String personContent;
-
-  /** MatchingStatus / status_cd */
-  @Column(physicalName = "status_cd", logicalName = "MatchingStatus")
-  private MatchingStatus status;
-
-  /** 評価文 / evaluation_text */
-  @Column(physicalName = "evaluation_text", logicalName = "評価文")
-  private String evaluationText;
-
-  /** 点数 / score */
-  @Column(physicalName = "score", logicalName = "点数")
-  private Integer score;
-
-  /** 必須スキル評価文 / must_evaluation_text */
-  @Column(physicalName = "must_evaluation_text", logicalName = "必須スキル評価文")
-  private String mustEvaluationText;
-
-  /** 尚可スキル評価文 / want_evaluation_text */
-  @Column(physicalName = "want_evaluation_text", logicalName = "尚可スキル評価文")
-  private String wantEvaluationText;
-
-  /** 場所評価文 / place_evaluation_text */
-  @Column(physicalName = "place_evaluation_text", logicalName = "場所評価文")
-  private String placeEvaluationText;
-
-  /** 出社要件評価文 / office_evaluation_text */
-  @Column(physicalName = "office_evaluation_text", logicalName = "出社要件評価文")
-  private String officeEvaluationText;
-
-  /** その他条件評価文 / other_evaluation_text */
-  @Column(physicalName = "other_evaluation_text", logicalName = "その他条件評価文")
-  private String otherEvaluationText;
-
-  /** 利益 / profit */
-  @Column(physicalName = "profit", logicalName = "利益")
-  private Money profit;
+  /** 読み取り専用のため、書き込みと削除の操作を受け付けない理由を示す。 */
+  private static final String READ_ONLY_MESSAGE =
+      "SES_AI_T_MATCH_JOB_PERSON は読み取り専用Entity。%s操作はサポートしていません。";
 
   // ================================
   // SES_AI_T_JOB のフィールド（JOIN先）
@@ -128,42 +70,67 @@ public class SES_AI_T_MATCH_JOB_PERSON extends EntityBase {
   /**
    * このレコードがjob_idを持つかどうかを判定します.
    *
+   * <p>結合Entityは従来どおり null と空文字だけを未設定とみなす。親の判定（空白や文字列 "null" も未設定）とは扱いが異なるため上書きする。
+   *
    * @return 持っていればtrue、持たなければfalse
    */
+  @Override
   public boolean hasJobId() {
-    return this.jobId != null && !this.jobId.isEmpty();
+    return this.getJobId() != null && !this.getJobId().isEmpty();
   }
 
   /**
    * このレコードがperson_idを持つかどうかを判定します.
    *
+   * <p>結合Entityは従来どおり null と空文字だけを未設定とみなす。親の判定と扱いが異なるため上書きする。
+   *
    * @return 持っていればtrue、持たなければfalse
    */
+  @Override
   public boolean hasPersonId() {
-    return this.personId != null && !this.personId.isEmpty();
+    return this.getPersonId() != null && !this.getPersonId().isEmpty();
   }
 
+  /**
+   * 読み取り専用のため、登録操作は受け付けずに例外を投げます.
+   *
+   * @param connection DBコネクション
+   * @return なし（常に例外を投げる）
+   */
   @Override
   public int insert(Connection connection) throws SQLException {
-    throw new UnsupportedOperationException(
-        "SES_AI_T_MATCH_JOB_PERSON は読み取り専用Entity。insert操作はサポートしていません。");
+    throw new UnsupportedOperationException(String.format(READ_ONLY_MESSAGE, "insert"));
   }
 
+  /**
+   * 読み取り専用のため、主キーによる取得操作は受け付けずに例外を投げます.
+   *
+   * @param connection DBコネクション
+   */
   @Override
   public void selectByPk(Connection connection) throws SQLException {
-    throw new UnsupportedOperationException(
-        "SES_AI_T_MATCH_JOB_PERSON は読み取り専用Entity。selectByPk操作はサポートしていません。");
+    throw new UnsupportedOperationException(String.format(READ_ONLY_MESSAGE, "selectByPk"));
   }
 
+  /**
+   * 読み取り専用のため、更新操作は受け付けずに例外を投げます.
+   *
+   * @param connection DBコネクション
+   * @return なし（常に例外を投げる）
+   */
   @Override
   public boolean updateByPk(Connection connection) throws SQLException {
-    throw new UnsupportedOperationException(
-        "SES_AI_T_MATCH_JOB_PERSON は読み取り専用Entity。updateByPk操作はサポートしていません。");
+    throw new UnsupportedOperationException(String.format(READ_ONLY_MESSAGE, "updateByPk"));
   }
 
+  /**
+   * 読み取り専用のため、削除操作は受け付けずに例外を投げます.
+   *
+   * @param connection DBコネクション
+   * @return なし（常に例外を投げる）
+   */
   @Override
   public boolean deleteByPk(Connection connection) throws SQLException {
-    throw new UnsupportedOperationException(
-        "SES_AI_T_MATCH_JOB_PERSON は読み取り専用Entity。deleteByPk操作はサポートしていません。");
+    throw new UnsupportedOperationException(String.format(READ_ONLY_MESSAGE, "deleteByPk"));
   }
 }

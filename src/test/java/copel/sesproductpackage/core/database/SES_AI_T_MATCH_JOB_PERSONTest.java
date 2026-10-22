@@ -1,267 +1,247 @@
 package copel.sesproductpackage.core.database;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import copel.sesproductpackage.core.unit.Gender;
-import copel.sesproductpackage.core.unit.MatchingStatus;
-import copel.sesproductpackage.core.unit.Money;
-import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-/**
- * SES_AI_T_MATCH_JOB_PERSON のテストクラス.
- *
- * @author Copel Co., Ltd.
- */
+/** {@link SES_AI_T_MATCH_JOB_PERSON} の単体テスト。 */
 class SES_AI_T_MATCH_JOB_PERSONTest {
 
-  private SES_AI_T_MATCH_JOB_PERSON entity;
+  /** テナントID。 */
+  private static final String TENANT_ID = "T001";
 
-  @BeforeEach
-  void setUp() {
-    entity = new SES_AI_T_MATCH_JOB_PERSON("test-tenant");
+  @Nested
+  class コンストラクタ {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * テナントIDを指定して生成すると、そのテナントIDを保持することを確かめる。 結合の結果も自テナントの行に限る。
+       *
+       * @given テナントIDが "T001"
+       * @when SES_AI_T_MATCH_JOB_PERSON を "T001" で生成する
+       * @then 指定したテナントIDの "T001" を返す
+       */
+      @Test
+      void テナントIDを指定した場合_指定したテナントIDを返す() {
+        assertThat(new SES_AI_T_MATCH_JOB_PERSON(TENANT_ID).getTenantId()).isEqualTo(TENANT_ID);
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * テナントIDが null の場合に生成を拒否することを確かめる。 テナントの無い結合結果は他テナントの行を含む。
+       *
+       * @given テナントIDが null
+       * @when SES_AI_T_MATCH_JOB_PERSON を null で生成する
+       * @then IllegalArgumentExceptionを投げる
+       */
+      @Test
+      void テナントIDがnullの場合_IllegalArgumentExceptionを投げる() {
+        assertThatThrownBy(() -> new SES_AI_T_MATCH_JOB_PERSON(null))
+            .isInstanceOf(IllegalArgumentException.class);
+      }
+    }
   }
 
-  @Test
-  void testConstructorAndBasicFields() {
-    assertEquals("test-tenant", entity.getTenantId());
-    assertNotNull(entity);
+  @Nested
+  class hasJobId {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 案件IDがある場合に true を返すことを確かめる。 案件名と単価を表示する行かを判定する。
+       *
+       * @given 案件IDが "J001"
+       * @when hasJobId を実行する
+       * @then trueを返す
+       */
+      @Test
+      void 案件IDがある場合_trueを返す() {
+        SES_AI_T_MATCH_JOB_PERSON entity = new SES_AI_T_MATCH_JOB_PERSON(TENANT_ID);
+        entity.setJobId("J001");
+
+        assertThat(entity.hasJobId()).isTrue();
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 案件IDが null の場合に false を返すことを確かめる。 案件が削除されて結合先が無い行を、案件ありと扱わない。
+       *
+       * @given 案件IDが null
+       * @when hasJobId を実行する
+       * @then falseを返す
+       */
+      @Test
+      void 案件IDがnullの場合_falseを返す() {
+        assertThat(new SES_AI_T_MATCH_JOB_PERSON(TENANT_ID).hasJobId()).isFalse();
+      }
+
+      /**
+       * 案件IDが空文字の場合に false を返すことを確かめる。 空の案件IDは結合先の案件を指さない。
+       *
+       * @given 案件IDが空文字
+       * @when hasJobId を実行する
+       * @then falseを返す
+       */
+      @Test
+      void 案件IDが空文字の場合_falseを返す() {
+        SES_AI_T_MATCH_JOB_PERSON entity = new SES_AI_T_MATCH_JOB_PERSON(TENANT_ID);
+        entity.setJobId("");
+
+        assertThat(entity.hasJobId()).isFalse();
+      }
+    }
   }
 
-  @Test
-  void testSetAndGetAllMatchFields() {
-    entity.setMatchingId("M001");
-    entity.setUserId("U001");
-    entity.setJobId("J001");
-    entity.setPersonId("P001");
-    entity.setJobContent("Job Content");
-    entity.setPersonContent("Person Content");
-    entity.setStatus(MatchingStatus.提案中);
-    entity.setEvaluationText("Evaluation");
-    entity.setScore(85);
-    entity.setMustEvaluationText("Must Eval");
-    entity.setWantEvaluationText("Want Eval");
-    entity.setPlaceEvaluationText("Place Eval");
-    entity.setOfficeEvaluationText("Office Eval");
-    entity.setOtherEvaluationText("Other Eval");
-    entity.setProfit(new Money(100000L));
-    entity.setRegisterDate(new OriginalDateTime("2026-01-01 10:00:00"));
-    entity.setRegisterUser("admin");
+  @Nested
+  class hasPersonId {
 
-    assertEquals("M001", entity.getMatchingId());
-    assertEquals("U001", entity.getUserId());
-    assertEquals("J001", entity.getJobId());
-    assertEquals("P001", entity.getPersonId());
-    assertEquals("Job Content", entity.getJobContent());
-    assertEquals("Person Content", entity.getPersonContent());
-    assertEquals(MatchingStatus.提案中, entity.getStatus());
-    assertEquals("Evaluation", entity.getEvaluationText());
-    assertEquals(85, entity.getScore());
-    assertEquals("Must Eval", entity.getMustEvaluationText());
-    assertEquals("Want Eval", entity.getWantEvaluationText());
-    assertEquals("Place Eval", entity.getPlaceEvaluationText());
-    assertEquals("Office Eval", entity.getOfficeEvaluationText());
-    assertEquals("Other Eval", entity.getOtherEvaluationText());
-    assertEquals(100000L, entity.getProfit().toYenValue());
-    assertNotNull(entity.getRegisterDate());
-    assertEquals("admin", entity.getRegisterUser());
+    @Nested
+    class 正常系 {
+
+      /**
+       * 要員IDがある場合に true を返すことを確かめる。 要員名と単価を表示する行かを判定する。
+       *
+       * @given 要員IDが "P001"
+       * @when hasPersonId を実行する
+       * @then trueを返す
+       */
+      @Test
+      void 要員IDがある場合_trueを返す() {
+        SES_AI_T_MATCH_JOB_PERSON entity = new SES_AI_T_MATCH_JOB_PERSON(TENANT_ID);
+        entity.setPersonId("P001");
+
+        assertThat(entity.hasPersonId()).isTrue();
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 要員IDが null の場合に false を返すことを確かめる。 要員が削除されて結合先が無い行を、要員ありと扱わない。
+       *
+       * @given 要員IDが null
+       * @when hasPersonId を実行する
+       * @then falseを返す
+       */
+      @Test
+      void 要員IDがnullの場合_falseを返す() {
+        assertThat(new SES_AI_T_MATCH_JOB_PERSON(TENANT_ID).hasPersonId()).isFalse();
+      }
+
+      /**
+       * 要員IDが空文字の場合に false を返すことを確かめる。 空の要員IDは結合先の要員を指さない。
+       *
+       * @given 要員IDが空文字
+       * @when hasPersonId を実行する
+       * @then falseを返す
+       */
+      @Test
+      void 要員IDが空文字の場合_falseを返す() {
+        SES_AI_T_MATCH_JOB_PERSON entity = new SES_AI_T_MATCH_JOB_PERSON(TENANT_ID);
+        entity.setPersonId("");
+
+        assertThat(entity.hasPersonId()).isFalse();
+      }
+    }
   }
 
-  @Test
-  void testSetAndGetJobFields() {
-    entity.setJobTitle("Job Title");
-    entity.setJobUnitPrice(new Money(800000L));
+  @Nested
+  class insert {
 
-    assertEquals("Job Title", entity.getJobTitle());
-    assertEquals(800000L, entity.getJobUnitPrice().toYenValue());
+    @Nested
+    class 異常系 {
+
+      /**
+       * 読み取り専用のため登録を拒否し、例外を投げることを確かめる。 結合の結果を登録すると、マッチングと案件と要員の対応が壊れる。
+       *
+       * @given 読み取り専用の結合Entity
+       * @when insert を接続で実行する
+       * @then UnsupportedOperationExceptionを投げる
+       */
+      @Test
+      void 読み取り専用の場合_UnsupportedOperationExceptionを投げる() {
+        assertThatThrownBy(() -> new SES_AI_T_MATCH_JOB_PERSON(TENANT_ID).insert((Connection) null))
+            .isInstanceOf(UnsupportedOperationException.class);
+      }
+    }
   }
 
-  @Test
-  void testSetAndGetPersonFields() {
-    entity.setPersonName("Person Name");
-    entity.setPersonAge(35);
-    entity.setPersonGender(Gender.Man);
-    entity.setPersonUnitPrice(new Money(600000L));
+  @Nested
+  class selectByPk {
 
-    assertEquals("Person Name", entity.getPersonName());
-    assertEquals(35, entity.getPersonAge());
-    assertEquals(Gender.Man, entity.getPersonGender());
-    assertEquals(600000L, entity.getPersonUnitPrice().toYenValue());
+    @Nested
+    class 異常系 {
+
+      /**
+       * 読み取り専用のため主キーによる取得を拒否し、例外を投げることを確かめる。 結合の結果を単体の取得として扱うと、結合先の項目が欠ける。
+       *
+       * @given 読み取り専用の結合Entity
+       * @when selectByPk を接続で実行する
+       * @then UnsupportedOperationExceptionを投げる
+       */
+      @Test
+      void 読み取り専用の場合_UnsupportedOperationExceptionを投げる() {
+        assertThatThrownBy(
+                () -> new SES_AI_T_MATCH_JOB_PERSON(TENANT_ID).selectByPk((Connection) null))
+            .isInstanceOf(UnsupportedOperationException.class);
+      }
+    }
   }
 
-  @Test
-  void testHasJobId() {
-    entity.setJobId("J001");
-    assertTrue(entity.hasJobId());
+  @Nested
+  class updateByPk {
 
-    entity.setJobId("");
-    assertFalse(entity.hasJobId());
+    @Nested
+    class 異常系 {
 
-    entity.setJobId(null);
-    assertFalse(entity.hasJobId());
+      /**
+       * 読み取り専用のため更新を拒否し、例外を投げることを確かめる。 結合の結果を更新すると、結合先の案件や要員の値を誤って書き換える。
+       *
+       * @given 読み取り専用の結合Entity
+       * @when updateByPk を接続で実行する
+       * @then UnsupportedOperationExceptionを投げる
+       */
+      @Test
+      void 読み取り専用の場合_UnsupportedOperationExceptionを投げる() {
+        assertThatThrownBy(
+                () -> new SES_AI_T_MATCH_JOB_PERSON(TENANT_ID).updateByPk((Connection) null))
+            .isInstanceOf(UnsupportedOperationException.class);
+      }
+    }
   }
 
-  @Test
-  void testHasPersonId() {
-    entity.setPersonId("P001");
-    assertTrue(entity.hasPersonId());
+  @Nested
+  class deleteByPk {
 
-    entity.setPersonId("");
-    assertFalse(entity.hasPersonId());
+    @Nested
+    class 異常系 {
 
-    entity.setPersonId(null);
-    assertFalse(entity.hasPersonId());
-  }
-
-  @Test
-  void testInsertThrowsUnsupportedOperationException() {
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> entity.insert(mock(Connection.class)),
-        "insert操作はサポートしていません");
-  }
-
-  @Test
-  void testSelectByPkThrowsUnsupportedOperationException() {
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> entity.selectByPk(mock(Connection.class)),
-        "selectByPk操作はサポートしていません");
-  }
-
-  @Test
-  void testUpdateByPkThrowsUnsupportedOperationException() {
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> entity.updateByPk(mock(Connection.class)),
-        "updateByPk操作はサポートしていません");
-  }
-
-  @Test
-  void testDeleteByPkThrowsUnsupportedOperationException() {
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> entity.deleteByPk(mock(Connection.class)),
-        "deleteByPk操作はサポートしていません");
-  }
-
-  @Test
-  void testEqualsAndHashCode() {
-    SES_AI_T_MATCH_JOB_PERSON entity1 = new SES_AI_T_MATCH_JOB_PERSON("test-tenant");
-    SES_AI_T_MATCH_JOB_PERSON entity2 = new SES_AI_T_MATCH_JOB_PERSON("test-tenant");
-
-    entity1.setMatchingId("M001");
-    entity2.setMatchingId("M001");
-    assertEquals(entity1, entity2);
-    assertEquals(entity1.hashCode(), entity2.hashCode());
-
-    entity1.setJobTitle("Title1");
-    assertNotEquals(entity1, entity2);
-
-    entity2.setJobTitle("Title1");
-    assertEquals(entity1, entity2);
-
-    entity1.setPersonName("Name1");
-    assertNotEquals(entity1, entity2);
-
-    entity2.setPersonName("Name1");
-    assertEquals(entity1, entity2);
-  }
-
-  @Test
-  void testNotEquals() {
-    SES_AI_T_MATCH_JOB_PERSON entity1 = new SES_AI_T_MATCH_JOB_PERSON("test-tenant");
-    SES_AI_T_MATCH_JOB_PERSON entity2 = new SES_AI_T_MATCH_JOB_PERSON("test-tenant");
-
-    assertNotEquals(entity1, null);
-    assertNotEquals(entity1, new Object());
-  }
-
-  @Test
-  void testToString() {
-    entity.setMatchingId("M001");
-    String str = entity.toString();
-    assertNotNull(str);
-    assertTrue(str.length() > 0);
-  }
-
-  @Test
-  void testMoneyFieldsWithNullAndEmpty() {
-    entity.setProfit(null);
-    assertNull(entity.getProfit());
-
-    entity.setJobUnitPrice(Money.empty());
-    assertTrue(entity.getJobUnitPrice().isEmpty());
-
-    entity.setPersonUnitPrice(Money.empty());
-    assertTrue(entity.getPersonUnitPrice().isEmpty());
-  }
-
-  @Test
-  void testGenderFieldWithNull() {
-    entity.setPersonGender(null);
-    assertNull(entity.getPersonGender());
-
-    entity.setPersonGender(Gender.Woman);
-    assertEquals(Gender.Woman, entity.getPersonGender());
-  }
-
-  @Test
-  void testPersonAgeWithNull() {
-    entity.setPersonAge(null);
-    assertNull(entity.getPersonAge());
-
-    entity.setPersonAge(30);
-    assertEquals(30, entity.getPersonAge());
-  }
-
-  @Test
-  void testScoreWithNull() {
-    entity.setScore(null);
-    assertNull(entity.getScore());
-
-    entity.setScore(95);
-    assertEquals(95, entity.getScore());
-  }
-
-  @Test
-  void testCanEqual() {
-    SES_AI_T_MATCH_JOB_PERSON entity1 = new SES_AI_T_MATCH_JOB_PERSON("test-tenant");
-    SES_AI_T_MATCH_JOB_PERSON entity2 = new SES_AI_T_MATCH_JOB_PERSON("test-tenant");
-
-    assertTrue(entity1.canEqual(entity2));
-  }
-
-  @Test
-  void testAllFieldsWithCompleteData() {
-    entity.setMatchingId("M001");
-    entity.setUserId("U001");
-    entity.setJobId("J001");
-    entity.setPersonId("P001");
-    entity.setJobContent("Job Content");
-    entity.setPersonContent("Person Content");
-    entity.setStatus(MatchingStatus.提案中);
-    entity.setEvaluationText("Evaluation");
-    entity.setScore(85);
-    entity.setMustEvaluationText("Must");
-    entity.setWantEvaluationText("Want");
-    entity.setPlaceEvaluationText("Place");
-    entity.setOfficeEvaluationText("Office");
-    entity.setOtherEvaluationText("Other");
-    entity.setProfit(new Money(100000L));
-    entity.setJobTitle("Job Title");
-    entity.setJobUnitPrice(new Money(800000L));
-    entity.setPersonName("Person Name");
-    entity.setPersonAge(35);
-    entity.setPersonGender(Gender.Man);
-    entity.setPersonUnitPrice(new Money(600000L));
-    entity.setRegisterDate(new OriginalDateTime("2026-01-01 10:00:00"));
-    entity.setRegisterUser("admin");
-    entity.setTenantId("test-tenant");
-
-    assertNotNull(entity.toString());
+      /**
+       * 読み取り専用のため削除を拒否し、例外を投げることを確かめる。 結合の結果から削除すると、結合先の案件や要員の行が消えるおそれがある。
+       *
+       * @given 読み取り専用の結合Entity
+       * @when deleteByPk を接続で実行する
+       * @then UnsupportedOperationExceptionを投げる
+       */
+      @Test
+      void 読み取り専用の場合_UnsupportedOperationExceptionを投げる() {
+        assertThatThrownBy(
+                () -> new SES_AI_T_MATCH_JOB_PERSON(TENANT_ID).deleteByPk((Connection) null))
+            .isInstanceOf(UnsupportedOperationException.class);
+      }
+    }
   }
 }

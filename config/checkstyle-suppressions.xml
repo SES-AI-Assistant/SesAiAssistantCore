@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+    "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+    "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+<!--
+  checkstyle の抑止設定（Core 用）。範囲は、ファイルと名前の両方で絞る。
+
+  リポジトリ横断の全面リネームは別機会の課題。そのとき名前の列挙を消す。
+  それまでは、他リポジトリ（Backend・Lambda・Batch）から参照されている公開名だけを、
+  その名前が定義されているファイルに限って列挙する。Core 内だけで使う名前は、この設定ではなくソースを直している。
+
+  1. SummaryJavadoc（末尾のピリオドの指摘だけ）: 日本語の JavaDoc は要約文を「。」で終えるため、英語の「.」を要求する
+     「末尾のピリオド」の指摘は、この仕様と両立しない。文末の規則は Java_UT仕様（UT-10）で検査するため、この指摘だけを抑止する。
+     checkstyle のメッセージはロケールで変わるため、日本語（末尾のピリオド）と英語（ending period）の両方に一致させる。
+     「要約 Javadoc がない」の指摘は抑止せず、Javadoc の要約を書いて解消する。
+  2. database 直下の SES_AI_* クラス名: テーブル名に対応する名前のため、TypeName と略語の規則を抑止する。
+  3. 他リポジトリから参照される公開名（DBConnection、OpenAI、SQSEntityBase、getYYYYMM、
+     to要員選出用文章、to案件選出用文章、isスキルシート登録済、isスキルシート）:
+     参照元の変更を伴うため、定義しているファイルに限って名前ごとに抑止する。
+-->
+<suppressions>
+  <!-- 1. 末尾のピリオドの指摘だけを、日本語・英語の両ロケールで抑止する -->
+  <suppress checks="SummaryJavadoc" message="末尾のピリオド|ending period"/>
+
+  <!-- 2. database 直下の SES_AI_* クラス（テーブル名に対応する名前） -->
+  <suppress checks="TypeName|AbbreviationAsWordInName"
+            files="[\\/]core[\\/]database[\\/][^\\/]*\.java$"
+            message="'SES_AI_[^']*'"/>
+
+  <!-- 3. 他リポジトリから参照される公開名（定義しているファイルと名前で絞る） -->
+  <suppress checks="AbbreviationAsWordInName" files="[\\/]util[\\/]DBConnection\.java$" message="'DBConnection'"/>
+  <suppress checks="AbbreviationAsWordInName" files="[\\/]api[\\/]gpt[\\/]OpenAI\.java$" message="'OpenAI'"/>
+  <suppress checks="AbbreviationAsWordInName" files="[\\/]api[\\/]aws[\\/]SQSEntityBase\.java$" message="'SQSEntityBase'"/>
+  <suppress checks="AbbreviationAsWordInName" files="[\\/]unit[\\/]OriginalDateTime\.java$" message="'getYYYYMM'"/>
+  <suppress checks="MethodName" files="[\\/]core[\\/]database[\\/][^\\/]*\.java$" message="'to(要員|案件)選出用文章'"/>
+  <suppress checks="MethodName" files="[\\/]core[\\/]database[\\/]SES_AI_T_PERSON\.java$" message="'isスキルシート登録済'"/>
+  <suppress checks="MethodName" files="[\\/]internal[\\/]SesInfoRegisterRequestSqsEntity\.java$" message="'isスキルシート'"/>
+</suppressions>

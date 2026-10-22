@@ -16,11 +16,8 @@ import java.util.List;
 public class SES_AI_M_TENANTLot extends EntityLotBase<SES_AI_M_TENANT> {
   /** 全件SELECT文. */
   private static final String SELECT_ALL_SQL =
-      "SELECT tenant_id, tenant_name, tenant_status_cd, register_date, register_user FROM SES_AI_M_TENANT";
-
-  /** SELECT文（WHERE句あり）. */
-  private static final String SELECT_SQL =
-      "SELECT tenant_id, tenant_name, tenant_status_cd, register_date, register_user FROM SES_AI_M_TENANT WHERE ";
+      "SELECT tenant_id, tenant_name, tenant_status_cd, register_date, register_user FROM "
+          + "SES_AI_M_TENANT";
 
   public SES_AI_M_TENANTLot() {
     super();
@@ -29,11 +26,6 @@ public class SES_AI_M_TENANTLot extends EntityLotBase<SES_AI_M_TENANT> {
   @Override
   protected String getSelectAllSql() {
     return SELECT_ALL_SQL;
-  }
-
-  @Override
-  protected String getSelectSql() {
-    return SELECT_SQL;
   }
 
   @Override
@@ -55,7 +47,7 @@ public class SES_AI_M_TENANTLot extends EntityLotBase<SES_AI_M_TENANT> {
    * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectAllWithoutTenantFilter(final Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
@@ -68,11 +60,11 @@ public class SES_AI_M_TENANTLot extends EntityLotBase<SES_AI_M_TENANT> {
   @Override
   protected SES_AI_M_TENANT mapResultSet(ResultSet resultSet) throws SQLException {
     String tenantId = resultSet.getString("tenant_id");
-    SES_AI_M_TENANT sesAiMTenant = new SES_AI_M_TENANT(tenantId);
-    sesAiMTenant.setTenantName(resultSet.getString("tenant_name"));
-    sesAiMTenant.setTenantStatusCd(resultSet.getString("tenant_status_cd"));
-    sesAiMTenant.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-    sesAiMTenant.setRegisterUser(resultSet.getString("register_user"));
-    return sesAiMTenant;
+    SES_AI_M_TENANT tenant = new SES_AI_M_TENANT(tenantId);
+    tenant.setTenantName(resultSet.getString("tenant_name"));
+    tenant.setTenantStatusCd(resultSet.getString("tenant_status_cd"));
+    tenant.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
+    tenant.setRegisterUser(resultSet.getString("register_user"));
+    return tenant;
   }
 }

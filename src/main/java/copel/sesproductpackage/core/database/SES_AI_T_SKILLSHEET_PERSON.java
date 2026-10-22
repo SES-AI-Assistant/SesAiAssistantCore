@@ -1,10 +1,11 @@
 package copel.sesproductpackage.core.database;
 
+import copel.sesproductpackage.core.api.gpt.Transformer;
 import copel.sesproductpackage.core.database.base.Column;
-import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
+import copel.sesproductpackage.core.database.base.SesAiTableEntityBase;
 import copel.sesproductpackage.core.unit.Money;
 import java.math.BigDecimal;
-import java.util.Arrays;
+import java.sql.Connection;
 import java.util.List;
 import lombok.Data;
 
@@ -15,7 +16,7 @@ import lombok.Data;
  */
 @Data
 @lombok.EqualsAndHashCode(callSuper = false)
-public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
+public class SES_AI_T_SKILLSHEET_PERSON extends SesAiTableEntityBase {
 
   public SES_AI_T_SKILLSHEET_PERSON(String tenantId) {
     super(tenantId);
@@ -111,56 +112,35 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
   // 今回は使用しないため空実装またはfalseを返す。
 
   @Override
-  public void embedding(copel.sesproductpackage.core.api.gpt.Transformer embeddingProcessListener)
-      throws java.io.IOException, RuntimeException {
-    // 何もしない
+  public int insert(Connection connection) throws java.sql.SQLException {
+    throw new UnsupportedOperationException("SES_AI_T_SKILLSHEET_PERSON は登録をサポートしていません。");
   }
 
   @Override
-  public boolean uniqueCheck(java.sql.Connection connection, double similarityThreshold)
-      throws java.sql.SQLException {
-    return false;
+  public void selectByPk(Connection connection) throws java.sql.SQLException {
+    throw new UnsupportedOperationException("SES_AI_T_SKILLSHEET_PERSON は主キーによる取得をサポートしていません。");
   }
 
   @Override
-  public int insert(java.sql.Connection connection) throws java.sql.SQLException {
-    return 0;
+  public boolean updateByPk(Connection connection) throws java.sql.SQLException {
+    throw new UnsupportedOperationException("SES_AI_T_SKILLSHEET_PERSON は更新をサポートしていません。");
   }
 
   @Override
-  public void selectByPk(java.sql.Connection connection) throws java.sql.SQLException {
-    // 何もしない
+  public boolean deleteByPk(Connection connection) throws java.sql.SQLException {
+    throw new UnsupportedOperationException("SES_AI_T_SKILLSHEET_PERSON は削除をサポートしていません。");
   }
-
-  @Override
-  public boolean updateByPk(java.sql.Connection connection) throws java.sql.SQLException {
-    return false;
-  }
-
-  @Override
-  public boolean deleteByPk(java.sql.Connection connection) throws java.sql.SQLException {
-    return false;
-  }
-
-  private static final String SELECT_BY_PERSON_ID_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url "
-          + "FROM SES_AI_T_PERSON p INNER JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
-          + "WHERE p.person_id = ?";
-
-  private static final String SELECT_BY_FILE_ID_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url "
-          + "FROM SES_AI_T_PERSON p INNER JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
-          + "WHERE s.file_id = ?";
 
   private static final String SELECT_OUTER_JOIN_BY_PERSON_ID_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url "
+      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
+          + "p.raw_content, p.content_summary, p.unit_price, p.register_date, p.register_user, "
+          + "COALESCE(p.from_group, s.from_group) AS from_group, COALESCE(p.from_id, "
+          + "s.from_id) AS from_id, COALESCE(p.from_name, s.from_name) AS from_name, "
+          + "p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, "
+          + "p.office_availability, p.organization, p.experiences, "
+          + "p.ng_requirements, p.other_requirements, p.url "
           + "FROM SES_AI_T_PERSON p LEFT JOIN SES_AI_T_SKILLSHEET s ON p.file_id = s.file_id "
           + "WHERE p.person_id = ?";
-
-  private static final String SELECT_OUTER_JOIN_BY_FILE_ID_SQL =
-      "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, p.raw_content, p.content_summary, p.unit_price, s.register_date, s.register_user, COALESCE(s.from_group, p.from_group) AS from_group, COALESCE(s.from_id, p.from_id) AS from_id, COALESCE(s.from_name, p.from_name) AS from_name, p.name, p.age, p.gender, p.nationality, p.start_date, p.place, p.area, p.office_availability, p.organization, p.experiences, p.ng_requirements, p.other_requirements, p.url "
-          + "FROM SES_AI_T_SKILLSHEET s LEFT JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
-          + "WHERE s.file_id = ?";
 
   // ================================
   // メソッド
@@ -182,28 +162,10 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
    *
    * @return 変換後の文章
    */
-  public String toスキルシート選出用文章() {
+  public String toSkillSheetSelectionText() {
     String summary = this.contentSummary != null ? this.contentSummary : "";
     String fileSummary = this.fileContentSummary != null ? this.fileContentSummary : "";
     return "ファイルID：" + this.fileId + " 内容：" + fileSummary + summary;
-  }
-
-  /**
-   * person_idをキーにしてJOIN検索し、取得結果をEntityにセットする.
-   *
-   * @param connection DBコネクション
-   * @param personId 要員ID
-   * @throws java.sql.SQLException
-   */
-  public void selectByPersonId(java.sql.Connection connection, String personId)
-      throws java.sql.SQLException {
-    executeSelectByPk(
-        connection,
-        SELECT_BY_PERSON_ID_SQL,
-        this.tenantId,
-        (stmt) -> stmt.setString(1, personId),
-        (rs) -> setEntityDataFromResultSet(rs),
-        "SES_AI_T_SKILLSHEET_PERSON.selectByPersonId");
   }
 
   /**
@@ -211,9 +173,9 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
    *
    * @param connection DBコネクション
    * @param personId 要員ID
-   * @throws java.sql.SQLException
+   * @throws java.sql.SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
-  public void selectOuterJoinByPersonId(java.sql.Connection connection, String personId)
+  public void selectOuterJoinByPersonId(Connection connection, String personId)
       throws java.sql.SQLException {
     executeSelectByPk(
         connection,
@@ -224,47 +186,64 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
         "SES_AI_T_SKILLSHEET_PERSON.selectOuterJoinByPersonId");
   }
 
-  /**
-   * file_idをキーにしてJOIN検索し、取得結果をEntityにセットする.
-   *
-   * @param connection DBコネクション
-   * @param fileId ファイルID
-   * @throws java.sql.SQLException
-   */
-  public void selectByFileId(java.sql.Connection connection, String fileId)
-      throws java.sql.SQLException {
-    executeSelectByPk(
-        connection,
-        SELECT_BY_FILE_ID_SQL,
-        this.tenantId,
-        (stmt) -> stmt.setString(1, fileId),
-        (rs) -> setEntityDataFromResultSet(rs),
-        "SES_AI_T_SKILLSHEET_PERSON.selectByFileId");
+  @Override
+  public String getRawContent() {
+    return this.rawContent;
+  }
+
+  @Override
+  public String getContentSummary() {
+    return this.contentSummary;
   }
 
   /**
-   * file_idをキーにしてOUTER JOIN検索し、取得結果をEntityにセットする. 要員とスキルシートが両方揃っていれば両方の情報を、片方なら片方の情報を返却する.
+   * 要約をエンベディングしてベクトルを設定します（本Entityは読み取り専用のため未対応）.
    *
-   * @param connection DBコネクション
-   * @param fileId ファイルID
-   * @throws java.sql.SQLException
+   * <p>本Entityは結合結果の読み取り専用であり、ベクトルの生成と保存は元のスキルシート側で行う。基底の GPT
+   * 呼び出しを継承すると、読み取り用の要員に意図しない外部呼び出しが発生するため、明示的に例外を投げる。
+   *
+   * @param transformer エンベディング用の変換器（使用しない）
+   * @throws UnsupportedOperationException 常に投げる
    */
-  public void selectOuterJoinByFileId(java.sql.Connection connection, String fileId)
-      throws java.sql.SQLException {
-    executeSelectByPk(
-        connection,
-        SELECT_OUTER_JOIN_BY_FILE_ID_SQL,
-        this.tenantId,
-        (stmt) -> stmt.setString(1, fileId),
-        (rs) -> setEntityDataFromResultSet(rs),
-        "SES_AI_T_SKILLSHEET_PERSON.selectOuterJoinByFileId");
+  @Override
+  public void embedding(final Transformer transformer) {
+    throw new UnsupportedOperationException(
+        "SES_AI_T_SKILLSHEET_PERSON は読み取り専用のためエンベディングをサポートしていません。");
+  }
+
+  /**
+   * 類似する要員が既に登録されているかを判定します（本Entityは読み取り専用のため未対応）.
+   *
+   * <p>本Entityは結合結果の読み取り専用であり、重複登録の判定は元のスキルシート側で行う。
+   * 基底の判定を継承すると、読み取り用の要員に対して意図しない問い合わせが発生するため、明示的に例外を投げる。
+   *
+   * @param connection DB接続（使用しない）
+   * @param similarityThreshold 類似度閾値（使用しない）
+   * @return なし（常に例外を投げる）
+   * @throws UnsupportedOperationException 常に投げる
+   */
+  @Override
+  public boolean uniqueCheck(final Connection connection, final double similarityThreshold) {
+    throw new UnsupportedOperationException(
+        "SES_AI_T_SKILLSHEET_PERSON は読み取り専用のため重複チェックをサポートしていません。");
+  }
+
+  /**
+   * 重複チェック用の SQL を返します（本Entityは読み取り専用のため未対応）.
+   *
+   * @return なし（常に例外を投げる）
+   * @throws UnsupportedOperationException 常に投げる
+   */
+  @Override
+  protected String getCheckSql() {
+    throw new UnsupportedOperationException("SES_AI_T_SKILLSHEET_PERSON は重複チェックをサポートしていません。");
   }
 
   /**
    * ResultSetからEntityにデータをセットする共通メソッド.
    *
    * @param resultSet ResultSet
-   * @throws java.sql.SQLException
+   * @throws java.sql.SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void setEntityDataFromResultSet(java.sql.ResultSet resultSet)
       throws java.sql.SQLException {
@@ -309,28 +288,13 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
     this.url = resultSet.getString("url");
   }
 
-  @Override
-  public String getRawContent() {
-    return this.rawContent;
-  }
-
-  @Override
-  public String getContentSummary() {
-    return this.contentSummary;
-  }
-
-  @Override
-  protected String getCheckSql() {
-    return null; // 今回は使用しない
-  }
-
   /**
    * 経験を改行区切りの文字列配列として取得します.
    *
    * @return 経験リスト
    */
   public List<String> getExperiencesAsList() {
-    return this.experiences == null ? Arrays.asList() : Arrays.asList(this.experiences.split("\n"));
+    return splitLines(this.experiences);
   }
 
   /**
@@ -339,9 +303,7 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
    * @return その他条件リスト
    */
   public List<String> getOtherRequirementsAsList() {
-    return this.otherRequirements == null
-        ? Arrays.asList()
-        : Arrays.asList(this.otherRequirements.split("\n"));
+    return splitLines(this.otherRequirements);
   }
 
   /**
@@ -350,8 +312,6 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SES_AI_T_EntityBase {
    * @return NG条件リスト
    */
   public List<String> getNgRequirementsAsList() {
-    return this.ngRequirements == null
-        ? Arrays.asList()
-        : Arrays.asList(this.ngRequirements.split("\n"));
+    return splitLines(this.ngRequirements);
   }
 }

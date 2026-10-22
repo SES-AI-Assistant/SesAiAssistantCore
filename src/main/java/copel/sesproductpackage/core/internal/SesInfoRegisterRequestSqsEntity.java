@@ -4,11 +4,12 @@ import com.amazonaws.regions.Regions;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import copel.sesproductpackage.core.api.aws.SQSEntityBase;
 import copel.sesproductpackage.core.api.gpt.entity.ContentParseSchema.InformationType;
-import copel.sesproductpackage.core.api.line.LineMessagingAPI;
+import copel.sesproductpackage.core.api.line.LineMessagingApi;
 import copel.sesproductpackage.core.unit.RequestType;
 import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import copel.sesproductpackage.core.util.Properties;
@@ -85,6 +86,13 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
   /** テナントID. */
   private String tenantId;
 
+  /**
+   * メッセージ本文の JSON 変換に使う ObjectMapper.
+   *
+   * <p>既定は {@link ObjectMapperFactory#OBJECT_MAPPER}。変換の失敗を UT で再現するためだけに、パッケージ内から差し替える。
+   */
+  static ObjectMapper objectMapper = ObjectMapperFactory.OBJECT_MAPPER;
+
   /** 登録対象となる最小文字数. 本文がこの文字数以下の場合は Gemini を呼ばず処理対象外とする. */
   private static final int CONTENT_MIN_LENGTH_FOR_CLASSIFICATION = 200;
 
@@ -120,18 +128,23 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
     }
   }
 
+  /**
+   * このEntityの内容をJSON形式のメッセージBody文字列に変換します.
+   *
+   * <p>JSON の変換に失敗した場合は握りつぶさず、{@link JsonProcessingException} を呼び出し元へ伝える。
+   *
+   * @return メッセージBody
+   * @throws JsonProcessingException JSON の変換に失敗した場合
+   */
   @Override
-  protected String getMessageBody() {
-    try {
-      return ObjectMapperFactory.OBJECT_MAPPER.writeValueAsString(this);
-    } catch (JsonProcessingException e) {
-      e.printStackTrace();
-      return null;
-    }
+  protected String getMessageBody() throws JsonProcessingException {
+    return objectMapper.writeValueAsString(this);
   }
 
   /**
    * 与えられたデータが正しいかどうかを判定します.
+   *
+   * <p>リクエスト種別ごとに必須の項目を確かめる。欠けている項目はログに残す。
    *
    * @return 正常データならtrue、異常データならfalse
    */
@@ -141,137 +154,68 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
       log.warn("info_typeが不正な値です");
       return false;
     }
-    if (RequestType.LineMessage == this.requestType) {
-      if (this.fromGroup == null) {
-        log.warn("LineMessage: fromGroupがnull");
-        return false;
-      }
-      if (this.fromId == null) {
-        log.warn("LineMessage: fromIdがnull");
-        return false;
-      }
-      if (this.fromName == null) {
-        log.warn("LineMessage: fromNameがnull");
-        return false;
-      }
-      if (this.rawContent == null) {
-        log.warn("LineMessage: rawContentがnull");
-        return false;
-      }
-      return true;
-    } else if (RequestType.LineFile == this.requestType) {
-      if (this.fromGroup == null) {
-        log.warn("LineFile: fromGroupがnull");
-        return false;
-      }
-      if (this.fromId == null) {
-        log.warn("LineFile: fromIdがnull");
-        return false;
-      }
-      if (this.fromName == null) {
-        log.warn("LineFile: fromNameがnull");
-        return false;
-      }
-      if (this.fileName == null) {
-        log.warn("LineFile: fileNameがnull");
-        return false;
-      }
-      return true;
-    } else if (RequestType.EmailMessage == this.requestType) {
-      if (this.fromGroup == null) {
-        log.warn("EmailMessage: fromGroupがnull");
-        return false;
-      }
-      if (this.fromId == null) {
-        log.warn("EmailMessage: fromIdがnull");
-        return false;
-      }
-      if (this.rawContent == null) {
-        log.warn("EmailMessage: rawContentがnull");
-        return false;
-      }
-      return true;
-    } else if (RequestType.EmailFile == this.requestType) {
-      if (this.fromGroup == null) {
-        log.warn("EmailFile: fromGroupがnull");
-        return false;
-      }
-      if (this.fromId == null) {
-        log.warn("EmailFile: fromIdがnull");
-        return false;
-      }
-      if (this.fileName == null) {
-        log.warn("EmailFile: fileNameがnull");
-        return false;
-      }
-      return true;
-    } else if (RequestType.OtherMessage == this.requestType) {
-      if (this.fromGroup == null) {
-        log.warn("OtherMessage: fromGroupがnull");
-        return false;
-      }
-      if (this.fromId == null) {
-        log.warn("OtherMessage: fromIdがnull");
-        return false;
-      }
-      if (this.fromName == null) {
-        log.warn("OtherMessage: fromNameがnull");
-        return false;
-      }
-      if (this.rawContent == null) {
-        log.warn("OtherMessage: rawContentがnull");
-        return false;
-      }
-      return true;
-    } else if (RequestType.OtherFile == this.requestType) {
-      if (this.fromGroup == null) {
-        log.warn("OtherFile: fromGroupがnull");
-        return false;
-      }
-      if (this.fromId == null) {
-        log.warn("OtherFile: fromIdがnull");
-        return false;
-      }
-      if (this.fromName == null) {
-        log.warn("OtherFile: fromNameがnull");
-        return false;
-      }
-      if (this.fileName == null) {
-        log.warn("OtherFile: fileNameがnull");
-        return false;
-      }
-      return true;
-    } else if (RequestType.ScreenMessage == this.requestType) {
-      if (this.fromGroup == null) {
-        log.warn("ScreenMessage: fromGroupがnull");
-        return false;
-      }
-      if (this.fromId == null) {
-        log.warn("ScreenMessage: fromIdがnull");
-        return false;
-      }
-      if (this.rawContent == null) {
-        log.warn("ScreenMessage: rawContentがnull");
-        return false;
-      }
-      return true;
-    } else if (RequestType.ScreenFile == this.requestType) {
-      if (this.fromGroup == null) {
-        log.warn("ScreenFile: fromGroupがnull");
-        return false;
-      }
-      if (this.fromId == null) {
-        log.warn("ScreenFile: fromIdがnull");
-        return false;
-      }
-      if (this.fileName == null) {
-        log.warn("ScreenFile: fileNameがnull");
-        return false;
-      }
-      return true;
+    if (this.requestType == null) {
+      log.warn("不正なrequestTypeです: {}", this.requestType);
+      return false;
     }
-    log.warn("不正なrequestTypeです: {}", this.requestType);
-    return false;
+    String typeName = this.requestType.name();
+    if (RequestType.LineMessage == this.requestType
+        || RequestType.OtherMessage == this.requestType) {
+      return hasRequired(
+          typeName,
+          "fromGroup",
+          this.fromGroup,
+          "fromId",
+          this.fromId,
+          "fromName",
+          this.fromName,
+          "rawContent",
+          this.rawContent);
+    }
+    if (RequestType.LineFile == this.requestType || RequestType.OtherFile == this.requestType) {
+      return hasRequired(
+          typeName,
+          "fromGroup",
+          this.fromGroup,
+          "fromId",
+          this.fromId,
+          "fromName",
+          this.fromName,
+          "fileName",
+          this.fileName);
+    }
+    if (RequestType.EmailMessage == this.requestType
+        || RequestType.ScreenMessage == this.requestType) {
+      return hasRequired(
+          typeName,
+          "fromGroup",
+          this.fromGroup,
+          "fromId",
+          this.fromId,
+          "rawContent",
+          this.rawContent);
+    }
+    return hasRequired(
+        typeName, "fromGroup", this.fromGroup, "fromId", this.fromId, "fileName", this.fileName);
+  }
+
+  /**
+   * 項目名と値の組がすべて値を持つかを判定し、欠けている項目をログに残します.
+   *
+   * <p>ログの文言は「{種別}: {項目名}がnull」の形にそろえる。どの項目が欠けたかを運用で追えるようにするため。
+   *
+   * @param typeName リクエスト種別の名前（ログに出す）
+   * @param nameAndValues 項目名と値を交互に並べた配列
+   * @return すべての値が null でなければ true、null の項目が1つでもあれば false
+   */
+  private static boolean hasRequired(final String typeName, final String... nameAndValues) {
+    for (int i = 0; i < nameAndValues.length; i += 2) {
+      if (nameAndValues[i + 1] == null) {
+        log.warn("{}: {}がnull", typeName, nameAndValues[i]);
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
@@ -290,37 +234,23 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
   /**
    * このリクエストが処理対象であるかどうかを判定します（コンテンツ長チェック）.
    *
-   * <p>メッセージ本文の場合、本文が {@code CONTENT_MIN_LENGTH_FOR_CLASSIFICATION}（200文字）以下なら処理対象外とし、Gemini を呼ばない。
+   * <p>本文を持つ種別は、本文が200文字以下なら処理対象外とする。
+   *
+   * <p>処理対象外の場合は Gemini を呼ばない。
+   *
+   * <p>種別が null の場合も処理対象外とする。
    *
    * @return 処理対象ならtrue、処理対象外ならfalse
    */
   @JsonIgnore
   public boolean isProcessingTarget() {
-    if (RequestType.LineMessage == this.requestType) {
-      if (this.rawContent.length() <= CONTENT_MIN_LENGTH_FOR_CLASSIFICATION) {
-        return false;
-      }
-      return true;
-    } else if (RequestType.LineFile == this.requestType) {
-      return true;
-    } else if (RequestType.EmailMessage == this.requestType) {
-      if (this.rawContent.length() <= CONTENT_MIN_LENGTH_FOR_CLASSIFICATION) {
-        return false;
-      }
-      return true;
-    } else if (RequestType.EmailFile == this.requestType) {
-      return true;
-    } else if (RequestType.OtherMessage == this.requestType) {
-      if (this.rawContent.length() <= CONTENT_MIN_LENGTH_FOR_CLASSIFICATION) {
-        return false;
-      }
-      return true;
-    } else if (RequestType.OtherFile == this.requestType) {
-      return true;
-    } else if (RequestType.ScreenMessage == this.requestType) {
-      return true;
-    } else if (RequestType.ScreenFile == this.requestType) {
-      return true;
+    if (this.requestType == null) {
+      return false;
+    }
+    if (RequestType.LineMessage == this.requestType
+        || RequestType.EmailMessage == this.requestType
+        || RequestType.OtherMessage == this.requestType) {
+      return this.rawContent.length() > CONTENT_MIN_LENGTH_FOR_CLASSIFICATION;
     }
     return true;
   }
@@ -376,14 +306,17 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
   /**
    * このリクエストで送られてきたファイルのデータをダウンロードしこのオブジェクトに持つ.
    *
-   * @throws InterruptedException
-   * @throws IOException
+   * <p>LINE のファイルだけ LINE Messaging API から取得する。それ以外の種別では何もしない。
+   *
+   * @param lineChannelAccessToken LINE のチャネルアクセストークン
+   * @throws InterruptedException 待機中にスレッドが中断された場合
+   * @throws IOException 入出力（ファイル・ストリーム）の操作に失敗した場合
    */
   public void downloadFileData(final String lineChannelAccessToken)
       throws IOException, InterruptedException {
     switch (this.requestType) {
       case LineFile:
-        LineMessagingAPI client = new LineMessagingAPI(lineChannelAccessToken);
+        LineMessagingApi client = new LineMessagingApi(lineChannelAccessToken);
         this.fileData = client.getFile(this.fileId);
         break;
       case EmailFile:

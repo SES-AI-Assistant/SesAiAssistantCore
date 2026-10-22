@@ -1,7 +1,5 @@
 package copel.sesproductpackage.core.unit;
 
-import copel.sesproductpackage.core.api.gpt.Transformer;
-import copel.sesproductpackage.core.api.gpt.entity.SkillsheetInfoSchema;
 import copel.sesproductpackage.core.util.Properties;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -33,13 +31,6 @@ import software.amazon.awssdk.regions.Region;
 @Slf4j
 @Data
 public class SkillSheet {
-  /** DBへ保存するスキルシートのraw_contentの最大長. */
-  private static final int SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH =
-      Properties.getInt("SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH");
-
-  /** スキルシートの保存先S3バケット名. */
-  private static final String S3_BUCKET_NAME = Properties.get("S3_BUCKET_NAME");
-
   /** ファイルID. */
   private String fileId;
 
@@ -73,7 +64,7 @@ public class SkillSheet {
    * ファイルのバイナリデータからファイルに記載されているテキストデータを取得しこのクラスのfileContentにセットします.
    *
    * @param data バイナリデータ
-   * @throws IOException
+   * @throws IOException 入出力（ファイル・ストリーム）の操作に失敗した場合
    */
   public void setFileContentFromByte(final byte[] data) throws IOException {
     if (this.fileName != null && data != null) {
@@ -133,9 +124,7 @@ public class SkillSheet {
         }
       }
       this.fileContent = text.toString();
-    }
-    // Wordファイルを処理
-    else if (this.fileName.endsWith(".doc")) {
+    } else if (this.fileName.endsWith(".doc")) { // Wordファイルを処理
       StringBuilder text = new StringBuilder();
       try (HWPFDocument doc = new HWPFDocument(inputStream);
           WordExtractor extractor = new WordExtractor(doc)) {
@@ -145,16 +134,12 @@ public class SkillSheet {
         text.append(extractor.getText());
         this.fileContent = text.toString();
       }
-    }
-    // PDFファイルを処理
-    else if (this.fileName.endsWith(".pdf")) {
+    } else if (this.fileName.endsWith(".pdf")) { // PDFファイルを処理
       try (PDDocument document = PDDocument.load(inputStream)) {
         PDFTextStripper stripper = new PDFTextStripper();
         this.fileContent = stripper.getText(document);
       }
-    }
-    // Excelファイルを処理
-    else if (this.fileName.endsWith(".xlsx") || this.fileName.endsWith(".xls")) {
+    } else if (this.fileName.endsWith(".xlsx") || this.fileName.endsWith(".xls")) { // Excelファイルを処理
       StringBuilder text = new StringBuilder();
       try (Workbook workbook =
           this.fileName.endsWith(".xlsx")
@@ -170,66 +155,74 @@ public class SkillSheet {
         }
         this.fileContent = text.toString();
       }
-    }
-    // その他のファイルの場合
-    else {
+    } else { // その他のファイルの場合
       log.info("Word/Excel/PDF以外のファイルのため、スキルシート内容の取得処理をせずに終了します。");
-    }
-  }
-
-  /**
-   * このスキルシートの要約を生成しfileContentSummaryにセットします.
-   *
-   * @throws IOException
-   * @throws RuntimeException
-   */
-  public void generateSummary(final Transformer transformer) throws IOException, RuntimeException {
-    if (this.fileContent != null) {
-      SkillsheetInfoSchema generated =
-          transformer.generate(
-              this.fileContent.replaceAll("[\\p{C}\"]", ""), // 制御文字とダブルクォーテーションを削除
-              SkillsheetInfoSchema.class);
-      this.fileContentSummary = generated.toSummaryText();
-    } else {
-      throw new IOException("ファイルの中身が空のため、要約の作成を中止します。");
     }
   }
 
   /**
    * このスキルシートのダウンロードURLを返却します.
    *
-   * @return ダウンロードURL
+   * <p>保存キーが決まらない（ファイル ID とファイル名が両方とも未設定）場合は null を返す。キーの無い "…/null" の URL を作らないためである。
+   *
+   * <p>バケット名（S3_BUCKET_NAME）は、クラス初期化時ではなく呼び出し時に Properties
+   * から読む。本番では起動時に読み込み済みのため値は変わらず、テストで設定値を差し替えられるようにするため。
+   *
+   * @return ダウンロードURL。保存キーが null の場合は null
    */
   public String getFileUrl() {
+    String objectKey = this.getObjectKey();
+    if (objectKey == null) {
+      return null;
+    }
     return "https://"
-        + S3_BUCKET_NAME
+        + Properties.get("S3_BUCKET_NAME")
         + ".s3."
         + Region.AP_NORTHEAST_1.toString()
         + ".amazonaws.com/"
-        + this.getObjectKey();
+        + objectKey;
   }
 
   /**
    * 紐づくS3ファイルのオブジェクトキーを返却する.
    *
-   * @return オブジェクトキー.
+   * <p>ファイル ID とファイル名の両方がある場合は、ファイル ID がファイル名で終わるときはファイル ID を、そうでないときは「ID_ファイル名」を返す。片方だけがある場合は
+   * その値を返す。両方とも未設定の場合は保存キーを決められないため null を返す。
+   *
+   * @return オブジェクトキー。両方とも未設定の場合は null
    */
   public String getObjectKey() {
-    if (this.fileId != null && this.fileName != null && this.fileId.endsWith("_" + this.fileName)) {
+    if (this.fileId == null) {
+      return this.fileName;
+    }
+    if (this.fileName == null) {
+      return this.fileId;
+    }
+    if (this.fileId.endsWith("_" + this.fileName)) {
       return this.fileId;
     }
     return this.fileId + "_" + this.fileName;
   }
 
+  /**
+   * 抽出したファイルの本文を返します。
+   *
+   * <p>上限（SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH）を超える本文は、先頭から上限の文字数ちょうどに切り詰める。上限が 0
+   *
+   * <p>上限も、クラス初期化時ではなく呼び出し時に Properties から読む。本番の値は変わらず、テストで差し替えられるようにするため。 以下の場合は全文を返す。
+   *
+   * @return 本文（未抽出の場合は null）
+   */
   public String getFileContent() {
     if (this.fileContent == null) {
       return null;
     }
-    if (SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH <= 0) {
+    int maxLength = Properties.getInt("SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH");
+    if (maxLength <= 0) {
       return this.fileContent;
     }
-    return this.fileContent.length() > SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH
-        ? this.fileContent.substring(0, SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH - 1)
+    return this.fileContent.length() > maxLength
+        ? this.fileContent.substring(0, maxLength)
         : this.fileContent;
   }
 }

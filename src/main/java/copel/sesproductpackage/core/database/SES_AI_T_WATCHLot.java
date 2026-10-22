@@ -7,7 +7,9 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 【Entityクラス】 ウォッチ管理テーブル(SES_AI_T_WATCH)のLotクラス.
@@ -17,23 +19,18 @@ import java.util.List;
 public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
   /** 全件SELECT文. */
   private static final String SELECT_ALL_SQL =
-      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id FROM SES_AI_T_WATCH";
+      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id "
+          + "FROM SES_AI_T_WATCH";
 
   /** SELECT文(ユーザーIDキー). */
   private static final String SELECT_BY_USER_ID_SQL =
-      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id FROM SES_AI_T_WATCH WHERE user_id = ?";
+      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id "
+          + "FROM SES_AI_T_WATCH WHERE user_id = ?";
 
   /** SELECT文(対象IDキー). */
   private static final String SELECT_BY_TARGET_ID_SQL =
-      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id FROM SES_AI_T_WATCH WHERE target_id = ? AND target_type = ?";
-
-  /** SELECT文（WHERE句あり）. */
-  private static final String SELECT_SQL =
-      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id FROM SES_AI_T_WATCH WHERE ";
-
-  /** DELETE期限切れSQL. */
-  private static final String DELETE_EXPIRED_SQL =
-      "DELETE FROM SES_AI_T_WATCH WHERE ttl < NOW() AND tenant_id = ?";
+      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id "
+          + "FROM SES_AI_T_WATCH WHERE target_id = ? AND target_type = ?";
 
   /** DELETE期限切れSQL（テナントIDなし、バッチ用）. */
   private static final String DELETE_EXPIRED_WITHOUT_TENANT_SQL =
@@ -48,18 +45,13 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
     return SELECT_ALL_SQL;
   }
 
-  @Override
-  protected String getSelectSql() {
-    return SELECT_SQL;
-  }
-
   /**
    * ユーザーIDが一致するレコードを全て取得し、このLotに格納します.
    *
    * @param connection DBコネクション
    * @param tenantId テナントID
    * @param userId ユーザーID
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectByUserId(
       final Connection connection, final String tenantId, final String userId) throws SQLException {
@@ -85,7 +77,7 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
    * @param userId ユーザーID
    * @param page ページ番号
    * @param size 1ページあたりの件数
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectByUserIdPaged(
       final Connection connection,
@@ -94,10 +86,11 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
       final int page,
       final int size)
       throws SQLException {
-    if (connection == null || userId == null) {
+    requireConnection(connection);
+    if (userId == null) {
       return;
     }
-    java.util.Map<String, String> query = new java.util.HashMap<>();
+    Map<String, String> query = new HashMap<>();
     query.put("user_id", userId);
     this.selectByQueryPaged(connection, tenantId, SELECT_ALL_SQL, query, true, page, size);
   }
@@ -126,7 +119,7 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
    * @param tenantId テナントID
    * @param targetId 対象ID
    * @param targetType 対象種別
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectByTargetId(
       final Connection connection,
@@ -134,7 +127,8 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
       final String targetId,
       final TargetType targetType)
       throws SQLException {
-    if (connection == null || targetId == null || targetType == null) {
+    requireConnection(connection);
+    if (targetId == null || targetType == null) {
       this.entityLot = new ArrayList<>();
       return;
     }
@@ -150,19 +144,6 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
               return paramIndex + 2;
             });
     this.entityLot = results;
-  }
-
-  /**
-   * 期限切れのレコードをDBから削除します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @return 削除したレコード数
-   * @throws SQLException
-   */
-  public int deleteExpired(final Connection connection, final String tenantId) throws SQLException {
-    return executeDelete(
-        connection, DELETE_EXPIRED_SQL, tenantId, (stmt, paramIndex) -> paramIndex);
   }
 
   /**
@@ -198,7 +179,7 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
    * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectAllWithoutTenantFilter(final Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
@@ -210,14 +191,14 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
 
   @Override
   protected SES_AI_T_WATCH mapResultSet(ResultSet resultSet) throws SQLException {
-    SES_AI_T_WATCH sesAiTWatch = new SES_AI_T_WATCH(resultSet.getString("tenant_id"));
-    sesAiTWatch.setUserId(resultSet.getString("user_id"));
-    sesAiTWatch.setTargetId(resultSet.getString("target_id"));
-    sesAiTWatch.setTargetType(TargetType.getEnumByName(resultSet.getString("target_type")));
-    sesAiTWatch.setMemo(resultSet.getString("memo"));
-    sesAiTWatch.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-    sesAiTWatch.setRegisterUser(resultSet.getString("register_user"));
-    sesAiTWatch.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
-    return sesAiTWatch;
+    SES_AI_T_WATCH watch = new SES_AI_T_WATCH(resultSet.getString("tenant_id"));
+    watch.setUserId(resultSet.getString("user_id"));
+    watch.setTargetId(resultSet.getString("target_id"));
+    watch.setTargetType(TargetType.getEnumByName(resultSet.getString("target_type")));
+    watch.setMemo(resultSet.getString("memo"));
+    watch.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
+    watch.setRegisterUser(resultSet.getString("register_user"));
+    watch.setTtl(new OriginalDateTime(resultSet.getString("ttl")));
+    return watch;
   }
 }

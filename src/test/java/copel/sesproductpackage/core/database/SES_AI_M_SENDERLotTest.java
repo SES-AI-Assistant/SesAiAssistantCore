@@ -1,29 +1,211 @@
 package copel.sesproductpackage.core.database;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
 
+import copel.sesproductpackage.tools.testsupport.db.JdbcMocks;
+import copel.sesproductpackage.tools.testsupport.db.MockDbConnection;
+import copel.sesproductpackage.tools.testsupport.jdbc.MockResultSetBuilder;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+/** {@link SES_AI_M_SENDERLot} の単体テスト。 */
 class SES_AI_M_SENDERLotTest {
 
-  @Test
-  void testSelectAll() throws SQLException {
-    Connection connection = mock(Connection.class);
-    PreparedStatement ps = mock(PreparedStatement.class);
-    ResultSet rs = mock(ResultSet.class);
-    when(connection.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true, false);
-    when(rs.getString("from_id")).thenReturn("S1");
-    when(rs.getString("tenant_id")).thenReturn("test-tenant");
+  /** テナントID。 */
+  private static final String TENANT_ID = "T001";
 
-    SES_AI_M_SENDERLot lot = new SES_AI_M_SENDERLot();
-    lot.selectAll(connection, "test-tenant");
-    assertEquals(1, lot.size());
+  /** 送信者の取得結果の列。 */
+  private static final String[] COLUMNS = {
+    "from_id", "from_name", "register_date", "register_user", "tenant_id"
+  };
+
+  @Nested
+  class selectAll {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * テナントの送信者を全件読み込むことを確かめる。 画面の一覧は自テナントの送信者だけを表示する。
+       *
+       * @given SELECT の結果が "S001" と "S002" の 2 行テナントID "T001"
+       * @when selectAll を接続とテナントID "T001" で実行する
+       * @then 送信者が "S001"、"S002" の順に 2 件になる
+       */
+      @MockDbConnection
+      @Test
+      void 結果が2行の場合_2件の一覧を返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(
+            connection,
+            MockResultSetBuilder.builder()
+                .columns(COLUMNS)
+                .row("S001", "送信者A", "2026-01-15 10:00:00", "U001", TENANT_ID)
+                .row("S002", "送信者B", "2026-01-16 10:00:00", "U002", TENANT_ID)
+                .build());
+        SES_AI_M_SENDERLot lot = new SES_AI_M_SENDERLot();
+
+        lot.selectAll(connection, TENANT_ID);
+
+        assertThat(lot.size()).isEqualTo(2);
+        assertThat(lot.get(0).getFromId()).isEqualTo("S001");
+        assertThat(lot.get(1).getFromName()).isEqualTo("送信者B");
+      }
+
+      /**
+       * 該当行が無い場合に空の一覧になることを確かめる。 対象の送信者が無いテナントで画面を空表示にする。
+       *
+       * @given SELECT の結果が 0 行
+       * @when selectAll を接続とテナントID "T001" で実行する
+       * @then 空の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void 結果が0行の場合_空の一覧を返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(connection, MockResultSetBuilder.builder().columns(COLUMNS).build());
+        SES_AI_M_SENDERLot lot = new SES_AI_M_SENDERLot();
+
+        lot.selectAll(connection, TENANT_ID);
+
+        assertThat(lot.isEmpty()).isTrue();
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * テナントIDが null の場合に検索を拒否することを確かめる。 テナントの無い検索は全テナントの送信者を返す。
+       *
+       * @given テナントIDが null
+       * @when selectAll を接続と null のテナントIDで実行する
+       * @then IllegalArgumentExceptionを投げる
+       */
+      @MockDbConnection
+      @Test
+      void テナントIDがnullの場合_IllegalArgumentExceptionを投げる(final Connection connection) {
+        assertThatThrownBy(() -> new SES_AI_M_SENDERLot().selectAll(connection, null))
+            .isInstanceOf(IllegalArgumentException.class);
+      }
+
+      /**
+       * DB 接続が null の場合に検索を拒否することを確かめる。 接続が無いまま SQL を実行できない。
+       *
+       * @given 接続が null
+       * @when selectAll を null の接続とテナントID "T001" で実行する
+       * @then IllegalArgumentExceptionを投げる
+       */
+      @Test
+      void 接続がnullの場合_IllegalArgumentExceptionを投げる() {
+        assertThatThrownBy(() -> new SES_AI_M_SENDERLot().selectAll(null, TENANT_ID))
+            .isInstanceOf(IllegalArgumentException.class);
+      }
+    }
+
+    @Nested
+    class テナント隔離 {
+
+      /**
+       * 検索の条件にテナントIDを渡して、他テナントの送信者を読まないことを確かめる。 テナントIDを条件にしないと他テナントのデータが見える。
+       *
+       * @given SELECT の結果が 0 行
+       * @when selectAll を接続とテナントID "T001" で実行する
+       * @then tenant_id の位置に "T001" を設定し、空の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void テナントIDがT001の場合_T001で絞り込んだ空の一覧を返す(final Connection connection) throws SQLException {
+        PreparedStatement statement =
+            JdbcMocks.stubQuery(
+                connection, MockResultSetBuilder.builder().columns(COLUMNS).build());
+
+        new SES_AI_M_SENDERLot().selectAll(connection, TENANT_ID);
+
+        verify(statement).setString(1, TENANT_ID);
+      }
+    }
+  }
+
+  @Nested
+  class selectAllWithoutTenantFilter {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * テナントの条件を付けずに全テナントの送信者を読み込むことを確かめる。 バッチ処理は全テナントを対象にする。
+       *
+       * @given SELECT の結果が "S001" の 1 行テナントID "T002"
+       * @when selectAllWithoutTenantFilter を接続で実行する
+       * @then 送信者が "S001" の 1 件になり、テナントIDが "T002" になる
+       */
+      @MockDbConnection
+      @Test
+      void 結果が1行の場合_テナントを問わず1件の一覧を返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(
+            connection,
+            MockResultSetBuilder.builder()
+                .columns(COLUMNS)
+                .row("S001", "送信者A", "2026-01-15 10:00:00", "U001", "T002")
+                .build());
+        SES_AI_M_SENDERLot lot = new SES_AI_M_SENDERLot();
+
+        lot.selectAllWithoutTenantFilter(connection);
+
+        assertThat(lot.size()).isEqualTo(1);
+        assertThat(lot.get(0).getFromId()).isEqualTo("S001");
+        assertThat(lot.get(0).getTenantId()).isEqualTo("T002");
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * DB 接続が null の場合に検索を拒否することを確かめる。 接続が無いまま SQL を実行できない。
+       *
+       * @given 接続が null
+       * @when selectAllWithoutTenantFilter を null の接続で実行する
+       * @then IllegalArgumentExceptionを投げる
+       */
+      @Test
+      void 接続がnullの場合_IllegalArgumentExceptionを投げる() {
+        assertThatThrownBy(() -> new SES_AI_M_SENDERLot().selectAllWithoutTenantFilter(null))
+            .isInstanceOf(IllegalArgumentException.class);
+      }
+    }
+  }
+
+  @Nested
+  class getSelectAllSql {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 件数が0件の場合に空の一覧を返すことを確かめる。 対象が無いテナントでページ送りの件数を0にそろえる。
+       *
+       * @given 件数の問い合わせが 0 を返し、一覧の問い合わせが 0 行を返す
+       * @when selectAllPaged をテナントID "T001" で、1ページ目、1ページ10件で実行する
+       * @then 件数に 0 を保持し、空の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void 全件のページ取得で全件のページ取得で件数が0件の場合_件数0の空の一覧を返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubStatement(
+            connection, MockResultSetBuilder.builder().columns("cnt").row(0).build());
+        JdbcMocks.stubQuery(connection, MockResultSetBuilder.builder().columns("cnt").build());
+        SES_AI_M_SENDERLot lot = new SES_AI_M_SENDERLot();
+
+        lot.selectAllPaged(connection, "T001", 1, 10);
+
+        assertThat(lot.getTotalCount()).isEqualTo(0L);
+        assertThat(lot.isEmpty()).isTrue();
+      }
+    }
   }
 }

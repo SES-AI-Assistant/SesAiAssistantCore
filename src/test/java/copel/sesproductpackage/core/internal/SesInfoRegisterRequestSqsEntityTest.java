@@ -1,717 +1,896 @@
 package copel.sesproductpackage.core.internal;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import com.amazonaws.regions.Regions;
-import copel.sesproductpackage.core.api.line.LineMessagingAPI;
+import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import copel.sesproductpackage.core.api.line.LineMessagingApi;
 import copel.sesproductpackage.core.unit.RequestType;
 import copel.sesproductpackage.core.util.ObjectMapperFactory;
-import copel.sesproductpackage.core.util.Properties;
-import copel.sesproductpackage.core.util.SsmParameterKey;
-import java.io.IOException;
+import copel.sesproductpackage.tools.testsupport.config.TestProperty;
+import java.nio.charset.StandardCharsets;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
-@DisplayName("SesInfoRegisterRequestSqsEntity テスト")
+/** {@link SesInfoRegisterRequestSqsEntity} の単体テスト。 */
+@TestProperty(
+    key = "infrastructure/messaging/register-queue/url",
+    value = "https://sqs.ap-northeast-1.amazonaws.com/123/register-queue")
 class SesInfoRegisterRequestSqsEntityTest {
 
-  private SesInfoRegisterRequestSqsEntity entity;
+  /** SQS クライアントのビルダーの静的メソッドのモック。テスト後に解除する。 */
+  private MockedStatic<AmazonSQSClientBuilder> builderStatic;
 
+  /** SQS クライアントの作成をモックに差し替える。 生成時に実 AWS へ接続しないようにするため。 */
   @BeforeEach
-  void setUp() {
-    entity = new SesInfoRegisterRequestSqsEntity();
+  void SQSクライアントの作成をモックに差し替える() {
+    builderStatic = mockStatic(AmazonSQSClientBuilder.class);
+    AmazonSQSClientBuilder builder = mock(AmazonSQSClientBuilder.class);
+    lenient().when(builder.withRegion(any(Regions.class))).thenReturn(builder);
+    lenient().when(builder.withEndpointConfiguration(any())).thenReturn(builder);
+    lenient().when(builder.withCredentials(any())).thenReturn(builder);
+    when(builder.build()).thenReturn(mock(AmazonSQS.class));
+    builderStatic.when(AmazonSQSClientBuilder::standard).thenReturn(builder);
   }
 
-  @Test
-  @DisplayName("デフォルトコンストラクタでインスタンス生成")
-  void testDefaultConstructor() {
-    SesInfoRegisterRequestSqsEntity instance = new SesInfoRegisterRequestSqsEntity();
-    assertNotNull(instance);
-    assertFalse(instance.isWatching());
+  /** SQS クライアントの作成のモックを解除する。 */
+  @AfterEach
+  void SQSクライアントの作成のモックを解除する() {
+    builderStatic.close();
   }
 
-  @Test
-  @DisplayName("SQS送信用コンストラクタでインスタンス生成")
-  void testSqsConstructor() {
-    try (MockedStatic<Properties> mockProperties = mockStatic(Properties.class)) {
-      mockProperties
-          .when(() -> Properties.get(SsmParameterKey.REGISTER_QUEUE_URL.getKey()))
-          .thenReturn("http://sqs.example.com/queue");
+  /**
+   * 種別に応じた、必須項目をすべて持つエンティティを作る。
+   *
+   * @param requestType リクエスト種別
+   * @return 全項目に値を持つエンティティ
+   */
+  private static SesInfoRegisterRequestSqsEntity 全項目を持つエンティティを作る(final RequestType requestType) {
+    SesInfoRegisterRequestSqsEntity entity = new SesInfoRegisterRequestSqsEntity();
+    entity.setRequestType(requestType);
+    entity.setFromGroup("WEBAPP");
+    entity.setFromId("U001");
+    entity.setFromName("山田");
+    entity.setRawContent("本文");
+    entity.setFileName("skillsheet.xlsx");
+    return entity;
+  }
 
-      SesInfoRegisterRequestSqsEntity instance =
-          new SesInfoRegisterRequestSqsEntity(Regions.AP_NORTHEAST_1);
-      assertNotNull(instance);
+  /**
+   * 指定した項目の値を null にする。
+   *
+   * @param entity 対象のエンティティ
+   * @param field 項目名（fromGroup、fromId、fromName、rawContent、fileName のいずれか）
+   */
+  private static void 項目をnullにする(final SesInfoRegisterRequestSqsEntity entity, final String field) {
+    switch (field) {
+      case "fromGroup" -> entity.setFromGroup(null);
+      case "fromId" -> entity.setFromId(null);
+      case "fromName" -> entity.setFromName(null);
+      case "rawContent" -> entity.setRawContent(null);
+      case "fileName" -> entity.setFileName(null);
+      default -> throw new IllegalArgumentException(field);
     }
   }
 
-  @Test
-  @DisplayName("getMessageBody() が JSON を返す")
-  void testGetMessageBody() {
-    entity.setRequestType(RequestType.ScreenMessage);
-    entity.setFromGroup("WEBAPP");
-    entity.setFromId("user1");
-    entity.setRawContent("Test content");
-    entity.setTenantId("tenant1");
-
-    String json = entity.getMessageBody();
-    assertNotNull(json);
-    assertTrue(json.contains("\"request_type\""));
-    assertTrue(json.contains("\"from_group\""));
-  }
-
-  @Test
-  @DisplayName("mailSubject が mail_subject キーでシリアライズされる")
-  void testGetMessageBodyContainsMailSubject() throws Exception {
-    entity.setRequestType(RequestType.EmailMessage);
-    entity.setMailSubject("案件のご紹介");
-
-    String json = entity.getMessageBody();
-    assertTrue(json.contains("\"mail_subject\":\"案件のご紹介\""));
-    assertFalse(json.contains("\"mailSubject\""));
-  }
-
-  @Test
-  @DisplayName("mailSubject が null の場合は mail_subject が null としてシリアライズされる")
-  void testGetMessageBodyMailSubjectNull() throws Exception {
-    entity.setRequestType(RequestType.EmailMessage);
-    entity.setMailSubject(null);
-
-    String json = entity.getMessageBody();
-    assertTrue(json.contains("\"mail_subject\":null"));
-  }
-
-  @Test
-  @DisplayName("mail_subject を含む JSON をデシリアライズすると mailSubject に設定される")
-  void testDeserializeMailSubject() throws Exception {
-    String json =
-        "{\"request_type\":\"EmailMessage\",\"from_id\":\"user1\",\"raw_content\":\"本文\","
-            + "\"mail_subject\":\"件名テスト\"}";
-
-    SesInfoRegisterRequestSqsEntity parsed =
-        ObjectMapperFactory.OBJECT_MAPPER.readValue(json, SesInfoRegisterRequestSqsEntity.class);
-    assertEquals("件名テスト", parsed.getMailSubject());
-    assertEquals("本文", parsed.getRawContent());
-  }
-
-  @Test
-  @DisplayName("mail_subject キーが無い JSON をデシリアライズすると mailSubject は null")
-  void testDeserializeWithoutMailSubject() throws Exception {
-    String json = "{\"request_type\":\"ScreenMessage\",\"from_id\":\"user1\"}";
-
-    SesInfoRegisterRequestSqsEntity parsed =
-        ObjectMapperFactory.OBJECT_MAPPER.readValue(json, SesInfoRegisterRequestSqsEntity.class);
-    assertNull(parsed.getMailSubject());
-  }
-
-  @Test
-  @DisplayName("watchPeriod が watch_period キーでシリアライズされる")
-  void testGetMessageBodyContainsWatchPeriod() throws Exception {
-    entity.setRequestType(RequestType.ScreenMessage);
-    entity.setWatchPeriod(14);
-
-    String json = entity.getMessageBody();
-    assertTrue(json.contains("\"watch_period\":14"));
-    assertFalse(json.contains("\"watchPeriod\""));
-  }
-
-  @Test
-  @DisplayName("watchPeriod が null の場合は watch_period が null としてシリアライズされる")
-  void testGetMessageBodyWatchPeriodNull() throws Exception {
-    entity.setRequestType(RequestType.ScreenMessage);
-    entity.setWatchPeriod(null);
-
-    String json = entity.getMessageBody();
-    assertTrue(json.contains("\"watch_period\":null"));
-  }
-
-  @Test
-  @DisplayName("watch_period を含む JSON をデシリアライズすると watchPeriod に設定される")
-  void testDeserializeWatchPeriod() throws Exception {
-    String json = "{\"request_type\":\"ScreenMessage\",\"is_watching\":true,\"watch_period\":3}";
-
-    SesInfoRegisterRequestSqsEntity parsed =
-        ObjectMapperFactory.OBJECT_MAPPER.readValue(json, SesInfoRegisterRequestSqsEntity.class);
-    assertEquals(Integer.valueOf(3), parsed.getWatchPeriod());
-    assertTrue(parsed.isWatching());
-  }
-
-  @Test
-  @DisplayName("watch_period キーが無い JSON をデシリアライズすると watchPeriod は null")
-  void testDeserializeWithoutWatchPeriod() throws Exception {
-    String json = "{\"request_type\":\"ScreenMessage\",\"from_id\":\"user1\"}";
-
-    SesInfoRegisterRequestSqsEntity parsed =
-        ObjectMapperFactory.OBJECT_MAPPER.readValue(json, SesInfoRegisterRequestSqsEntity.class);
-    assertNull(parsed.getWatchPeriod());
-  }
-
-  @Test
-  @DisplayName("isValid() - LineMessage 正常系")
-  void testIsValidLineMessageSuccess() {
-    entity.setRequestType(RequestType.LineMessage);
-    entity.setFromGroup("LINE");
-    entity.setFromId("user1");
-    entity.setFromName("User Name");
-    entity.setRawContent("a".repeat(100));
-
-    assertTrue(entity.isValid());
-  }
-
-  @Test
-  @DisplayName("isValid() - LineMessage 異常系（fromGroupなし）")
-  void testIsValidLineMessageNoFromGroup() {
-    entity.setRequestType(RequestType.LineMessage);
-    entity.setFromId("user1");
-    entity.setFromName("User Name");
-    entity.setRawContent("a".repeat(100));
-
-    assertFalse(entity.isValid());
-  }
-
-  @Test
-  @DisplayName("isValid() - LineMessage 異常系（fromIdなし）")
-  void testIsValidLineMessageNoFromId() {
-    entity.setRequestType(RequestType.LineMessage);
-    entity.setFromGroup("LINE");
-    entity.setFromName("User Name");
-    entity.setRawContent("a".repeat(100));
-
-    assertFalse(entity.isValid());
-  }
-
-  @Test
-  @DisplayName("isValid() - LineMessage 異常系（fromNameなし）")
-  void testIsValidLineMessageNoFromName() {
-    entity.setRequestType(RequestType.LineMessage);
-    entity.setFromGroup("LINE");
-    entity.setFromId("user1");
-    entity.setRawContent("a".repeat(100));
-
-    assertFalse(entity.isValid());
-  }
-
-  @Test
-  @DisplayName("isValid() - LineMessage 異常系（rawContentなし）")
-  void testIsValidLineMessageNoRawContent() {
-    entity.setRequestType(RequestType.LineMessage);
-    entity.setFromGroup("LINE");
-    entity.setFromId("user1");
-    entity.setFromName("User Name");
-
-    assertFalse(entity.isValid());
-  }
-
-  @Test
-  @DisplayName("isValid() - LineFile 正常系")
-  void testIsValidLineFileSuccess() {
-    entity.setRequestType(RequestType.LineFile);
-    entity.setFromGroup("LINE");
-    entity.setFromId("user1");
-    entity.setFromName("User Name");
-    entity.setFileName("test.pdf");
-
-    assertTrue(entity.isValid());
-  }
-
-  @Test
-  @DisplayName("isValid() - LineFile 異常系（fileNameなし）")
-  void testIsValidLineFileNoFileName() {
-    entity.setRequestType(RequestType.LineFile);
-    entity.setFromGroup("LINE");
-    entity.setFromId("user1");
-    entity.setFromName("User Name");
-
-    assertFalse(entity.isValid());
-  }
-
-  @Test
-  @DisplayName("isValid() - EmailMessage 正常系")
-  void testIsValidEmailMessageSuccess() {
-    entity.setRequestType(RequestType.EmailMessage);
-    entity.setFromGroup("EMAIL");
-    entity.setFromId("user1");
-    entity.setRawContent("a".repeat(100));
-
-    assertTrue(entity.isValid());
-  }
-
-  @Test
-  @DisplayName("isValid() - EmailMessage 異常系（fromIdなし）")
-  void testIsValidEmailMessageNoFromId() {
-    entity.setRequestType(RequestType.EmailMessage);
-    entity.setFromGroup("EMAIL");
-    entity.setRawContent("a".repeat(100));
-
-    assertFalse(entity.isValid());
-  }
-
-  @Test
-  @DisplayName("isValid() - EmailFile 正常系")
-  void testIsValidEmailFileSuccess() {
-    entity.setRequestType(RequestType.EmailFile);
-    entity.setFromGroup("EMAIL");
-    entity.setFromId("user1");
-    entity.setFileName("test.pdf");
-
-    assertTrue(entity.isValid());
-  }
-
-  @Test
-  @DisplayName("isValid() - OtherMessage 正常系")
-  void testIsValidOtherMessageSuccess() {
-    entity.setRequestType(RequestType.OtherMessage);
-    entity.setFromGroup("OTHER");
-    entity.setFromId("user1");
-    entity.setFromName("User Name");
-    entity.setRawContent("a".repeat(100));
-
-    assertTrue(entity.isValid());
-  }
-
-  @Test
-  @DisplayName("isValid() - OtherFile 正常系")
-  void testIsValidOtherFileSuccess() {
-    entity.setRequestType(RequestType.OtherFile);
-    entity.setFromGroup("OTHER");
-    entity.setFromId("user1");
-    entity.setFromName("User Name");
-    entity.setFileName("test.pdf");
-
-    assertTrue(entity.isValid());
-  }
-
-  @Test
-  @DisplayName("isValid() - ScreenMessage 正常系")
-  void testIsValidScreenMessageSuccess() {
-    entity.setRequestType(RequestType.ScreenMessage);
-    entity.setFromGroup("WEBAPP");
-    entity.setFromId("user1");
-    entity.setRawContent("Test content");
-
-    assertTrue(entity.isValid());
-  }
-
-  @Test
-  @DisplayName("isValid() - ScreenMessage 異常系（rawContentなし）")
-  void testIsValidScreenMessageNoRawContent() {
-    entity.setRequestType(RequestType.ScreenMessage);
-    entity.setFromGroup("WEBAPP");
-    entity.setFromId("user1");
-
-    assertFalse(entity.isValid());
-  }
-
-  @Test
-  @DisplayName("isValid() - ScreenFile 正常系")
-  void testIsValidScreenFileSuccess() {
-    entity.setRequestType(RequestType.ScreenFile);
-    entity.setFromGroup("WEBAPP");
-    entity.setFromId("user1");
-    entity.setFileName("test.pdf");
-
-    assertTrue(entity.isValid());
-  }
-
-  @Test
-  @DisplayName("isValid() - infoTypeInvalidが true の場合は false を返す")
-  void testIsValidInfoTypeInvalidFlag() {
-    entity.setRequestType(RequestType.ScreenMessage);
-    entity.setFromGroup("WEBAPP");
-    entity.setFromId("user1");
-    entity.setRawContent("Test content");
-    entity.setInfoTypeInvalid(true);
-
-    assertFalse(entity.isValid());
-  }
-
-  @Test
-  @DisplayName("isValid() - 不正な RequestType")
-  void testIsValidUnknownRequestType() {
-    assertFalse(entity.isValid());
-  }
-
-  @Test
-  @DisplayName("isDirectedJobRegistration() - 画面指定の案件登録")
-  void testIsDirectedJobRegistrationSuccess() {
-    entity.setRequestType(RequestType.ScreenMessage);
-    entity.setInfoType("JOB");
-    entity.setRawContent("Test job content");
-
-    assertTrue(entity.isDirectedJobRegistration());
-  }
-
-  @Test
-  @DisplayName("isDirectedJobRegistration() - infoType が null")
-  void testIsDirectedJobRegistrationNullInfoType() {
-    entity.setRequestType(RequestType.ScreenMessage);
-    entity.setRawContent("Test job content");
-
-    assertFalse(entity.isDirectedJobRegistration());
-  }
-
-  @Test
-  @DisplayName("isDirectedJobRegistration() - infoType が PERSON")
-  void testIsDirectedJobRegistrationPersonType() {
-    entity.setRequestType(RequestType.ScreenMessage);
-    entity.setInfoType("PERSON");
-    entity.setRawContent("Test job content");
-
-    assertFalse(entity.isDirectedJobRegistration());
-  }
-
-  @Test
-  @DisplayName("isDirectedJobRegistration() - requestType が ScreenMessage ではない")
-  void testIsDirectedJobRegistrationWrongRequestType() {
-    entity.setRequestType(RequestType.LineMessage);
-    entity.setInfoType("JOB");
-    entity.setRawContent("Test job content");
-
-    assertFalse(entity.isDirectedJobRegistration());
-  }
-
-  @Test
-  @DisplayName("isDirectedJobRegistration() - rawContent が空")
-  void testIsDirectedJobRegistrationEmptyContent() {
-    entity.setRequestType(RequestType.ScreenMessage);
-    entity.setInfoType("JOB");
-    entity.setRawContent("");
-
-    assertFalse(entity.isDirectedJobRegistration());
-  }
-
-  @Test
-  @DisplayName("isDirectedCandidateRegistration() - 画面指定の要員登録（ScreenMessage）")
-  void testIsDirectedCandidateRegistrationScreenMessage() {
-    entity.setRequestType(RequestType.ScreenMessage);
-    entity.setInfoType("PERSON");
-    entity.setRawContent("Test person content");
-
-    assertTrue(entity.isDirectedCandidateRegistration());
-  }
-
-  @Test
-  @DisplayName("isDirectedCandidateRegistration() - 画面指定の要員登録（ScreenFile）")
-  void testIsDirectedCandidateRegistrationScreenFile() {
-    entity.setRequestType(RequestType.ScreenFile);
-    entity.setInfoType("PERSON");
-
-    assertTrue(entity.isDirectedCandidateRegistration());
-  }
-
-  @Test
-  @DisplayName("isDirectedCandidateRegistration() - infoType が null")
-  void testIsDirectedCandidateRegistrationNullInfoType() {
-    entity.setRequestType(RequestType.ScreenMessage);
-    entity.setRawContent("Test person content");
-
-    assertFalse(entity.isDirectedCandidateRegistration());
-  }
-
-  @Test
-  @DisplayName("isDirectedCandidateRegistration() - infoType が JOB")
-  void testIsDirectedCandidateRegistrationJobType() {
-    entity.setRequestType(RequestType.ScreenMessage);
-    entity.setInfoType("JOB");
-    entity.setRawContent("Test person content");
-
-    assertFalse(entity.isDirectedCandidateRegistration());
-  }
-
-  @Test
-  @DisplayName("isDirectedCandidateRegistration() - ScreenMessage なのに rawContent が空")
-  void testIsDirectedCandidateRegistrationEmptyContent() {
-    entity.setRequestType(RequestType.ScreenMessage);
-    entity.setInfoType("PERSON");
-    entity.setRawContent("");
-
-    assertFalse(entity.isDirectedCandidateRegistration());
-  }
-
-  @Test
-  @DisplayName("isDirectedCandidateRegistration() - 不正な requestType")
-  void testIsDirectedCandidateRegistrationInvalidRequestType() {
-    entity.setRequestType(RequestType.LineMessage);
-    entity.setInfoType("PERSON");
-    entity.setRawContent("Test person content");
-
-    assertFalse(entity.isDirectedCandidateRegistration());
-  }
-
-  @Test
-  @DisplayName("isスキルシート() - LineFile")
-  void testIsSkillsheetLineFile() {
-    entity.setRequestType(RequestType.LineFile);
-    entity.setFileName("test.pdf");
-
-    assertTrue(entity.isスキルシート());
-  }
-
-  @Test
-  @DisplayName("isスキルシート() - EmailFile")
-  void testIsSkillsheetEmailFile() {
-    entity.setRequestType(RequestType.EmailFile);
-    entity.setFileName("test.pdf");
-
-    assertTrue(entity.isスキルシート());
-  }
-
-  @Test
-  @DisplayName("isスキルシート() - ScreenFile")
-  void testIsSkillsheetScreenFile() {
-    entity.setRequestType(RequestType.ScreenFile);
-    entity.setFileName("test.pdf");
-
-    assertTrue(entity.isスキルシート());
-  }
-
-  @Test
-  @DisplayName("isスキルシート() - OtherFile")
-  void testIsSkillsheetOtherFile() {
-    entity.setRequestType(RequestType.OtherFile);
-    entity.setFileName("test.pdf");
-
-    assertTrue(entity.isスキルシート());
-  }
-
-  @Test
-  @DisplayName("isスキルシート() - File type なのに fileName が null")
-  void testIsSkillsheetFileNoFileName() {
-    entity.setRequestType(RequestType.LineFile);
-
-    assertFalse(entity.isスキルシート());
-  }
-
-  @Test
-  @DisplayName("isスキルシート() - File type なのに fileName が空")
-  void testIsSkillsheetFileEmptyFileName() {
-    entity.setRequestType(RequestType.LineFile);
-    entity.setFileName("");
-
-    assertFalse(entity.isスキルシート());
-  }
-
-  @Test
-  @DisplayName("isスキルシート() - Message type")
-  void testIsSkillsheetMessageType() {
-    entity.setRequestType(RequestType.LineMessage);
-    entity.setFileName("test.pdf");
-
-    assertFalse(entity.isスキルシート());
-  }
-
-  @Test
-  @DisplayName("downloadFileData() - LINE ファイル")
-  void testDownloadFileDataLineFile() throws IOException, InterruptedException {
-    entity.setRequestType(RequestType.LineFile);
-    entity.setFileId("file1");
-    byte[] testData = "test content".getBytes();
-
-    LineMessagingAPI mockClient = mock(LineMessagingAPI.class);
-    when(mockClient.getFile("file1")).thenReturn(testData);
-
-    try (var mockLineAPI = mockStatic(LineMessagingAPI.class)) {
-      mockLineAPI.when(() -> new LineMessagingAPI("token")).thenReturn(mockClient);
-
-      entity.downloadFileData("token");
-      assertArrayEquals(testData, entity.getFileData());
+  @Nested
+  class コンストラクタ_Regions {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * リージョンだけを指定した場合に、登録用の設定値からキュー名を決めることを確かめる。 登録 Lambda の送信先を設定値で切り替えられるようにするためである。
+       *
+       * @given 設定値 infrastructure/messaging/register-queue/url が register-queue の URL
+       * @when リージョン AP_NORTHEAST_1 で生成する
+       * @then キュー名として "register-queue" を返す
+       */
+      @Test
+      void リージョンを指定する場合_登録用のキュー名を返す() {
+        SesInfoRegisterRequestSqsEntity target =
+            new SesInfoRegisterRequestSqsEntity(Regions.AP_NORTHEAST_1);
+
+        assertThat(target.getQueueName()).isEqualTo("register-queue");
+      }
     }
   }
 
-  @Test
-  @DisplayName("downloadFileData() - EMAIL ファイル（何もしない）")
-  void testDownloadFileDataEmailFile() throws IOException, InterruptedException {
-    entity.setRequestType(RequestType.EmailFile);
-    entity.setFileData(null);
+  @Nested
+  class コンストラクタ_Regions_String {
 
-    entity.downloadFileData("token");
-    assertNull(entity.getFileData());
+    @Nested
+    class 正常系 {
+
+      /**
+       * キューの URL を指定した場合に、その URL のキュー名を使うことを確かめる。 テスト用や別キューへ送るときに、設定値を読まずに送信先を決められるようにするためである。
+       *
+       * @given キューの URL が custom-queue の URL
+       * @when リージョン AP_NORTHEAST_1 とキューの URL を指定して生成する
+       * @then キュー名として "custom-queue" を返す
+       */
+      @Test
+      void キューURLを指定する場合_指定したURLのキュー名を返す() {
+        SesInfoRegisterRequestSqsEntity target =
+            new SesInfoRegisterRequestSqsEntity(
+                Regions.AP_NORTHEAST_1,
+                "https://sqs.ap-northeast-1.amazonaws.com/123/custom-queue");
+
+        assertThat(target.getQueueName()).isEqualTo("custom-queue");
+      }
+    }
   }
 
-  @Test
-  @DisplayName("downloadFileData() - SCREEN ファイル（何もしない）")
-  void testDownloadFileDataScreenFile() throws IOException, InterruptedException {
-    entity.setRequestType(RequestType.ScreenFile);
-    entity.setFileData(null);
+  @Nested
+  class addRawContent {
 
-    entity.downloadFileData("token");
-    assertNull(entity.getFileData());
+    @Nested
+    class 正常系 {
+
+      /**
+       * 本文が null の場合に、追加する内容をそのまま本文に設定することを確かめる。 初回の追加で本文を欠けさせないためである。
+       *
+       * @given rawContent が null
+       * @when addRawContent を "追加本文" で実行する
+       * @then rawContent として "追加本文" を返す
+       */
+      @Test
+      void rawContentがnullの場合_追加した内容を返す() {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+
+        target.addRawContent("追加本文");
+
+        assertThat(target.getRawContent()).isEqualTo("追加本文");
+      }
+
+      /**
+       * 既存の本文がある場合に、追加する内容を末尾に連結することを確かめる。 分割されて届いた本文を順番どおりに組み立てるためである。
+       *
+       * @given rawContent が "前半"
+       * @when addRawContent を "後半" で実行する
+       * @then rawContent として "前半後半" を返す
+       */
+      @Test
+      void 既存の本文がある場合_末尾に連結した本文を返す() {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setRawContent("前半");
+
+        target.addRawContent("後半");
+
+        assertThat(target.getRawContent()).isEqualTo("前半後半");
+      }
+    }
   }
 
-  @Test
-  @DisplayName("downloadFileData() - OTHER ファイル（何もしない）")
-  void testDownloadFileDataOtherFile() throws IOException, InterruptedException {
-    entity.setRequestType(RequestType.OtherFile);
-    entity.setFileData(null);
+  @Nested
+  class getMessageBody {
 
-    entity.downloadFileData("token");
-    assertNull(entity.getFileData());
+    @Nested
+    class 正常系 {
+
+      /**
+       * リクエスト種別と送信元を持つ場合に、スネークケースのキーで JSON に含めることを確かめる。 登録 Lambda がこのキー名で内容を読むためである。
+       *
+       * @given 種別が ScreenMessage、送信元グループが "WEBAPP"、送信者IDが "U001"
+       * @when getMessageBody を実行する
+       * @then request_type と from_group と from_id のキーを持つ JSON 本文を返す
+       */
+      @Test
+      void 種別と送信元を持つ場合_スネークケースのキーでJSON本文を返す() throws Exception {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setRequestType(RequestType.ScreenMessage);
+        target.setFromGroup("WEBAPP");
+        target.setFromId("U001");
+
+        String json = target.getMessageBody();
+
+        assertThat(json)
+            .contains("\"request_type\":\"ScreenMessage\"")
+            .contains("\"from_group\":\"WEBAPP\"")
+            .contains("\"from_id\":\"U001\"");
+      }
+
+      /**
+       * メール件名がある場合に、mail_subject のキーで JSON に含めることを確かめる。 登録先のテーブルへ件名を反映させるためである。
+       *
+       * @given メール件名が "案件のご紹介"
+       * @when getMessageBody を実行する
+       * @then mail_subject に "案件のご紹介" を持つ JSON 本文を返す
+       */
+      @Test
+      void メール件名がある場合_mail_subjectで件名を含むJSON本文を返す() throws Exception {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setRequestType(RequestType.EmailMessage);
+        target.setMailSubject("案件のご紹介");
+
+        String json = target.getMessageBody();
+
+        assertThat(json).contains("\"mail_subject\":\"案件のご紹介\"").doesNotContain("mailSubject");
+      }
+
+      /**
+       * ウォッチ期間が 14 の場合に、watch_period のキーで JSON に含めることを確かめる。 登録 Lambda が指定された期間をそのまま使うためである。
+       *
+       * @given ウォッチ期間が 14
+       * @when getMessageBody を実行する
+       * @then watch_period に 14 を持つ JSON 本文を返す
+       */
+      @Test
+      void ウォッチ期間が14の場合_watch_periodで14を含むJSON本文を返す() throws Exception {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setRequestType(RequestType.ScreenMessage);
+        target.setWatchPeriod(14);
+
+        String json = target.getMessageBody();
+
+        assertThat(json).contains("\"watch_period\":14").doesNotContain("watchPeriod");
+      }
+
+      /**
+       * JSON に変換してから読み込むと、元の値に戻ることを確かめる。 Register Lambda が Web から送られた内容を失わずに読み込むためである。
+       *
+       * @given 種別が ScreenMessage、送信者IDが "U001"、本文が "本文"、メール件名が "件名"、ウォッチ期間が 3
+       * @when getMessageBody の結果を SesInfoRegisterRequestSqsEntity に読み込む
+       * @then 種別と送信者IDと本文と件名とウォッチ期間が元の値を返す
+       */
+      @Test
+      void JSONに変換して読み込む場合_元の値を持つエンティティを返す() throws Exception {
+        SesInfoRegisterRequestSqsEntity source = new SesInfoRegisterRequestSqsEntity();
+        source.setRequestType(RequestType.ScreenMessage);
+        source.setFromId("U001");
+        source.setRawContent("本文");
+        source.setMailSubject("件名");
+        source.setWatchPeriod(3);
+
+        SesInfoRegisterRequestSqsEntity parsed =
+            ObjectMapperFactory.OBJECT_MAPPER.readValue(
+                source.getMessageBody(), SesInfoRegisterRequestSqsEntity.class);
+
+        assertThat(parsed.getRequestType()).isEqualTo(RequestType.ScreenMessage);
+        assertThat(parsed.getFromId()).isEqualTo("U001");
+        assertThat(parsed.getRawContent()).isEqualTo("本文");
+        assertThat(parsed.getMailSubject()).isEqualTo("件名");
+        assertThat(parsed.getWatchPeriod()).isEqualTo(3);
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * JSON への変換が失敗した場合に、例外を握りつぶさず呼び出し元へ伝えることを確かめる。 変換失敗を黙って null の本文で送ると、空のメッセージが登録されてしまうためである。
+       *
+       * @given JSON への変換が JsonProcessingException を投げる ObjectMapper に差し替えている
+       * @when getMessageBody を実行する
+       * @then JsonProcessingException を投げる
+       */
+      @Test
+      void JSON変換に失敗する場合_JsonProcessingExceptionを投げる() throws Exception {
+        ObjectMapper failing = mock(ObjectMapper.class);
+        when(failing.writeValueAsString(any())).thenThrow(new JsonProcessingException("変換失敗") {});
+        ObjectMapper original = SesInfoRegisterRequestSqsEntity.objectMapper;
+        SesInfoRegisterRequestSqsEntity.objectMapper = failing;
+        try {
+          SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+          assertThatThrownBy(target::getMessageBody).isInstanceOf(JsonProcessingException.class);
+        } finally {
+          SesInfoRegisterRequestSqsEntity.objectMapper = original;
+        }
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 件名が null の場合に、mail_subject を null として含めることを確かめる。 件名ヘッダが無いメールでも、登録 Lambda
+       * が項目の欠落を判断できるようにするためである。
+       *
+       * @given メール件名が null
+       * @when getMessageBody を実行する
+       * @then mail_subject に null を持つ JSON 本文を返す
+       */
+      @Test
+      void メール件名がnullの場合_mail_subjectをnullとしたJSON本文を返す() throws Exception {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setRequestType(RequestType.EmailMessage);
+        target.setMailSubject(null);
+
+        String json = target.getMessageBody();
+
+        assertThat(json).contains("\"mail_subject\":null");
+      }
+
+      /**
+       * ウォッチ期間が null の場合に、watch_period を null として含めることを確かめる。 未指定時は登録 Lambda が既定値を適用するため、null のまま送る。
+       *
+       * @given ウォッチ期間が null
+       * @when getMessageBody を実行する
+       * @then watch_period に null を持つ JSON 本文を返す
+       */
+      @Test
+      void ウォッチ期間がnullの場合_watch_periodをnullとしたJSON本文を返す() throws Exception {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setRequestType(RequestType.ScreenMessage);
+        target.setWatchPeriod(null);
+
+        String json = target.getMessageBody();
+
+        assertThat(json).contains("\"watch_period\":null");
+      }
+    }
   }
 
-  @Test
-  @DisplayName("downloadFileData() - Message type（何もしない）")
-  void testDownloadFileDataMessageType() throws IOException, InterruptedException {
-    entity.setRequestType(RequestType.LineMessage);
-    entity.setFileData(null);
+  @Nested
+  class isValid {
 
-    entity.downloadFileData("token");
-    assertNull(entity.getFileData());
+    @Nested
+    class 正常系 {
+
+      /**
+       * 種別ごとの必須項目をすべて持つ場合に有効と判定することを確かめる。 必須項目が揃ったリクエストだけを登録処理へ進めるためである。
+       *
+       * @given requestType が CsvSource の各行の種別、必須項目をすべて持つ
+       * @when isValid を実行する
+       * @then true を返す
+       */
+      @ParameterizedTest
+      @CsvSource({
+        "LineMessage",
+        "LineFile",
+        "EmailMessage",
+        "EmailFile",
+        "OtherMessage",
+        "OtherFile",
+        "ScreenMessage",
+        "ScreenFile"
+      })
+      void 種別が必須項目を持つ場合_trueを返す(final String requestType) {
+        SesInfoRegisterRequestSqsEntity target = 全項目を持つエンティティを作る(RequestType.valueOf(requestType));
+
+        assertThat(target.isValid()).isTrue();
+      }
+
+      /**
+       * 種別ごとの必須項目が欠けている場合に無効と判定することを確かめる。 欠けた項目で登録処理を進めると、登録できない値が DB へ入るためである。
+       *
+       * @given requestType が CsvSource の1列目の種別、必須項目が CsvSource の2列目の項目だけ null
+       * @when isValid を実行する
+       * @then false を返す
+       */
+      @ParameterizedTest
+      @CsvSource({
+        "LineMessage, fromGroup",
+        "LineMessage, fromId",
+        "LineMessage, fromName",
+        "LineMessage, rawContent",
+        "LineFile, fromGroup",
+        "LineFile, fromId",
+        "LineFile, fromName",
+        "LineFile, fileName",
+        "EmailMessage, fromGroup",
+        "EmailMessage, fromId",
+        "EmailMessage, rawContent",
+        "EmailFile, fromGroup",
+        "EmailFile, fromId",
+        "EmailFile, fileName",
+        "OtherMessage, fromGroup",
+        "OtherMessage, fromId",
+        "OtherMessage, fromName",
+        "OtherMessage, rawContent",
+        "OtherFile, fromGroup",
+        "OtherFile, fromId",
+        "OtherFile, fromName",
+        "OtherFile, fileName",
+        "ScreenMessage, fromGroup",
+        "ScreenMessage, fromId",
+        "ScreenMessage, rawContent",
+        "ScreenFile, fromGroup",
+        "ScreenFile, fromId",
+        "ScreenFile, fileName"
+      })
+      void 必須項目が欠けている場合_falseを返す(final String requestType, final String field) {
+        SesInfoRegisterRequestSqsEntity target = 全項目を持つエンティティを作る(RequestType.valueOf(requestType));
+        項目をnullにする(target, field);
+
+        assertThat(target.isValid()).isFalse();
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * info_type が JOB と PERSON 以外の場合に無効と判定することを確かめる。 画面登録の種別を誤って解釈すると、案件と要員を取り違えて登録するためである。
+       *
+       * @given 必須項目をすべて持つ ScreenMessage、infoTypeInvalid が true
+       * @when isValid を実行する
+       * @then false を返す
+       */
+      @Test
+      void infoTypeが不正な場合_falseを返す() {
+        SesInfoRegisterRequestSqsEntity target = 全項目を持つエンティティを作る(RequestType.ScreenMessage);
+        target.setInfoTypeInvalid(true);
+
+        assertThat(target.isValid()).isFalse();
+      }
+
+      /**
+       * リクエスト種別が null の場合に無効と判定することを確かめる。 種別が無いと必須項目を判定できず、どの経路の登録か決められないためである。
+       *
+       * @given requestType が null で、他の項目は全て値を持つ
+       * @when isValid を実行する
+       * @then false を返す
+       */
+      @Test
+      void requestTypeがnullの場合_falseを返す() {
+        SesInfoRegisterRequestSqsEntity target = 全項目を持つエンティティを作る(null);
+
+        assertThat(target.isValid()).isFalse();
+      }
+    }
   }
 
-  @Test
-  @DisplayName("Lombok @Data の getter/setter が機能する")
-  void testLombokGettersSetters() {
-    entity.setRequestType(RequestType.ScreenMessage);
-    entity.setFromGroup("WEBAPP");
-    entity.setFromId("user1");
-    entity.setFromName("User Name");
-    entity.setRawContent("content");
-    entity.setFileId("file1");
-    entity.setFileName("test.pdf");
-    byte[] fileData = "data".getBytes();
-    entity.setFileData(fileData);
-    entity.setWatching(true);
-    entity.setInfoType("JOB");
-    entity.setInfoTypeInvalid(true);
-    entity.setTenantId("tenant1");
+  @Nested
+  class isProcessingTargetBody {
 
-    assertEquals(RequestType.ScreenMessage, entity.getRequestType());
-    assertEquals("WEBAPP", entity.getFromGroup());
-    assertEquals("user1", entity.getFromId());
-    assertEquals("User Name", entity.getFromName());
-    assertEquals("content", entity.getRawContent());
-    assertEquals("file1", entity.getFileId());
-    assertEquals("test.pdf", entity.getFileName());
-    assertArrayEquals(fileData, entity.getFileData());
-    assertTrue(entity.isWatching());
-    assertEquals("JOB", entity.getInfoType());
-    assertTrue(entity.isInfoTypeInvalid());
-    assertEquals("tenant1", entity.getTenantId());
+    @Nested
+    class 境界値 {
+
+      /**
+       * 本文が null の場合に処理対象外と判定することを確かめる。 本文が無いメールを Gemini の分類に送らないためである。
+       *
+       * @given 本文が null
+       * @when isProcessingTargetBody を実行する
+       * @then false を返す
+       */
+      @Test
+      void 本文がnullの場合_falseを返す() {
+        assertThat(SesInfoRegisterRequestSqsEntity.isProcessingTargetBody(null)).isFalse();
+      }
+
+      /**
+       * 本文が 200 文字の場合に処理対象外と判定することを確かめる。 200 文字以下は登録対象の下限を超えないため、分類に送らない。
+       *
+       * @given 本文が 200 文字
+       * @when isProcessingTargetBody を実行する
+       * @then false を返す
+       */
+      @Test
+      void 本文が200文字の場合_falseを返す() {
+        assertThat(SesInfoRegisterRequestSqsEntity.isProcessingTargetBody("a".repeat(200)))
+            .isFalse();
+      }
+
+      /**
+       * 本文が 201 文字の場合に処理対象と判定することを確かめる。 200 文字を超えた本文だけを分類に送るためである。
+       *
+       * @given 本文が 201 文字
+       * @when isProcessingTargetBody を実行する
+       * @then true を返す
+       */
+      @Test
+      void 本文が201文字の場合_trueを返す() {
+        assertThat(SesInfoRegisterRequestSqsEntity.isProcessingTargetBody("a".repeat(201)))
+            .isTrue();
+      }
+    }
   }
 
-  @Test
-  @DisplayName("isProcessingTarget() - LineMessage 正常系（十分な長さ）")
-  void testIsProcessingTargetLineMessageSuccess() {
-    entity.setRequestType(RequestType.LineMessage);
-    entity.setRawContent("a".repeat(201));
+  @Nested
+  class isProcessingTarget {
 
-    assertTrue(entity.isProcessingTarget());
+    @Nested
+    class 正常系 {
+
+      /**
+       * 本文の長さによらず処理対象とする種別の場合に、true を返すことを確かめる。 ファイルと画面の本文は短くても登録の対象であるためである。
+       *
+       * @given 種別が CsvSource の各行の種別、本文が 1 文字
+       * @when isProcessingTarget を実行する
+       * @then true を返す
+       */
+      @ParameterizedTest
+      @CsvSource({"LineFile", "EmailFile", "OtherFile", "ScreenFile", "ScreenMessage"})
+      void 種別がファイルまたは画面入力の場合_trueを返す(final String requestType) {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setRequestType(RequestType.valueOf(requestType));
+        target.setRawContent("a");
+
+        assertThat(target.isProcessingTarget()).isTrue();
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * リクエスト種別が null の場合に処理対象外と判定することを確かめる。 種別が無いリクエストを登録処理へ進めないためである。
+       *
+       * @given requestType が null で、本文が 201 文字
+       * @when isProcessingTarget を実行する
+       * @then false を返す
+       */
+      @Test
+      void 種別がnullの場合_falseを返す() {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setRawContent("a".repeat(201));
+
+        assertThat(target.isProcessingTarget()).isFalse();
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 本文を持つ種別の本文の文字数が境界の場合に、処理対象かどうかを返すことを確かめる。 200 文字以下は Gemini を呼ばず、201 文字以上だけを処理するためである。
+       *
+       * @given 種別が CsvSource の1列目、本文が CsvSource の2列目の文字数
+       * @when isProcessingTarget を実行する
+       * @then CsvSource の3列目の処理対象かどうかを返す
+       */
+      @ParameterizedTest
+      @CsvSource({
+        "LineMessage, 200, false",
+        "LineMessage, 201, true",
+        "EmailMessage, 200, false",
+        "EmailMessage, 201, true",
+        "OtherMessage, 200, false",
+        "OtherMessage, 201, true"
+      })
+      void 本文の文字数が境界の場合_処理対象かどうかを返す(
+          final String requestType, final int length, final boolean expected) {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setRequestType(RequestType.valueOf(requestType));
+        target.setRawContent("a".repeat(length));
+
+        assertThat(target.isProcessingTarget()).isEqualTo(expected);
+      }
+    }
   }
 
-  @Test
-  @DisplayName("isProcessingTarget() - LineMessage 処理対象外（短すぎる）")
-  void testIsProcessingTargetLineMessageShortContent() {
-    entity.setRequestType(RequestType.LineMessage);
-    entity.setRawContent("short");
+  @Nested
+  class isDirectedJobRegistration {
 
-    assertFalse(entity.isProcessingTarget());
+    @Nested
+    class 正常系 {
+
+      /**
+       * 画面で JOB と指定した本文の登録の場合に、true を返すことを確かめる。 画面で案件と指定された入力を案件として登録するためである。
+       *
+       * @given infoType が "JOB"、種別が ScreenMessage、本文が "案件本文"
+       * @when isDirectedJobRegistration を実行する
+       * @then true を返す
+       */
+      @Test
+      void 画面で案件と指定した本文の場合_trueを返す() {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setInfoType("JOB");
+        target.setRequestType(RequestType.ScreenMessage);
+        target.setRawContent("案件本文");
+
+        assertThat(target.isDirectedJobRegistration()).isTrue();
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * 種別が画面メッセージ以外の場合に false を返すことを確かめる。 LINE の経路は画面指定の登録として扱わないためである。
+       *
+       * @given infoType が "JOB"、種別が LineMessage、本文が "案件本文"
+       * @when isDirectedJobRegistration を実行する
+       * @then false を返す
+       */
+      @Test
+      void 種別が画面メッセージ以外の場合_falseを返す() {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setInfoType("JOB");
+        target.setRequestType(RequestType.LineMessage);
+        target.setRawContent("案件本文");
+
+        assertThat(target.isDirectedJobRegistration()).isFalse();
+      }
+
+      /**
+       * infoType が null の場合に false を返すことを確かめる。 画面で種別を指定していない登録を案件として扱わないためである。
+       *
+       * @given infoType が null、種別が ScreenMessage、本文が "案件本文"
+       * @when isDirectedJobRegistration を実行する
+       * @then false を返す
+       */
+      @Test
+      void infoTypeがnullの場合_falseを返す() {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setRequestType(RequestType.ScreenMessage);
+        target.setRawContent("案件本文");
+
+        assertThat(target.isDirectedJobRegistration()).isFalse();
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 本文が空文字の場合に false を返すことを確かめる。 本文の無い案件登録は処理できないためである。
+       *
+       * @given infoType が "JOB"、種別が ScreenMessage、本文が空文字
+       * @when isDirectedJobRegistration を実行する
+       * @then false を返す
+       */
+      @Test
+      void 本文が空文字の場合_falseを返す() {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setInfoType("JOB");
+        target.setRequestType(RequestType.ScreenMessage);
+        target.setRawContent("");
+
+        assertThat(target.isDirectedJobRegistration()).isFalse();
+      }
+    }
   }
 
-  @Test
-  @DisplayName("isProcessingTarget() - LineMessage 処理対象外（200文字ちょうど）")
-  void testIsProcessingTargetLineMessageBoundary() {
-    entity.setRequestType(RequestType.LineMessage);
-    entity.setRawContent("a".repeat(200));
+  @Nested
+  class isDirectedCandidateRegistration {
 
-    assertFalse(entity.isProcessingTarget());
+    @Nested
+    class 正常系 {
+
+      /**
+       * 画面で PERSON と指定した本文の登録の場合に、true を返すことを確かめる。 画面で要員と指定された入力を要員として登録するためである。
+       *
+       * @given infoType が "PERSON"、種別が ScreenMessage、本文が "要員本文"
+       * @when isDirectedCandidateRegistration を実行する
+       * @then true を返す
+       */
+      @Test
+      void 画面で要員と指定した本文の場合_trueを返す() {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setInfoType("PERSON");
+        target.setRequestType(RequestType.ScreenMessage);
+        target.setRawContent("要員本文");
+
+        assertThat(target.isDirectedCandidateRegistration()).isTrue();
+      }
+
+      /**
+       * 画面で PERSON と指定したスキルシートの登録の場合に、true を返すことを確かめる。 本文が無くてもスキルシートがあれば要員として登録するためである。
+       *
+       * @given infoType が "PERSON"、種別が ScreenFile
+       * @when isDirectedCandidateRegistration を実行する
+       * @then true を返す
+       */
+      @Test
+      void 画面で要員と指定したファイルの場合_trueを返す() {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setInfoType("PERSON");
+        target.setRequestType(RequestType.ScreenFile);
+
+        assertThat(target.isDirectedCandidateRegistration()).isTrue();
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * infoType が JOB の場合に false を返すことを確かめる。 案件と指定された登録を要員として扱わないためである。
+       *
+       * @given infoType が "JOB"、種別が ScreenFile
+       * @when isDirectedCandidateRegistration を実行する
+       * @then false を返す
+       */
+      @Test
+      void infoTypeがJOBの場合_falseを返す() {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setInfoType("JOB");
+        target.setRequestType(RequestType.ScreenFile);
+
+        assertThat(target.isDirectedCandidateRegistration()).isFalse();
+      }
+
+      /**
+       * 画面以外の種別で PERSON と指定された場合に false を返すことを確かめる。 LINE の経路は画面指定の登録として扱わないためである。
+       *
+       * @given infoType が "PERSON"、種別が LineMessage
+       * @when isDirectedCandidateRegistration を実行する
+       * @then false を返す
+       */
+      @Test
+      void 種別が画面以外の場合_falseを返す() {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setInfoType("PERSON");
+        target.setRequestType(RequestType.LineMessage);
+
+        assertThat(target.isDirectedCandidateRegistration()).isFalse();
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 画面の本文が空文字の場合に false を返すことを確かめる。 本文の無い要員登録は処理できないためである。
+       *
+       * @given infoType が "PERSON"、種別が ScreenMessage、本文が空文字
+       * @when isDirectedCandidateRegistration を実行する
+       * @then false を返す
+       */
+      @Test
+      void 画面の本文が空文字の場合_falseを返す() {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setInfoType("PERSON");
+        target.setRequestType(RequestType.ScreenMessage);
+        target.setRawContent("");
+
+        assertThat(target.isDirectedCandidateRegistration()).isFalse();
+      }
+    }
   }
 
-  @Test
-  @DisplayName("isProcessingTarget() - LineFile 常に処理対象")
-  void testIsProcessingTargetLineFile() {
-    entity.setRequestType(RequestType.LineFile);
+  @Nested
+  class isスキルシート {
 
-    assertTrue(entity.isProcessingTarget());
+    @Nested
+    class 正常系 {
+
+      /**
+       * ファイル種別でファイル名がある場合に、スキルシートと判定することを確かめる。 ファイルの取り込みはスキルシートとして処理するためである。
+       *
+       * @given 種別が CsvSource の各行の種別、ファイル名が "skillsheet.xlsx"
+       * @when isスキルシート を実行する
+       * @then true を返す
+       */
+      @ParameterizedTest
+      @CsvSource({"LineFile", "EmailFile", "ScreenFile", "OtherFile"})
+      void 種別がファイルの場合_ファイル名があればtrueを返す(final String requestType) {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setRequestType(RequestType.valueOf(requestType));
+        target.setFileName("skillsheet.xlsx");
+
+        assertThat(target.isスキルシート()).isTrue();
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * メッセージ種別の場合に、ファイル名があってもスキルシートでないと判定することを確かめる。 本文だけの投稿をファイルとして扱わないためである。
+       *
+       * @given 種別が LineMessage、ファイル名が "skillsheet.xlsx"
+       * @when isスキルシート を実行する
+       * @then false を返す
+       */
+      @Test
+      void 種別がメッセージの場合_falseを返す() {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setRequestType(RequestType.LineMessage);
+        target.setFileName("skillsheet.xlsx");
+
+        assertThat(target.isスキルシート()).isFalse();
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * ファイル名が null の場合に、スキルシートでないと判定することを確かめる。 ファイル名の無いファイルは取り込めないためである。
+       *
+       * @given 種別が LineFile、ファイル名が null
+       * @when isスキルシート を実行する
+       * @then false を返す
+       */
+      @Test
+      void ファイル名がnullの場合_falseを返す() {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setRequestType(RequestType.LineFile);
+
+        assertThat(target.isスキルシート()).isFalse();
+      }
+
+      /**
+       * ファイル名が空文字の場合に、スキルシートでないと判定することを確かめる。 名前の無いファイルは取り込めないためである。
+       *
+       * @given 種別が LineFile、ファイル名が空文字
+       * @when isスキルシート を実行する
+       * @then false を返す
+       */
+      @Test
+      void ファイル名が空文字の場合_falseを返す() {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setRequestType(RequestType.LineFile);
+        target.setFileName("");
+
+        assertThat(target.isスキルシート()).isFalse();
+      }
+    }
   }
 
-  @Test
-  @DisplayName("isProcessingTarget() - EmailMessage 正常系（十分な長さ）")
-  void testIsProcessingTargetEmailMessageSuccess() {
-    entity.setRequestType(RequestType.EmailMessage);
-    entity.setRawContent("a".repeat(201));
+  @Nested
+  class downloadFileData {
 
-    assertTrue(entity.isProcessingTarget());
-  }
+    @Nested
+    class 正常系 {
 
-  @Test
-  @DisplayName("isProcessingTarget() - EmailMessage 処理対象外（短すぎる）")
-  void testIsProcessingTargetEmailMessageShortContent() {
-    entity.setRequestType(RequestType.EmailMessage);
-    entity.setRawContent("short");
+      /**
+       * LINE のファイルの場合に、LINE から取得したファイルのデータを持つことを確かめる。 LINE の添付ファイルは取り込みに本体が必要なためである。
+       *
+       * @given 種別が LineFile、ファイルIDが "F001"、LINE の取得結果が "file" のバイト列
+       * @when downloadFileData をトークン "token" で実行する
+       * @then 取得したバイト列を fileData として持つ
+       */
+      @Test
+      void LINEのファイルの場合_取得したバイト列を返す() throws Exception {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setRequestType(RequestType.LineFile);
+        target.setFileId("F001");
+        byte[] content = "file".getBytes(StandardCharsets.UTF_8);
 
-    assertFalse(entity.isProcessingTarget());
-  }
+        try (MockedConstruction<LineMessagingApi> constructed =
+            mockConstruction(
+                LineMessagingApi.class,
+                (mock, context) -> when(mock.getFile("F001")).thenReturn(content))) {
+          target.downloadFileData("token");
 
-  @Test
-  @DisplayName("isProcessingTarget() - EmailFile 常に処理対象")
-  void testIsProcessingTargetEmailFile() {
-    entity.setRequestType(RequestType.EmailFile);
+          assertThat(constructed.constructed()).hasSize(1);
+        }
+        assertThat(target.getFileData()).isEqualTo(content);
+      }
+    }
 
-    assertTrue(entity.isProcessingTarget());
-  }
+    @Nested
+    class 境界値 {
 
-  @Test
-  @DisplayName("isProcessingTarget() - OtherMessage 正常系（十分な長さ）")
-  void testIsProcessingTargetOtherMessageSuccess() {
-    entity.setRequestType(RequestType.OtherMessage);
-    entity.setRawContent("a".repeat(201));
+      /**
+       * LINE のファイル以外の種別の場合に、ファイルを取得しないことを確かめる。 メッセージや他の経路のファイルは LINE から取得する対象ではないためである。
+       *
+       * @given 種別が CsvSource の各行の種別、LINE から取得する処理を差し替える
+       * @when downloadFileData をトークン "token" で実行する
+       * @then LINE のクライアントを作らず、fileData を null のまま保つ
+       */
+      @ParameterizedTest
+      @CsvSource({
+        "LineMessage",
+        "EmailMessage",
+        "OtherMessage",
+        "EmailFile",
+        "ScreenFile",
+        "OtherFile",
+        "ScreenMessage"
+      })
+      void LINEのファイル以外の種別の場合_LINEのクライアントを呼ばない(final String requestType) throws Exception {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setRequestType(RequestType.valueOf(requestType));
 
-    assertTrue(entity.isProcessingTarget());
-  }
+        try (MockedConstruction<LineMessagingApi> constructed =
+            mockConstruction(LineMessagingApi.class)) {
+          target.downloadFileData("token");
 
-  @Test
-  @DisplayName("isProcessingTarget() - OtherMessage 処理対象外（短すぎる）")
-  void testIsProcessingTargetOtherMessageShortContent() {
-    entity.setRequestType(RequestType.OtherMessage);
-    entity.setRawContent("short");
-
-    assertFalse(entity.isProcessingTarget());
-  }
-
-  @Test
-  @DisplayName("isProcessingTarget() - OtherFile 常に処理対象")
-  void testIsProcessingTargetOtherFile() {
-    entity.setRequestType(RequestType.OtherFile);
-
-    assertTrue(entity.isProcessingTarget());
-  }
-
-  @Test
-  @DisplayName("isProcessingTarget() - ScreenMessage 常に処理対象")
-  void testIsProcessingTargetScreenMessage() {
-    entity.setRequestType(RequestType.ScreenMessage);
-
-    assertTrue(entity.isProcessingTarget());
-  }
-
-  @Test
-  @DisplayName("isProcessingTarget() - ScreenFile 常に処理対象")
-  void testIsProcessingTargetScreenFile() {
-    entity.setRequestType(RequestType.ScreenFile);
-
-    assertTrue(entity.isProcessingTarget());
-  }
-
-  @Test
-  @DisplayName("isProcessingTargetBody() - 本文が201文字なら処理対象")
-  void testIsProcessingTargetBodyLongBody() {
-    assertTrue(SesInfoRegisterRequestSqsEntity.isProcessingTargetBody("a".repeat(201)));
-  }
-
-  @Test
-  @DisplayName("isProcessingTargetBody() - 本文が200文字なら処理対象外")
-  void testIsProcessingTargetBodyBoundary() {
-    assertFalse(SesInfoRegisterRequestSqsEntity.isProcessingTargetBody("a".repeat(200)));
-  }
-
-  @Test
-  @DisplayName("isProcessingTargetBody() - 本文が null なら処理対象外")
-  void testIsProcessingTargetBodyNull() {
-    assertFalse(SesInfoRegisterRequestSqsEntity.isProcessingTargetBody(null));
+          assertThat(constructed.constructed()).isEmpty();
+        }
+        assertThat(target.getFileData()).isNull();
+      }
+    }
   }
 }

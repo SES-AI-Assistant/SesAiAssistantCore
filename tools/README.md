@@ -64,6 +64,7 @@ OpenRewrite（`rewrite:run`）は使いません。未使用 import の削除は
 
 - checkstyle はテストコードを対象にしません。日本語のテスト名と `@Nested` のクラス名が Java の命名規則に合わないためです。テストの品質は 7 の UT 仕様の検査で担保します。
 - spotbugs の除外がどうしても必要な場合は、範囲を限定した除外ファイルを作り、そのリポジトリの pom で `excludeFilterFile` を指定します。
+- checkstyle の抑止も同様に、範囲を限定した抑止ファイルを作り、そのリポジトリの pom の maven-checkstyle-plugin で `suppressionsLocation`（`${project.basedir}/...`）だけを指定します（親 pom は変えません）。
 - UT ではログを出力しません（`nectar-test-support` 同梱の `logback-ut.xml`）。リポジトリの `src/test/resources` に同名のファイルを置くと、そちらが優先されます。
 
 ## 4. 前提（最初に1回だけ）
@@ -179,6 +180,11 @@ shade・exec・build-helper は版だけ親 pom で管理しているため、�
 ### 5.3 ドキュメント
 
 リポジトリの `AGENTS.md` と `README.md` のコマンド記載は、2章の2つのコマンドとし、詳細はこの README を参照させます。
+
+### 5.4 Core（SesAiAssistantCore）の特例
+
+Core は Core 自身を配布する（`distributionManagement` を pom に残す）ため、`mvn deploy` の配布先は Core の pom で決まります。
+`deploy.yml` は `-Dmaven.test.skip=true` を外し、全検査（`mvn clean deploy`）を通ったものだけを配布します。`nectar.ut.skip` は使いません。
 
 ## 6. ツール自身の開発と配布
 

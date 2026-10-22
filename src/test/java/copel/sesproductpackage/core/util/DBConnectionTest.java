@@ -1,488 +1,432 @@
 package copel.sesproductpackage.core.util;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.RETURNS_SELF;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import copel.sesproductpackage.core.util.DBConnection.ConnectionFactory;
+import copel.sesproductpackage.tools.testsupport.config.TestProperty;
 import java.lang.reflect.Field;
 import java.sql.Connection;
+import java.sql.Driver;
 import java.sql.DriverManager;
+import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
-import java.util.Map;
-import java.util.UUID;
+import java.sql.SQLFeatureNotSupportedException;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
+import java.util.logging.Logger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClientBuilder;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 
-/**
- * {@link DBConnection} の単体テスト。
- *
- * <p>読み込み元は memory に固定し、DB と Secrets Manager に接続しない。本番の接続経路は DriverManager と Secrets Manager
- * をモックして確かめる。
- *
- * @author Copel Co., Ltd.
- */
+/** {@link DBConnection} の単体テスト。 */
 class DBConnectionTest {
 
-  /** テストの前に設定読み込み元のプロパティの値を退避する。 */
-  private String originalConfigSource;
+  /** テスト前の読み込み元の設定値。テスト後に元へ戻すために保存する。 */
+  private String 読み込み元の設定値;
 
-  /** テストの前に退避する接続情報のフィールドの値。 */
-  private String originalUrl;
+  /** 接続のモック。 */
+  private Connection connection;
 
-  /** テストの前に退避する接続情報のフィールドの値。 */
-  private String originalUserName;
-
-  /** テストの前に退避する接続情報のフィールドの値。 */
-  private String originalPassword;
-
-  /** テストの前に設定読み込み元を memory にし、接続生成関数を未設定に戻し、接続情報を退避する。 */
   @BeforeEach
-  void setUp() throws Exception {
-    originalConfigSource = System.getProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
-    System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, ConfigSource.CONFIG_SOURCE_MEMORY);
+  void 設定値と接続のモックを準備する() {
+    読み込み元の設定値 = System.getProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
+    connection = mock(Connection.class);
     DBConnection.setConnectionFactoryForTest(null);
-    originalUrl = getStaticField("url");
-    originalUserName = getStaticField("userName");
-    originalPassword = getStaticField("password");
+  }
+
+  @AfterEach
+  void 接続の状態を元に戻す() throws ReflectiveOperationException {
+    if (読み込み元の設定値 == null) {
+      System.clearProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
+    } else {
+      System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, 読み込み元の設定値);
+    }
+    DBConnection.setConnectionFactoryForTest(null);
+    接続情報を消す();
+  }
+
+  /** 検証用の接続先の URL。接頭辞 "jdbc:nectar-ut:" で始まり、検証用ドライバだけが受け付ける。 */
+  private static final String TEST_URL = "jdbc:nectar-ut:test";
+
+  /**
+   * 接続先の URL が検証用の接頭辞の場合に、渡されたモックの接続を返す JDBC ドライバ。
+   *
+   * <p>本番経路（{@link DriverManager} で接続する経路）を、実際の DB に接続せずに最後まで実行するために使う。
+   */
+  private static final class 検証用ドライバ implements Driver {
+
+    /** 返すモックの接続。 */
+    private final Connection connection;
+
+    /**
+     * 検証用ドライバを生成する。
+     *
+     * @param connection 返すモックの接続
+     */
+    検証用ドライバ(final Connection connection) {
+      this.connection = connection;
+    }
+
+    @Override
+    public Connection connect(final String url, final java.util.Properties info) {
+      return acceptsURL(url) ? connection : null;
+    }
+
+    @Override
+    public boolean acceptsURL(final String url) {
+      return url.startsWith("jdbc:nectar-ut:");
+    }
+
+    @Override
+    public DriverPropertyInfo[] getPropertyInfo(final String url, final java.util.Properties info) {
+      return new DriverPropertyInfo[0];
+    }
+
+    @Override
+    public int getMajorVersion() {
+      return 1;
+    }
+
+    @Override
+    public int getMinorVersion() {
+      return 0;
+    }
+
+    @Override
+    public boolean jdbcCompliant() {
+      return false;
+    }
+
+    @Override
+    public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+      throw new SQLFeatureNotSupportedException("未対応");
+    }
   }
 
   /**
-   * テストの後に接続生成関数と設定値を未設定に戻し、接続情報と設定読み込み元のプロパティを復元する。
+   * DBConnection の静的フィールドに値を設定する。本番の読み込みを経ずに接続先を指定するために使う。
    *
-   * @throws Exception リフレクションに失敗した場合
+   * @param name フィールド名
+   * @param value 設定する値
+   * @throws ReflectiveOperationException フィールドへのアクセスに失敗した場合
    */
-  @AfterEach
-  void tearDown() throws Exception {
-    System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, ConfigSource.CONFIG_SOURCE_MEMORY);
-    DBConnection.setConnectionFactoryForTest(null);
-    Properties.resetForTest();
-    setStaticField("url", originalUrl);
-    setStaticField("userName", originalUserName);
-    setStaticField("password", originalPassword);
-    if (originalConfigSource == null) {
-      System.clearProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
-    } else {
-      System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, originalConfigSource);
+  private static void 静的フィールドを設定する(final String name, final Object value)
+      throws ReflectiveOperationException {
+    Field field = DBConnection.class.getDeclaredField(name);
+    field.setAccessible(true);
+    field.set(null, value);
+  }
+
+  /**
+   * テストで設定された接続情報の URL、ユーザー名、パスワードを未設定に戻す。 本番の読み込みを検証するテストが、後続のテストの接続先を変えないようにするための後始末である。
+   *
+   * @throws ReflectiveOperationException フィールドへのアクセスに失敗した場合
+   */
+  private static void 接続情報を消す() throws ReflectiveOperationException {
+    for (String name : List.of("url", "userName", "password")) {
+      Field field = DBConnection.class.getDeclaredField(name);
+      field.setAccessible(true);
+      field.set(null, null);
     }
   }
 
-  /** DBConnection のコンストラクタのテスト。 */
-  @Nested
-  class コンストラクタ {
-
-    /** 正常系のテスト。 */
-    @Nested
-    class 正常系 {
-
-      /**
-       * DBConnection のコンストラクタでインスタンスを生成できることを確かめる。 インスタンスを作れないと、クラスを利用する箇所が生成に失敗する。
-       *
-       * @given クラスの初期化が完了している
-       * @when DBConnection を引数なしで生成する
-       * @then インスタンスを返す
-       */
-      @Test
-      void 引数がない場合_インスタンスを返す() {
-        assertNotNull(new DBConnection());
-      }
-    }
+  /**
+   * 読み込み元の設定値を指定の値にする。
+   *
+   * @param value 設定する読み込み元の値
+   */
+  private static void 読み込み元を設定する(final String value) {
+    System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, value);
   }
 
-  /** {@link DBConnection#initializeAtStartup(java.util.function.UnaryOperator)} のテスト。 */
-  @Nested
-  class initializeAtStartup {
-
-    /** 正常系のテスト。 */
-    @Nested
-    class 正常系 {
-
-      /**
-       * DBConnection#initializeAtStartup が memory のときに Secrets Manager を呼ばないことを確かめる。 オフラインのテストで
-       * Secrets Manager に接続を試みないための仕様である。
-       *
-       * @given システムプロパティ "nectar.config.source" が "memory" で、SecretsManagerClient の builder を
-       *     mockStatic で差し替えている
-       * @when initializeAtStartup を環境変数を読む関数 System::getenv で呼び出す
-       * @then SecretsManagerClient の builder を呼ばない
-       */
-      @Test
-      void システムプロパティがmemoryの場合_SecretsManagerを呼ばない() {
-        try (MockedStatic<SecretsManagerClient> secretsManager =
-            mockStatic(SecretsManagerClient.class)) {
-          DBConnection.initializeAtStartup(System::getenv);
-
-          secretsManager.verifyNoInteractions();
-        }
-      }
-
-      /**
-       * DBConnection#initializeAtStartup が本番設定で環境変数の接続情報を使い、Secrets Manager を呼ばないことを確かめる。
-       * 環境変数がある場合は Secrets Manager への問い合わせを省くという仕様である。
-       *
-       * @given システムプロパティが未設定で、環境変数 DB_HOST が "db.example"、DB_PORT が "5432"、DB_NAME が
-       *     "nectar"、DB_USERNAME が "app"、DB_PASSWORD が "secret" である
-       * @when initializeAtStartup を環境変数の関数で呼び出す
-       * @then SecretsManagerClient の builder を呼ばず、接続 URL が
-       *     "jdbc:postgresql://db.example:5432/nectar" になる
-       */
-      @Test
-      void システムプロパティが未設定で環境変数がある場合_接続情報を登録する() throws Exception {
-        System.clearProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
-        Map<String, String> environment =
-            Map.of(
-                "DB_HOST", "db.example",
-                "DB_PORT", "5432",
-                "DB_NAME", "nectar",
-                "DB_USERNAME", "app",
-                "DB_PASSWORD", "secret");
-
-        try (MockedStatic<SecretsManagerClient> secretsManager =
-            mockStatic(SecretsManagerClient.class)) {
-          DBConnection.initializeAtStartup(key -> environment.get(key));
-
-          secretsManager.verifyNoInteractions();
-        }
-        assertEquals("jdbc:postgresql://db.example:5432/nectar", getStaticField("url"));
-        assertEquals("app", getStaticField("userName"));
-        assertEquals("secret", getStaticField("password"));
-      }
-
-      /**
-       * DBConnection#initializeAtStartup が本番設定で環境変数がないとき Secrets Manager から接続情報を読むことを確かめる。
-       * 環境変数がない環境では、Secrets Manager が接続情報の唯一の取得元である。
-       *
-       * @given システムプロパティが未設定で、環境変数が未設定、Properties のシークレット ARN が一意な値、Secrets Manager が host
-       *     "db.example"、port "5432"、dbname "nectar"、username "app"、password "secret" の JSON を返す
-       * @when initializeAtStartup を環境変数が未設定の関数で呼び出す
-       * @then 接続 URL が "jdbc:postgresql://db.example:5432/nectar" になり、userName が "app"、password が
-       *     "secret" になる
-       */
-      @Test
-      void システムプロパティが未設定で環境変数がない場合_接続情報を登録する() throws Exception {
-        String secretArn = "arn:aws:secretsmanager:region:account:secret:db-" + UUID.randomUUID();
-        Properties.putForTest(SsmParameterKey.RDS_DATABASE_SECRET_ARN.getKey(), secretArn);
-        System.clearProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
-        SecretsManagerClient client = mock(SecretsManagerClient.class);
-        when(client.getSecretValue(any(java.util.function.Consumer.class)))
-            .thenReturn(
-                GetSecretValueResponse.builder()
-                    .secretString(
-                        "{\"host\":\"db.example\",\"port\":\"5432\",\"dbname\":\"nectar\","
-                            + "\"username\":\"app\",\"password\":\"secret\"}")
-                    .build());
-
-        try (MockedStatic<SecretsManagerClient> secretsManager =
-            mockStatic(SecretsManagerClient.class)) {
-          SecretsManagerClientBuilder builder = secretsManagerBuilder(client);
-          secretsManager.when(SecretsManagerClient::builder).thenReturn(builder);
-
-          DBConnection.initializeAtStartup(key -> null);
-        }
-
-        assertEquals("jdbc:postgresql://db.example:5432/nectar", getStaticField("url"));
-        assertEquals("app", getStaticField("userName"));
-        assertEquals("secret", getStaticField("password"));
-      }
-    }
-
-    /** 境界値のテスト。 */
-    @Nested
-    class 境界値 {
-
-      /**
-       * DBConnection#initializeAtStartup が本番設定で環境変数 DB_HOST が空文字のとき Secrets Manager から読むことを確かめる。
-       * 空の接続先で接続 URL を組み立てると、接続に失敗する原因がわかりにくい。
-       *
-       * @given システムプロパティが未設定で、環境変数 DB_HOST が空文字、Properties のシークレット ARN が一意な値、Secrets Manager が host
-       *     "db.example"、port "5432"、dbname "nectar"、username "app"、password "secret" の JSON を返す
-       * @when initializeAtStartup を環境変数の関数で呼び出す
-       * @then 接続 URL が "jdbc:postgresql://db.example:5432/nectar" になる
-       */
-      @Test
-      void DB_HOSTが空文字の場合_接続情報を登録する() throws Exception {
-        Properties.putForTest(
-            SsmParameterKey.RDS_DATABASE_SECRET_ARN.getKey(),
-            "arn:aws:secretsmanager:region:account:secret:db-" + UUID.randomUUID());
-        System.clearProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
-        SecretsManagerClient client = mock(SecretsManagerClient.class);
-        when(client.getSecretValue(any(java.util.function.Consumer.class)))
-            .thenReturn(
-                GetSecretValueResponse.builder()
-                    .secretString(
-                        "{\"host\":\"db.example\",\"port\":\"5432\",\"dbname\":\"nectar\","
-                            + "\"username\":\"app\",\"password\":\"secret\"}")
-                    .build());
-        SecretsManagerClientBuilder builder = secretsManagerBuilder(client);
-
-        try (MockedStatic<SecretsManagerClient> secretsManager =
-            mockStatic(SecretsManagerClient.class)) {
-          secretsManager.when(SecretsManagerClient::builder).thenReturn(builder);
-
-          DBConnection.initializeAtStartup(key -> "DB_HOST".equals(key) ? "" : null);
-        }
-
-        assertEquals("jdbc:postgresql://db.example:5432/nectar", getStaticField("url"));
-      }
-    }
-
-    /** 異常系のテスト。 */
-    @Nested
-    class 異常系 {
-
-      /**
-       * DBConnection#initializeAtStartup が本番設定で Secrets Manager の生成に失敗しても例外を投げないことを確かめる。 起動時の失敗で
-       * Lambda の初期化を止めないための仕様である。
-       *
-       * @given システムプロパティが未設定で、環境変数が未設定、SecretsManagerClient の builder が IllegalStateException を投げる
-       * @when initializeAtStartup を環境変数が未設定の関数で呼び出す
-       * @then 例外を投げず、何もしない
-       */
-      @Test
-      void SecretsManagerの生成が失敗した場合_何もしない() throws Exception {
-        Properties.putForTest(
-            SsmParameterKey.RDS_DATABASE_SECRET_ARN.getKey(),
-            "arn:aws:secretsmanager:region:account:secret:db-" + UUID.randomUUID());
-        System.clearProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
-
-        try (MockedStatic<SecretsManagerClient> secretsManager =
-            mockStatic(SecretsManagerClient.class)) {
-          secretsManager
-              .when(SecretsManagerClient::builder)
-              .thenThrow(new IllegalStateException("Secrets Manager client creation failed"));
-
-          assertDoesNotThrow(() -> DBConnection.initializeAtStartup(key -> null));
-        }
-      }
-    }
+  /**
+   * Secrets Manager のクライアントの構築を、モックのクライアントを返すように差し替える。
+   *
+   * @param client 差し替えるクライアントのモック
+   * @return 差し替えを解除するためのハンドル
+   */
+  private static MockedStatic<SecretsManagerClient> SecretsManagerを差し替える(
+      final SecretsManagerClient client) {
+    SecretsManagerClientBuilder builder = mock(SecretsManagerClientBuilder.class, RETURNS_SELF);
+    when(builder.build()).thenReturn(client);
+    MockedStatic<SecretsManagerClient> statics = mockStatic(SecretsManagerClient.class);
+    statics.when(SecretsManagerClient::builder).thenReturn(builder);
+    return statics;
   }
 
-  /** {@link DBConnection#getConnection()} のテスト。 */
   @Nested
   class getConnection {
 
-    /** 正常系のテスト。 */
     @Nested
     class 正常系 {
 
       /**
-       * DBConnection#getConnection が本番設定のとき DriverManager で接続し、autoCommit を false にすることを確かめる。
-       * 本番の接続経路を変えると、Lambda の接続の振る舞いが変わる。
+       * 接続生成関数が設定されている場合、その接続を返し自動コミットを無効にすることを確かめる。
+       * テストで差し替えた接続を本番と同じ手順で扱わないとテストの意味が変わるので、本番の手順を通す。
        *
-       * @given システムプロパティが未設定で、url が "jdbc:postgresql://localhost/test"、userName が "user"、password が
-       *     "pass"、DriverManager が接続 mockConnection を返す
-       * @when getConnection を引数なしで呼び出す
-       * @then mockConnection を返し、その setAutoCommit に false を渡す
+       * @given 読み込み元が memory、接続生成関数が接続のモックを返す
+       * @when getConnection を実行する
+       * @then 接続のモックを返し、自動コミットを無効にする
+       * @throws Exception 接続の取得に失敗した場合
        */
       @Test
-      void 本番設定の場合_DriverManagerの接続を返す() throws Exception {
-        System.clearProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
-        setStaticField("url", "jdbc:postgresql://localhost/test");
-        setStaticField("userName", "user");
-        setStaticField("password", "pass");
-        Connection mockConnection = mock(Connection.class);
+      void 接続生成関数が設定されている場合_接続を返す() throws Exception {
+        DBConnection.setConnectionFactoryForTest(() -> connection);
 
-        try (MockedStatic<DriverManager> driverManager = mockStatic(DriverManager.class)) {
-          driverManager
-              .when(
-                  () ->
-                      DriverManager.getConnection(
-                          "jdbc:postgresql://localhost/test", "user", "pass"))
-              .thenReturn(mockConnection);
-
-          Connection connection = DBConnection.getConnection();
-
-          assertSame(mockConnection, connection);
-          verify(mockConnection).setAutoCommit(false);
-        }
+        assertThat(DBConnection.getConnection()).isSameAs(connection);
+        verify(connection).setAutoCommit(false);
       }
 
       /**
-       * DBConnection#getConnection が memory のとき、設定した接続生成関数の接続を返すことを確かめる。 テストが DB に接続せずに、業務処理の DB
-       * 利用を検証できるようにする。
+       * 読み込み元が本番で接続先の URL が設定されている場合、JDBC ドライバの接続を返すことを確かめる。
+       * 本番の接続経路を最後まで通さないと接続の分岐が検証できないので、検証用のドライバを使う。
        *
-       * @given システムプロパティ "nectar.config.source" が "memory" で、接続生成関数が mockConnection を返す
-       * @when getConnection を引数なしで呼び出す
-       * @then mockConnection を返し、その setAutoCommit に false を渡し、DriverManager を呼ばない
+       * @given 読み込み元が本番、接続先の URL が検証用の URL、検証用ドライバが接続のモックを返す
+       * @when getConnection を実行する
+       * @then 接続のモックを返し、自動コミットを無効にする
+       * @throws Exception 接続の取得に失敗した場合
        */
       @Test
-      void 接続生成関数が設定されている場合_生成した接続を返す() throws Exception {
-        Connection mockConnection = mock(Connection.class);
-        DBConnection.setConnectionFactoryForTest(() -> mockConnection);
-
-        try (MockedStatic<DriverManager> driverManager = mockStatic(DriverManager.class)) {
-          Connection connection = DBConnection.getConnection();
-
-          assertSame(mockConnection, connection);
-          verify(mockConnection).setAutoCommit(false);
-          driverManager.verify(
-              () -> DriverManager.getConnection(anyString(), anyString(), anyString()), never());
+      void 読み込み元が本番でURLが設定されている場合_検証用の接続を返す() throws Exception {
+        読み込み元を設定する("production");
+        静的フィールドを設定する("url", TEST_URL);
+        Driver driver = new 検証用ドライバ(connection);
+        DriverManager.registerDriver(driver);
+        try {
+          assertThat(DBConnection.getConnection()).isSameAs(connection);
+          verify(connection).setAutoCommit(false);
+        } finally {
+          DriverManager.deregisterDriver(driver);
         }
       }
     }
 
-    /** 異常系のテスト。 */
     @Nested
     class 異常系 {
 
       /**
-       * DBConnection#getConnection が memory で接続生成関数が未設定のとき、DB に接続せず例外を投げることを確かめる。 memory で実際の DB
-       * に接続すると、テストが本番の DB に影響する。
+       * 接続生成関数が未設定の場合は SQLException を投げることを確かめる。 テストで実際の DB に接続すると外部環境に依存するので、接続生成関数を使う。
        *
-       * @given システムプロパティ "nectar.config.source" が "memory" で、接続生成関数が未設定である
-       * @when getConnection を引数なしで呼び出す
-       * @then SQLException を投げ、DriverManager を呼ばない
+       * @given 読み込み元が memory、接続生成関数が未設定
+       * @when getConnection を実行する
+       * @then SQLException を投げる
        */
       @Test
       void 接続生成関数が未設定の場合_SQLExceptionを投げる() {
-        try (MockedStatic<DriverManager> driverManager = mockStatic(DriverManager.class)) {
-          assertThrows(SQLException.class, DBConnection::getConnection);
-
-          driverManager.verify(
-              () -> DriverManager.getConnection(anyString(), anyString(), anyString()), never());
-        }
+        assertThatThrownBy(DBConnection::getConnection).isInstanceOf(SQLException.class);
       }
 
       /**
-       * DBConnection#getConnection が接続生成関数の例外をそのまま投げることを確かめる。 接続の失敗を握りつぶすと、テストで接続失敗の経路を検証できない。
+       * 接続生成関数が null を返した場合は SQLException を投げることを確かめる。 接続が無いまま処理を進めると後続で例外が起きるので、接続を拒否する。
        *
-       * @given システムプロパティ "nectar.config.source" が "memory" で、接続生成関数が SQLException "接続に失敗しました" を投げる
-       * @when getConnection を引数なしで呼び出す
-       * @then SQLException を投げ、そのメッセージは "接続に失敗しました" である
-       */
-      @Test
-      void 接続生成関数が例外を投げる場合_SQLExceptionを投げる() {
-        DBConnection.setConnectionFactoryForTest(
-            () -> {
-              throw new SQLException("接続に失敗しました");
-            });
-
-        SQLException exception = assertThrows(SQLException.class, DBConnection::getConnection);
-
-        assertEquals("接続に失敗しました", exception.getMessage());
-      }
-
-      /**
-       * DBConnection#getConnection が接続生成関数の戻り値が null のとき、SQLException を投げることを確かめる。 null の接続に
-       * autoCommit を設定すると NullPointerException になり、失敗の原因がわかりにくい。
-       *
-       * @given システムプロパティ "nectar.config.source" が "memory" で、接続生成関数が null を返す
-       * @when getConnection を引数なしで呼び出す
-       * @then SQLException を投げ、そのメッセージは "接続生成関数が null を返しました。" である
+       * @given 読み込み元が memory、接続生成関数が null を返す
+       * @when getConnection を実行する
+       * @then SQLException を投げる
        */
       @Test
       void 接続生成関数がnullを返す場合_SQLExceptionを投げる() {
         DBConnection.setConnectionFactoryForTest(() -> null);
 
-        SQLException exception = assertThrows(SQLException.class, DBConnection::getConnection);
+        assertThatThrownBy(DBConnection::getConnection).isInstanceOf(SQLException.class);
+      }
 
-        assertEquals("接続生成関数が null を返しました。", exception.getMessage());
+      /**
+       * 読み込み元が本番で URL が未設定の場合は SQLException を投げることを確かめる。 接続情報が無い状態で接続すると誤った接続先に届くので、拒否する。
+       *
+       * @given 読み込み元が本番で memory 以外、URL が未設定
+       * @when getConnection を実行する
+       * @then SQLException を投げる
+       */
+      @Test
+      void 読み込み元が本番でURLが未設定の場合_SQLExceptionを投げる() {
+        読み込み元を設定する("production");
+
+        assertThatThrownBy(DBConnection::getConnection).isInstanceOf(SQLException.class);
       }
     }
   }
 
-  /** {@link DBConnection#setConnectionFactoryForTest(ConnectionFactory)} のテスト。 */
   @Nested
   class setConnectionFactoryForTest {
 
-    /** 認可のテスト。 */
     @Nested
-    class 認可 {
+    class 正常系 {
 
       /**
-       * DBConnection#setConnectionFactoryForTest が読み込み元が未設定のとき接続生成関数を設定させないことを確かめる。
-       * 本番で接続の取得元を差し替えると、AWS の DB 接続情報を使わない接続になる。
+       * 読み込み元が memory の場合は接続生成関数を登録できることを確かめる。 テストから接続の取得元を差し替えないと DB なしで動かせないので、登録口を使う。
        *
-       * @given システムプロパティ "nectar.config.source" が未設定である
-       * @when setConnectionFactoryForTest を接続生成関数で呼び出す
-       * @then IllegalStateException を投げる
+       * @given 読み込み元が memory、接続生成関数が接続のモックを返す
+       * @when setConnectionFactoryForTest を接続生成関数で実行する
+       * @then getConnection が接続のモックを返す
+       * @throws Exception 接続の取得に失敗した場合
        */
       @Test
-      void システムプロパティが未設定の場合_IllegalStateExceptionを投げる() {
-        System.clearProperty(ConfigSource.CONFIG_SOURCE_PROPERTY);
+      void 読み込み元がmemoryの場合_接続生成関数を登録する() throws Exception {
+        DBConnection.setConnectionFactoryForTest(() -> connection);
 
-        assertThrows(
-            IllegalStateException.class,
-            () -> DBConnection.setConnectionFactoryForTest(() -> null));
+        assertThat(DBConnection.getConnection()).isSameAs(connection);
       }
+    }
+
+    @Nested
+    class 異常系 {
 
       /**
-       * DBConnection#setConnectionFactoryForTest が読み込み元が file のとき接続生成関数を設定させないことを確かめる。 memory
-       * 以外の値では、テスト用の口を使わない仕様である。
+       * 読み込み元が本番の場合は接続生成関数の登録を拒否することを確かめる。 本番で接続の取得元が差し替わると誤った DB に接続するので、拒否する。
        *
-       * @given システムプロパティ "nectar.config.source" が "file" である
-       * @when setConnectionFactoryForTest を接続生成関数で呼び出す
+       * @given 読み込み元が本番で memory 以外
+       * @when setConnectionFactoryForTest を接続生成関数で実行する
        * @then IllegalStateException を投げる
        */
       @Test
-      void システムプロパティがfileの場合_IllegalStateExceptionを投げる() {
-        System.setProperty(ConfigSource.CONFIG_SOURCE_PROPERTY, "file");
+      void 読み込み元が本番の場合_IllegalStateExceptionを投げる() {
+        読み込み元を設定する("production");
 
-        assertThrows(
-            IllegalStateException.class,
-            () -> DBConnection.setConnectionFactoryForTest(() -> null));
+        assertThatThrownBy(() -> DBConnection.setConnectionFactoryForTest(() -> connection))
+            .isInstanceOf(IllegalStateException.class);
       }
     }
   }
 
-  /**
-   * Secrets Manager の builder のモックを作ります。
-   *
-   * <p>builder の各メソッドは自身を返し、build で指定のクライアントを返す。SDK の fluent な呼び出しを 1 つのモックで表す。
-   *
-   * @param client build が返すクライアント
-   * @return build が指定のクライアントを返す builder のモック
-   */
-  private static SecretsManagerClientBuilder secretsManagerBuilder(SecretsManagerClient client) {
-    SecretsManagerClientBuilder builder = mock(SecretsManagerClientBuilder.class, RETURNS_SELF);
-    when(builder.build()).thenReturn(client);
-    return builder;
-  }
+  @Nested
+  class initializeAtStartup {
 
-  /**
-   * DBConnection の static フィールドの値を取得します。
-   *
-   * <p>接続情報は本番では環境変数や Secrets Manager から読む値であり、テストから参照する口がない。既存のテストと同じくリフレクションで読む。
-   *
-   * @param name フィールド名
-   * @return フィールドの値
-   * @throws ReflectiveOperationException リフレクションに失敗した場合
-   */
-  private static String getStaticField(final String name) throws ReflectiveOperationException {
-    Field field = DBConnection.class.getDeclaredField(name);
-    field.setAccessible(true);
-    return (String) field.get(null);
-  }
+    @Nested
+    class 正常系 {
 
-  /**
-   * DBConnection の static フィールドに値を設定します。
-   *
-   * <p>接続情報は本番では環境変数や Secrets Manager から読む値であり、テストから設定する口がない。既存のテストと同じくリフレクションで設定する。
-   *
-   * @param name フィールド名
-   * @param value 設定する値
-   * @throws ReflectiveOperationException リフレクションに失敗した場合
-   */
-  private static void setStaticField(final String name, final String value)
-      throws ReflectiveOperationException {
-    Field field = DBConnection.class.getDeclaredField(name);
-    field.setAccessible(true);
-    field.set(null, value);
+      /**
+       * 読み込み元が本番で環境変数にホストがある場合は、Secrets Manager を呼ばないことを確かめる。
+       * 環境変数の接続情報を優先しないと本番の設定が使われないので、環境変数の値を使う。
+       *
+       * @given 読み込み元が本番、環境変数の DB_HOST が "db.example" の接続情報
+       * @when initializeAtStartup を環境変数の関数で実行する
+       * @then SecretsManager を呼ばない
+       */
+      @Test
+      void 読み込み元が本番で環境変数にホストがある場合_SecretsManagerを呼ばない() {
+        読み込み元を設定する("production");
+        UnaryOperator<String> environment =
+            key ->
+                switch (key) {
+                  case "DB_HOST" -> "db.example";
+                  case "DB_PORT" -> "5432";
+                  case "DB_NAME" -> "nectar";
+                  case "DB_USERNAME" -> "user1";
+                  case "DB_PASSWORD" -> "pw1";
+                  default -> null;
+                };
+
+        try (MockedStatic<SecretsManagerClient> statics =
+            SecretsManagerを差し替える(mock(SecretsManagerClient.class))) {
+          DBConnection.initializeAtStartup(environment);
+
+          statics.verify(SecretsManagerClient::builder, never());
+        }
+      }
+
+      /**
+       * 読み込み元が本番で環境変数のホストが未設定か空の場合は、Secrets Manager から接続情報を更新することを確かめる。
+       * 環境変数が無い場合でも接続情報を取得する本番の手順を守る。
+       *
+       * @given 読み込み元が本番、環境変数の DB_HOST が未設定または空、Secrets Manager が接続情報を返す
+       * @when initializeAtStartup を環境変数の関数で実行する
+       * @then Secrets Manager の値を取得して閉じ、接続情報を更新する
+       * @throws Exception 初期化に失敗した場合
+       */
+      @NullSource
+      @ValueSource(strings = {""})
+      @ParameterizedTest
+      @TestProperty(
+          key = "infrastructure/rds/database/secret-arn",
+          value = "arn:test:dbconnection-success")
+      void 環境変数のホストが未設定か空の場合_接続情報を更新する(final String host) throws Exception {
+        読み込み元を設定する("production");
+        SecretsManagerClient client = mock(SecretsManagerClient.class);
+        when(client.getSecretValue(ArgumentMatchers.<Consumer<GetSecretValueRequest.Builder>>any()))
+            .thenReturn(
+                GetSecretValueResponse.builder()
+                    .secretString(
+                        "{\"host\":\"db.example\",\"port\":\"5432\","
+                            + "\"dbname\":\"nectar\",\"username\":\"user1\",\"password\":\"pw1\"}")
+                    .build());
+        UnaryOperator<String> environment = key -> "DB_HOST".equals(key) ? host : null;
+
+        try (MockedStatic<SecretsManagerClient> statics = SecretsManagerを差し替える(client)) {
+          DBConnection.initializeAtStartup(environment);
+
+          verify(client).close();
+        }
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * 読み込み元が本番で Secrets Manager の取得に失敗した場合は、例外を外に出さずに閉じることを確かめる。 初期化の失敗で Lambda の起動全体を止めないことを守る。
+       *
+       * @given 読み込み元が本番、環境変数のホストが未設定、Secrets Manager の取得が例外を投げる
+       * @when initializeAtStartup を環境変数の関数で実行する
+       * @then 例外を投げずに終わり、Secrets Manager のクライアントを閉じる
+       */
+      @Test
+      @TestProperty(
+          key = "infrastructure/rds/database/secret-arn",
+          value = "arn:test:dbconnection-failure")
+      void Secretsの取得に失敗した場合_何もしない() {
+        読み込み元を設定する("production");
+        SecretsManagerClient client = mock(SecretsManagerClient.class);
+        when(client.getSecretValue(ArgumentMatchers.<Consumer<GetSecretValueRequest.Builder>>any()))
+            .thenThrow(new RuntimeException("取得失敗"));
+        UnaryOperator<String> environment = key -> null;
+
+        try (MockedStatic<SecretsManagerClient> statics = SecretsManagerを差し替える(client)) {
+          assertThatCode(() -> DBConnection.initializeAtStartup(environment))
+              .doesNotThrowAnyException();
+
+          verify(client).close();
+        }
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 読み込み元が memory の場合は環境変数を読まないことを確かめる。 テストで Secrets Manager に触れると外部依存になるので、環境変数を読まない。
+       *
+       * @given 読み込み元が memory、環境変数の関数をモックにする
+       * @when initializeAtStartup を環境変数の関数で実行する
+       * @then 環境変数の関数を呼ばない
+       */
+      @Test
+      void 読み込み元がmemoryの場合_環境変数の読み取りを呼ばない() {
+        @SuppressWarnings("unchecked")
+        UnaryOperator<String> environment = mock(UnaryOperator.class);
+
+        DBConnection.initializeAtStartup(environment);
+
+        verifyNoInteractions(environment);
+      }
+    }
   }
 }

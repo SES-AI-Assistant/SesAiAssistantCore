@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import copel.sesproductpackage.core.util.ApplicationClock;
-import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -113,33 +112,6 @@ public final class SchemaGenerator {
   }
 
   /**
-   * 指定されたクラスからJSON Schemaを生成し、整形されたJSON文字列として返します.
-   *
-   * @param clazz JSON Schema生成対象のクラス
-   * @returnインデント整形されたJSON文字列
-   */
-  public static String displaySchemaJson(final Class<?> clazz) {
-    Map<String, Object> schema = generate(clazz);
-    try {
-      return ObjectMapperFactory.OBJECT_MAPPER
-          .writerWithDefaultPrettyPrinter()
-          .writeValueAsString(schema);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException("Failed to format schema to JSON: " + e.getMessage(), e);
-    }
-  }
-
-  /**
-   * 指定されたクラスからJSON Schemaを生成し、YAML文字列として返します.
-   *
-   * @param clazz JSON Schema生成対象のクラス
-   * @return YAML文字列
-   */
-  public static String generateYaml(final Class<?> clazz) {
-    return toYaml(generate(clazz));
-  }
-
-  /**
    * 指定されたフィールド単体のJSON Schemaを生成します.
    *
    * <p>{@code @SchemaIgnore} が付与されたフィールドであってもスキップせずスキーマを生成する（
@@ -151,6 +123,40 @@ public final class SchemaGenerator {
   public static Map<String, Object> generateFieldSchema(final Field field) {
     Schema schemaAnnotation = field.getAnnotation(Schema.class);
     return generateFieldSchema(field, schemaAnnotation);
+  }
+
+  /**
+   * フィールド用のJSON Schemaを生成します.
+   *
+   * @param field リフレクションフィールド
+   * @param schema @Schemaアノテーション（nullableあり）
+   * @return フィールドのスキーマオブジェクト
+   */
+  private static Map<String, Object> generateFieldSchema(final Field field, final Schema schema) {
+    Map<String, Object> fieldSchema = new LinkedHashMap<>();
+
+    ConditionalSchema conditionalSchema = field.getAnnotation(ConditionalSchema.class);
+    if (conditionalSchema != null) {
+      return handleConditionalSchema(fieldSchema, conditionalSchema, schema);
+    }
+
+    Class<?> fieldType = field.getType();
+
+    if (java.util.Collection.class.isAssignableFrom(fieldType) || fieldType.isArray()) {
+      handleArrayType(fieldSchema, schema);
+    } else if (fieldType.isEnum()) {
+      handleEnumType(fieldSchema, fieldType, schema);
+    } else if (isComplexType(fieldType)) {
+      handleNestedObjectType(fieldSchema, fieldType, schema);
+    } else {
+      handleSimpleType(fieldSchema, fieldType, schema);
+    }
+
+    if (schema != null && !schema.description().isEmpty()) {
+      fieldSchema.put("description", schema.description());
+    }
+
+    return fieldSchema;
   }
 
   /**
@@ -239,40 +245,6 @@ public final class SchemaGenerator {
   }
 
   /**
-   * フィールド用のJSON Schemaを生成します.
-   *
-   * @param field リフレクションフィールド
-   * @param schema @Schemaアノテーション（nullableあり）
-   * @return フィールドのスキーマオブジェクト
-   */
-  private static Map<String, Object> generateFieldSchema(final Field field, final Schema schema) {
-    Map<String, Object> fieldSchema = new LinkedHashMap<>();
-
-    ConditionalSchema conditionalSchema = field.getAnnotation(ConditionalSchema.class);
-    if (conditionalSchema != null) {
-      return handleConditionalSchema(fieldSchema, conditionalSchema, schema);
-    }
-
-    Class<?> fieldType = field.getType();
-
-    if (java.util.Collection.class.isAssignableFrom(fieldType) || fieldType.isArray()) {
-      handleArrayType(fieldSchema, field, schema);
-    } else if (fieldType.isEnum()) {
-      handleEnumType(fieldSchema, fieldType, schema);
-    } else if (isComplexType(fieldType)) {
-      handleNestedObjectType(fieldSchema, fieldType, schema);
-    } else {
-      handleSimpleType(fieldSchema, fieldType, schema);
-    }
-
-    if (schema != null && !schema.description().isEmpty()) {
-      fieldSchema.put("description", schema.description());
-    }
-
-    return fieldSchema;
-  }
-
-  /**
    * 条件付きスキーマ（anyOf）を処理します.
    *
    * <p>@ConditionalSchemaで指定された複数のケースから、anyOf構造を生成します。 excludeOn が指定されているすべてのケースの場合、null
@@ -348,11 +320,9 @@ public final class SchemaGenerator {
    * 配列型フィールドを処理します.
    *
    * @param fieldSchema 生成対象のスキーマMap
-   * @param field リフレクションフィールド
    * @param schema @Schemaアノテーション（nullableあり）
    */
-  private static void handleArrayType(
-      final Map<String, Object> fieldSchema, final Field field, final Schema schema) {
+  private static void handleArrayType(final Map<String, Object> fieldSchema, final Schema schema) {
     fieldSchema.put("type", "array");
 
     Class<?> itemType = Object.class;
@@ -610,18 +580,9 @@ public final class SchemaGenerator {
    * @return 複雑な型の場合true
    */
   private static boolean isComplexType(final Class<?> clazz) {
-    return clazz != null
-        && !clazz.isPrimitive()
-        && !clazz.equals(String.class)
-        && !clazz.equals(Integer.class)
-        && !clazz.equals(Long.class)
-        && !clazz.equals(Double.class)
-        && !clazz.equals(Float.class)
-        && !clazz.equals(Boolean.class)
-        && !clazz.equals(List.class)
-        && !clazz.isArray()
-        && !clazz.isEnum()
-        && !clazz.getPackage().getName().startsWith("java.");
+    // 配列・enum・Collection・null は呼び出し側で先に処理されるため、ここでは判定しない。
+    // プリミティブと java.* の型（String・ラッパー型・java.math を含む）は単純型として扱う
+    return !clazz.isPrimitive() && !clazz.getPackage().getName().startsWith("java.");
   }
 
   /**
@@ -648,9 +609,6 @@ public final class SchemaGenerator {
     }
     if (fieldType == boolean.class || fieldType == Boolean.class) {
       return "boolean";
-    }
-    if (fieldType == java.util.List.class || fieldType.isArray()) {
-      return "array";
     }
     return "string";
   }

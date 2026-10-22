@@ -1,10 +1,11 @@
 package copel.sesproductpackage.core.database;
 
 import copel.sesproductpackage.core.database.base.Column;
-import copel.sesproductpackage.core.database.base.SES_AI_T_EntityBase;
+import copel.sesproductpackage.core.database.base.SesAiTableEntityBase;
 import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.unit.OfficeAvailability;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
 import java.math.BigDecimal;
@@ -12,7 +13,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import lombok.Data;
@@ -27,7 +27,7 @@ import lombok.ToString;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
+public class SES_AI_T_PERSON extends SesAiTableEntityBase {
 
   public SES_AI_T_PERSON(String tenantId) {
     super(tenantId);
@@ -39,15 +39,30 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
   // ================================
   /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_PERSON (person_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO SES_AI_T_PERSON (person_id, from_group, from_id, from_name, mail_subject, "
+          + "raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, "
+          + "nationality, start_date, place, area, office_availability, organization, "
+          + "experiences, ng_requirements, other_requirements, url, register_date, "
+          + "register_user, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?::vector, ?, ?, "
+          + "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
-      "SELECT person_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, file_id, unit_price, vector_data, name, age, gender, nationality, start_date, place, area, office_availability, organization, experiences, ng_requirements, other_requirements, url, register_date, register_user, ttl FROM SES_AI_T_PERSON WHERE person_id = ?";
+      "SELECT person_id, from_group, from_id, from_name, mail_subject, raw_content, "
+          + "content_summary, file_id, unit_price, name, age, gender, nationality, "
+          + "start_date, place, area, office_availability, organization, experiences, "
+          + "ng_requirements, other_requirements, url, register_date, register_user, ttl "
+          + "FROM SES_AI_T_PERSON WHERE person_id = ?";
 
   /** UPDATE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_T_PERSON SET from_group = ?, from_id = ?, from_name = ?, mail_subject = ?, raw_content = ?, content_summary = ?, file_id = ?, unit_price = ?, vector_data = ?::vector, name = ?, age = ?, gender = ?, nationality = ?, start_date = ?, place = ?, area = ?, office_availability = ?, organization = ?, experiences = ?, ng_requirements = ?, other_requirements = ?, url = ?, ttl = ? WHERE person_id = ?";
+      "UPDATE SES_AI_T_PERSON SET from_group = ?, from_id = ?, from_name = ?, mail_subject = ?, "
+          + "raw_content = ?, content_summary = ?, file_id = ?, unit_price = ?, vector_data = "
+          + "COALESCE(?::vector, vector_data), name = ?, age = ?, gender = ?, nationality = "
+          + "?, start_date = ?, place "
+          + "= ?, area = ?, office_availability = ?, organization = ?, experiences = ?, "
+          + "ng_requirements = ?, other_requirements = ?, url = ?, ttl = ? WHERE "
+          + "person_id = ?";
 
   /** UPDATE文(file_idのみ). */
   private static final String UPDATE_FILE_ID_SQL =
@@ -55,11 +70,15 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
 
   /** 重複チェック用SQL. */
   private static final String CHECK_SQL =
-      "SELECT COUNT(*) FROM SES_AI_T_PERSON WHERE tenant_id = ? AND raw_content % ? AND similarity(raw_content, ?) > ?";
+      "SELECT COUNT(*) FROM SES_AI_T_PERSON WHERE tenant_id = ? AND raw_content % ? AND "
+          + "similarity(raw_content, ?) > ?";
 
   /** 単価等取得用・重複チェックSQL. */
   private static final String FIND_SIMILAR_SQL =
-      "SELECT person_id, unit_price FROM SES_AI_T_PERSON WHERE tenant_id = ? AND regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g') % ? AND similarity(regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g'), ?) > ? LIMIT 1";
+      "SELECT person_id, unit_price FROM SES_AI_T_PERSON WHERE tenant_id = ? AND "
+          + "regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g') % ? AND "
+          + "similarity(regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g'), ?) > ? LIMIT "
+          + "1";
 
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_T_PERSON WHERE person_id = ?";
@@ -191,10 +210,12 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
    *
    * @param connection DBコネクション
    * @return 更新成功すればtrue、それ以外はfalse
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public boolean updateFileIdByPk(final Connection connection) throws SQLException {
-    if (connection == null || this.personId == null || this.tenantId == null) {
+    requireConnection(connection);
+    requireTenantId(this.tenantId);
+    if (this.personId == null) {
       return false;
     }
     try (PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_FILE_ID_SQL)) {
@@ -217,7 +238,8 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
    */
   public static int clearFileIdWhereFileId(final Connection connection, final String fileId)
       throws SQLException {
-    if (connection == null || fileId == null) {
+    requireConnection(connection);
+    if (fileId == null) {
       return 0;
     }
     try (PreparedStatement preparedStatement =
@@ -235,7 +257,7 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
    * @param textToCheck チェック対象のテキスト
    * @param similarityThreshold 類似度のしきい値
    * @return 類似レコードが見つかった場合はそのSES_AI_T_PERSON、見つからなかった場合はnull
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public static SES_AI_T_PERSON findSimilarRecord(
       final Connection connection,
@@ -249,6 +271,7 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
     // 比較用にURLをマスキング
     String maskedText = textToCheck.replaceAll("https?://[^\\s]+", "");
 
+    SES_AI_T_PERSON result = null;
     try (PreparedStatement preparedStatement = connection.prepareStatement(FIND_SIMILAR_SQL)) {
       preparedStatement.setString(1, tenantId);
       preparedStatement.setString(2, maskedText);
@@ -256,15 +279,14 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
       preparedStatement.setDouble(4, similarityThreshold);
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
-          SES_AI_T_PERSON result = new SES_AI_T_PERSON(tenantId);
+          result = new SES_AI_T_PERSON(tenantId);
           result.setPersonId(resultSet.getString("person_id"));
           BigDecimal unitPriceValue = resultSet.getBigDecimal("unit_price");
           result.setUnitPrice(unitPriceValue == null ? Money.empty() : new Money(unitPriceValue));
-          return result;
         }
       }
     }
-    return null;
+    return result;
   }
 
   // ================================
@@ -479,7 +501,7 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
    * @return 経験リスト
    */
   public List<String> getExperiencesAsList() {
-    return this.experiences == null ? Arrays.asList() : Arrays.asList(this.experiences.split("\n"));
+    return splitLines(this.experiences);
   }
 
   /**
@@ -488,9 +510,7 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
    * @return その他条件リスト
    */
   public List<String> getOtherRequirementsAsList() {
-    return this.otherRequirements == null
-        ? Arrays.asList()
-        : Arrays.asList(this.otherRequirements.split("\n"));
+    return splitLines(this.otherRequirements);
   }
 
   /**
@@ -499,9 +519,7 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
    * @return NG条件リスト
    */
   public List<String> getNgRequirementsAsList() {
-    return this.ngRequirements == null
-        ? Arrays.asList()
-        : Arrays.asList(this.ngRequirements.split("\n"));
+    return splitLines(this.ngRequirements);
   }
 
   /**
@@ -509,23 +527,29 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
    * 指定された単価がスキル見合い単価である場合、要員の単価に指定された乗数をかけた金額を記載する。（未指定の場合は1.1倍） 単価が未指定の場合は単価未記載のサマリを作成する。
    *
    * @param targetPrice 指定単価
-   * @param multiplier 単価倍率
    * @return 要員サマリ
    */
   public String getSummaryWithTargetPrice(Money targetPrice) {
     return getSummaryWithTargetPrice(targetPrice, 1.1);
   }
 
+  /**
+   * 指定した単価と単価倍率に書き換えた要員サマリを作成する。単価倍率の扱いは {@link #getSummaryWithTargetPrice(Money)} と同じ。
+   *
+   * @param targetPrice 指定単価
+   * @param multiplier 単価倍率
+   * @return 要員サマリ
+   */
   public String getSummaryWithTargetPrice(Money targetPrice, double multiplier) {
     StringBuilder sb = new StringBuilder();
     // 1. 名前
     sb.append("■名前: ").append(this.name).append("\n");
     // 2. 年齢
-    if (this.age > 0) {
+    if (this.age != null && this.age > 0) {
       sb.append("■年齢: ").append(this.age).append("歳\n");
     }
     // 2. 性別
-    sb.append("■性別: ").append(this.gender.toJapanese()).append("\n");
+    sb.append("■性別: ").append(this.gender != null ? this.gender.toJapanese() : "-").append("\n");
     // 3. 国籍
     sb.append("■国籍: ").append(this.nationality).append("\n");
     // 4. 稼働開始可能月
@@ -533,28 +557,19 @@ public class SES_AI_T_PERSON extends SES_AI_T_EntityBase {
       sb.append("■開始: ").append(this.startDate.month()).append("\n");
     }
     // 5. 単価
-    if (targetPrice != null && !targetPrice.isEmpty()) {
-      if (targetPrice.isNegotiable()) {
-        sb.append("■単価: ")
-            .append(this.unitPrice.multiply(multiplier).toJapaneseFormat())
-            .append("\n");
-      } else {
-        sb.append("■単価: ").append(targetPrice.toJapaneseFormat()).append("\n");
-      }
-    }
+    appendTargetPriceLine(sb, targetPrice, this.unitPrice, multiplier);
     // 6. 所属形態
     // TODO: organizationの型をOrganization型にし、1社インクリメントしてセットする実装をする
     // 7. 場所
-    if (this.place != null && !this.place.isEmpty()) {
+    // setPlace は空の値を null に正規化するため、null のみを判定する
+    if (this.place != null) {
       sb.append("■場所: ").append(this.place).append("\n");
     }
     // 8. 出社可否
-    if (this.officeAvailability == 0) {
-      sb.append("■出社: ").append("フルリモート希望\n");
-    } else if (this.officeAvailability == 5) {
-      sb.append("■出社: ").append("常駐可").append("\n");
-    } else {
-      sb.append("■出社: ").append("週").append(this.officeAvailability).append("まで可").append("\n");
+    if (this.officeAvailability != null) {
+      sb.append("■出社: ")
+          .append(new OfficeAvailability(this.officeAvailability).toDisplayString())
+          .append("\n");
     }
     // 9. 経歴
     if (this.experiences != null && !this.experiences.isEmpty()) {

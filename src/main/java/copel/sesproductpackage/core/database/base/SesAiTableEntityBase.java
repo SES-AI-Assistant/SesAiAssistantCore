@@ -1,6 +1,7 @@
 package copel.sesproductpackage.core.database.base;
 
 import copel.sesproductpackage.core.api.gpt.Transformer;
+import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
 import java.io.IOException;
@@ -8,6 +9,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -20,9 +23,9 @@ import lombok.ToString;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public abstract class SES_AI_T_EntityBase extends EntityBase {
+public abstract class SesAiTableEntityBase extends EntityBase {
 
-  protected SES_AI_T_EntityBase(String tenantId) {
+  protected SesAiTableEntityBase(String tenantId) {
     super(tenantId);
   }
 
@@ -58,8 +61,8 @@ public abstract class SES_AI_T_EntityBase extends EntityBase {
    * このエンティティが持つ内容をエンベディングする.
    *
    * @param transformer GPT
-   * @throws IOException
-   * @throws RuntimeException
+   * @throws IOException 入出力（ファイル・ストリーム）の操作に失敗した場合
+   * @throws RuntimeException 実行時の異常が発生した場合
    */
   public void embedding(final Transformer transformer) throws IOException, RuntimeException {
     String contentSummary = this.getContentSummary();
@@ -84,20 +87,23 @@ public abstract class SES_AI_T_EntityBase extends EntityBase {
    * @param similarityThreshold
    *     類似度基準値(0.0～1.0で指定する。文章の一致率を示す。例えば0.8であれば、80%以上一致する文章が存在しなければユニークであると判定)
    * @return 類似するレコードがなければtrue、あればfalse
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public boolean uniqueCheck(final Connection connection, final double similarityThreshold)
       throws SQLException {
-    PreparedStatement preparedStatement = connection.prepareStatement(getCheckSql());
-    preparedStatement.setString(1, this.tenantId);
-    preparedStatement.setString(2, this.getRawContent());
-    preparedStatement.setString(3, this.getRawContent());
-    preparedStatement.setDouble(4, similarityThreshold);
-    ResultSet resultSet = preparedStatement.executeQuery();
-    if (resultSet.next()) {
-      return resultSet.getInt(1) < 1;
+    boolean unique = true;
+    try (PreparedStatement preparedStatement = connection.prepareStatement(getCheckSql())) {
+      preparedStatement.setString(1, this.tenantId);
+      preparedStatement.setString(2, this.getRawContent());
+      preparedStatement.setString(3, this.getRawContent());
+      preparedStatement.setDouble(4, similarityThreshold);
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        if (resultSet.next()) {
+          unique = resultSet.getInt(1) < 1;
+        }
+      }
     }
-    return true;
+    return unique;
   }
 
   /**
@@ -122,12 +128,41 @@ public abstract class SES_AI_T_EntityBase extends EntityBase {
   protected abstract String getCheckSql();
 
   /**
-   * このレコードのユークリッド距離で比較する.
+   * 改行で区切られた文字列を一覧に変換します.
    *
-   * @param o SES_AI_T_EntityBase
-   * @return このレコードの方が小さければtrue、遠ければfalse
+   * <p>文字列が null の場合は空の一覧を返します。
+   *
+   * @param text 改行で区切られた文字列
+   * @return 改行で分けた一覧（null の場合は空の一覧）
    */
-  public int compareTo(SES_AI_T_EntityBase o) {
-    return Double.compare(this.getDistance(), o.getDistance());
+  protected static List<String> splitLines(final String text) {
+    return text == null ? Arrays.asList() : Arrays.asList(text.split("\n"));
+  }
+
+  /**
+   * 目標単価の行を要約に追加します.
+   *
+   * <p>目標単価が未指定または空の場合は何も追加しません。単価不問の場合は、要員または案件の単価に係数を掛けた値を表示します。
+   * 単価が未設定（null）の単価不問の場合は、掛ける対象が無いため行を追加しません。
+   *
+   * @param sb 要約を組み立てる文字列バッファ
+   * @param targetPrice 目標単価（null の場合は追加しない）
+   * @param unitPrice 要員または案件の単価（null の場合は単価不問の行を追加しない）
+   * @param multiplier 単価不問のときに単価へ掛ける係数
+   */
+  protected static void appendTargetPriceLine(
+      final StringBuilder sb,
+      final Money targetPrice,
+      final Money unitPrice,
+      final double multiplier) {
+    if (targetPrice != null && !targetPrice.isEmpty()) {
+      if (targetPrice.isNegotiable()) {
+        if (unitPrice != null) {
+          sb.append("■単価: ").append(unitPrice.multiply(multiplier).toJapaneseFormat()).append("\n");
+        }
+      } else {
+        sb.append("■単価: ").append(targetPrice.toJapaneseFormat()).append("\n");
+      }
+    }
   }
 }

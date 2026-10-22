@@ -19,20 +19,15 @@ import java.util.List;
 public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
   /** 全件SELECT文. */
   private static final String SELECT_ALL_SQL =
-      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, score, must_evaluation_text, want_evaluation_text, place_evaluation_text, office_evaluation_text, other_evaluation_text, profit, register_date, register_user, tenant_id FROM SES_AI_T_MATCH ORDER BY register_date DESC";
-
-  /** SELECT文（WHERE句あり）. */
-  private static final String SELECT_SQL =
-      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, evaluation_text, score, must_evaluation_text, want_evaluation_text, place_evaluation_text, office_evaluation_text, other_evaluation_text, profit, register_date, register_user, tenant_id FROM SES_AI_T_MATCH WHERE ";
+      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, "
+          + "evaluation_text, score, must_evaluation_text, want_evaluation_text, "
+          + "place_evaluation_text, office_evaluation_text, other_evaluation_text, profit, "
+          + "register_date, register_user, tenant_id FROM SES_AI_T_MATCH ORDER BY "
+          + "register_date DESC";
 
   @Override
   protected String getSelectAllSql() {
     return SELECT_ALL_SQL;
-  }
-
-  @Override
-  protected String getSelectSql() {
-    return SELECT_SQL;
   }
 
   @Override
@@ -54,7 +49,7 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
    * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectAllWithoutTenantId(Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
@@ -74,80 +69,27 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
     return jobId != null && this.entityLot.stream().anyMatch(e -> jobId.equals(e.getJobId()));
   }
 
-  /**
-   * 引数の要員IDを持つレコードが存在するかどうかを判定する.
-   *
-   * @param personId 要員ID
-   * @return 存在すればtrue、それ以外はfalse
-   */
-  public boolean isExistByPersonId(final String personId) {
-    return personId != null
-        && this.entityLot.stream().anyMatch(e -> personId.equals(e.getPersonId()));
-  }
-
-  /**
-   * 案件IDが一致するレコードを指定件数取得し、このLotに格納します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param jobId 案件ID
-   * @param page ページ番号
-   * @param size 1ページあたりの件数
-   * @throws SQLException
-   */
-  public void selectByJobIdPaged(
-      Connection connection, String tenantId, String jobId, int page, int size)
-      throws SQLException {
-    if (connection == null || jobId == null) {
-      return;
-    }
-    java.util.Map<String, String> query = new java.util.HashMap<>();
-    query.put("job_id", jobId);
-    this.selectByQueryPaged(connection, tenantId, SELECT_SQL, query, true, page, size);
-  }
-
-  /**
-   * 要員IDが一致するレコードを指定件数取得し、このLotに格納します.
-   *
-   * @param connection DBコネクション
-   * @param tenantId テナントID
-   * @param personId 要員ID
-   * @param page ページ番号
-   * @param size 1ページあたりの件数
-   * @throws SQLException
-   */
-  public void selectByPersonIdPaged(
-      Connection connection, String tenantId, String personId, int page, int size)
-      throws SQLException {
-    if (connection == null || personId == null) {
-      return;
-    }
-    java.util.Map<String, String> query = new java.util.HashMap<>();
-    query.put("person_id", personId);
-    this.selectByQueryPaged(connection, tenantId, SELECT_SQL, query, true, page, size);
-  }
-
   @Override
   protected SES_AI_T_MATCH mapResultSet(ResultSet resultSet) throws SQLException {
-    SES_AI_T_MATCH sesAiTMatch = new SES_AI_T_MATCH(resultSet.getString("tenant_id"));
-    sesAiTMatch.setMatchingId(resultSet.getString("matching_id"));
-    sesAiTMatch.setUserId(resultSet.getString("user_id"));
-    sesAiTMatch.setJobId(resultSet.getString("job_id"));
-    sesAiTMatch.setPersonId(resultSet.getString("person_id"));
-    sesAiTMatch.setJobContent(resultSet.getString("job_content"));
-    sesAiTMatch.setPersonContent(resultSet.getString("person_content"));
-    sesAiTMatch.setStatus(MatchingStatus.getEnum(resultSet.getString("status_cd")));
-    sesAiTMatch.setEvaluationText(resultSet.getString("evaluation_text"));
-    sesAiTMatch.setScore(resultSet.getObject("score") != null ? resultSet.getInt("score") : null);
-    sesAiTMatch.setMustEvaluationText(resultSet.getString("must_evaluation_text"));
-    sesAiTMatch.setWantEvaluationText(resultSet.getString("want_evaluation_text"));
-    sesAiTMatch.setPlaceEvaluationText(resultSet.getString("place_evaluation_text"));
-    sesAiTMatch.setOfficeEvaluationText(resultSet.getString("office_evaluation_text"));
-    sesAiTMatch.setOtherEvaluationText(resultSet.getString("other_evaluation_text"));
+    SES_AI_T_MATCH match = new SES_AI_T_MATCH(resultSet.getString("tenant_id"));
+    match.setMatchingId(resultSet.getString("matching_id"));
+    match.setUserId(resultSet.getString("user_id"));
+    match.setJobId(resultSet.getString("job_id"));
+    match.setPersonId(resultSet.getString("person_id"));
+    match.setJobContent(resultSet.getString("job_content"));
+    match.setPersonContent(resultSet.getString("person_content"));
+    match.setStatus(MatchingStatus.getEnum(resultSet.getString("status_cd")));
+    match.setEvaluationText(resultSet.getString("evaluation_text"));
+    match.setScore(resultSet.getObject("score") != null ? resultSet.getInt("score") : null);
+    match.setMustEvaluationText(resultSet.getString("must_evaluation_text"));
+    match.setWantEvaluationText(resultSet.getString("want_evaluation_text"));
+    match.setPlaceEvaluationText(resultSet.getString("place_evaluation_text"));
+    match.setOfficeEvaluationText(resultSet.getString("office_evaluation_text"));
+    match.setOtherEvaluationText(resultSet.getString("other_evaluation_text"));
     BigDecimal profitVal = resultSet.getBigDecimal("profit");
-    sesAiTMatch.setProfit(profitVal == null ? Money.empty() : new Money(profitVal));
-    sesAiTMatch.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-    sesAiTMatch.setRegisterUser(resultSet.getString("register_user"));
-    return sesAiTMatch;
+    match.setProfit(profitVal == null ? Money.empty() : new Money(profitVal));
+    match.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
+    match.setRegisterUser(resultSet.getString("register_user"));
+    return match;
   }
 }

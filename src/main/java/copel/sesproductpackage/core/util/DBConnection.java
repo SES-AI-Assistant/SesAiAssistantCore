@@ -14,6 +14,9 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class DBConnection {
+  /** インスタンス化を禁止する。すべての操作は静的メンバーで提供する。 */
+  private DBConnection() {}
+
   private static String url;
   private static String userName;
   private static String password;

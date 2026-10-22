@@ -1,12 +1,11 @@
 package copel.sesproductpackage.core.unit;
 
 import copel.sesproductpackage.core.util.ApplicationClock;
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.Locale;
 
 /**
  * 【フレームワーク部品】 日時の情報を持つクラス
@@ -100,7 +99,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
   /**
    * java.sql.Dateをjava.time.LocalDateTimeに変換
    *
-   * @param date
+   * @param date 変換元の日付（null の場合は空のオブジェクト）
    */
   public OriginalDateTime(java.sql.Date date) {
     if (date == null) {
@@ -113,7 +112,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
   /**
    * java.sql.Timestampをjava.time.LocalDateTimeに変換
    *
-   * @param timestamp
+   * @param timestamp 変換元の日時（null の場合は空のオブジェクト）
    */
   public OriginalDateTime(java.sql.Timestamp timestamp) {
     if (timestamp == null) {
@@ -134,16 +133,29 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
     return this.dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
   }
 
+  /**
+   * 日時の前後関係を比較します。
+   *
+   * <p>空（日時が null）の日時と null は最も古い日時として扱う。例外は投げない。両方が空または null の場合は 0、自身だけが空の場合は負の値、比較対象だけが空または null
+   * の場合は正の値を返す。両方に値がある場合は日時の前後関係を返し、等しければ 0 を返す。
+   *
+   * @param targetDateTime 比較対象の日時。null を指定できる
+   * @return 自身が後なら 1、前なら -1、等しい場合と両方が空の場合は 0
+   */
   @Override
   public int compareTo(OriginalDateTime targetDateTime) {
-    if (this.equals(targetDateTime)) {
+    boolean targetEmpty = targetDateTime == null || targetDateTime.isEmpty();
+    if (this.isEmpty()) {
+      return targetEmpty ? 0 : -1;
+    }
+    if (targetEmpty) {
+      return 1;
+    }
+    LocalDateTime target = targetDateTime.toLocalDateTime();
+    if (this.dateTime.isEqual(target)) {
       return 0;
     }
-    if (this.dateTime != null && targetDateTime != null) {
-      return this.dateTime.isAfter(targetDateTime.toLocalDateTime()) ? 1 : -1;
-    } else {
-      return -1;
-    }
+    return this.dateTime.isAfter(target) ? 1 : -1;
   }
 
   /**
@@ -156,9 +168,11 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
   }
 
   /**
-   * 引数のDateTimeオブジェクトとこのオブジェクトを比較し、日付の値が等しい場合はtrueを返却する
+   * 引数のDateTimeオブジェクトとこのオブジェクトを比較し、日付の値が等しい場合はtrueを返却する。
    *
-   * @param dateTime 比較対象のDateTimeオブジェクト
+   * <p>両方が空の場合は等しいとする。compareTo で空を最も古い日時として 0 を返すことと揃えるため。片方だけが空の場合は等しくない。
+   *
+   * @param obj 比較対象のオブジェクト
    * @return 比較結果
    */
   @Override
@@ -170,37 +184,25 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
       return false;
     }
     OriginalDateTime other = (OriginalDateTime) obj;
-    return this.dateTime != null && this.dateTime.equals(other.toLocalDateTime());
+    if (this.isEmpty() || other.isEmpty()) {
+      return this.isEmpty() && other.isEmpty();
+    }
+    return this.dateTime.equals(other.toLocalDateTime());
   }
 
   /**
-   * このオブジェクトが持つ日時の曜日文字列を返却します。
+   * 日時の値から計算したハッシュコードを返却します。
    *
-   * @return (月)などの形式の曜日文字列
-   */
-  public String get曜日() {
-    if (this.dateTime == null) {
-      return null;
-    }
-    // パターンとロケールを指定してDateTimeFormatterを作成
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("(E)", Locale.JAPANESE);
-    // LocalDateTimeオブジェクトを指定したパターンでフォーマットし、曜日の文字列を取得
-    return this.dateTime.format(formatter);
-  }
-
-  /**
-   * このオブジェクトが待つ日時をMM/dd形式で返却します。
+   * <p>{@link #equals(Object)} で等しいと判定される日時は、同じハッシュコードになる必要がある。そのため日時の値だけから計算する。日時が空の場合は 0 を返す。
    *
-   * @return MM/dd形式の日付を表す文字列
+   * <p>この型は可変である。{@link #plusDays(int)} や {@link #minusMinutes(int)} で値が変わるため、{@code HashMap} や
+   * {@code HashSet} のキーにした後は値を変更しないこと。変更するとハッシュの位置が変わり、コレクションから探せなくなる。
+   *
+   * @return 日時のハッシュコード。日時が空の場合は 0
    */
-  public String getMMdd() {
-    if (this.dateTime == null) {
-      return null;
-    }
-    // DateTimeFormatterを使用してMM/dd形式にフォーマット
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd");
-    // MM/dd形式で日付を返却
-    return this.dateTime.format(formatter);
+  @Override
+  public int hashCode() {
+    return this.dateTime == null ? 0 : this.dateTime.hashCode();
   }
 
   /**
@@ -221,71 +223,11 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
    *
    * @return YYYYMMDD形式の日付を表す文字列
    */
-  public String getYYYYMMDD() {
+  public String getYyyyMmDd() {
     if (this.dateTime == null) {
       return null;
     }
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
-    return this.dateTime.format(formatter);
-  }
-
-  /**
-   * このオブジェクトが待つ時刻をHH:mm形式で返却します。
-   *
-   * @return HH:mm形式の日付を表す文字列
-   */
-  public String getHHmm() {
-    if (this.dateTime == null) {
-      return null;
-    }
-    // DateTimeFormatterを使用してMM/dd形式にフォーマット
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
-    // MM/dd形式で日付を返却
-    return this.dateTime.format(formatter);
-  }
-
-  /**
-   * このオブジェクトが待つ時刻をHH:mm形式で返却します。
-   *
-   * @return HH:mm形式の日付を表す文字列
-   */
-  public String getHHmmss() {
-    if (this.dateTime == null) {
-      return null;
-    }
-    // DateTimeFormatterを使用してHH:mm:ss形式にフォーマット
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
-    // HH:mm:ss形式で日付を返却
-    return this.dateTime.format(formatter);
-  }
-
-  /**
-   * このオブジェクトが待つ日時をyyyy/MM/dd形式で返却します。
-   *
-   * @return yyyy/MM/dd形式の日付を表す文字列
-   */
-  public String getYyyyMMdd() {
-    if (this.dateTime == null) {
-      return null;
-    }
-    // DateTimeFormatterを使用してMM/dd形式にフォーマット
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
-    // yyyy/MM/dd形式で日付を返却
-    return this.dateTime.format(formatter);
-  }
-
-  /**
-   * このオブジェクトが待つ日時をyyyy-MM-dd形式で返却します。
-   *
-   * @return yyyy-MM-dd形式の日付を表す文字列
-   */
-  public String getYyyy_MM_dd() {
-    if (this.dateTime == null) {
-      return null;
-    }
-    // DateTimeFormatterを使用してyyyy-MM-dd形式にフォーマット
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    // yyyy/MM/dd形式で日付を返却
     return this.dateTime.format(formatter);
   }
 
@@ -319,7 +261,7 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
   /**
    * 引数のOriginalDateTime - このオブジェクトで日付の差を出力します. 例：2024/1/8 - 2024/1/1 = 7、2024/1/1 - 2024/1/8 = -7
    *
-   * @param 比べたい日付
+   * @param date 比べたい日付
    * @return 日付の差の日数
    */
   public int betweenDays(OriginalDateTime date) {
@@ -334,43 +276,6 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
       return (int) daysBetween;
     } else {
       return 0;
-    }
-  }
-
-  /**
-   * このオブジェクトが持つ日付と引数の日付の差の月数を返却します
-   *
-   * @param 比べたい日付
-   * @return 日付の差の月数（負の数が返却された場合はエラー）
-   */
-  public int betweenMonth(OriginalDateTime date) {
-    if (date != null && !date.isEmpty() && this.dateTime != null) {
-      // 両日付のLocalDateを取得
-      LocalDate startDate = this.dateTime.toLocalDate();
-      LocalDate endDate = date.toLocalDate();
-
-      // 期間を年と月で計算
-      Period period = Period.between(startDate, endDate);
-
-      // 年を月に換算し、月の差と合わせる
-      return period.getYears() * 12 + period.getMonths();
-    } else {
-      return -1;
-    }
-  }
-
-  /**
-   * このオブジェクトが持つ日付と引数の日付の差の年数を返却します
-   *
-   * @param 比べたい日付
-   * @return 日付の差の年数（負の数が返却された場合はエラー）
-   */
-  public int betweenYear(OriginalDateTime date) {
-    if (date != null && !date.isEmpty() && this.dateTime != null) {
-      Period period = Period.between(this.dateTime.toLocalDate(), date.toLocalDate());
-      return period.getYears();
-    } else {
-      return -1;
     }
   }
 
@@ -408,6 +313,40 @@ public class OriginalDateTime implements Comparable<OriginalDateTime> {
       return new OriginalDateTime();
     }
     return new OriginalDateTime(year, month, 1, 0, 0, 0);
+  }
+
+  /**
+   * 「年/月」の形式の文字列から OriginalDateTime を生成します.
+   *
+   * <p>年と月の区切り（/）が無い場合と、数字に変換できない場合、null の場合は現在の年月を返す。 年または月が範囲外の場合（例: 2026/13）は、現在の年月に補わず {@link
+   * DateTimeException} を投げる。
+   *
+   * @param yearMonthText 年月の文字列（例: 2026/4）。null も可
+   * @return 指定の年月の日時、または現在の年月
+   * @throws DateTimeException 年または月が範囲外の場合
+   */
+  public static OriginalDateTime fromYearMonthText(final String yearMonthText) {
+    if (yearMonthText != null) {
+      String[] parts = yearMonthText.split("/");
+      if (parts.length == 2) {
+        try {
+          return fromMonth(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
+        } catch (NumberFormatException e) {
+          return currentYearMonth();
+        }
+      }
+    }
+    return currentYearMonth();
+  }
+
+  /**
+   * 現在の年月を、日を1日とした OriginalDateTime で返します.
+   *
+   * @return 現在の年月
+   */
+  private static OriginalDateTime currentYearMonth() {
+    OriginalDateTime now = new OriginalDateTime();
+    return fromMonth(now.toLocalDate().getYear(), now.toLocalDate().getMonthValue());
   }
 
   /**

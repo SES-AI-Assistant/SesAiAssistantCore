@@ -18,11 +18,8 @@ import java.util.List;
 public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER> {
   /** 全件SELECT文. */
   private static final String SELECT_ALL_SQL =
-      "SELECT user_id, user_name, role_cd, plan_cd, register_date, register_user, tenant_id FROM SES_AI_WEBAPP_M_USER";
-
-  /** SELECT文（WHERE句あり）. */
-  private static final String SELECT_SQL =
-      "SELECT user_id, user_name, role_cd, plan_cd, register_date, register_user, tenant_id FROM SES_AI_WEBAPP_M_USER WHERE ";
+      "SELECT user_id, user_name, role_cd, plan_cd, register_date, register_user, tenant_id FROM "
+          + "SES_AI_WEBAPP_M_USER";
 
   public SES_AI_WEBAPP_M_USERLot() {
     super();
@@ -31,11 +28,6 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
   @Override
   protected String getSelectAllSql() {
     return SELECT_ALL_SQL;
-  }
-
-  @Override
-  protected String getSelectSql() {
-    return SELECT_SQL;
   }
 
   @Override
@@ -57,7 +49,7 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
    * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
    *
    * @param connection DBコネクション
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectAllWithoutTenantId(final Connection connection) throws SQLException {
     this.entityLot = new ArrayList<>();
@@ -75,14 +67,12 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
    * @param connection DBコネクション
    * @param page ページ番号
    * @param size ページサイズ
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public void selectAllPagedWithoutTenantId(
       final Connection connection, final int page, final int size) throws SQLException {
     this.entityLot = new ArrayList<>();
-    if (connection == null) {
-      return;
-    }
+    requireConnection(connection);
 
     try (var stmt = connection.createStatement()) {
       // 全件数を取得
@@ -94,30 +84,28 @@ public class SES_AI_WEBAPP_M_USERLot extends EntityLotBase<SES_AI_WEBAPP_M_USER>
       this.pageSize = size;
       this.currentPageIndex = page;
 
-      if (totalCount == 0) {
-        return;
+      // 件数が 0 件の場合は一覧の問い合わせを行わない（出口を1つにするため条件分岐で囲む）
+      if (totalCount != 0) {
+        // ページング検索
+        int offset = (page - 1) * size;
+        String sql = SELECT_ALL_SQL + " LIMIT " + size + " OFFSET " + offset;
+        List<SES_AI_WEBAPP_M_USER> results =
+            executeQueryWithoutTenantFilter(
+                connection, sql, this::mapResultSet, (s, paramIndex) -> paramIndex);
+        this.entityLot.addAll(results);
       }
-
-      // ページング検索
-      int offset = (page - 1) * size;
-      String sql = SELECT_ALL_SQL + " LIMIT " + size + " OFFSET " + offset;
-      List<SES_AI_WEBAPP_M_USER> results =
-          executeQueryWithoutTenantFilter(
-              connection, sql, this::mapResultSet, (s, paramIndex) -> paramIndex);
-      this.entityLot.addAll(results);
     }
   }
 
   @Override
   protected SES_AI_WEBAPP_M_USER mapResultSet(ResultSet resultSet) throws SQLException {
-    SES_AI_WEBAPP_M_USER sesAiWebappMUser =
-        new SES_AI_WEBAPP_M_USER(resultSet.getString("tenant_id"));
-    sesAiWebappMUser.setUserId(resultSet.getString("user_id"));
-    sesAiWebappMUser.setUserName(resultSet.getString("user_name"));
-    sesAiWebappMUser.setRole(Role.getEnum(resultSet.getString("role_cd")));
-    sesAiWebappMUser.setPlan(Plan.getEnum(resultSet.getString("plan_cd")));
-    sesAiWebappMUser.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
-    sesAiWebappMUser.setRegisterUser(resultSet.getString("register_user"));
-    return sesAiWebappMUser;
+    SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER(resultSet.getString("tenant_id"));
+    user.setUserId(resultSet.getString("user_id"));
+    user.setUserName(resultSet.getString("user_name"));
+    user.setRole(Role.getEnum(resultSet.getString("role_cd")));
+    user.setPlan(Plan.getEnum(resultSet.getString("plan_cd")));
+    user.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
+    user.setRegisterUser(resultSet.getString("register_user"));
+    return user;
   }
 }

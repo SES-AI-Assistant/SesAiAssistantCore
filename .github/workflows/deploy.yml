@@ -32,8 +32,11 @@ jobs:
           role-session-name: GitHubActionsDeployment
           role-to-assume: arn:aws:iam::536697254314:role/SES-AI-ASSISTANT
 
-      - name: Maven パッケージをビルドしてデプロイ
-        run: mvn clean deploy  -Dmaven.test.skip=true --settings .github/maven-settings.xml
+      # 全検査（UT の全 PASS・整形・LINT・カバレッジ100%・UT仕様・spotbugs）を通ったものだけを配布する。
+      # 親 pom の導入により deploy は verify を通るため、テストを飛ばさない（-Dmaven.test.skip=true は使わない）。
+      # nectar.ut.skip による抜け道も使わない
+      - name: Maven パッケージをビルドしてデプロイ（全検査を通してから配布）
+        run: mvn clean deploy --settings .github/maven-settings.xml
         env:
           GITHUB_ACTOR: ${{ secrets.GITHUB_ACTOR }}
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}

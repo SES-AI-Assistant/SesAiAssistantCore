@@ -1,28 +1,37 @@
 package copel.sesproductpackage.core.search;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-/** 全文検索用の WHERE 句（LIKE / NOT LIKE）を、UI と同じ OR 区切り・枠内 AND の論理で組み立てる. */
+/**
+ * 全文検索用の WHERE 句（LIKE / NOT LIKE）を、UI と同じ OR 区切り・枠内 AND の論理で組み立てる.
+ *
+ * <p>演算子が OR の条件で区切った区間の中を AND、区間同士を OR で結ぶ。
+ *
+ * <p>先頭の条件の演算子は解釈しない。AND と OR 以外（null を含む）は AND として扱う。
+ *
+ * <p>含まない条件では、列が NULL の行は検索語に一致しないとみなして残す。
+ *
+ * <p>NULL の行を NOT LIKE で除外すると、LEFT JOIN 先が無い行が消えるため。
+ *
+ * @author Copel Co., Ltd.
+ */
 public final class FulltextConditionsWhereClause {
-
   private FulltextConditionsWhereClause() {}
 
-  /** LIKE パターン用に {@code %} と {@code _} をエスケープする（キーワード本体のみ。前後の {@code %} は付与側で付与）. */
-  public static String escapeLikeKeyword(final String keyword) {
-    if (keyword == null) {
-      return "";
-    }
-    return keyword.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
-  }
-
-  /** 検索可能なキーワードが 1 件以上あるか. */
+  /**
+   * 検索可能なキーワードが1件以上あるかを判定します.
+   *
+   * @param conditions 検索条件のリスト。null 要素は無視する
+   * @return 空でないキーワードを持つ条件が1件以上あれば true、リストが null か空、または該当が無ければ false
+   */
   public static boolean hasSearchableKeyword(final List<FulltextCondition> conditions) {
     if (conditions == null || conditions.isEmpty()) {
       return false;
     }
-    for (FulltextCondition c : conditions) {
-      if (c != null && c.hasSearchableKeyword()) {
+    for (FulltextCondition condition : conditions) {
+      if (condition != null && condition.hasSearchableKeyword()) {
         return true;
       }
     }
@@ -30,169 +39,159 @@ public final class FulltextConditionsWhereClause {
   }
 
   /**
-   * {@code conditions} を検証し、WHERE 句（WHERE キーワードなし）とプレースホルダ用パラメータを返す.
+   * 1つの列に対する WHERE 句（WHERE キーワードなし）とプレースホルダ用パラメータを組み立てます.
    *
-   * @param columnExpr 例: {@code raw_content}, {@code p.raw_content}
-   * @throws IllegalArgumentException 条件が空、または検索可能キーワードがない場合
+   * @param columnExpr 列名式。例: {@code raw_content}、{@code p.raw_content}
+   * @param conditions 検索条件のリスト
+   * @return WHERE 句とパラメータを含む {@link Built}
+   * @throws IllegalArgumentException 列名式が識別子でない場合、または検索可能なキーワードが1件も無い場合
    */
   public static Built build(final String columnExpr, final List<FulltextCondition> conditions) {
-    if (columnExpr == null || columnExpr.trim().isEmpty()) {
-      throw new IllegalArgumentException("columnExpr is required");
-    }
-    if (!hasSearchableKeyword(conditions)) {
-      throw new IllegalArgumentException("conditions must contain at least one non-blank keyword");
-    }
-    List<List<FulltextCondition>> segments = splitSegments(conditions);
-    List<String> params = new ArrayList<>();
-    StringBuilder ors = new StringBuilder();
-    boolean firstSeg = true;
-    for (List<FulltextCondition> seg : segments) {
-      StringBuilder segAnd = new StringBuilder();
-      boolean firstTerm = true;
-      for (FulltextCondition c : seg) {
-        if (!c.hasSearchableKeyword()) {
-          continue;
-        }
-        if (!firstTerm) {
-          segAnd.append(" AND ");
-        }
-        firstTerm = false;
-        String lit = "%" + escapeLikeKeyword(c.getKeyword().trim()) + "%";
-        if (c.isNegated()) {
-          segAnd.append('(').append(columnExpr).append(" NOT LIKE ? ESCAPE '\\')");
-        } else {
-          segAnd.append('(').append(columnExpr).append(" LIKE ? ESCAPE '\\')");
-        }
-        params.add(lit);
-      }
-      if (segAnd.isEmpty()) {
-        continue;
-      }
-      if (!firstSeg) {
-        ors.append(" OR ");
-      }
-      firstSeg = false;
-      ors.append('(').append(segAnd).append(')');
-    }
-    return new Built(ors.toString(), params);
+    return buildClause(Collections.singletonList(columnExpr), conditions);
   }
 
   /**
-   * 複数カラムに OR で照合する WHERE 句を組み立てる.
+   * 複数の列に OR で照合する WHERE 句（WHERE キーワードなし）とパラメータを組み立てます.
    *
-   * <p>正のキーワード: {@code (primaryColumn LIKE ? OR nullableColumn LIKE ?)}<br>
-   * 否定キーワード: {@code (primaryColumn NOT LIKE ? AND (nullableColumn IS NULL OR nullableColumn NOT
-   * LIKE ?))}<br>
-   * NULL チェックを加えることで LEFT JOIN 先が NULL の行を NOT 条件で誤除外しない。
+   * <p>正のキーワード: {@code (primary LIKE ? OR nullable LIKE ?)}<br>
+   * 否定キーワード: {@code ((primary IS NULL OR primary NOT LIKE ?) AND (nullable IS NULL OR nullable NOT
+   * LIKE ?))}
    *
-   * @param primaryColumn 非 NULL 前提の主カラム（例: {@code p.raw_content}）
-   * @param nullableColumns NULL になり得る副カラム（例: {@code s.file_content_summary}）
-   * @param conditions 検索条件リスト
-   * @throws IllegalArgumentException 条件が空、または検索可能キーワードがない場合
+   * @param primaryColumn 主カラムの列名式。例: {@code p.raw_content}
+   * @param nullableColumns 副カラムの列名式の一覧。LEFT JOIN で NULL になり得る列を指定する
+   * @param conditions 検索条件のリスト
+   * @return WHERE 句とパラメータを含む {@link Built}
+   * @throws IllegalArgumentException 列名式が識別子でない場合、または検索可能なキーワードが1件も無い場合
    */
   public static Built buildForMultipleColumns(
       final String primaryColumn,
       final List<String> nullableColumns,
       final List<FulltextCondition> conditions) {
-    if (primaryColumn == null || primaryColumn.trim().isEmpty()) {
-      throw new IllegalArgumentException("primaryColumn is required");
-    }
-    if (!hasSearchableKeyword(conditions)) {
-      throw new IllegalArgumentException("conditions must contain at least one non-blank keyword");
-    }
-    List<List<FulltextCondition>> segments = splitSegments(conditions);
-    List<String> params = new ArrayList<>();
-    StringBuilder ors = new StringBuilder();
-    boolean firstSeg = true;
-    for (List<FulltextCondition> seg : segments) {
-      StringBuilder segAnd = new StringBuilder();
-      boolean firstTerm = true;
-      for (FulltextCondition c : seg) {
-        if (!c.hasSearchableKeyword()) {
-          continue;
-        }
-        if (!firstTerm) {
-          segAnd.append(" AND ");
-        }
-        firstTerm = false;
-        String lit = "%" + escapeLikeKeyword(c.getKeyword().trim()) + "%";
-        if (c.isNegated()) {
-          segAnd.append('(');
-          segAnd.append(primaryColumn).append(" NOT LIKE ? ESCAPE '\\'");
-          params.add(lit);
-          for (String nullable : nullableColumns) {
-            segAnd.append(" AND (").append(nullable).append(" IS NULL OR ");
-            segAnd.append(nullable).append(" NOT LIKE ? ESCAPE '\\')");
-            params.add(lit);
-          }
-          segAnd.append(')');
-        } else {
-          segAnd.append('(');
-          segAnd.append(primaryColumn).append(" LIKE ? ESCAPE '\\'");
-          params.add(lit);
-          for (String nullable : nullableColumns) {
-            segAnd.append(" OR ").append(nullable).append(" LIKE ? ESCAPE '\\'");
-            params.add(lit);
-          }
-          segAnd.append(')');
-        }
-      }
-      if (segAnd.isEmpty()) {
-        continue;
-      }
-      if (!firstSeg) {
-        ors.append(" OR ");
-      }
-      firstSeg = false;
-      ors.append('(').append(segAnd).append(')');
-    }
-    return new Built(ors.toString(), params);
+    List<String> columns = new ArrayList<>();
+    columns.add(primaryColumn);
+    columns.addAll(nullableColumns);
+    return buildClause(columns, conditions);
   }
 
-  static List<List<FulltextCondition>> splitSegments(final List<FulltextCondition> conditions) {
+  /**
+   * 列名式の一覧と検索条件から、WHERE 句とパラメータを組み立てます.
+   *
+   * <p>列の数だけプレースホルダを作り、同じキーワードを各列に渡す。区間の分け方は {@link #build} と {@link #buildForMultipleColumns} で共通。
+   *
+   * @param columns 列名式の一覧。先頭から順に並ぶ
+   * @param conditions 検索条件のリスト
+   * @return WHERE 句とパラメータを含む {@link Built}
+   * @throws IllegalArgumentException 列名式が識別子でない場合、または検索可能なキーワードが1件も無い場合
+   */
+  private static Built buildClause(
+      final List<String> columns, final List<FulltextCondition> conditions) {
+    for (String column : columns) {
+      if (!WhereClauseBuilder.isColumnExpr(column)) {
+        throw new IllegalArgumentException("列名式は識別子で指定してください: " + column);
+      }
+    }
+    if (!hasSearchableKeyword(conditions)) {
+      throw new IllegalArgumentException("検索可能なキーワードを1件以上指定してください");
+    }
+
+    // 演算子が OR の条件から新しい区間を始める。先頭の条件の演算子は解釈しないため i が 0 のときは区切らない
     List<List<FulltextCondition>> segments = new ArrayList<>();
     List<FulltextCondition> current = new ArrayList<>();
     for (int i = 0; i < conditions.size(); i++) {
-      FulltextCondition c = conditions.get(i);
-      if (c == null) {
+      FulltextCondition condition = conditions.get(i);
+      if (condition == null) {
         continue;
       }
-      if (i == 0) {
-        current.add(c);
-      } else if ("OR".equalsIgnoreCase(trimOrEmpty(c.getOperator()))) {
+      String operator = condition.getOperator();
+      boolean startsSegment = i > 0 && operator != null && "OR".equalsIgnoreCase(operator.trim());
+      if (startsSegment) {
         if (!current.isEmpty()) {
-          segments.add(new ArrayList<>(current));
+          segments.add(current);
         }
         current = new ArrayList<>();
-        current.add(c);
-      } else {
-        current.add(c);
       }
+      current.add(condition);
     }
-    if (!current.isEmpty()) {
-      segments.add(current);
+    // 検索可能なキーワードが1件以上あるため、末尾の区間は必ず空でない
+    segments.add(current);
+
+    List<String> params = new ArrayList<>();
+    StringBuilder orClause = new StringBuilder();
+    for (List<FulltextCondition> segment : segments) {
+      StringBuilder andClause = new StringBuilder();
+      for (FulltextCondition condition : segment) {
+        if (!condition.hasSearchableKeyword()) {
+          continue;
+        }
+        if (andClause.length() > 0) {
+          andClause.append(" AND ");
+        }
+        String term;
+        if (condition.isNegated()) {
+          // 列が NULL の行は「含まない」に入れるため、列ごとに IS NULL を加える
+          List<String> notLike = new ArrayList<>();
+          for (String column : columns) {
+            notLike.add("(" + column + " IS NULL OR " + column + " NOT LIKE ? ESCAPE '\\')");
+          }
+          term = notLike.size() == 1 ? notLike.get(0) : "(" + String.join(" AND ", notLike) + ")";
+        } else {
+          List<String> like = new ArrayList<>();
+          for (String column : columns) {
+            like.add(column + " LIKE ? ESCAPE '\\'");
+          }
+          term = "(" + String.join(" OR ", like) + ")";
+        }
+        andClause.append(term);
+        // 検索語の LIKE 特殊文字（\ % _）をエスケープし、前後に % を付けた値を列の数だけ渡す
+        String keyword = condition.getKeyword().trim();
+        String pattern =
+            "%" + keyword.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
+        params.addAll(Collections.nCopies(columns.size(), pattern));
+      }
+      if (andClause.length() == 0) {
+        continue;
+      }
+      if (orClause.length() > 0) {
+        orClause.append(" OR ");
+      }
+      orClause.append('(').append(andClause).append(')');
     }
-    return segments;
+    return new Built("(" + orClause + ")", params);
   }
 
-  private static String trimOrEmpty(final String s) {
-    return s == null ? "" : s.trim();
-  }
-
-  /** {@link #build} の結果. */
+  /** {@link #build} と {@link #buildForMultipleColumns} の結果. */
   public static final class Built {
+    /** WHERE キーワードを含まない条件式。 */
     private final String whereClauseWithoutWhereKeyword;
+
+    /** LIKE 句のプレースホルダに渡す値の並び。 */
     private final List<String> likeParams;
 
+    /**
+     * 結果を生成します.
+     *
+     * @param whereClauseWithoutWhereKeyword WHERE キーワードを含まない条件式
+     * @param likeParams LIKE 句のプレースホルダに渡す値の並び
+     */
     Built(final String whereClauseWithoutWhereKeyword, final List<String> likeParams) {
       this.whereClauseWithoutWhereKeyword = whereClauseWithoutWhereKeyword;
       this.likeParams = List.copyOf(likeParams);
     }
 
+    /**
+     * WHERE 句（WHERE キーワードなし）を返します.
+     *
+     * @return WHERE キーワードを含まない条件式
+     */
     public String getWhereClauseWithoutWhereKeyword() {
       return whereClauseWithoutWhereKeyword;
     }
 
+    /**
+     * LIKE 句のプレースホルダに渡す値を返します.
+     *
+     * @return プレースホルダに渡す値の並び
+     */
     public List<String> getLikeParams() {
       return likeParams;
     }

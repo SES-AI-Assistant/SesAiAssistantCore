@@ -38,6 +38,13 @@ public class SES_AI_M_INGEST_ROUTE extends EntityBase {
       return value;
     }
 
+    /**
+     * 文字列の値に対応するチャネル種別を返します。
+     *
+     * @param value チャネル種別の値
+     * @return 対応するチャネル種別
+     * @throws IllegalArgumentException 対応しない値の場合
+     */
     public static ChannelType fromValue(String value) {
       for (ChannelType ct : ChannelType.values()) {
         if (ct.value.equals(value)) {
@@ -50,19 +57,31 @@ public class SES_AI_M_INGEST_ROUTE extends EntityBase {
 
   /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_M_INGEST_ROUTE (channel_type, route_key, register_date, register_user) VALUES (?, ?, ?, ?)";
+      "INSERT INTO SES_AI_M_INGEST_ROUTE (channel_type, route_key, register_date, register_user) "
+          + "VALUES (?, ?, ?, ?)";
 
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String SELECT_SQL =
-      "SELECT channel_type, route_key, register_date, register_user FROM SES_AI_M_INGEST_ROUTE WHERE channel_type = ? AND route_key = ?";
+      "SELECT channel_type, route_key, register_date, register_user FROM SES_AI_M_INGEST_ROUTE "
+          + "WHERE channel_type = ? AND route_key = ?";
 
-  /** UPDATE文（tenantId 条件を含む）. */
+  /**
+   * UPDATE文（tenantId 条件を含む）.
+   *
+   * <p>UPDATE 用の実行テンプレートは TenantFilterSql を通さず、tenant_id の条件を SQL に手書きする。テンプレートは条件を自動で付けないため。
+   */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_M_INGEST_ROUTE SET register_user = ? WHERE channel_type = ? AND route_key = ? AND tenant_id = ?";
+      "UPDATE SES_AI_M_INGEST_ROUTE SET register_user = ? WHERE channel_type = ? AND route_key = ? "
+          + "AND tenant_id = ?";
 
-  /** DELETE文（tenantId 条件を含む）. */
+  /**
+   * DELETE文（tenantId 条件を含む）.
+   *
+   * <p>DELETE 用の実行テンプレートは TenantFilterSql を通さず、tenant_id の条件を SQL に手書きする。テンプレートは条件を自動で付けないため。
+   */
   private static final String DELETE_SQL =
-      "DELETE FROM SES_AI_M_INGEST_ROUTE WHERE channel_type = ? AND route_key = ? AND tenant_id = ?";
+      "DELETE FROM SES_AI_M_INGEST_ROUTE WHERE channel_type = ? AND route_key = ? AND tenant_id = "
+          + "?";
 
   /** 【PK】 チャネル種別 / channel_type */
   @Column(required = true, primary = true, physicalName = "channel_type", logicalName = "チャネル種別")

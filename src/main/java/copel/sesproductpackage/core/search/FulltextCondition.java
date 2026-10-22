@@ -20,6 +20,13 @@ public final class FulltextCondition {
   @Schema(description = "否定フラグ", required = true, example = "false")
   private final boolean negated;
 
+  /**
+   * 演算子・キーワード・否定フラグを指定して生成します。
+   *
+   * @param operator 演算子
+   * @param keyword 検索キーワード
+   * @param negated 否定フラグ
+   */
   public FulltextCondition(final String operator, final String keyword, final boolean negated) {
     this.operator = operator;
     this.keyword = keyword;

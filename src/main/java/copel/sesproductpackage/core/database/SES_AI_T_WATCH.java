@@ -21,12 +21,12 @@ public class SES_AI_T_WATCH extends EntityBase {
 
   public SES_AI_T_WATCH(String tenantId) {
     super(tenantId);
-    this.tenantId = tenantId;
   }
 
   /** INSERT文. */
   private static final String INSERT_SQL =
-      "INSERT INTO SES_AI_T_WATCH (user_id, target_id, target_type, memo, register_date, register_user, ttl) "
+      "INSERT INTO SES_AI_T_WATCH (user_id, target_id, target_type, memo, register_date, "
+          + "register_user, ttl) "
           + "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
   /** SELECT文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
@@ -36,7 +36,8 @@ public class SES_AI_T_WATCH extends EntityBase {
 
   /** UPDATE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String UPDATE_SQL =
-      "UPDATE SES_AI_T_WATCH SET target_type = ?, memo = ?, register_date = ?, register_user = ?, ttl = ? "
+      "UPDATE SES_AI_T_WATCH SET target_type = ?, memo = ?, register_date = ?, register_user = ?, "
+          + "ttl = ? "
           + "WHERE user_id = ? AND target_id = ?";
 
   /** DELETE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
@@ -46,10 +47,6 @@ public class SES_AI_T_WATCH extends EntityBase {
   /** EXISTS文. */
   private static final String EXISTS_SQL =
       "SELECT EXISTS (SELECT 1 FROM SES_AI_T_WATCH WHERE user_id = ? AND target_id = ?)";
-
-  /** EXISTS文2. */
-  private static final String EXISTS_BY_TAGET_ID_SQL =
-      "SELECT EXISTS (SELECT 1 FROM SES_AI_T_WATCH WHERE target_id = ?)";
 
   /** ユーザーID / user_id */
   @Column(physicalName = "user_id", logicalName = "ユーザーID")
@@ -76,7 +73,7 @@ public class SES_AI_T_WATCH extends EntityBase {
    *
    * @param connection DBコネクション
    * @return 存在すればtrue、存在しなければfalse
-   * @throws SQLException
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   public boolean isExist(Connection connection) throws SQLException {
     return executeExists(
@@ -88,22 +85,6 @@ public class SES_AI_T_WATCH extends EntityBase {
           stmt.setString(2, this.targetId);
         },
         "SES_AI_T_WATCH.isExist");
-  }
-
-  /**
-   * このEntityの持つ対象IDを持つレコードが存在するかどうかを判定します.
-   *
-   * @param connection DBコネクション
-   * @return 存在すればtrue、存在しなければfalse
-   * @throws SQLException
-   */
-  public boolean isExistByTargetId(Connection connection) throws SQLException {
-    return executeExists(
-        connection,
-        EXISTS_BY_TAGET_ID_SQL,
-        this.tenantId,
-        (stmt) -> stmt.setString(1, this.targetId),
-        "SES_AI_T_WATCH.isExistByTargetId");
   }
 
   @Override

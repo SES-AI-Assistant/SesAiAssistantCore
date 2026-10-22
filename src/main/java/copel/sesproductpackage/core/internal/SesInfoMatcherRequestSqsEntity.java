@@ -2,24 +2,21 @@ package copel.sesproductpackage.core.internal;
 
 import com.amazonaws.regions.Regions;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import copel.sesproductpackage.core.api.aws.SQSEntityBase;
-import copel.sesproductpackage.core.database.SES_AI_T_JOB;
-import copel.sesproductpackage.core.database.SES_AI_T_PERSON;
-import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
 import copel.sesproductpackage.core.util.Properties;
 import copel.sesproductpackage.core.util.SsmParameterKey;
-import java.sql.Connection;
-import java.sql.SQLException;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
  * AwsLambdaSesInfoMatcherに付帯するSQSへのリクエストEntityクラス.
+ *
+ * <p>Matcher Lambda は本クラスを JSON から読み込むだけで、本クラスから送信しない。Matcher 向けの送信は Register Lambda が独自に行う。
  *
  * @author Copel Co., Ltd.
  */
@@ -83,14 +80,17 @@ public class SesInfoMatcherRequestSqsEntity extends SQSEntityBase {
     return entity;
   }
 
+  /**
+   * 送信用のメッセージ本文を作ります。本番では送信しないため、常に例外を投げます.
+   *
+   * <p>基底クラスの抽象メソッドを実装するために残している。Matcher 向けの送信は Register Lambda の独自実装で行うため、本クラスからは送らない。
+   *
+   * @return なし。常に例外を投げる
+   * @throws UnsupportedOperationException 常に投げる
+   */
   @Override
   protected String getMessageBody() {
-    try {
-      return ObjectMapperFactory.OBJECT_MAPPER.writeValueAsString(this);
-    } catch (JsonProcessingException e) {
-      e.printStackTrace();
-      return null;
-    }
+    throw new UnsupportedOperationException("本クラスからの SQS 送信は行わない");
   }
 
   /**
@@ -100,6 +100,7 @@ public class SesInfoMatcherRequestSqsEntity extends SQSEntityBase {
    *
    * @return 正常であればtrue、異常であればfalse
    */
+  @JsonIgnore
   public boolean isValid() {
     return (this.hasJob() || this.hasPerson()) && !OriginalStringUtils.isEmpty(this.tenantId);
   }
@@ -138,41 +139,5 @@ public class SesInfoMatcherRequestSqsEntity extends SQSEntityBase {
    */
   public boolean hasPersonId() {
     return !OriginalStringUtils.isEmpty(this.personId);
-  }
-
-  /**
-   * 案件情報を取得します.
-   *
-   * @param connection DBコネクション
-   * @return リクエストのjob_content、またはDBから取得した案件情報
-   * @throws SQLException DBアクセスエラーが発生した場合
-   */
-  public String getJobInfo(final Connection connection) throws SQLException {
-    if (this.hasJobId()) {
-      SES_AI_T_JOB job = new SES_AI_T_JOB(this.tenantId);
-      job.setJobId(this.jobId);
-      job.selectByPk(connection);
-      return job.getRawContent();
-    } else {
-      return this.jobContent;
-    }
-  }
-
-  /**
-   * 案件情報を取得します.
-   *
-   * @param connection DBコネクション
-   * @return リクエストのperson_content、またはDBから取得した案件情報
-   * @throws SQLException DBアクセスエラーが発生した場合
-   */
-  public String getPersonInfo(final Connection connection) throws SQLException {
-    if (this.hasPersonId()) {
-      SES_AI_T_PERSON person = new SES_AI_T_PERSON(this.tenantId);
-      person.setPersonId(this.personId);
-      person.selectByPk(connection);
-      return person.getRawContent();
-    } else {
-      return this.personContent;
-    }
   }
 }

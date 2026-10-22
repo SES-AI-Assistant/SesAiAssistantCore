@@ -8,6 +8,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
  * @author Copel Co., Ltd.
  */
 public class OriginalStringUtils {
+  /** インスタンス化を禁止する。すべての操作は静的メンバーで提供する。 */
+  private OriginalStringUtils() {}
+
   /**
    * オブジェクトをJSON化します.
    *
@@ -24,30 +27,14 @@ public class OriginalStringUtils {
   }
 
   /**
-   * オブジェクトを成形済みJSON化します.
-   *
-   * @param obj オブジェクト
-   * @return JSON文字列
-   */
-  public static String toFormatJson(Object obj) {
-    try {
-      return ObjectMapperFactory.OBJECT_MAPPER
-          .writerWithDefaultPrettyPrinter()
-          .writeValueAsString(obj);
-    } catch (JsonProcessingException e) {
-      e.printStackTrace();
-      return null;
-    }
-  }
-
-  /**
    * 引数の文字列が空文字またはNULLであるかどうかを判定する.
    *
    * @param str 文字列
    * @return 空であればtrue、それ以外はfalse
    */
   public static boolean isEmpty(final String str) {
-    return str == null || str.isBlank() || str.isEmpty() || "null".equals(str);
+    // isBlank は空文字も true を返すため、isEmpty での判定は不要
+    return str == null || str.isBlank() || "null".equals(str);
   }
 
   /**
