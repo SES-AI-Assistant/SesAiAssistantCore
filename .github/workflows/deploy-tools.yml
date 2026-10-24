@@ -1,4 +1,4 @@
-name: Build and Deploy Tools to GitHub Packages（SesAiAssistantCore tools）
+name: Deploy（tools）
 
 on:
   push:

@@ -5,6 +5,7 @@
 #   → カバレッジ 100%（JaCoCo の命令・分岐）→ UT 仕様の検査とテスト仕様書 HTML の出力 → バグ検出（spotbugs）
 # コマンドの体系は https://github.com/SES-AI-Assistant/SesAiAssistantCore/blob/main/tools/README.md を参照。
 # テスト結果、カバレッジレポート、テスト仕様書は Artifacts に14日間保存する。
+# 検査の違反箇所は注釈で、結果は実行画面の Summary で読める（.github/scripts/ci-report.mjs）。Maven のログは折りたたむ。
 name: CI
 
 on:
@@ -43,8 +44,25 @@ jobs:
           java-version: '17'
           cache: 'maven'
 
+      # Maven のログは長いため、折りたたみ（group）にして全文を残す。失敗したときだけ [ERROR] の行を折りたたみの外にも出す
       - name: 全検査（mvn verify）
-        run: mvn $MAVEN_ARGS clean verify
+        shell: bash
+        run: |
+          set +e
+          echo "::group::Maven のビルドログ（全文）"
+          mvn $MAVEN_ARGS -ntp clean verify 2>&1 | tee "$RUNNER_TEMP/mvn.log"
+          status=${PIPESTATUS[0]}
+          echo "::endgroup::"
+          if [ "$status" -ne 0 ]; then
+            grep '^\[ERROR\]' "$RUNNER_TEMP/mvn.log" | head -40
+          fi
+          exit "$status"
+
+      # 検査ごとの違反箇所を注釈（実行画面の上部と PR の該当行）に出し、結果を Summary とログ末尾にまとめる。
+      # mvn の成否は変えない。スクリプトは .github/scripts/ci-report.mjs
+      - name: 検査結果をまとめる
+        if: always()
+        run: node .github/scripts/ci-report.mjs "$RUNNER_TEMP/mvn.log"
 
       - name: テスト結果を保存
         if: always()
