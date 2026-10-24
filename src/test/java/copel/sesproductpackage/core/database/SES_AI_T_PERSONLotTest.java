@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /** {@link SES_AI_T_PERSONLot} の単体テスト。 */
 class SES_AI_T_PERSONLotTest {
@@ -470,6 +471,29 @@ class SES_AI_T_PERSONLotTest {
 
         verify(connection)
             .prepareStatement(contains("AND NOT EXISTS (SELECT 1 FROM SES_AI_T_MATCH m"));
+        assertThat(lot.isEmpty()).isTrue();
+      }
+
+      /**
+       * 期限切れの判定が ttl を優先し、ttl も登録日も無い行を対象にしないことを確かめる。 ttl が未来の要員を登録日の欠落だけで削除すると有効なデータを失う。
+       *
+       * @given SELECT の結果が 0 行、経過日数 30、オフセット 0、件数 100
+       * @when selectExpiredPersonsNotInMatchWithoutTenantId を接続で実行する
+       * @then register_date IS NULL を条件にせず、登録日と要員IDの順に並べる SQL を準備する
+       */
+      @MockDbConnection
+      @Test
+      void 期限切れの検索の場合_登録日が無い行を条件にしないSQLで空の一覧を返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(connection, MockResultSetBuilder.builder().columns(COLUMNS).build());
+        SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
+
+        lot.selectExpiredPersonsNotInMatchWithoutTenantId(connection, 30, 0, 100);
+
+        ArgumentCaptor<String> sql = ArgumentCaptor.forClass(String.class);
+        verify(connection).prepareStatement(sql.capture());
+        assertThat(sql.getValue())
+            .doesNotContain("OR (register_date IS NULL)")
+            .contains("ORDER BY register_date ASC, person_id ASC");
         assertThat(lot.isEmpty()).isTrue();
       }
     }

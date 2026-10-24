@@ -40,16 +40,15 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
 
   /** 期限切れスキルシート取得SQL後半（テナントIDなし、バッチ用）. */
   private static final String SELECT_EXPIRED_SKILLSHEETS_WITHOUT_TENANT_SUFFIX =
-      " days') < NOW()) OR (register_date IS NULL)) "
-          + "ORDER BY register_date ASC "
-          + "LIMIT ? OFFSET ?";
+      " days') < NOW())) " + "ORDER BY register_date ASC, file_id ASC " + "LIMIT ? OFFSET ?";
 
   /** 要員に紐づくスキルシート取得SQL（テナントIDなし、バッチ用）. */
   private static final String SELECT_BUNDLED_WITH_PERSON_WITHOUT_TENANT_SQL =
       "SELECT from_group, from_id, from_name, file_id, file_name, file_content, "
           + "file_content_summary, register_date, register_user, ttl, tenant_id "
           + "FROM SES_AI_T_SKILLSHEET "
-          + "WHERE from_group = ? AND from_id = ? AND DATE(register_date) = DATE(?)";
+          + "WHERE from_group = ? AND from_id = ? AND DATE(register_date) = DATE(?) "
+          + "AND tenant_id = ?";
 
   /** コンストラクタ. */
   public SES_AI_T_SKILLSHEETLot() {
@@ -228,7 +227,7 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
   /**
    * 指定された要員に紐づくスキルシート（同一送信元・同一登録日）を取得（WithoutTenantFilter - バッチ用）.
    *
-   * <p>⚠️ このメソッドは全テナント対象です。 バッチ処理専用。コードレビュー必須。
+   * <p>他テナントのスキルシートを巻き込まないよう、要員と同じテナントのスキルシートだけを取得する。メソッド名は呼び出し側との互換のために残している。
    *
    * @param connection DBコネクション
    * @param person 要員
@@ -254,7 +253,8 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
                   person.getRegisterDate() != null
                       ? person.getRegisterDate().toTimestamp()
                       : new OriginalDateTime().toTimestamp());
-              return idx + 3;
+              stmt.setString(idx + 3, person.getTenantId());
+              return idx + 4;
             });
     this.entityLot = results;
   }
