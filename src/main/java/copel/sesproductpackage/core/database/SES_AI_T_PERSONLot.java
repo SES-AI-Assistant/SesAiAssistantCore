@@ -70,11 +70,11 @@ public class SES_AI_T_PERSONLot extends SesAiTableLotBase<SES_AI_T_PERSON> {
    * が1件でもあると 全件が不一致になり、期限切れの要員を1件も取得できなくなるため。同じテナントのマッチングだけを除外する。
    */
   private static final String SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_WITHOUT_TENANT_SUFFIX =
-      " days') < NOW()) OR (register_date IS NULL)) "
+      " days') < NOW())) "
           + "  AND NOT EXISTS (SELECT 1 FROM SES_AI_T_MATCH m "
           + "WHERE m.person_id = SES_AI_T_PERSON.person_id "
           + "AND m.tenant_id = SES_AI_T_PERSON.tenant_id) "
-          + "ORDER BY register_date ASC "
+          + "ORDER BY register_date ASC, person_id ASC "
           + "LIMIT ? OFFSET ?";
 
   /** 全文検索（raw_content の LIKE）用 SELECT 文（WHERE句を含む）. */
