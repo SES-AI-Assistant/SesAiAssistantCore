@@ -170,7 +170,8 @@ function reportUnitTests() {
 
 function reportSpotless() {
   const name = '整形（spotless）';
-  if (!/--- spotless-maven-plugin:[\d.]+:check/.test(log)) return reportViolations(name, null);
+  // プラグインの表記は Maven のバージョンで変わる（spotless-maven-plugin:2.43.0:check / spotless:2.43.0:check）ため、プレフィックスを決め打ちしない
+  if (!/^\[INFO\] --- .*spotless.*:check/m.test(log)) return reportViolations(name, null);
   const lines = log.split(/\r?\n/).map((l) => l.replace(/^\[(ERROR|WARNING|INFO)\]\s?/, ''));
   const start = lines.findIndex((l) => l.includes('had format violations'));
   const items = [];
