@@ -1,8 +1,10 @@
 package copel.sesproductpackage.core.api.aws;
 
 import copel.sesproductpackage.core.util.ApplicationClock;
+import copel.sesproductpackage.core.util.AwsEndpointUtil;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.util.Date;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +12,7 @@ import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
@@ -49,11 +52,14 @@ public class S3 {
     this.bucketName = bucketName;
     this.objectKey = objectKey;
     // S3クライアントの作成
-    this.s3Client =
-        S3Client.builder()
-            .credentialsProvider(DefaultCredentialsProvider.create())
-            .region(region)
-            .build();
+    S3ClientBuilder builder =
+        S3Client.builder().credentialsProvider(DefaultCredentialsProvider.create()).region(region);
+    // IT1 や LocalStack では、他の AWS クライアントと同じ接続先を使う。moto はパス形式でバケットを指定するため forcePathStyle を有効にする
+    String endpointUrl = AwsEndpointUtil.resolveEndpointUrl();
+    if (endpointUrl != null) {
+      builder.endpointOverride(URI.create(endpointUrl)).forcePathStyle(true);
+    }
+    this.s3Client = builder.build();
   }
 
   /** このオブジェクトに持つdataをS3に保存します. */
