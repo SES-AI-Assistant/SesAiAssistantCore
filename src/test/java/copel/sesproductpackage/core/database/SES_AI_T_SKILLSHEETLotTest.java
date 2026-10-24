@@ -20,6 +20,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /** {@link SES_AI_T_SKILLSHEETLot} の単体テスト。 */
 class SES_AI_T_SKILLSHEETLotTest {
@@ -521,6 +522,29 @@ class SES_AI_T_SKILLSHEETLotTest {
         assertThat(lot.size()).isEqualTo(1);
         assertThat(lot.get(0).getTenantId()).isEqualTo("T002");
       }
+
+      /**
+       * 期限切れの判定が ttl を優先し、ttl も登録日も無い行を対象にしないことを確かめる。 ttl が未来の行を登録日の欠落だけで削除すると有効なデータを失う。
+       *
+       * @given SELECT の結果が 0 行、経過日数 30、オフセット 0、件数 100
+       * @when selectExpiredSkillsheetsWithoutTenantId を接続で実行する
+       * @then register_date IS NULL を条件にせず、登録日とファイルIDの順に並べる SQL を準備する
+       */
+      @MockDbConnection
+      @Test
+      void 期限切れの検索の場合_登録日が無い行を条件にしないSQLで空の一覧を返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(connection, MockResultSetBuilder.builder().columns("file_id").build());
+        SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
+
+        lot.selectExpiredSkillsheetsWithoutTenantId(connection, 30, 0, 100);
+
+        ArgumentCaptor<String> sql = ArgumentCaptor.forClass(String.class);
+        verify(connection).prepareStatement(sql.capture());
+        assertThat(sql.getValue())
+            .doesNotContain("OR (register_date IS NULL)")
+            .contains("ORDER BY register_date ASC, file_id ASC");
+        assertThat(lot.isEmpty()).isTrue();
+      }
     }
   }
 
@@ -531,7 +555,7 @@ class SES_AI_T_SKILLSHEETLotTest {
     class 正常系 {
 
       /**
-       * 要員の登録日時を使って、全テナントから同梱されたスキルシートを読み込むことを確かめる。 要員と同時に登録されたスキルシートを探す。
+       * 要員の登録日時を使って、同梱されたスキルシートを読み込むことを確かめる。 要員と同時に登録されたスキルシートを探す。
        *
        * @given 要員の送信者グループが "G001"、送信者IDが "S001"、登録日時が "2026-01-15 10:00:00"、SELECT の結果が 1 行
        * @when selectBundledWithPersonWithoutTenantFilter を接続と要員で実行する
@@ -546,6 +570,25 @@ class SES_AI_T_SKILLSHEETLotTest {
         lot.selectBundledWithPersonWithoutTenantFilter(connection, personOf(true));
 
         assertThat(lot.size()).isEqualTo(1);
+      }
+
+      /**
+       * 要員のテナントIDで同梱のスキルシートを絞り込むことを確かめる。 別テナントのスキルシートを巻き込んで削除するとデータ漏洩になる。
+       *
+       * @given 要員のテナントIDが "T001"、送信者グループが "G001"、送信者IDが "S001"、SELECT の結果が 1 行
+       * @when selectBundledWithPersonWithoutTenantFilter を接続と要員で実行する
+       * @then tenant_id の条件を含む SQL を準備し、4番目のバインド値に "T001" を渡す
+       */
+      @MockDbConnection
+      @Test
+      void 要員のテナントIDがT001の場合_T001で絞り込んだスキルシートを返す(final Connection connection) throws SQLException {
+        PreparedStatement statement = JdbcMocks.stubQuery(connection, oneRow("F001", TENANT_ID));
+
+        new SES_AI_T_SKILLSHEETLot()
+            .selectBundledWithPersonWithoutTenantFilter(connection, personOf(true));
+
+        verify(connection).prepareStatement(contains("AND tenant_id = ?"));
+        verify(statement).setString(4, TENANT_ID);
       }
 
       /**
