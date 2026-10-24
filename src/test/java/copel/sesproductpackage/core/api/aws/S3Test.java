@@ -61,6 +61,31 @@ class S3Test {
           assertThat(file.getObjectKey()).isEqualTo(KEY);
         }
       }
+
+      /**
+       * 接続先のエンドポイントURLが指定されている場合に、S3 クライアントの接続先を上書きすることを確かめる。 IT1 は他の AWS クライアントと同じ moto に接続して検証する。
+       *
+       * @given システムプロパティ aws.endpointUrl が "http://localhost:4566"
+       * @when S3 を生成する
+       * @then S3 クライアントの接続先を "http://localhost:4566" に上書きして、パス形式でバケットを指定し、バケット名を返す
+       */
+      @Test
+      void エンドポイントURLが指定されている場合_バケット名を返す() {
+        System.setProperty("aws.endpointUrl", "http://localhost:4566");
+        try (MockedStatic<S3Client> s3 = mockStatic(S3Client.class)) {
+          S3ClientBuilder builder = mock(S3ClientBuilder.class, RETURNS_SELF);
+          when(builder.build()).thenReturn(mock(S3Client.class));
+          s3.when(S3Client::builder).thenReturn(builder);
+
+          S3 file = new S3(BUCKET, KEY, Region.AP_NORTHEAST_1);
+
+          verify(builder).endpointOverride(java.net.URI.create("http://localhost:4566"));
+          verify(builder).forcePathStyle(true);
+          assertThat(file.getBucketName()).isEqualTo(BUCKET);
+        } finally {
+          System.clearProperty("aws.endpointUrl");
+        }
+      }
     }
   }
 
