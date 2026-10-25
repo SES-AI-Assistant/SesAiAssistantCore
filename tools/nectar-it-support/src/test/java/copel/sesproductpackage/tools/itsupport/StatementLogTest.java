@@ -62,6 +62,24 @@ class StatementLogTest {
         .isEqualTo("VALUES ('v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8', 'v9', NULL)");
   }
 
+  /** ベクトルのような数千文字のバインド値でも、正規表現の再帰が深くならず、値を最後まで読み取る. */
+  @Test
+  void 数千文字の長いバインド値の場合_スタックを溢れさせず置き換える() {
+    String longValue = "[" + "0,".repeat(5000) + "1]";
+    String log =
+        APP
+            + "LOG:  execute <unnamed>: SELECT * FROM t WHERE v = $1\n"
+            + APP
+            + "DETAIL:  parameters: $1 = '"
+            + longValue
+            + "'\n";
+
+    List<StatementLog.Statement> statements = StatementLog.parse(log);
+
+    assertThat(statements.get(0).boundSql())
+        .isEqualTo("SELECT * FROM t WHERE v = '" + longValue + "'");
+  }
+
   /** 複数行の SQL は、タブで始まる続きの行を連結する. */
   @Test
   void 複数行のSQLの場合_続きの行を連結する() {
