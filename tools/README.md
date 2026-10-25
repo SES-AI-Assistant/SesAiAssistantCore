@@ -181,7 +181,7 @@ shade・exec・build-helper は版だけ親 pom で管理しているため、�
 
 ### 5.3 ドキュメント
 
-リポジトリの `AGENTS.md` と `README.md` のコマンド記載は、2章の2つのコマンドとし、詳細はこの README を参照させます。
+リポジトリの `README.md` のコマンド記載は、2章の2つのコマンドとし、詳細はこの README を参照させます。
 
 ### 5.4 Core（SesAiAssistantCore）の特例
 

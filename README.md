@@ -52,7 +52,6 @@ Lambda・Web API の各リポジトリが使う親 pom・UT 用部品・UT 仕�
 
 | ファイル | 用途 |
 |---------|------|
-| **AGENTS.md** | 開発ガイドライン・AI エージェント運用規約（必読） |
 | **tools/README.md** | ビルド・UT・静的チェックのコマンドと、検査の中身・導入手順 |
 | **docs/INSTRUCTION.md** | AI への開発指示（テンプレート） |
 | **docs/ARCHIVE_INSTRUCTIONS.md** | 完了した指示の履歴 |
