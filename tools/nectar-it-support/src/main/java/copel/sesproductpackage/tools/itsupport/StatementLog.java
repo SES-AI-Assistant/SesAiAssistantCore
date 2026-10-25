@@ -33,8 +33,13 @@ public final class StatementLog {
   /** 実行した SQL を示す本文です。名前つきの準備済み文（{@code S_1}）と名前なし（{@code <unnamed>}）の両方に合います. */
   private static final Pattern EXECUTE = Pattern.compile("^(?:execute [^:]*|statement): (.*)$");
 
-  /** DETAIL のバインド値の1つ分です。文字列は引用符で囲まれ、引用符は2つ重ねて表されます. */
-  private static final Pattern PARAMETER = Pattern.compile("\\$(\\d+) = ('(?:[^']|'')*'|NULL)");
+  /**
+   * DETAIL のバインド値の1つ分です。文字列は引用符で囲まれ、引用符は2つ重ねて表されます.
+   *
+   * <p>引用符以外の連続を {@code [^']++} で1回に読むのは、1文字ずつ繰り返すと、ベクトル（数千文字）のような長い値で正規表現の再帰が深くなり {@link
+   * StackOverflowError} になるため。
+   */
+  private static final Pattern PARAMETER = Pattern.compile("\\$(\\d+) = ('(?:[^']++|'')*+'|NULL)");
 
   /** SQL の中のプレースホルダーです. */
   private static final Pattern PLACEHOLDER = Pattern.compile("\\$(\\d+)");

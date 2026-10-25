@@ -349,19 +349,20 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
             (stmt, paramIndex) -> {
               int idx = paramIndex;
               final String vectorStr = query.toString();
-              stmt.setBigDecimal(idx, price.getValue());
-              stmt.setTimestamp(idx + 1, startDate.toTimestamp());
+              // SQL の SELECT 句の先頭に距離の計算（?::vector AS distance）があるため、ベクトルが先頭と、類似度の条件の2か所に要る。
+              // 先頭を飛ばすと、以降の値が1つずつずれて「numeric から vector にキャストできない」エラーになる
+              stmt.setString(idx, vectorStr);
+              stmt.setBigDecimal(idx + 1, price.getValue());
+              stmt.setTimestamp(idx + 2, startDate.toTimestamp());
               if (officeRequirements != null && area != null) {
-                stmt.setInt(idx + 2, officeRequirements);
-                stmt.setString(idx + 3, area.name());
-                stmt.setString(idx + 4, vectorStr);
+                stmt.setInt(idx + 3, officeRequirements);
+                stmt.setString(idx + 4, area.name());
                 stmt.setString(idx + 5, vectorStr);
                 stmt.setDouble(idx + 6, similarityThreshold);
                 stmt.setInt(idx + 8, size);
                 stmt.setInt(idx + 9, (page - 1) * size);
                 return idx + 7;
               } else {
-                stmt.setString(idx + 2, vectorStr);
                 stmt.setString(idx + 3, vectorStr);
                 stmt.setDouble(idx + 4, similarityThreshold);
                 stmt.setInt(idx + 6, size);
