@@ -2,9 +2,11 @@ package copel.sesproductpackage.core.database;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -408,6 +410,50 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
 
         assertThat(lot.size()).isEqualTo(1);
         verify(countStatement, never()).setInt(anyInt(), anyInt());
+      }
+
+      /**
+       * 一覧の問い合わせで、SELECT 句の距離の計算と類似度の条件の2か所にベクトルを渡すことを確かめる。 先頭を飛ばすと以降の値が1つずつずれ、実際の DB で numeric から
+       * vector にキャストできないエラーになる。
+       *
+       * @given 件数が 1 件、オフィス要件 3、エリアが関東_首都圏
+       * @when retrieveByPersonVectorWithFilter を全ての条件で実行する
+       * @then 一覧の問い合わせの 1・6 番目にベクトル、2〜5 番目に価格・開始日・オフィス要件・エリアを設定する
+       */
+      @MockDbConnection
+      @Test
+      void 出社要件とエリアがある場合_一覧の問い合わせの先頭と類似度の条件にベクトルを設定した一覧を返す(final Connection connection)
+          throws SQLException {
+        PreparedStatement countStatement = mock(PreparedStatement.class);
+        when(countStatement.executeQuery())
+            .thenReturn(MockResultSetBuilder.builder().columns("cnt").row(1L).build());
+        PreparedStatement rowStatement = mock(PreparedStatement.class);
+        when(rowStatement.executeQuery()).thenReturn(row(true));
+        when(connection.prepareStatement(anyString())).thenReturn(rowStatement);
+        when(connection.prepareStatement(contains("COUNT(*)"))).thenReturn(countStatement);
+        String vectorStr = vector().toString();
+
+        new SES_AI_T_SKILLSHEET_PERSONLot()
+            .retrieveByPersonVectorWithFilter(
+                connection,
+                TENANT_ID,
+                vector(),
+                new Money(1_000_000L),
+                new OriginalDateTime("2026-01-01 00:00:00"),
+                3,
+                Area.関東_首都圏,
+                0.8,
+                10);
+
+        verify(rowStatement).setString(1, vectorStr);
+        verify(rowStatement).setBigDecimal(eq(2), any(BigDecimal.class));
+        verify(rowStatement).setInt(4, 3);
+        verify(rowStatement).setString(5, Area.関東_首都圏.name());
+        verify(rowStatement).setString(6, vectorStr);
+        verify(rowStatement).setDouble(7, 0.8);
+        verify(rowStatement).setString(8, TENANT_ID);
+        verify(rowStatement).setInt(9, 10);
+        verify(rowStatement).setInt(10, 0);
       }
 
       /**
