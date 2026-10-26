@@ -25,6 +25,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 
@@ -64,6 +66,7 @@ class SesInfoRegisterRequestSqsEntityTest {
   private static SesInfoRegisterRequestSqsEntity 全項目を持つエンティティを作る(final RequestType requestType) {
     SesInfoRegisterRequestSqsEntity entity = new SesInfoRegisterRequestSqsEntity();
     entity.setRequestType(requestType);
+    entity.setTenantId("T001");
     entity.setFromGroup("WEBAPP");
     entity.setFromId("U001");
     entity.setFromName("山田");
@@ -606,6 +609,23 @@ class SesInfoRegisterRequestSqsEntityTest {
 
     @Nested
     class 異常系 {
+
+      /**
+       * テナントIDが未設定または空白の場合に無効と判定することを確かめる。 テナントIDが無いメッセージは再配信しても登録に失敗するため、スキップできるようにする。
+       *
+       * @given テナントIDが null、空文字、空白のいずれか、他の項目はすべて持つ
+       * @when isValid を実行する
+       * @then false を返す
+       */
+      @ParameterizedTest
+      @NullAndEmptySource
+      @ValueSource(strings = {"  "})
+      void テナントIDが未設定の場合_falseを返す(final String tenantId) {
+        SesInfoRegisterRequestSqsEntity target = 全項目を持つエンティティを作る(RequestType.EmailMessage);
+        target.setTenantId(tenantId);
+
+        assertThat(target.isValid()).isFalse();
+      }
 
       /**
        * 全種別の必須項目名が、エンティティの項目と対応していることを確かめる。 RequestType の項目名がエンティティの項目とずれると、欠けた項目を判定できなくなるためである。
