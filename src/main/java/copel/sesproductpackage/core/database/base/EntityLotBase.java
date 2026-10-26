@@ -1153,7 +1153,7 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
             connection,
             pagedSql,
             tenantId,
-            this::mapResultSet,
+            this::mapVectorResultSet,
             (stmt, paramIndex) -> {
               int idx = paramIndex;
               String vectorStr = query.toString();
@@ -1308,6 +1308,20 @@ public abstract class EntityLotBase<E extends EntityBase> implements Iterable<E>
    * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
   protected abstract E mapResultSet(ResultSet resultSet) throws SQLException;
+
+  /**
+   * ベクトル検索の1行分の結果をエンティティに変換します.
+   *
+   * <p>ベクトル検索のSQLは distance 列を返すため、距離を保持するエンティティはこのメソッドを上書きして距離を設定する。 既定では距離を扱わず {@link
+   * #mapResultSet(ResultSet)} と同じ。
+   *
+   * @param resultSet 結果セット
+   * @return 変換したエンティティ
+   * @throws SQLException DB操作エラー
+   */
+  protected E mapVectorResultSet(ResultSet resultSet) throws SQLException {
+    return mapResultSet(resultSet);
+  }
 
   @Override
   public String toString() {

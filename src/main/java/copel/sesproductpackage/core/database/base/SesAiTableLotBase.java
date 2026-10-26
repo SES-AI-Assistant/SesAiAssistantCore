@@ -43,6 +43,18 @@ public abstract class SesAiTableLotBase<E extends SesAiTableEntityBase> extends 
   protected abstract E mapResultSetWithDistance(ResultSet resultSet) throws SQLException;
 
   /**
+   * ベクトル検索の1行分の結果を、距離（distance 列）を設定したエンティティに変換します.
+   *
+   * @param resultSet 結果セット（distance 列を含む）
+   * @return 距離を設定したエンティティ
+   * @throws SQLException DB操作エラー
+   */
+  @Override
+  protected E mapVectorResultSet(ResultSet resultSet) throws SQLException {
+    return mapResultSetWithDistance(resultSet);
+  }
+
+  /**
    * 類似度閾値を用いてベクトル検索を実行し結果をこのLotに保持します.
    *
    * @param connection DBコネクション
