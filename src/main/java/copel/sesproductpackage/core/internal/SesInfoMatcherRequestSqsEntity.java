@@ -4,19 +4,24 @@ import com.amazonaws.regions.Regions;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import copel.sesproductpackage.core.api.aws.SQSEntityBase;
+import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
 import copel.sesproductpackage.core.util.Properties;
 import copel.sesproductpackage.core.util.SsmParameterKey;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
  * AwsLambdaSesInfoMatcherに付帯するSQSへのリクエストEntityクラス.
  *
- * <p>Matcher Lambda は本クラスを JSON から読み込むだけで、本クラスから送信しない。Matcher 向けの送信は Register Lambda が独自に行う。
+ * <p>Matcher Lambda は本クラスを JSON から読み込む。Matcher 向けの送信は Register Lambda が本クラスで行い、送信する JSON の項目は 5
+ * つ（job_id、person_id、job_content、person_content、tenant_id）である。値が無い項目も null としてキーを残す。
  *
  * @author Copel Co., Ltd.
  */
@@ -54,6 +59,18 @@ public class SesInfoMatcherRequestSqsEntity extends SQSEntityBase {
   }
 
   /**
+   * コンストラクタ（キューの URL を指定）.
+   *
+   * <p>設定値を読まずに送信先を決める。Register Lambda が Matcher 向けの要求を送るときに使う。
+   *
+   * @param region リージョン
+   * @param queueUrl Matcher 向けの SQS の URL
+   */
+  public SesInfoMatcherRequestSqsEntity(final Regions region, final String queueUrl) {
+    super(region, queueUrl);
+  }
+
+  /**
    * JSONからのデシリアライゼーション用ファクトリメソッド. Jacksonがこのメソッドを使用してSQSメッセージボディをデシリアライズします.
    *
    * @param tenantId テナントID
@@ -81,16 +98,23 @@ public class SesInfoMatcherRequestSqsEntity extends SQSEntityBase {
   }
 
   /**
-   * 送信用のメッセージ本文を作ります。本番では送信しないため、常に例外を投げます.
+   * 送信用のメッセージ本文（JSON）を作ります.
    *
-   * <p>基底クラスの抽象メソッドを実装するために残している。Matcher 向けの送信は Register Lambda の独自実装で行うため、本クラスからは送らない。
+   * <p>項目は job_id、person_id、job_content、person_content、tenant_id の 5 つで、値が無い項目も null としてキーを残す。
+   * キーの順番は宣言の順番に固定する。
    *
-   * @return なし。常に例外を投げる
-   * @throws UnsupportedOperationException 常に投げる
+   * @return JSON 形式のメッセージ本文
+   * @throws JsonProcessingException JSON への変換に失敗した場合
    */
   @Override
-  protected String getMessageBody() {
-    throw new UnsupportedOperationException("本クラスからの SQS 送信は行わない");
+  protected String getMessageBody() throws JsonProcessingException {
+    Map<String, String> body = new LinkedHashMap<>();
+    body.put("job_id", this.jobId);
+    body.put("person_id", this.personId);
+    body.put("job_content", this.jobContent);
+    body.put("person_content", this.personContent);
+    body.put("tenant_id", this.tenantId);
+    return ObjectMapperFactory.OBJECT_MAPPER.writeValueAsString(body);
   }
 
   /**

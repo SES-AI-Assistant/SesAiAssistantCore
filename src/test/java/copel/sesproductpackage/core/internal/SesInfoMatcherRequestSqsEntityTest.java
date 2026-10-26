@@ -1,7 +1,6 @@
 package copel.sesproductpackage.core.internal;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -47,7 +46,7 @@ class SesInfoMatcherRequestSqsEntityTest {
   }
 
   @Nested
-  class コンストラクタ {
+  class コンストラクタ_Regions {
 
     @Nested
     class 正常系 {
@@ -65,6 +64,32 @@ class SesInfoMatcherRequestSqsEntityTest {
             new SesInfoMatcherRequestSqsEntity(Regions.AP_NORTHEAST_1);
 
         assertThat(target.getQueueName()).isEqualTo("matcher-queue");
+      }
+    }
+  }
+
+  @Nested
+  class コンストラクタ_Regions_String {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * キューの URL を指定した場合に、設定値を読まずに指定の URL のキュー名を使うことを確かめる。 Register Lambda が Matcher
+       * 向けの要求を送信先を指定して作るためである。
+       *
+       * @given キューの URL が custom-matcher の URL
+       * @when リージョン AP_NORTHEAST_1 とキューの URL を指定して生成する
+       * @then キュー名として "custom-matcher" を返す
+       */
+      @Test
+      void キューURLを指定する場合_指定したURLのキュー名を返す() {
+        SesInfoMatcherRequestSqsEntity target =
+            new SesInfoMatcherRequestSqsEntity(
+                Regions.AP_NORTHEAST_1,
+                "https://sqs.ap-northeast-1.amazonaws.com/123/custom-matcher");
+
+        assertThat(target.getQueueName()).isEqualTo("custom-matcher");
       }
     }
   }
@@ -120,22 +145,47 @@ class SesInfoMatcherRequestSqsEntityTest {
   class getMessageBody {
 
     @Nested
-    class 異常系 {
+    class 正常系 {
 
       /**
-       * 送信用の本文を作ろうとした場合に例外を投げることを確かめる。 本番では Matcher 向けの送信を Register Lambda で行い、このクラスからは送らないためである。
+       * 5項目を持つ場合に、宣言の順番のキーで JSON 本文を返すことを確かめる。 Matcher Lambda が項目名で値を読むため、キー名と順番を契約どおりに保つためである。
        *
-       * @given 案件IDが "J001" のエンティティ
+       * @given テナントIDが "T001"、案件IDが "J001"、要員IDが "P001"、案件内容が "案件本文"、要員内容が "要員本文"
        * @when getMessageBody を実行する
-       * @then UnsupportedOperationException を投げる
+       * @then job_id から tenant_id の順に並んだ JSON 本文を返す
        */
       @Test
-      void 送信用の本文を作る場合_UnsupportedOperationExceptionを投げる() {
+      void 五項目を持つ場合_宣言の順番のJSON本文を返す() throws Exception {
+        SesInfoMatcherRequestSqsEntity target =
+            SesInfoMatcherRequestSqsEntity.fromJson("T001", "J001", "P001", "案件本文", "要員本文");
+
+        assertThat(target.getMessageBody())
+            .isEqualTo(
+                "{\"job_id\":\"J001\",\"person_id\":\"P001\",\"job_content\":\"案件本文\","
+                    + "\"person_content\":\"要員本文\",\"tenant_id\":\"T001\"}");
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 値の無い項目も null としてキーを残すことを確かめる。 Register Lambda
+       * が送っていた契約と同じく、項目が無くてもキーの有無で読み方が変わらないようにするためである。
+       *
+       * @given テナントIDが "T001"、案件IDが "J001"、要員ID と案件内容と要員内容が null
+       * @when getMessageBody を実行する
+       * @then person_id と job_content と person_content に null を持つ JSON 本文を返す
+       */
+      @Test
+      void 値の無い項目がある場合_キーをnullとして残したJSON本文を返す() throws Exception {
         SesInfoMatcherRequestSqsEntity target =
             SesInfoMatcherRequestSqsEntity.fromJson("T001", "J001", null, null, null);
 
-        assertThatThrownBy(target::getMessageBody)
-            .isInstanceOf(UnsupportedOperationException.class);
+        assertThat(target.getMessageBody())
+            .isEqualTo(
+                "{\"job_id\":\"J001\",\"person_id\":null,\"job_content\":null,"
+                    + "\"person_content\":null,\"tenant_id\":\"T001\"}");
       }
     }
   }

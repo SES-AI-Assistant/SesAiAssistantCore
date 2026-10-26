@@ -1070,4 +1070,73 @@ class MoneyTest {
       }
     }
   }
+
+  @Nested
+  class toSummaryPriceLine {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 単価不問でない目標単価は、目標単価の金額をそのまま載せた単価行を返すことを確かめる。 指定された単価は、提案時にそのまま見せる金額だからである。
+       *
+       * @given 目標単価が 1000000 円、単価が 1500000 円、係数が 0.9
+       * @when toSummaryPriceLine を単価 1500000 円、係数 0.9 で実行する
+       * @then 目標単価の金額の単価行を返す
+       */
+      @Test
+      void 単価不問でない目標単価の場合_目標単価の金額の単価行を返す() {
+        String line = new Money(1_000_000L).toSummaryPriceLine(new Money(1_500_000L), 0.9);
+
+        assertThat(line).isEqualTo("■単価: " + new Money(1_000_000L).toJapaneseFormat() + "\n");
+      }
+
+      /**
+       * 単価不問の目標単価は、単価に係数を掛けた金額の単価行を返すことを確かめる。 単価不問の案件は要員の単価を基準に提案するためである。
+       *
+       * @given 目標単価が単価不問の 9990000 円、単価が 1500000 円、係数が 0.9
+       * @when toSummaryPriceLine を単価 1500000 円、係数 0.9 で実行する
+       * @then 単価に係数を掛けた金額の単価行を返す
+       */
+      @Test
+      void 単価不問の目標単価で単価がある場合_係数を掛けた金額の単価行を返す() {
+        String line = Money.NEGOTIABLE_PRICE.toSummaryPriceLine(new Money(1_500_000L), 0.9);
+
+        assertThat(line)
+            .isEqualTo("■単価: " + new Money(1_500_000L).multiply(0.9).toJapaneseFormat() + "\n");
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 目標単価が未設定の場合は単価の行を作らないことを確かめる。 目標単価を指定しない検索では、単価の行を要約に出さないためである。
+       *
+       * @given 目標単価が未設定
+       * @when toSummaryPriceLine を単価 1500000 円、係数 0.9 で実行する
+       * @then 空の文字列を返す
+       */
+      @Test
+      void 目標単価が未設定の場合_空の文字列を返す() {
+        String line = Money.empty().toSummaryPriceLine(new Money(1_500_000L), 0.9);
+
+        assertThat(line).isEqualTo("");
+      }
+
+      /**
+       * 単価不問で単価が未設定の場合は単価の行を作らないことを確かめる。 掛ける単価が無いと金額を計算できないためである。
+       *
+       * @given 目標単価が単価不問の 9990000 円、単価が null
+       * @when toSummaryPriceLine を単価 null、係数 0.9 で実行する
+       * @then 空の文字列を返す
+       */
+      @Test
+      void 単価不問で単価がnullの場合_空の文字列を返す() {
+        String line = Money.NEGOTIABLE_PRICE.toSummaryPriceLine(null, 0.9);
+
+        assertThat(line).isEqualTo("");
+      }
+    }
+  }
 }

@@ -252,6 +252,17 @@ public class PersonInfoSchema {
   }
 
   /**
+   * 所属形態を表示用の文字列にして返します. 所属形態が無い場合は null を返します.
+   *
+   * <p>所属形態は AI の要約結果に含まれる場合だけ存在する。null の判定を所有者のこのクラスにまとめ、登録時の保存値も同じ文字列を使う。
+   *
+   * @return 表示用の文字列（例: "1社先正社員"）。所属形態が無い場合は null
+   */
+  public String toOrganizationDisplayText() {
+    return this.organization == null ? null : this.organization.toDisplayString();
+  }
+
+  /**
    * 経歴リストを改行区切りの文字列に変換します.
    *
    * @return 改行区切りの文字列、またはnull

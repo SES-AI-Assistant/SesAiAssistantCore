@@ -300,4 +300,27 @@ public class Money implements Comparable<Money> {
 
     return new Money(result);
   }
+
+  /**
+   * この値を目標単価として、要約に載せる単価の行を返します.
+   *
+   * <p>この値が未指定または空の場合は行を作らない。単価不問（{@link #isNegotiable()}）の場合は、要員または案件の単価に係数を掛けた値を表示する。
+   * 単価不問で単価が未設定（null）の場合は、掛ける対象が無いため行を作らない。単価不問でない場合は、この値をそのまま表示する。
+   *
+   * @param unitPrice 要員または案件の単価（null の場合は単価不問の行を作らない）
+   * @param multiplier 単価不問のときに単価へ掛ける係数
+   * @return 「■単価: 金額」の行（改行付き）。行を作らない場合は空の文字列
+   */
+  public String toSummaryPriceLine(final Money unitPrice, final double multiplier) {
+    if (this.isEmpty()) {
+      return "";
+    }
+    if (this.isNegotiable()) {
+      if (unitPrice == null) {
+        return "";
+      }
+      return "■単価: " + unitPrice.multiply(multiplier).toJapaneseFormat() + "\n";
+    }
+    return "■単価: " + this.toJapaneseFormat() + "\n";
+  }
 }

@@ -395,6 +395,63 @@ class PersonInfoSchemaTest {
   }
 
   @Nested
+  class toOrganizationDisplayText {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 所属形態がある場合に、表示用の文字列を返すことを確かめる。 登録時の所属形態は画面と同じ表記で保存するためである。
+       *
+       * @given 所属形態の社先が 1、所属の種類が正社員
+       * @when toOrganizationDisplayText を実行する
+       * @then "1社先正社員" を返す
+       */
+      @Test
+      void 所属形態がある場合_表示用の文字列を返す() {
+        PersonInfoSchema schema = new PersonInfoSchema();
+        schema.setOrganization(organization(1, PersonInfoSchema.EmploymentType.正社員));
+
+        assertThat(schema.toOrganizationDisplayText()).isEqualTo("1社先正社員");
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 所属形態が無い場合に null を返すことを確かめる。 所属形態を抽出できなかった要員に、誤った値を保存しないためである。
+       *
+       * @given 所属形態が null
+       * @when toOrganizationDisplayText を実行する
+       * @then null を返す
+       */
+      @Test
+      void 所属形態がnullの場合_nullを返す() {
+        PersonInfoSchema schema = new PersonInfoSchema();
+        schema.setOrganization(null);
+
+        assertThat(schema.toOrganizationDisplayText()).isNull();
+      }
+
+      /**
+       * 社先が0の所属形態を弊社所属として表示することを確かめる。 社先の0は自社の所属を表し、1社先とは表記を分けるためである。
+       *
+       * @given 所属形態の社先が 0、所属の種類が個人事業主
+       * @when toOrganizationDisplayText を実行する
+       * @then "弊社所属個人事業主" を返す
+       */
+      @Test
+      void 社先が0の場合_弊社所属の文字列を返す() {
+        PersonInfoSchema schema = new PersonInfoSchema();
+        schema.setOrganization(organization(0, PersonInfoSchema.EmploymentType.個人事業主));
+
+        assertThat(schema.toOrganizationDisplayText()).isEqualTo("弊社所属個人事業主");
+      }
+    }
+  }
+
+  @Nested
   class isValid {
 
     @Nested

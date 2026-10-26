@@ -1,13 +1,12 @@
 package copel.sesproductpackage.core.api.gpt.entity;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import copel.sesproductpackage.core.api.gpt.schema.ConditionalCase;
 import copel.sesproductpackage.core.api.gpt.schema.ConditionalSchema;
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
+import copel.sesproductpackage.core.unit.InformationType;
 import java.util.List;
-import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -97,40 +96,5 @@ public class ContentParseSchema {
     })
     @Schema(description = "情報種別に応じた要約情報の詳細データ。Unknown の場合は出力しないこと")
     private Object summary = null;
-  }
-
-  /**
-   * 情報種別Enum.
-   *
-   * @author Copel Co., Ltd.
-   */
-  public enum InformationType {
-    /** 案件情報. */
-    JOB,
-    /** 要員情報. */
-    PERSON,
-    /** 対象外（不在通知、退職挨拶等）. */
-    Unknown;
-
-    /**
-     * JSON文字列から InformationType を解決する.
-     *
-     * <p>前後の空白と大文字小文字の違いを許容し、解決できない値・null は {@link #Unknown} として扱う。
-     * 例外を投げないことで、リクエストのデシリアライズ自体は成功させ、値の妥当性判定（不正なら400を返す等）を 呼び出し側の業務ロジックに委ねる。
-     *
-     * @param value JSON上の値
-     * @return 対応する InformationType。解決できない場合は {@link #Unknown}
-     */
-    @JsonCreator
-    public static InformationType fromJson(final String value) {
-      // null は空文字として扱い、どの種別にも一致しないため Unknown を返す
-      String trimmed = Objects.toString(value, "").trim();
-      for (InformationType informationType : values()) {
-        if (informationType.name().equalsIgnoreCase(trimmed)) {
-          return informationType;
-        }
-      }
-      return Unknown;
-    }
   }
 }

@@ -1,20 +1,25 @@
 package copel.sesproductpackage.core.internal;
 
 import com.amazonaws.regions.Regions;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import copel.sesproductpackage.core.api.aws.SQSEntityBase;
-import copel.sesproductpackage.core.api.gpt.entity.ContentParseSchema.InformationType;
 import copel.sesproductpackage.core.api.line.LineMessagingApi;
+import copel.sesproductpackage.core.unit.InformationType;
 import copel.sesproductpackage.core.unit.RequestType;
 import copel.sesproductpackage.core.util.ObjectMapperFactory;
 import copel.sesproductpackage.core.util.Properties;
 import copel.sesproductpackage.core.util.SsmParameterKey;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -23,12 +28,33 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * SES情報登録Lambda（AwsLambdaSesInfoRegister）へのSQSメッセージリクエストEntity.
  *
+ * <p>登録依頼の SQS メッセージの唯一の契約である。送信元（メール・LINE・画面など）によらず、同じキー名・同じ順番・同じ null の扱いの JSON を送る。
+ * 画面登録（API_040）が 送っていた JSON と完全に一致する（{@link #getMessageBody()} の JSON 完全一致 UT で保証する）。
+ *
+ * <p>JSON のキー順は {@link JsonPropertyOrder} で固定する。Jackson は明示的に名前を付けた項目を末尾に回すため、順番を明示しないと契約の順番が崩れる。
+ *
  * @author Copel Co., Ltd.
  */
 @Slf4j
 @Data
 @EqualsAndHashCode(callSuper = false)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+@JsonPropertyOrder({
+  "request_type",
+  "from_group",
+  "from_id",
+  "from_name",
+  "raw_content",
+  "mail_subject",
+  "file_id",
+  "file_name",
+  "file_data",
+  "is_watching",
+  "watch_period",
+  "info_type",
+  "info_type_invalid",
+  "tenant_id"
+})
 @NoArgsConstructor
 public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
   /** リクエスト種別 */
@@ -49,8 +75,10 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
   /**
    * メール件名（メール由来のリクエストのみ設定される。件名ヘッダが無い場合は null）.
    *
-   * <p>JSON キーは {@code mail_subject}。登録先の SES_AI_T_JOB / SES_AI_T_PERSON の mail_subject に反映される。
+   * <p>JSON キーは {@code mail_subject}。登録先の SES_AI_T_JOB / SES_AI_T_PERSON の mail_subject
+   * に反映される。件名が無い場合はキーを送らない（画面登録の契約に合わせる）。
    */
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   private String mailSubject;
 
   /** スキルシートID(このリクエストがMessageであり、かつファイルが紐づているなら使用される). */
@@ -59,12 +87,23 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
   /** ファイル名(このリクエストがFileであるなら使用される). */
   private String fileName;
 
-  /** ファイル内容(このリクエストがFileであるなら使用される). */
+  /**
+   * ファイル内容(このリクエストがFileであるなら使用される).
+   *
+   * <p>送信元は設定しない。Register Lambda が LINE から取得した内容を保持するために使う。null の場合はキーを送らない。
+   */
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   private byte[] fileData;
 
-  /** ウォッチ状態にするか. */
+  /**
+   * ウォッチ状態にするか.
+   *
+   * <p>フィールド名は {@code watching} とし、JSON キーは {@code is_watching} にする。フィールド名と JSON キーを別々に持つと、 Lombok
+   * の getter（{@code isWatching}）が別の項目として {@code watching} キーを重複して出力してしまうため、フィールドの名前で揃える。
+   */
   @JsonProperty("is_watching")
-  private boolean isWatching = false;
+  @JsonAlias("watching")
+  private boolean watching = false;
 
   /**
    * ウォッチ期間（日数）.
@@ -80,7 +119,12 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
   /** 画面登録由来の種別（Web API の info_type と同一）。未指定時は null。値は JOB / PERSON のみ有効。 */
   private String infoType;
 
-  /** info_type キーが存在するが JOB/PERSON 以外のとき true（{@link #isValid()} が false になる）. */
+  /**
+   * info_type キーが存在するが JOB/PERSON 以外のとき true（{@link #isValid()} が false になる）.
+   *
+   * <p>送信元は設定しない項目のため、送信する JSON には含めない。読み込みだけは従来どおり行う。
+   */
+  @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
   private boolean infoTypeInvalid;
 
   /** テナントID. */
@@ -158,60 +202,17 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
       log.warn("不正なrequestTypeです: {}", this.requestType);
       return false;
     }
+    // 項目名と値の対応。種別ごとに必須となる項目名は RequestType が持つ
+    Map<String, String> values = new HashMap<>();
+    values.put("fromGroup", this.fromGroup);
+    values.put("fromId", this.fromId);
+    values.put("fromName", this.fromName);
+    values.put("rawContent", this.rawContent);
+    values.put("fileName", this.fileName);
     String typeName = this.requestType.name();
-    if (RequestType.LineMessage == this.requestType
-        || RequestType.OtherMessage == this.requestType) {
-      return hasRequired(
-          typeName,
-          "fromGroup",
-          this.fromGroup,
-          "fromId",
-          this.fromId,
-          "fromName",
-          this.fromName,
-          "rawContent",
-          this.rawContent);
-    }
-    if (RequestType.LineFile == this.requestType || RequestType.OtherFile == this.requestType) {
-      return hasRequired(
-          typeName,
-          "fromGroup",
-          this.fromGroup,
-          "fromId",
-          this.fromId,
-          "fromName",
-          this.fromName,
-          "fileName",
-          this.fileName);
-    }
-    if (RequestType.EmailMessage == this.requestType
-        || RequestType.ScreenMessage == this.requestType) {
-      return hasRequired(
-          typeName,
-          "fromGroup",
-          this.fromGroup,
-          "fromId",
-          this.fromId,
-          "rawContent",
-          this.rawContent);
-    }
-    return hasRequired(
-        typeName, "fromGroup", this.fromGroup, "fromId", this.fromId, "fileName", this.fileName);
-  }
-
-  /**
-   * 項目名と値の組がすべて値を持つかを判定し、欠けている項目をログに残します.
-   *
-   * <p>ログの文言は「{種別}: {項目名}がnull」の形にそろえる。どの項目が欠けたかを運用で追えるようにするため。
-   *
-   * @param typeName リクエスト種別の名前（ログに出す）
-   * @param nameAndValues 項目名と値を交互に並べた配列
-   * @return すべての値が null でなければ true、null の項目が1つでもあれば false
-   */
-  private static boolean hasRequired(final String typeName, final String... nameAndValues) {
-    for (int i = 0; i < nameAndValues.length; i += 2) {
-      if (nameAndValues[i + 1] == null) {
-        log.warn("{}: {}がnull", typeName, nameAndValues[i]);
+    for (String name : this.requestType.requiredFieldNames()) {
+      if (values.get(name) == null) {
+        log.warn("{}: {}がnull", typeName, name);
         return false;
       }
     }
@@ -247,9 +248,7 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
     if (this.requestType == null) {
       return false;
     }
-    if (RequestType.LineMessage == this.requestType
-        || RequestType.EmailMessage == this.requestType
-        || RequestType.OtherMessage == this.requestType) {
+    if (this.requestType.hasBodyText()) {
       return this.rawContent.length() > CONTENT_MIN_LENGTH_FOR_CLASSIFICATION;
     }
     return true;
@@ -263,8 +262,8 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
   @JsonIgnore
   public boolean isDirectedJobRegistration() {
     return InformationType.JOB.name().equals(this.infoType)
-        && RequestType.ScreenMessage.equals(this.requestType)
-        && !this.rawContent.isEmpty();
+        && this.requestType != null
+        && this.requestType.acceptsDirectedJob(this.rawContent);
   }
 
   /**
@@ -274,16 +273,9 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
    */
   @JsonIgnore
   public boolean isDirectedCandidateRegistration() {
-    if (!InformationType.PERSON.name().equals(this.infoType)) {
-      return false;
-    }
-    if (RequestType.ScreenMessage.equals(this.requestType)) {
-      return !this.rawContent.isEmpty();
-    }
-    if (RequestType.ScreenFile.equals(this.requestType)) {
-      return true;
-    }
-    return false;
+    return InformationType.PERSON.name().equals(this.infoType)
+        && this.requestType != null
+        && this.requestType.acceptsDirectedCandidate(this.rawContent);
   }
 
   /**
@@ -293,14 +285,10 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
    */
   @JsonIgnore
   public boolean isスキルシート() {
-    if (RequestType.LineFile.equals(this.requestType)
-        || RequestType.EmailFile.equals(this.requestType)
-        || RequestType.ScreenFile.equals(this.requestType)
-        || RequestType.OtherFile.equals(this.requestType)) {
-      return this.fileName != null && !"".equals(this.fileName);
-    } else {
+    if (this.requestType == null || !this.requestType.isFile()) {
       return false;
     }
+    return this.fileName != null && !"".equals(this.fileName);
   }
 
   /**
@@ -314,19 +302,9 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
    */
   public void downloadFileData(final String lineChannelAccessToken)
       throws IOException, InterruptedException {
-    switch (this.requestType) {
-      case LineFile:
-        LineMessagingApi client = new LineMessagingApi(lineChannelAccessToken);
-        this.fileData = client.getFile(this.fileId);
-        break;
-      case EmailFile:
-        break;
-      case ScreenFile:
-        break;
-      case OtherFile:
-        break;
-      default:
-        break;
+    if (this.requestType.isLineFile()) {
+      LineMessagingApi client = new LineMessagingApi(lineChannelAccessToken);
+      this.fileData = client.getFile(this.fileId);
     }
   }
 }

@@ -70,6 +70,50 @@ class PersonDetailFilterConditionTest {
       }
 
       /**
+       * 全ての条件を指定した場合に、開始月から所属までの条件を定義の順に連結することを確かめる。 順序が変わるとバインド値と列の対応がずれ、別の要員を返すためである。
+       *
+       * @given 開始月 2026年1月1日、単価 600000円から900000円、年齢 30から50、性別 "Man"、国籍 "中国"、エリア 関東_首都圏、出社可能日数 2、N社先
+       *     1、所属形態 "正社員"
+       * @when buildWhereClause を "p" で実行する
+       * @then 10件の条件を AND で連結した条件式を返し、値を条件の順に10件返す
+       */
+      @Test
+      void 全ての条件を指定する場合_10件の条件を定義の順に連結した条件式を返す() {
+        PersonDetailFilterCondition condition = new PersonDetailFilterCondition();
+        condition.setStartDate(START_DATE);
+        condition.setMinPrice(new Money(600_000L));
+        condition.setMaxPrice(new Money(900_000L));
+        condition.setMinAge(30);
+        condition.setMaxAge(50);
+        condition.setGender("Man");
+        condition.setNationality("中国");
+        condition.setArea(Area.関東_首都圏);
+        condition.setOfficeAvailability(2);
+        condition.setCompaniesTierNumber(1);
+        condition.setEmploymentType("正社員");
+
+        WhereClauseAndParams result = condition.buildWhereClause("p");
+
+        assertThat(result.getWhereClauseWithoutWhereKeyword())
+            .isEqualTo(
+                "p.start_date >= ? AND p.unit_price >= ? AND p.unit_price <= ?"
+                    + " AND p.age >= ? AND p.age <= ? AND p.gender = ? AND p.nationality = ?"
+                    + " AND p.area = ? AND p.office_availability >= ? AND p.organization = ?");
+        assertThat(result.getParams())
+            .containsExactly(
+                START_DATE,
+                new BigDecimal(600_000L),
+                new BigDecimal(900_000L),
+                30,
+                50,
+                "Man",
+                "中国",
+                Area.関東_首都圏,
+                2,
+                "1社先正社員");
+      }
+
+      /**
        * 国籍に "日本以外" を指定した場合に、国籍が日本でないことを条件にすることを確かめる。 日本国籍以外の要員を探す画面の検索結果を絞り込むためである。
        *
        * @given 国籍が "日本以外"
