@@ -1,7 +1,6 @@
 package copel.sesproductpackage.core.database.base;
 
 import copel.sesproductpackage.core.api.gpt.Transformer;
-import copel.sesproductpackage.core.unit.Money;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.unit.Vector;
 import java.io.IOException;
@@ -9,8 +8,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.List;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -126,43 +123,4 @@ public abstract class SesAiTableEntityBase extends EntityBase {
    * @return SQL
    */
   protected abstract String getCheckSql();
-
-  /**
-   * 改行で区切られた文字列を一覧に変換します.
-   *
-   * <p>文字列が null の場合は空の一覧を返します。
-   *
-   * @param text 改行で区切られた文字列
-   * @return 改行で分けた一覧（null の場合は空の一覧）
-   */
-  protected static List<String> splitLines(final String text) {
-    return text == null ? Arrays.asList() : Arrays.asList(text.split("\n"));
-  }
-
-  /**
-   * 目標単価の行を要約に追加します.
-   *
-   * <p>目標単価が未指定または空の場合は何も追加しません。単価不問の場合は、要員または案件の単価に係数を掛けた値を表示します。
-   * 単価が未設定（null）の単価不問の場合は、掛ける対象が無いため行を追加しません。
-   *
-   * @param sb 要約を組み立てる文字列バッファ
-   * @param targetPrice 目標単価（null の場合は追加しない）
-   * @param unitPrice 要員または案件の単価（null の場合は単価不問の行を追加しない）
-   * @param multiplier 単価不問のときに単価へ掛ける係数
-   */
-  protected static void appendTargetPriceLine(
-      final StringBuilder sb,
-      final Money targetPrice,
-      final Money unitPrice,
-      final double multiplier) {
-    if (targetPrice != null && !targetPrice.isEmpty()) {
-      if (targetPrice.isNegotiable()) {
-        if (unitPrice != null) {
-          sb.append("■単価: ").append(unitPrice.multiply(multiplier).toJapaneseFormat()).append("\n");
-        }
-      } else {
-        sb.append("■単価: ").append(targetPrice.toJapaneseFormat()).append("\n");
-      }
-    }
-  }
 }

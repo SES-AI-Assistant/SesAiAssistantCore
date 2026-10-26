@@ -3,6 +3,7 @@ package copel.sesproductpackage.core.database;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import copel.sesproductpackage.core.database.base.DynamoDb;
+import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.util.ApplicationClock;
 import copel.sesproductpackage.core.util.Properties;
 import copel.sesproductpackage.core.util.SsmParameterKey;
@@ -23,6 +24,9 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortK
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class SES_AI_API_USAGE_HISTORY extends DynamoDb<SES_AI_API_USAGE_HISTORY> {
+  /** Core が API を呼び出したときに使用履歴へ記録する利用者ID. モジュール名を入れる運用に合わせた固定値。 */
+  public static final String CORE_USER_ID = "SesAiAssitantCore";
+
   /** 【PK】 プロバイダ名. 例：OpenAI、Googleなど */
   private Provider provider;
 
@@ -176,6 +180,37 @@ public class SES_AI_API_USAGE_HISTORY extends DynamoDb<SES_AI_API_USAGE_HISTORY>
       this.outputCount = BigDecimal.ZERO;
     }
     this.outputCount = this.outputCount.add(count);
+  }
+
+  /**
+   * API の利用を1件記録します。同じキーのレコードが既にあれば、入力と出力の件数を加算します。
+   *
+   * <p>利用月と利用日は現在時刻から決める。利用者は常に {@link #CORE_USER_ID} とする。 各 API
+   * クライアントは、この処理を呼ぶ前後で例外の扱いを変えるため、記録の成否は呼び出し側で決める。
+   *
+   * @param provider プロバイダ
+   * @param model モデル名
+   * @param apiType API 種別
+   * @param inputCount 入力文字数
+   * @param outputCount 出力文字数
+   */
+  public void recordUsage(
+      final Provider provider,
+      final String model,
+      final ApiType apiType,
+      final int inputCount,
+      final int outputCount) {
+    OriginalDateTime now = new OriginalDateTime();
+    this.setProvider(provider);
+    this.setModel(model);
+    this.setUsageMonth(now.getYYYYMM());
+    this.setUsageDate(now.getYyyyMmDd());
+    this.setUserId(CORE_USER_ID);
+    this.setApiType(apiType);
+    this.fetch();
+    this.addInputCount(inputCount);
+    this.addOutputCount(outputCount);
+    this.save();
   }
 
   /**

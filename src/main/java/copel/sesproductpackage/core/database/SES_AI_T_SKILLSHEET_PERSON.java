@@ -4,6 +4,7 @@ import copel.sesproductpackage.core.api.gpt.Transformer;
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.SesAiTableEntityBase;
 import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.unit.MultiLineText;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.util.List;
@@ -294,7 +295,7 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SesAiTableEntityBase {
    * @return 経験リスト
    */
   public List<String> getExperiencesAsList() {
-    return splitLines(this.experiences);
+    return new MultiLineText(this.experiences).toLines();
   }
 
   /**
@@ -303,7 +304,7 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SesAiTableEntityBase {
    * @return その他条件リスト
    */
   public List<String> getOtherRequirementsAsList() {
-    return splitLines(this.otherRequirements);
+    return new MultiLineText(this.otherRequirements).toLines();
   }
 
   /**
@@ -312,6 +313,6 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SesAiTableEntityBase {
    * @return NG条件リスト
    */
   public List<String> getNgRequirementsAsList() {
-    return splitLines(this.ngRequirements);
+    return new MultiLineText(this.ngRequirements).toLines();
   }
 }

@@ -554,4 +554,59 @@ class SES_AI_API_USAGE_HISTORYTest {
       }
     }
   }
+
+  @Nested
+  class recordUsage {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 同じキーのレコードが無い場合に、現在日の利用を1件登録することを確かめる。 利用の履歴は日ごとの件数で集計するため、当日のキーで残す。
+       *
+       * @given 最新のレコードが null、現在時刻が 2026-01-15 12:00 の日本時間
+       * @when recordUsage を プロバイダ Google、モデル "gemini-2.5-flash-lite"、API種別 Generate、入力 100、出力 20
+       *     で実行する
+       * @then 利用月を "202601"、利用日を "20260115"、利用者を "SesAiAssitantCore" に設定し、入力 100、出力 20 の1件を登録する
+       */
+      @FixedClock("2026-01-15T12:00:00+09:00")
+      @Test
+      void 最新のレコードが無い場合_今日の利用の1件を登録する() {
+        SES_AI_API_USAGE_HISTORY history = new SES_AI_API_USAGE_HISTORY();
+
+        history.recordUsage(Provider.Google, "gemini-2.5-flash-lite", ApiType.Generate, 100, 20);
+
+        assertThat(history.getProvider()).isEqualTo(Provider.Google);
+        assertThat(history.getUsageMonth()).isEqualTo("202601");
+        assertThat(history.getUsageDate()).isEqualTo("20260115");
+        assertThat(history.getUserId()).isEqualTo("SesAiAssitantCore");
+        assertThat(history.getInputCount()).isEqualByComparingTo(new BigDecimal(100));
+        assertThat(history.getOutputCount()).isEqualByComparingTo(new BigDecimal(20));
+        verify(table).putItem(history);
+      }
+
+      /**
+       * 同じキーのレコードが既にある場合に、件数を加算した1件を登録することを確かめる。 1日の利用量を、API を呼ぶたびに積み上げて集計するためである。
+       *
+       * @given 最新のレコードの入力が 7、出力が 3、現在時刻が 2026-01-15 12:00 の日本時間
+       * @when recordUsage を プロバイダ OpenAI、モデル "gpt-4o-mini"、API種別 Embedding、入力 5、出力 2 で実行する
+       * @then 入力を 12、出力を 5 に加算し、その1件を登録する
+       */
+      @FixedClock("2026-01-15T12:00:00+09:00")
+      @Test
+      void 最新のレコードがある場合_入力と出力の件数を加算した1件を登録する() {
+        SES_AI_API_USAGE_HISTORY latest = history(USAGE_DATE);
+        latest.setInputCount(new BigDecimal(7));
+        latest.setOutputCount(new BigDecimal(3));
+        doReturn(latest).when(table).getItem(any(Consumer.class));
+        SES_AI_API_USAGE_HISTORY history = new SES_AI_API_USAGE_HISTORY();
+
+        history.recordUsage(Provider.OpenAI, "gpt-4o-mini", ApiType.Embedding, 5, 2);
+
+        assertThat(history.getInputCount()).isEqualByComparingTo(new BigDecimal(12));
+        assertThat(history.getOutputCount()).isEqualByComparingTo(new BigDecimal(5));
+        verify(table).putItem(history);
+      }
+    }
+  }
 }

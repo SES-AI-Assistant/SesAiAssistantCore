@@ -268,6 +268,131 @@ class SesInfoRegisterRequestSqsEntityTest {
         assertThat(parsed.getMailSubject()).isEqualTo("件名");
         assertThat(parsed.getWatchPeriod()).isEqualTo(3);
       }
+
+      /**
+       * 画面のファイル登録の依頼が、画面登録の API_040 と同じキーと順番と値の JSON になることを確かめる。 登録 Lambda は
+       * 画面登録もこの契約で読むため、キー名や順番が1つでもずれると登録が壊れるためである。
+       *
+       * @given 種別 ScreenFile、ファイルIDが "abc"、ファイル名が "a.pdf"、ウォッチ期間が 30、情報の種類が PERSON、ほか必須項目を持つ
+       * @when getMessageBody を実行する
+       * @then API_040 と同じ文字列の JSON 本文を返す
+       */
+      @Test
+      void 画面のファイル登録の依頼の場合_画面登録と同じJSON本文を返す() throws Exception {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setRequestType(RequestType.ScreenFile);
+        target.setFromGroup("WEBAPP");
+        target.setFromId("u-sales");
+        target.setFromName("営業太郎");
+        target.setRawContent("案件の本文");
+        target.setFileId("abc");
+        target.setFileName("a.pdf");
+        target.setWatching(true);
+        target.setWatchPeriod(30);
+        target.setInfoType("PERSON");
+        target.setTenantId("T001");
+
+        String json = target.getMessageBody();
+
+        assertThat(json)
+            .isEqualTo(
+                "{\"request_type\":\"ScreenFile\",\"from_group\":\"WEBAPP\",\"from_id\":\"u-sales\","
+                    + "\"from_name\":\"営業太郎\",\"raw_content\":\"案件の本文\",\"file_id\":\"abc\","
+                    + "\"file_name\":\"a.pdf\",\"is_watching\":true,\"watch_period\":30,"
+                    + "\"info_type\":\"PERSON\",\"tenant_id\":\"T001\"}");
+      }
+
+      /**
+       * 監視フラグがtrueの場合に、監視フラグを is_watching のキーだけで送ることを確かめる。 同じ値を別のキーでも送ると、読み込み側が二重の項目として扱うためである。
+       *
+       * @given 監視フラグが true、種別が ScreenMessage
+       * @when getMessageBody を実行する
+       * @then is_watching に true を持ち、watching のキーを含まない JSON 本文を返す
+       */
+      @Test
+      void 監視フラグがtrueの場合_is_watchingだけを持つJSON本文を返す() throws Exception {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setRequestType(RequestType.ScreenMessage);
+        target.setWatching(true);
+
+        String json = target.getMessageBody();
+
+        assertThat(json).contains("\"is_watching\":true").doesNotContain("\"watching\"");
+      }
+
+      /**
+       * ファイルデータがある場合に、file_data のキーへ Base64 の文字列で送ることを確かめる。 ファイルの内容を登録 Lambda
+       * へ渡す経路を、キー名と形式で固定するためである。
+       *
+       * @given ファイルデータが "AQI=" の Base64 に対応する 2 バイト
+       * @when getMessageBody を実行する
+       * @then file_data に "AQI=" を持つ JSON 本文を返す
+       */
+      @Test
+      void ファイルデータがある場合_file_dataにBase64を持つJSON本文を返す() throws Exception {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setFileData(new byte[] {1, 2});
+
+        String json = target.getMessageBody();
+
+        assertThat(json).contains("\"file_data\":\"AQI=\"");
+      }
+
+      /**
+       * 旧形式の watching キーだけを持つ JSON を読み込むと、監視フラグが真になることを確かめる。 旧版の送信元が出していた watching キーを、移行中の登録
+       * Lambda が読み落とさないためである。
+       *
+       * @given JSON が watching に true を持ち、is_watching を持たない
+       * @when ObjectMapper で SesInfoRegisterRequestSqsEntity に読み込む
+       * @then isWatching が true を返す
+       */
+      @Test
+      void 旧形式のwatchingキーだけの場合_監視フラグとしてtrueを返す() throws Exception {
+        String json = "{\"request_type\":\"ScreenMessage\",\"watching\":true}";
+
+        SesInfoRegisterRequestSqsEntity parsed =
+            ObjectMapperFactory.OBJECT_MAPPER.readValue(
+                json, SesInfoRegisterRequestSqsEntity.class);
+
+        assertThat(parsed.isWatching()).isTrue();
+      }
+
+      /**
+       * is_watching キーだけを持つ JSON を読み込むと、監視フラグが真になることを確かめる。 現在の送信契約のキーで監視フラグを読み取るためである。
+       *
+       * @given JSON が is_watching に true を持ち、watching を持たない
+       * @when ObjectMapper で SesInfoRegisterRequestSqsEntity に読み込む
+       * @then isWatching が true を返す
+       */
+      @Test
+      void is_watchingキーだけの場合_監視フラグとしてtrueを返す() throws Exception {
+        String json = "{\"request_type\":\"ScreenMessage\",\"is_watching\":true}";
+
+        SesInfoRegisterRequestSqsEntity parsed =
+            ObjectMapperFactory.OBJECT_MAPPER.readValue(
+                json, SesInfoRegisterRequestSqsEntity.class);
+
+        assertThat(parsed.isWatching()).isTrue();
+      }
+
+      /**
+       * watching と is_watching の両方を持つ JSON を読み込むと、監視フラグが真になることを確かめる。
+       * 旧版が両方のキーを出していたため、その形式も読み込めるようにするためである。
+       *
+       * @given JSON が watching と is_watching に true を持つ
+       * @when ObjectMapper で SesInfoRegisterRequestSqsEntity に読み込む
+       * @then isWatching が true を返す
+       */
+      @Test
+      void watchingとis_watchingの両方がある場合_監視フラグとしてtrueを返す() throws Exception {
+        String json = "{\"request_type\":\"ScreenMessage\",\"watching\":true,\"is_watching\":true}";
+
+        SesInfoRegisterRequestSqsEntity parsed =
+            ObjectMapperFactory.OBJECT_MAPPER.readValue(
+                json, SesInfoRegisterRequestSqsEntity.class);
+
+        assertThat(parsed.isWatching()).isTrue();
+      }
     }
 
     @Nested
@@ -299,22 +424,58 @@ class SesInfoRegisterRequestSqsEntityTest {
     class 境界値 {
 
       /**
-       * 件名が null の場合に、mail_subject を null として含めることを確かめる。 件名ヘッダが無いメールでも、登録 Lambda
-       * が項目の欠落を判断できるようにするためである。
+       * 件名が null の場合に、mail_subject のキーを送らないことを確かめる。 画面登録の契約は件名のキーを持たないため、全ての送信元で同じ契約にそろえるためである。
        *
-       * @given メール件名が null
+       * @given メール件名が null、種別が EmailMessage
        * @when getMessageBody を実行する
-       * @then mail_subject に null を持つ JSON 本文を返す
+       * @then mail_subject のキーを含まない JSON 本文を返す
        */
       @Test
-      void メール件名がnullの場合_mail_subjectをnullとしたJSON本文を返す() throws Exception {
+      void メール件名がnullの場合_mail_subjectを含まないJSON本文を返す() throws Exception {
         SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
         target.setRequestType(RequestType.EmailMessage);
         target.setMailSubject(null);
 
         String json = target.getMessageBody();
 
-        assertThat(json).contains("\"mail_subject\":null");
+        assertThat(json).doesNotContain("mail_subject");
+      }
+
+      /**
+       * ファイルデータが null の場合に、file_data のキーを送らないことを確かめる。 送信元はファイルの内容を載せないため、キーを残すと契約と食い違うためである。
+       *
+       * @given ファイルデータが null、種別が ScreenMessage
+       * @when getMessageBody を実行する
+       * @then file_data のキーを含まない JSON 本文を返す
+       */
+      @Test
+      void ファイルデータがnullの場合_file_dataを含まないJSON本文を返す() throws Exception {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setRequestType(RequestType.ScreenMessage);
+        target.setFileData(null);
+
+        String json = target.getMessageBody();
+
+        assertThat(json).doesNotContain("file_data");
+      }
+
+      /**
+       * info_type が JOB と PERSON 以外の場合に、info_type_invalid のキーを送らないことを確かめる。
+       * この項目は読み込みだけに使い、送信の契約には含めないためである。
+       *
+       * @given infoTypeInvalid が true、種別が ScreenMessage
+       * @when getMessageBody を実行する
+       * @then info_type_invalid のキーを含まない JSON 本文を返す
+       */
+      @Test
+      void infoTypeが不正な場合_info_type_invalidを含まないJSON本文を返す() throws Exception {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setRequestType(RequestType.ScreenMessage);
+        target.setInfoTypeInvalid(true);
+
+        String json = target.getMessageBody();
+
+        assertThat(json).doesNotContain("info_type_invalid");
       }
 
       /**
@@ -333,6 +494,36 @@ class SesInfoRegisterRequestSqsEntityTest {
         String json = target.getMessageBody();
 
         assertThat(json).contains("\"watch_period\":null");
+      }
+
+      /**
+       * 画面のメッセージでファイルとウォッチ期間が無い場合に、file_id と file_name と watch_period を null のキーとして残すことを確かめる。
+       * 画面登録の契約は、これらのキーを null のまま送るためである。
+       *
+       * @given 種別 ScreenMessage、ファイルIDとファイル名とウォッチ期間が null、監視フラグが false、情報の種類が JOB、ほか必須項目を持つ
+       * @when getMessageBody を実行する
+       * @then API_040 と同じ文字列の JSON 本文を返す
+       */
+      @Test
+      void 画面のメッセージでファイルとウォッチ期間が無い場合_nullのキーを残したJSON本文を返す() throws Exception {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setRequestType(RequestType.ScreenMessage);
+        target.setFromGroup("WEBAPP");
+        target.setFromId("u-sales");
+        target.setFromName("営業太郎");
+        target.setRawContent("案件の本文");
+        target.setWatching(false);
+        target.setInfoType("JOB");
+        target.setTenantId("T001");
+
+        String json = target.getMessageBody();
+
+        assertThat(json)
+            .isEqualTo(
+                "{\"request_type\":\"ScreenMessage\",\"from_group\":\"WEBAPP\",\"from_id\":\"u-sales\","
+                    + "\"from_name\":\"営業太郎\",\"raw_content\":\"案件の本文\",\"file_id\":null,"
+                    + "\"file_name\":null,\"is_watching\":false,\"watch_period\":null,"
+                    + "\"info_type\":\"JOB\",\"tenant_id\":\"T001\"}");
       }
     }
   }
@@ -417,6 +608,25 @@ class SesInfoRegisterRequestSqsEntityTest {
     class 異常系 {
 
       /**
+       * 全種別の必須項目名が、エンティティの項目と対応していることを確かめる。 RequestType の項目名がエンティティの項目とずれると、欠けた項目を判定できなくなるためである。
+       *
+       * @given 全種別の必須項目名の一覧、各種別で全項目を持つエンティティ
+       * @when 各必須項目名の項目だけを null にして isValid を実行する
+       * @then 全ての組み合わせで false を返す
+       */
+      @Test
+      void 必須項目名が全種別で項目と対応する場合_falseを返す() {
+        for (RequestType type : RequestType.values()) {
+          for (String field : type.requiredFieldNames()) {
+            SesInfoRegisterRequestSqsEntity target = 全項目を持つエンティティを作る(type);
+            項目をnullにする(target, field);
+
+            assertThat(target.isValid()).as(type + " の " + field).isFalse();
+          }
+        }
+      }
+
+      /**
        * info_type が JOB と PERSON 以外の場合に無効と判定することを確かめる。 画面登録の種別を誤って解釈すると、案件と要員を取り違えて登録するためである。
        *
        * @given 必須項目をすべて持つ ScreenMessage、infoTypeInvalid が true
@@ -441,6 +651,26 @@ class SesInfoRegisterRequestSqsEntityTest {
       @Test
       void requestTypeがnullの場合_falseを返す() {
         SesInfoRegisterRequestSqsEntity target = 全項目を持つエンティティを作る(null);
+
+        assertThat(target.isValid()).isFalse();
+      }
+
+      /**
+       * info_type_invalid が true の JSON を読み込んだ場合に無効と判定することを確かめる。 送信しないキーでも、読み込みでは従来どおり値を受け取るためである。
+       *
+       * @given info_type_invalid が true、必須項目をすべて持つ ScreenMessage の JSON
+       * @when JSON を SesInfoRegisterRequestSqsEntity に読み込み、isValid を実行する
+       * @then false を返す
+       */
+      @Test
+      void info_type_invalidがtrueのJSONを読み込んだ場合_falseを返す() throws Exception {
+        String json =
+            "{\"request_type\":\"ScreenMessage\",\"from_group\":\"WEBAPP\",\"from_id\":\"U001\","
+                + "\"from_name\":\"山田\",\"raw_content\":\"本文\",\"info_type_invalid\":true}";
+
+        SesInfoRegisterRequestSqsEntity target =
+            ObjectMapperFactory.OBJECT_MAPPER.readValue(
+                json, SesInfoRegisterRequestSqsEntity.class);
 
         assertThat(target.isValid()).isFalse();
       }
@@ -625,6 +855,22 @@ class SesInfoRegisterRequestSqsEntityTest {
 
         assertThat(target.isDirectedJobRegistration()).isFalse();
       }
+
+      /**
+       * 種別が null の場合に false を返すことを確かめる。 種別を判定できないリクエストを、画面指定の案件として扱わないためである。
+       *
+       * @given infoType が "JOB"、種別が null、本文が "案件本文"
+       * @when isDirectedJobRegistration を実行する
+       * @then false を返す
+       */
+      @Test
+      void 種別がnullの場合_falseを返す() {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setInfoType("JOB");
+        target.setRawContent("案件本文");
+
+        assertThat(target.isDirectedJobRegistration()).isFalse();
+      }
     }
 
     @Nested
@@ -723,6 +969,22 @@ class SesInfoRegisterRequestSqsEntityTest {
 
         assertThat(target.isDirectedCandidateRegistration()).isFalse();
       }
+
+      /**
+       * 種別が null の場合に false を返すことを確かめる。 種別を判定できないリクエストを、画面指定の要員として扱わないためである。
+       *
+       * @given infoType が "PERSON"、種別が null、本文が "要員本文"
+       * @when isDirectedCandidateRegistration を実行する
+       * @then false を返す
+       */
+      @Test
+      void 種別がnullの場合_falseを返す() {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
+        target.setInfoType("PERSON");
+        target.setRawContent("要員本文");
+
+        assertThat(target.isDirectedCandidateRegistration()).isFalse();
+      }
     }
 
     @Nested
@@ -785,6 +1047,21 @@ class SesInfoRegisterRequestSqsEntityTest {
       void 種別がメッセージの場合_falseを返す() {
         SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
         target.setRequestType(RequestType.LineMessage);
+        target.setFileName("skillsheet.xlsx");
+
+        assertThat(target.isスキルシート()).isFalse();
+      }
+
+      /**
+       * 種別が null の場合に、ファイル名があってもスキルシートでないと判定することを確かめる。 種別を判定できないリクエストを、ファイルの取り込みとして扱わないためである。
+       *
+       * @given 種別が null、ファイル名が "skillsheet.xlsx"
+       * @when isスキルシート を実行する
+       * @then false を返す
+       */
+      @Test
+      void 種別がnullの場合_falseを返す() {
+        SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
         target.setFileName("skillsheet.xlsx");
 
         assertThat(target.isスキルシート()).isFalse();

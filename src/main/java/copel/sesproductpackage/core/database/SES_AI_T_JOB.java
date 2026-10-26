@@ -4,6 +4,7 @@ import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.SesAiTableEntityBase;
 import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.unit.MultiLineText;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
 import java.math.BigDecimal;
@@ -11,7 +12,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import lombok.Data;
@@ -455,7 +455,7 @@ public class SES_AI_T_JOB extends SesAiTableEntityBase {
    * @return 必須スキルリスト
    */
   public List<String> getMustSkillsAsList() {
-    return this.mustSkills == null ? Arrays.asList() : Arrays.asList(this.mustSkills.split("\n"));
+    return new MultiLineText(this.mustSkills).toLines();
   }
 
   /**
@@ -464,7 +464,7 @@ public class SES_AI_T_JOB extends SesAiTableEntityBase {
    * @return 尚可スキルリスト
    */
   public List<String> getWantSkillsAsList() {
-    return this.wantSkills == null ? Arrays.asList() : Arrays.asList(this.wantSkills.split("\n"));
+    return new MultiLineText(this.wantSkills).toLines();
   }
 
   /**
@@ -473,9 +473,7 @@ public class SES_AI_T_JOB extends SesAiTableEntityBase {
    * @return その他条件リスト
    */
   public List<String> getOtherRequirementsAsList() {
-    return this.otherRequirements == null
-        ? Arrays.asList()
-        : Arrays.asList(this.otherRequirements.split("\n"));
+    return new MultiLineText(this.otherRequirements).toLines();
   }
 
   /**
@@ -514,8 +512,10 @@ public class SES_AI_T_JOB extends SesAiTableEntityBase {
     if (this.startDate != null) {
       sb.append("■開始: ").append(this.startDate.month()).append("\n");
     }
-    // 6. 単価
-    appendTargetPriceLine(sb, targetPrice, this.unitPrice, multiplier);
+    // 6. 単価（目標単価が未指定の場合は行を出さない）
+    if (targetPrice != null) {
+      sb.append(targetPrice.toSummaryPriceLine(this.unitPrice, multiplier));
+    }
     // 7. 出社要件、場所（出社要件が未設定の場合は両方の行を出さない）
     if (this.officeRequirements != null) {
       if (this.officeRequirements == 0) {

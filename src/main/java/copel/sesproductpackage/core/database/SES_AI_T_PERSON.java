@@ -5,6 +5,7 @@ import copel.sesproductpackage.core.database.base.SesAiTableEntityBase;
 import copel.sesproductpackage.core.unit.Area;
 import copel.sesproductpackage.core.unit.Gender;
 import copel.sesproductpackage.core.unit.Money;
+import copel.sesproductpackage.core.unit.MultiLineText;
 import copel.sesproductpackage.core.unit.OfficeAvailability;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
@@ -85,6 +86,13 @@ public class SES_AI_T_PERSON extends SesAiTableEntityBase {
 
   /** 場所 / place カラムの最大文字数（DDL の VARCHAR(30) に対応）. */
   public static final int PLACE_MAX_LENGTH = 30;
+
+  /**
+   * 目標単価がスキル見合い（単価不問）の場合に、要員の単価へ掛ける既定の倍率.
+   *
+   * <p>単価倍率を指定しない {@link #getSummaryWithTargetPrice(Money)} は、この倍率（要員の単価の1.1倍）を使う。
+   */
+  private static final double DEFAULT_TARGET_PRICE_MULTIPLIER = 1.1;
 
   /** file_id 一致で file_id のみ NULL に戻す（スキルシート削除前の参照解除用）. */
   private static final String CLEAR_FILE_ID_BY_FILE_ID_SQL =
@@ -501,7 +509,7 @@ public class SES_AI_T_PERSON extends SesAiTableEntityBase {
    * @return 経験リスト
    */
   public List<String> getExperiencesAsList() {
-    return splitLines(this.experiences);
+    return new MultiLineText(this.experiences).toLines();
   }
 
   /**
@@ -510,7 +518,7 @@ public class SES_AI_T_PERSON extends SesAiTableEntityBase {
    * @return その他条件リスト
    */
   public List<String> getOtherRequirementsAsList() {
-    return splitLines(this.otherRequirements);
+    return new MultiLineText(this.otherRequirements).toLines();
   }
 
   /**
@@ -519,7 +527,7 @@ public class SES_AI_T_PERSON extends SesAiTableEntityBase {
    * @return NG条件リスト
    */
   public List<String> getNgRequirementsAsList() {
-    return splitLines(this.ngRequirements);
+    return new MultiLineText(this.ngRequirements).toLines();
   }
 
   /**
@@ -530,7 +538,7 @@ public class SES_AI_T_PERSON extends SesAiTableEntityBase {
    * @return 要員サマリ
    */
   public String getSummaryWithTargetPrice(Money targetPrice) {
-    return getSummaryWithTargetPrice(targetPrice, 1.1);
+    return getSummaryWithTargetPrice(targetPrice, DEFAULT_TARGET_PRICE_MULTIPLIER);
   }
 
   /**
@@ -556,8 +564,10 @@ public class SES_AI_T_PERSON extends SesAiTableEntityBase {
     if (this.startDate != null && !this.startDate.isEmpty()) {
       sb.append("■開始: ").append(this.startDate.month()).append("\n");
     }
-    // 5. 単価
-    appendTargetPriceLine(sb, targetPrice, this.unitPrice, multiplier);
+    // 5. 単価（目標単価が未指定の場合は行を出さない）
+    if (targetPrice != null) {
+      sb.append(targetPrice.toSummaryPriceLine(this.unitPrice, multiplier));
+    }
     // 6. 所属形態
     // TODO: organizationの型をOrganization型にし、1社インクリメントしてセットする実装をする
     // 7. 場所

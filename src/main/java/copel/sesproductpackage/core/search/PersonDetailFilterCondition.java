@@ -1,29 +1,23 @@
 package copel.sesproductpackage.core.search;
 
-import copel.sesproductpackage.core.unit.Area;
-import copel.sesproductpackage.core.unit.Money;
-import copel.sesproductpackage.core.unit.OriginalDateTime;
 import lombok.Getter;
 import lombok.Setter;
 
-/** 要員検索の詳細フィルター条件を保持するクラス. 各フィールドが null の場合、そのフィルター条件は適用されません。 */
+/**
+ * 要員検索の詳細フィルター条件を保持するクラス. 各フィールドが null の場合、そのフィルター条件は適用されません。
+ *
+ * <p>開始月・単価の範囲・エリアは {@link DetailFilterConditionBase} が持つ。
+ *
+ * @author Copel Co., Ltd.
+ */
 @Getter
 @Setter
-public class PersonDetailFilterCondition {
+public class PersonDetailFilterCondition extends DetailFilterConditionBase {
   /** 国籍フィルターの特別な値：「日本以外」を表す. */
   private static final String NATIONALITY_OTHER = "日本以外";
 
   /** nationality カラムが「日本国籍」を表す際の実際の格納値. */
   private static final String NATIONALITY_JAPAN = "日本";
-
-  /** 開始月（yyyy/MM形式）。この日付以降の開始月を持つ要員を対象. */
-  private OriginalDateTime startDate;
-
-  /** 最小単価。この価格以上の要員を対象. */
-  private Money minPrice;
-
-  /** 最大単価。この価格以下の要員を対象. */
-  private Money maxPrice;
 
   /** 年齢の下限。この年齢以上の要員を対象. */
   private Integer minAge;
@@ -42,9 +36,6 @@ public class PersonDetailFilterCondition {
    */
   private String nationality;
 
-  /** エリア（地域コード）。このエリアに一致する要員を対象. */
-  private Area area;
-
   /** 出社可能日数（0～5）。この値以上の出社可用性を持つ要員を対象. */
   private Integer officeAvailability;
 
@@ -60,8 +51,8 @@ public class PersonDetailFilterCondition {
   /**
    * この条件から WHERE句（WHERE キーワードなし）とパラメータリストを構築します.
    *
-   * <p>単価は値を持たない {@link Money#empty()} の場合も条件に含めない。値が null のまま SQL のパラメータに渡すと組み立てに失敗するため。
-   * 「N社先」と所属形態は両方が指定されたときだけ、「N社先形態」の文字列全体で一致させる。
+   * <p>単価は値を持たない {@link copel.sesproductpackage.core.unit.Money#empty()} の場合も条件に含めない。値が null のまま
+   * SQL のパラメータに渡すと組み立てに失敗するため。 「N社先」と所属形態は両方が指定されたときだけ、「N社先形態」の文字列全体で一致させる。
    *
    * @param tableAlias テーブルエイリアス（例: "p"）。null または空の場合はエイリアスなしで構築
    * @return WHERE句とパラメータを含む {@link WhereClauseAndParams} オブジェクト
@@ -71,19 +62,10 @@ public class PersonDetailFilterCondition {
     WhereClauseBuilder builder = new WhereClauseBuilder(tableAlias);
 
     // 開始月フィルター（startDate 以降）
-    if (this.startDate != null) {
-      builder.and(builder.column("start_date") + " >= ?", this.startDate);
-    }
+    appendStartDateCondition(builder);
 
-    // 最小単価フィルター（minPrice 以上）
-    if (this.minPrice != null && this.minPrice.hasValue()) {
-      builder.and(builder.column("unit_price") + " >= ?", this.minPrice.getValue());
-    }
-
-    // 最大単価フィルター（maxPrice 以下）
-    if (this.maxPrice != null && this.maxPrice.hasValue()) {
-      builder.and(builder.column("unit_price") + " <= ?", this.maxPrice.getValue());
-    }
+    // 最小単価フィルター（minPrice 以上）と最大単価フィルター（maxPrice 以下）
+    appendPriceRangeCondition(builder);
 
     // 最小年齢フィルター（minAge 以上）
     if (this.minAge != null) {
@@ -111,9 +93,7 @@ public class PersonDetailFilterCondition {
     }
 
     // エリアフィルター
-    if (this.area != null) {
-      builder.and(builder.column("area") + " = ?", this.area);
-    }
+    appendAreaCondition(builder);
 
     // 出社可能日数フィルター（officeAvailability 以上）
     if (this.officeAvailability != null) {
