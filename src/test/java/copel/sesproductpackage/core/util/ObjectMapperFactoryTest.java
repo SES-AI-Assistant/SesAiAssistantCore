@@ -1,7 +1,10 @@
 package copel.sesproductpackage.core.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import copel.sesproductpackage.core.api.gpt.entity.ContentParseSchema;
+import copel.sesproductpackage.core.unit.InformationType;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -66,10 +69,46 @@ class ObjectMapperFactoryTest {
         assertThat(ObjectMapperFactory.OBJECT_MAPPER.readValue("\"  山田  \"", String.class))
             .isEqualTo("山田");
       }
+
+      /**
+       * 種別が Unknown で summary を省いた生成 AI の出力を、例外にせず読み込むことを確かめる。 案件でも要員でもない本文では summary が出力されない。
+       *
+       * @given 種別が Unknown で summary 項目が無い JSON
+       * @when OBJECT_MAPPER で ContentParseSchema に読み込む
+       * @then 例外を投げず、種別が Unknown で summary が null の1件を返す
+       */
+      @Test
+      void 種別がUnknownでsummaryが無い場合_summaryがnullの情報を返す() throws Exception {
+        ContentParseSchema schema =
+            ObjectMapperFactory.OBJECT_MAPPER.readValue(
+                "{\"informations\":[{\"type\":\"Unknown\"}]}", ContentParseSchema.class);
+
+        assertThat(schema.getInformations()).hasSize(1);
+        assertThat(schema.getInformations().get(0).getType()).isEqualTo(InformationType.Unknown);
+        assertThat(schema.getInformations().get(0).getSummary()).isNull();
+      }
     }
 
     @Nested
     class 異常系 {
+
+      /**
+       * 種別が PERSON / JOB で summary が無い出力は、解析の失敗として扱うことを確かめる。 登録されないまま成功扱いになり要員・案件が失われるのを防ぐ。
+       *
+       * @given 種別が PERSON または JOB で summary 項目が無い JSON
+       * @when OBJECT_MAPPER で ContentParseSchema に読み込む
+       * @then summary が無い旨のメッセージを持つ例外を投げる
+       */
+      @ParameterizedTest
+      @ValueSource(strings = {"PERSON", "JOB"})
+      void 種別がPERSONまたはJOBでsummaryが無い場合_summary欠落の例外を投げる(final String type) {
+        assertThatThrownBy(
+                () ->
+                    ObjectMapperFactory.OBJECT_MAPPER.readValue(
+                        "{\"informations\":[{\"type\":\"" + type + "\"}]}",
+                        ContentParseSchema.class))
+            .hasMessageContaining("summary がありません");
+      }
 
       /**
        * 文字列の項目にオブジェクトが来た場合は中身を読み捨てて null を返すことを確かめる。 1 項目の不正で解析全体が失敗すると他の項目も失われるので、その項目だけ null にする。

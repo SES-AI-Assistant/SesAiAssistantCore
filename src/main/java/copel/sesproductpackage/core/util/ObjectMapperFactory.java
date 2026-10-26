@@ -2,6 +2,7 @@ package copel.sesproductpackage.core.util;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -25,6 +26,9 @@ public class ObjectMapperFactory {
   private static ObjectMapper createGptObjectMapper() {
     ObjectMapper objectMapper = new ObjectMapper();
     objectMapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+    // 種別が Unknown の場合、生成AIは種別に紐づく詳細項目（summary）を出力しない。
+    // 外部の型ID項目が無いだけで解析全体を失敗させず、当該項目をnullとして読み込む。
+    objectMapper.disable(DeserializationFeature.FAIL_ON_MISSING_EXTERNAL_TYPE_ID_PROPERTY);
     SimpleModule module = new SimpleModule();
     // 変数宣言で型を明示する
     JsonDeserializer<String> stringDeserializer =
