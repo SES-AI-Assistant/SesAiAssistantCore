@@ -746,11 +746,11 @@ class SES_AI_T_JOBLotTest {
        *
        * @given 件数が 1 件、検索の結果が 1 行距離 0.1、最低単価が 1000000 円
        * @when retrieveByJobVectorWithDetailFilter を接続、テナントID "T001"、類似度 0.8、詳細条件で実行する
-       * @then 件数に 1 を保持し、1件の一覧を返す
+       * @then 件数に 1 を保持し、距離 0.1 を持つ1件の一覧を返す
        */
       @MockDbConnection
       @Test
-      void 詳細条件がある場合_件数を保持して1件の一覧を返す(final Connection connection) throws SQLException {
+      void 詳細条件がある場合_件数を保持して距離を持つ1件の一覧を返す(final Connection connection) throws SQLException {
         stubCountAndRows(connection, 1L, row(true, TENANT_ID));
         JobDetailFilterCondition detail = new JobDetailFilterCondition();
         detail.setMinPrice(new Money(1_000_000L));
@@ -761,6 +761,7 @@ class SES_AI_T_JOBLotTest {
 
         assertThat(lot.getTotalCount()).isEqualTo(1L);
         assertThat(lot.size()).isEqualTo(1);
+        assertThat(lot.get(0).getDistance()).isEqualTo(0.1);
       }
 
       /**

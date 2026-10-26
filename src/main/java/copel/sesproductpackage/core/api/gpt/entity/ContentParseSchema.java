@@ -2,6 +2,7 @@ package copel.sesproductpackage.core.api.gpt.entity;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import copel.sesproductpackage.core.api.gpt.schema.ConditionalCase;
 import copel.sesproductpackage.core.api.gpt.schema.ConditionalSchema;
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
@@ -52,6 +53,7 @@ public class ContentParseSchema {
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
+  @JsonDeserialize(converter = InfoSchemaValidator.class)
   public static class InfoSchema {
     @Schema(
         title = "情報種別",

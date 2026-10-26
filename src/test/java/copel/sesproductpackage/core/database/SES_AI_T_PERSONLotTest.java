@@ -236,7 +236,7 @@ class SES_AI_T_PERSONLotTest {
        *
        * @given SELECT の結果が 1 行テナントID "T001"、性別 "Man"
        * @when selectAll を接続とテナントID "T001" で実行する
-       * @then 要員IDが "0123456789" の1件の一覧を返す
+       * @then 要員IDが "0123456789"、NG条件が "NG"、その他条件が "その他" の1件の一覧を返す
        */
       @MockDbConnection
       @Test
@@ -248,6 +248,8 @@ class SES_AI_T_PERSONLotTest {
 
         assertThat(lot.size()).isEqualTo(1);
         assertThat(lot.get(0).getPersonId()).isEqualTo("0123456789");
+        assertThat(lot.get(0).getNgRequirements()).isEqualTo("NG");
+        assertThat(lot.get(0).getOtherRequirements()).isEqualTo("その他");
         assertThat(lot.get(0).getGender().name()).isEqualTo("Man");
       }
 

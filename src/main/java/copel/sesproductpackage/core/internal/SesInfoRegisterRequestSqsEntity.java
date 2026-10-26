@@ -202,6 +202,12 @@ public final class SesInfoRegisterRequestSqsEntity extends SQSEntityBase {
       log.warn("不正なrequestTypeです: {}", this.requestType);
       return false;
     }
+    // テナントIDが無いメッセージは、再配信しても必ず登録に失敗する（テナント隔離のため全種別で必須）。
+    // 例外でロールバックを繰り返さず、不正データとしてスキップできるようここで弾く
+    if (this.tenantId == null || this.tenantId.trim().isEmpty()) {
+      log.error("tenantIdが未設定のため不正データとして扱います");
+      return false;
+    }
     // 項目名と値の対応。種別ごとに必須となる項目名は RequestType が持つ
     Map<String, String> values = new HashMap<>();
     values.put("fromGroup", this.fromGroup);

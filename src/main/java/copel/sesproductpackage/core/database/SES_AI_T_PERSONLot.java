@@ -285,6 +285,8 @@ public class SES_AI_T_PERSONLot extends SesAiTableLotBase<SES_AI_T_PERSON> {
             : resultSet.getInt("office_availability"));
     person.setOrganization(resultSet.getString("organization"));
     person.setExperiences(resultSet.getString("experiences"));
+    person.setNgRequirements(resultSet.getString("ng_requirements"));
+    person.setOtherRequirements(resultSet.getString("other_requirements"));
     person.setUrl(resultSet.getString("url"));
     person.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
     person.setRegisterUser(resultSet.getString("register_user"));
