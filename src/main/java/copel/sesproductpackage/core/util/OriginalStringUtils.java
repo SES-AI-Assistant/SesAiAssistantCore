@@ -66,4 +66,21 @@ public class OriginalStringUtils {
     }
     return str.substring(0, str.offsetByCodePoints(0, maxLength));
   }
+
+  /**
+   * 文字列を省略記号「…」を含めて指定した文字数（コードポイント数）以内に切り詰める.
+   *
+   * <p>LLMの出力はスキーマの文字数指定（maxLength）が守られないことがあり、そのままDBへ保存するとカラム長を超えて INSERT
+   * が失敗する。切り詰めた事実が読み手に伝わるよう末尾に「…」を付け、省略記号を含めてカラム長に収める.
+   *
+   * @param str 文字列
+   * @param maxLength 省略記号を含めた最大文字数（コードポイント数）。1以上を指定する
+   * @return maxLength以内ならそのまま、超える場合は先頭から(maxLength - 1)文字と「…」。nullの場合はnull
+   */
+  public static String truncateWithEllipsis(final String str, final int maxLength) {
+    if (str == null || str.codePointCount(0, str.length()) <= maxLength) {
+      return str;
+    }
+    return truncateByCodePoints(str, maxLength - 1) + "…";
+  }
 }

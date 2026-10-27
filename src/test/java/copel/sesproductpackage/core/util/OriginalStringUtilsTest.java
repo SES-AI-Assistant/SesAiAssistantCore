@@ -237,4 +237,52 @@ class OriginalStringUtilsTest {
       }
     }
   }
+
+  @Nested
+  class truncateWithEllipsis {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 上限を超える文字列を、省略記号を含めて上限の文字数に切り詰めることを確かめる。 省略記号を付けて、切り詰めたことを読み手に伝える。
+       *
+       * @given 文字列が "abcd"、上限が 3
+       * @when truncateWithEllipsis を実行する
+       * @then 先頭の 2 文字に省略記号を付けた "ab…" を返す
+       */
+      @Test
+      void 文字列が上限を超える場合_省略記号を付けた文字列を返す() {
+        assertThat(OriginalStringUtils.truncateWithEllipsis("abcd", 3)).isEqualTo("ab…");
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 文字数が上限ちょうどの場合は元の文字列を返すことを確かめる。 上限内の値に省略記号を付けると内容を損なう。
+       *
+       * @given 文字列が "abc"、上限が 3
+       * @when truncateWithEllipsis を実行する
+       * @then 元の "abc" を返す
+       */
+      @Test
+      void 文字数が上限ちょうどの場合_元の文字列を返す() {
+        assertThat(OriginalStringUtils.truncateWithEllipsis("abc", 3)).isEqualTo("abc");
+      }
+
+      /**
+       * 文字列が null の場合は null を返すことを確かめる。 未設定の値を切り詰めると null が別の値に変わる。
+       *
+       * @given 文字列が null、上限が 3
+       * @when truncateWithEllipsis を実行する
+       * @then null を返す
+       */
+      @Test
+      void 文字列がnullの場合_nullを返す() {
+        assertThat(OriginalStringUtils.truncateWithEllipsis(null, 3)).isNull();
+      }
+    }
+  }
 }
