@@ -108,7 +108,7 @@ public class SES_AI_T_MATCH_JOB_PERSON extends SES_AI_T_MATCH {
    * @param connection DBコネクション
    */
   @Override
-  public void selectByPk(Connection connection) throws SQLException {
+  public boolean selectByPk(Connection connection) throws SQLException {
     throw new UnsupportedOperationException(String.format(READ_ONLY_MESSAGE, "selectByPk"));
   }
 

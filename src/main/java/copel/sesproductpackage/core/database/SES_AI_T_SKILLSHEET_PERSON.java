@@ -118,7 +118,7 @@ public class SES_AI_T_SKILLSHEET_PERSON extends SesAiTableEntityBase {
   }
 
   @Override
-  public void selectByPk(Connection connection) throws java.sql.SQLException {
+  public boolean selectByPk(Connection connection) throws java.sql.SQLException {
     throw new UnsupportedOperationException("SES_AI_T_SKILLSHEET_PERSON は主キーによる取得をサポートしていません。");
   }
 

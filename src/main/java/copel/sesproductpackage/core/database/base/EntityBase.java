@@ -74,9 +74,10 @@ public abstract class EntityBase implements Comparable<EntityBase> {
    * PKをキーにSELECT処理を実行します.
    *
    * @param connection DBコネクション
+   * @return 該当する行が見つかった場合 true、見つからなかった場合 false
    * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
    */
-  public abstract void selectByPk(final Connection connection) throws SQLException;
+  public abstract boolean selectByPk(final Connection connection) throws SQLException;
 
   /**
    * PKをキーにUPDATE処理を実行します.

@@ -247,11 +247,11 @@ class SES_AI_T_WATCHTest {
        *
        * @given ユーザーIDが "U001"、対象IDが "J001"、SELECT の結果が 1 行対象種別 "JOB"
        * @when selectByPk を接続で実行する
-       * @then 対象種別を JOB に更新する
+       * @then trueを返し、対象種別を JOB に更新し、メモを "メモ" に更新する
        */
       @MockDbConnection
       @Test
-      void 該当行がある場合_項目を更新する(final Connection connection) throws SQLException {
+      void 該当行がある場合_trueを返す(final Connection connection) throws SQLException {
         JdbcMocks.stubQuery(
             connection,
             MockResultSetBuilder.builder()
@@ -261,26 +261,26 @@ class SES_AI_T_WATCHTest {
         SES_AI_T_WATCH watch = watch();
         watch.setTargetType(null);
 
-        watch.selectByPk(connection);
+        assertThat(watch.selectByPk(connection)).isTrue();
 
         assertThat(watch.getTargetType()).isEqualTo(TargetType.JOB);
         assertThat(watch.getMemo()).isEqualTo("メモ");
       }
 
       /**
-       * 該当行が無い場合に項目を変えないことを確かめる。 存在しないウォッチを読み込んでも、入力中の値を壊さない。
+       * 該当行が無い場合に false を返し、項目を変えないことを確かめる。 存在しないウォッチを読み込んでも、入力中の値を壊さない。
        *
        * @given ユーザーIDが "U001"、対象IDが "J001"、SELECT の結果が 0 行
        * @when selectByPk を接続で実行する
-       * @then 対象種別を変えずに何もしない
+       * @then falseを返し、対象種別を変えない
        */
       @MockDbConnection
       @Test
-      void 該当行が無い場合_何もしない(final Connection connection) throws SQLException {
+      void 該当行が無い場合_falseを返す(final Connection connection) throws SQLException {
         JdbcMocks.stubQuery(connection, MockResultSetBuilder.builder().columns(COLUMNS).build());
         SES_AI_T_WATCH watch = watch();
 
-        watch.selectByPk(connection);
+        assertThat(watch.selectByPk(connection)).isFalse();
 
         assertThat(watch.getTargetType()).isEqualTo(TargetType.JOB);
       }
@@ -321,15 +321,15 @@ class SES_AI_T_WATCHTest {
        *
        * @given ユーザーIDが null、対象IDが "J001"
        * @when selectByPk を接続で実行する
-       * @then SQL の準備を呼ばない
+       * @then falseを返し、SQL の準備を呼ばない
        */
       @MockDbConnection
       @Test
-      void ユーザーIDがnullの場合_DBを呼ばない(final Connection connection) throws SQLException {
+      void ユーザーIDがnullの場合_DBを呼ばずfalseを返す(final Connection connection) throws SQLException {
         SES_AI_T_WATCH watch = watch();
         watch.setUserId(null);
 
-        watch.selectByPk(connection);
+        assertThat(watch.selectByPk(connection)).isFalse();
 
         verify(connection, never()).prepareStatement(anyString());
       }
@@ -339,15 +339,15 @@ class SES_AI_T_WATCHTest {
        *
        * @given ユーザーIDが "U001"、対象IDが null
        * @when selectByPk を接続で実行する
-       * @then SQL の準備を呼ばない
+       * @then falseを返し、SQL の準備を呼ばない
        */
       @MockDbConnection
       @Test
-      void 対象IDがnullの場合_DBを呼ばない(final Connection connection) throws SQLException {
+      void 対象IDがnullの場合_DBを呼ばずfalseを返す(final Connection connection) throws SQLException {
         SES_AI_T_WATCH watch = watch();
         watch.setTargetId(null);
 
-        watch.selectByPk(connection);
+        assertThat(watch.selectByPk(connection)).isFalse();
 
         verify(connection, never()).prepareStatement(anyString());
       }

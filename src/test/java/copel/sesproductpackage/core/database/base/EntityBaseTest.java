@@ -78,8 +78,9 @@ class EntityBaseTest {
     }
 
     @Override
-    public void selectByPk(final Connection connection) throws SQLException {
+    public boolean selectByPk(final Connection connection) throws SQLException {
       // テストでは使わない
+      return false;
     }
 
     @Override

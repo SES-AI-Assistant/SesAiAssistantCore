@@ -185,11 +185,11 @@ public class SES_AI_T_MATCH extends EntityBase {
   }
 
   @Override
-  public void selectByPk(Connection connection) throws SQLException {
+  public boolean selectByPk(Connection connection) throws SQLException {
     if (this.matchingId == null) {
-      return;
+      return false;
     }
-    executeSelectByPk(
+    return executeSelectByPk(
         connection,
         SELECT_SQL,
         this.tenantId,

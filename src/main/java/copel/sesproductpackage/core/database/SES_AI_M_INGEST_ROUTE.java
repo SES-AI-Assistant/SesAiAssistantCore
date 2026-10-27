@@ -107,11 +107,11 @@ public class SES_AI_M_INGEST_ROUTE extends EntityBase {
   }
 
   @Override
-  public void selectByPk(Connection connection) throws SQLException {
+  public boolean selectByPk(Connection connection) throws SQLException {
     if (this.channelType == null || this.routeKey == null) {
-      return;
+      return false;
     }
-    executeSelectByPk(
+    return executeSelectByPk(
         connection,
         SELECT_SQL,
         this.tenantId,

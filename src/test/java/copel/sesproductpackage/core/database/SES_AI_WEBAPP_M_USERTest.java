@@ -417,11 +417,11 @@ class SES_AI_WEBAPP_M_USERTest {
        *
        * @given ユーザーIDが "U001"、テナントIDが "T001"、SELECT の結果が 1 行ロール "30"、プラン "10"
        * @when selectByPk を接続で実行する
-       * @then ロールを 運用、プランを PREMIUM に更新する
+       * @then trueを返し、ロールを 運用、プランを PREMIUM に更新し、登録済みとする
        */
       @MockDbConnection
       @Test
-      void 該当行がある場合_項目を更新する(final Connection connection) throws SQLException {
+      void 該当行がある場合_trueを返す(final Connection connection) throws SQLException {
         JdbcMocks.stubQuery(
             connection,
             MockResultSetBuilder.builder()
@@ -430,7 +430,7 @@ class SES_AI_WEBAPP_M_USERTest {
                 .build());
         SES_AI_WEBAPP_M_USER user = userWithoutOptionalFields();
 
-        user.selectByPk(connection);
+        assertThat(user.selectByPk(connection)).isTrue();
 
         assertThat(user.getRole()).isEqualTo(Role.運用);
         assertThat(user.getPlan()).isEqualTo(Plan.PREMIUM);
@@ -442,15 +442,15 @@ class SES_AI_WEBAPP_M_USERTest {
        *
        * @given ユーザーIDが "U001"、SELECT の結果が 0 行
        * @when selectByPk を接続で実行する
-       * @then ユーザー名を変えずに何もしない
+       * @then falseを返し、ユーザー名を変えず、未登録とする
        */
       @MockDbConnection
       @Test
-      void 該当行が無い場合_何もしない(final Connection connection) throws SQLException {
+      void 該当行が無い場合_falseを返す(final Connection connection) throws SQLException {
         JdbcMocks.stubQuery(connection, MockResultSetBuilder.builder().columns(COLUMNS).build());
         SES_AI_WEBAPP_M_USER user = userWithoutOptionalFields();
 
-        user.selectByPk(connection);
+        assertThat(user.selectByPk(connection)).isFalse();
 
         assertThat(user.getUserName()).isNull();
         assertThat(user.isRegistered()).isFalse();
@@ -465,14 +465,14 @@ class SES_AI_WEBAPP_M_USERTest {
        *
        * @given ユーザーIDが null
        * @when selectByPk を接続で実行する
-       * @then SQL の準備を呼ばず、未登録とする
+       * @then falseを返し、SQL の準備を呼ばず、未登録とする
        */
       @MockDbConnection
       @Test
-      void ユーザーIDがnullの場合_DBを呼ばない(final Connection connection) throws SQLException {
+      void ユーザーIDがnullの場合_DBを呼ばずfalseを返す(final Connection connection) throws SQLException {
         SES_AI_WEBAPP_M_USER user = new SES_AI_WEBAPP_M_USER(TENANT_ID);
 
-        user.selectByPk(connection);
+        assertThat(user.selectByPk(connection)).isFalse();
 
         assertThat(user.isRegistered()).isFalse();
         verify(connection, never()).prepareStatement(anyString());
@@ -487,11 +487,11 @@ class SES_AI_WEBAPP_M_USERTest {
        *
        * @given ユーザーIDが "U001"、テナントIDが "T001"、SELECT の結果が 1 行ロール "30"、プラン "10"
        * @when selectByPk を接続で実行する
-       * @then 条件の2番目に "T001" を設定し、項目を更新する
+       * @then trueを返し、条件の2番目に "T001" を設定する
        */
       @MockDbConnection
       @Test
-      void テナントIDがT001の場合_項目を更新する(final Connection connection) throws SQLException {
+      void テナントIDがT001の場合_trueを返す(final Connection connection) throws SQLException {
         PreparedStatement statement =
             JdbcMocks.stubQuery(
                 connection,
@@ -500,7 +500,7 @@ class SES_AI_WEBAPP_M_USERTest {
                     .row(USER_ID, "山田太郎", "30", "10", REGISTER_DATE_TEXT, "U000", TENANT_ID)
                     .build());
 
-        userWithoutOptionalFields().selectByPk(connection);
+        assertThat(userWithoutOptionalFields().selectByPk(connection)).isTrue();
 
         verify(statement).setString(2, TENANT_ID);
       }

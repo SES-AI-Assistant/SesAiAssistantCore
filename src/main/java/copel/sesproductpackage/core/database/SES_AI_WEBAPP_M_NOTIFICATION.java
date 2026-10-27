@@ -101,11 +101,11 @@ public class SES_AI_WEBAPP_M_NOTIFICATION extends EntityBase {
   }
 
   @Override
-  public void selectByPk(Connection connection) throws SQLException {
+  public boolean selectByPk(Connection connection) throws SQLException {
     if (this.notificationId == null) {
-      return;
+      return false;
     }
-    executeSelectByPk(
+    return executeSelectByPk(
         connection,
         SELECT_SQL,
         this.tenantId,

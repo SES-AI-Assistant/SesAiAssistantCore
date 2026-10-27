@@ -174,11 +174,11 @@ class SES_AI_M_INGEST_ROUTETest {
        *
        * @given チャネル種別が LINE、ルートキーが "U-LINE-001"、SELECT の結果が 1 行チャネル種別 "LINE"、登録ユーザー "U001"
        * @when selectByPk を接続で実行する
-       * @then チャネル種別 LINE と登録ユーザー "U001" を読み込んだ項目に更新する
+       * @then trueを返し、チャネル種別 LINE と登録ユーザー "U001" を読み込んだ項目に更新し、テナントIDを3番目のバインド値に渡す
        */
       @MockDbConnection
       @Test
-      void 該当行がある場合_項目を更新する(final Connection connection) throws SQLException {
+      void 該当行がある場合_trueを返す(final Connection connection) throws SQLException {
         PreparedStatement statement =
             JdbcMocks.stubQuery(
                 connection,
@@ -188,7 +188,7 @@ class SES_AI_M_INGEST_ROUTETest {
                     .build());
         SES_AI_M_INGEST_ROUTE route = route();
 
-        route.selectByPk(connection);
+        assertThat(route.selectByPk(connection)).isTrue();
 
         assertThat(route.getChannelType()).isEqualTo(ChannelType.LINE);
         assertThat(route.getRegisterUser()).isEqualTo("U001");
@@ -196,19 +196,19 @@ class SES_AI_M_INGEST_ROUTETest {
       }
 
       /**
-       * 該当行が無い場合に項目を変えないことを確かめる。 存在しないルーティングを読み込んでも、入力中の値を壊さない。
+       * 該当行が無い場合に false を返し、項目を変えないことを確かめる。 存在しないルーティングを読み込んでも、入力中の値を壊さない。
        *
        * @given チャネル種別が LINE、ルートキーが "U-LINE-001"、SELECT の結果が 0 行
        * @when selectByPk を接続で実行する
-       * @then ルートキーを変えずに何もしない
+       * @then falseを返し、ルートキーを変えない
        */
       @MockDbConnection
       @Test
-      void 該当行が無い場合_何もしない(final Connection connection) throws SQLException {
+      void 該当行が無い場合_falseを返す(final Connection connection) throws SQLException {
         JdbcMocks.stubQuery(connection, MockResultSetBuilder.builder().columns(COLUMNS).build());
         SES_AI_M_INGEST_ROUTE route = route();
 
-        route.selectByPk(connection);
+        assertThat(route.selectByPk(connection)).isFalse();
 
         assertThat(route.getRouteKey()).isEqualTo(ROUTE_KEY);
         assertThat(route.getRegisterUser()).isNull();
@@ -249,15 +249,15 @@ class SES_AI_M_INGEST_ROUTETest {
        *
        * @given チャネル種別が null、ルートキーが "U-LINE-001"
        * @when selectByPk を接続で実行する
-       * @then SQL の準備を呼ばない
+       * @then falseを返し、SQL の準備を呼ばない
        */
       @MockDbConnection
       @Test
-      void チャネル種別がnullの場合_DBを呼ばない(final Connection connection) throws SQLException {
+      void チャネル種別がnullの場合_DBを呼ばずfalseを返す(final Connection connection) throws SQLException {
         SES_AI_M_INGEST_ROUTE route = route();
         route.setChannelType(null);
 
-        route.selectByPk(connection);
+        assertThat(route.selectByPk(connection)).isFalse();
 
         verify(connection, never()).prepareStatement(anyString());
       }
@@ -267,15 +267,15 @@ class SES_AI_M_INGEST_ROUTETest {
        *
        * @given チャネル種別が LINE、ルートキーが null
        * @when selectByPk を接続で実行する
-       * @then SQL の準備を呼ばない
+       * @then falseを返し、SQL の準備を呼ばない
        */
       @MockDbConnection
       @Test
-      void ルートキーがnullの場合_DBを呼ばない(final Connection connection) throws SQLException {
+      void ルートキーがnullの場合_DBを呼ばずfalseを返す(final Connection connection) throws SQLException {
         SES_AI_M_INGEST_ROUTE route = route();
         route.setRouteKey(null);
 
-        route.selectByPk(connection);
+        assertThat(route.selectByPk(connection)).isFalse();
 
         verify(connection, never()).prepareStatement(anyString());
       }

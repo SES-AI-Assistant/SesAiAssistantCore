@@ -159,11 +159,11 @@ public class SES_AI_T_SKILLSHEET extends SesAiTableEntityBase {
   }
 
   @Override
-  public void selectByPk(final Connection connection) throws SQLException {
+  public boolean selectByPk(final Connection connection) throws SQLException {
     if (this.getFileId() == null) {
-      return;
+      return false;
     }
-    executeSelectByPk(
+    return executeSelectByPk(
         connection,
         SELECT_SQL,
         this.tenantId,

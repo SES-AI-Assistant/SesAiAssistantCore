@@ -345,11 +345,11 @@ public class SES_AI_T_JOB extends SesAiTableEntityBase {
    * @throws SQLException DB操作エラー
    */
   @Override
-  public void selectByPk(final Connection connection) throws SQLException {
+  public boolean selectByPk(final Connection connection) throws SQLException {
     if (this.jobId == null) {
-      return;
+      return false;
     }
-    executeSelectByPk(
+    return executeSelectByPk(
         connection,
         SELECT_SQL,
         this.tenantId,

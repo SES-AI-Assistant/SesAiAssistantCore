@@ -174,11 +174,11 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
   }
 
   @Override
-  public void selectByPk(Connection connection) throws SQLException {
+  public boolean selectByPk(Connection connection) throws SQLException {
     if (this.userId == null) {
       // 検索しないため未登録扱いとする（registered は false のまま）
       this.registered = false;
-      return;
+      return false;
     }
     this.registered =
         executeSelectByPkWithoutTenantFilter(
@@ -190,6 +190,7 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
             },
             this::fillFromResultSet,
             "SES_AI_WEBAPP_M_USER.selectByPk");
+    return this.registered;
   }
 
   /**
