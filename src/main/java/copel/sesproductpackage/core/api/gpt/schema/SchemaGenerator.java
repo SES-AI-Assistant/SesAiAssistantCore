@@ -156,6 +156,22 @@ public final class SchemaGenerator {
       fieldSchema.put("description", schema.description());
     }
 
+    if (schema != null && schema.currentAndNextYearOnly()) {
+      // モデルは今日の日付を知らないため、「即日」「未記載」を本日の年月にする指示が機能しない。
+      // 説明文に本日の日付を埋め込んで伝える。
+      LocalDate today = LocalDate.now(ApplicationClock.INSTANCE.clock());
+      fieldSchema.put(
+          "description",
+          schema.description()
+              + "本日は"
+              + today.getYear()
+              + "年"
+              + today.getMonthValue()
+              + "月"
+              + today.getDayOfMonth()
+              + "日である。");
+    }
+
     return fieldSchema;
   }
 
