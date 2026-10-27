@@ -485,11 +485,11 @@ class SES_AI_T_SKILLSHEETTest {
        *
        * @given ファイルIDが "20260115_skill.xlsx"、SELECT の結果が 1 行原文 "原文"
        * @when selectByPk を接続で実行する
-       * @then 原文を "原文" に更新する
+       * @then trueを返し、原文を "原文" に更新し、ファイル名を "skill.xlsx" に更新する
        */
       @MockDbConnection
       @Test
-      void 該当行がある場合_項目を更新する(final Connection connection) throws SQLException {
+      void 該当行がある場合_trueを返す(final Connection connection) throws SQLException {
         JdbcMocks.stubQuery(
             connection,
             MockResultSetBuilder.builder()
@@ -509,26 +509,26 @@ class SES_AI_T_SKILLSHEETTest {
         SES_AI_T_SKILLSHEET skillSheet = new SES_AI_T_SKILLSHEET(TENANT_ID);
         skillSheet.setFileId(FILE_ID);
 
-        skillSheet.selectByPk(connection);
+        assertThat(skillSheet.selectByPk(connection)).isTrue();
 
         assertThat(skillSheet.getFileContent()).isEqualTo("原文");
         assertThat(skillSheet.getFileName()).isEqualTo("skill.xlsx");
       }
 
       /**
-       * 該当行が無い場合に項目を変えないことを確かめる。 存在しないスキルシートを読み込んでも、入力中の値を壊さない。
+       * 該当行が無い場合に false を返し、項目を変えないことを確かめる。 存在しないスキルシートを読み込んでも、入力中の値を壊さない。
        *
        * @given ファイルIDが "20260115_skill.xlsx"、SELECT の結果が 0 行
        * @when selectByPk を接続で実行する
-       * @then 原文を変えずに何もしない
+       * @then falseを返し、原文を変えない
        */
       @MockDbConnection
       @Test
-      void 該当行が無い場合_何もしない(final Connection connection) throws SQLException {
+      void 該当行が無い場合_falseを返す(final Connection connection) throws SQLException {
         JdbcMocks.stubQuery(connection, MockResultSetBuilder.builder().columns(COLUMNS).build());
         SES_AI_T_SKILLSHEET skillSheet = skillSheet();
 
-        skillSheet.selectByPk(connection);
+        assertThat(skillSheet.selectByPk(connection)).isFalse();
 
         assertThat(skillSheet.getFileContent()).isEqualTo("原文");
       }
@@ -542,12 +542,12 @@ class SES_AI_T_SKILLSHEETTest {
        *
        * @given ファイルIDが null
        * @when selectByPk を接続で実行する
-       * @then SQL の準備を呼ばない
+       * @then falseを返し、SQL の準備を呼ばない
        */
       @MockDbConnection
       @Test
-      void ファイルIDがnullの場合_DBを呼ばない(final Connection connection) throws SQLException {
-        new SES_AI_T_SKILLSHEET(TENANT_ID).selectByPk(connection);
+      void ファイルIDがnullの場合_DBを呼ばずfalseを返す(final Connection connection) throws SQLException {
+        assertThat(new SES_AI_T_SKILLSHEET(TENANT_ID).selectByPk(connection)).isFalse();
 
         verify(connection, never()).prepareStatement(anyString());
       }

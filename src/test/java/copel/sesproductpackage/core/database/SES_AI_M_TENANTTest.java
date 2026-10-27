@@ -141,11 +141,11 @@ class SES_AI_M_TENANTTest {
        *
        * @given テナントIDが "T001"、SELECT の結果が 1 行テナント名 "テナントA"、ステータス区分 "1"
        * @when selectByPk を接続で実行する
-       * @then テナント名とステータス区分を更新する
+       * @then trueを返し、テナント名とステータス区分を更新する
        */
       @MockDbConnection
       @Test
-      void 該当行がある場合_項目を更新する(final Connection connection) throws SQLException {
+      void 該当行がある場合_trueを返す(final Connection connection) throws SQLException {
         JdbcMocks.stubQuery(
             connection,
             MockResultSetBuilder.builder()
@@ -154,26 +154,26 @@ class SES_AI_M_TENANTTest {
                 .build());
         SES_AI_M_TENANT tenant = new SES_AI_M_TENANT(TENANT_ID);
 
-        tenant.selectByPk(connection);
+        assertThat(tenant.selectByPk(connection)).isTrue();
 
         assertThat(tenant.getTenantName()).isEqualTo("テナントA");
         assertThat(tenant.getTenantStatusCd()).isEqualTo("1");
       }
 
       /**
-       * 該当行が無い場合に項目を変えないことを確かめる。 存在しないテナントを読み込んでも、入力中の値を壊さない。
+       * 該当行が無い場合に false を返し、項目を変えないことを確かめる。 存在しないテナントを読み込んでも、入力中の値を壊さない。
        *
        * @given テナントIDが "T001"、SELECT の結果が 0 行
        * @when selectByPk を接続で実行する
-       * @then テナント名を変えずに何もしない
+       * @then falseを返し、テナント名を変えない
        */
       @MockDbConnection
       @Test
-      void 該当行が無い場合_何もしない(final Connection connection) throws SQLException {
+      void 該当行が無い場合_falseを返す(final Connection connection) throws SQLException {
         JdbcMocks.stubQuery(connection, MockResultSetBuilder.builder().columns(COLUMNS).build());
         SES_AI_M_TENANT tenant = new SES_AI_M_TENANT(TENANT_ID);
 
-        tenant.selectByPk(connection);
+        assertThat(tenant.selectByPk(connection)).isFalse();
 
         assertThat(tenant.getTenantName()).isNull();
       }
@@ -187,15 +187,15 @@ class SES_AI_M_TENANTTest {
        *
        * @given テナントIDが null
        * @when selectByPk を接続で実行する
-       * @then SQL の準備を呼ばない
+       * @then falseを返し、SQL の準備を呼ばない
        */
       @MockDbConnection
       @Test
-      void テナントIDがnullの場合_DBを呼ばない(final Connection connection) throws SQLException {
+      void テナントIDがnullの場合_DBを呼ばずfalseを返す(final Connection connection) throws SQLException {
         SES_AI_M_TENANT tenant = new SES_AI_M_TENANT(TENANT_ID);
         tenant.setTenantId(null);
 
-        tenant.selectByPk(connection);
+        assertThat(tenant.selectByPk(connection)).isFalse();
 
         verify(connection, never()).prepareStatement(anyString());
       }

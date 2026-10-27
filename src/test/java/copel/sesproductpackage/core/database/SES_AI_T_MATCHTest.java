@@ -512,11 +512,11 @@ class SES_AI_T_MATCHTest {
        *
        * @given マッチングIDが "0123456789"、SELECT の結果が 1 行ステータス "20"、点数 80、利益 1000000
        * @when selectByPk を接続で実行する
-       * @then ステータスを進行中、点数を 80、利益を 1000000 円に更新する
+       * @then trueを返し、ステータスを進行中、点数を 80、利益を 1000000 円に更新する
        */
       @MockDbConnection
       @Test
-      void 該当行がある場合_項目を更新する(final Connection connection) throws SQLException {
+      void 該当行がある場合_trueを返す(final Connection connection) throws SQLException {
         JdbcMocks.stubQuery(
             connection,
             MockResultSetBuilder.builder()
@@ -543,7 +543,7 @@ class SES_AI_T_MATCHTest {
         SES_AI_T_MATCH match = new SES_AI_T_MATCH(TENANT_ID);
         match.setMatchingId(MATCHING_ID);
 
-        match.selectByPk(connection);
+        assertThat(match.selectByPk(connection)).isTrue();
 
         assertThat(match.getStatus()).isEqualTo(MatchingStatus.進行中);
         assertThat(match.getScore()).isEqualTo(80);
@@ -551,19 +551,19 @@ class SES_AI_T_MATCHTest {
       }
 
       /**
-       * 該当行が無い場合に項目を変えないことを確かめる。 存在しないマッチングを読み込んでも、入力中の値を壊さない。
+       * 該当行が無い場合に false を返し、項目を変えないことを確かめる。 存在しないマッチングを読み込んでも、入力中の値を壊さない。
        *
        * @given マッチングIDが "0123456789"、SELECT の結果が 0 行
        * @when selectByPk を接続で実行する
-       * @then 利益を変えずに何もしない
+       * @then falseを返し、利益を変えない
        */
       @MockDbConnection
       @Test
-      void 該当行が無い場合_何もしない(final Connection connection) throws SQLException {
+      void 該当行が無い場合_falseを返す(final Connection connection) throws SQLException {
         JdbcMocks.stubQuery(connection, MockResultSetBuilder.builder().columns(COLUMNS).build());
         SES_AI_T_MATCH match = match();
 
-        match.selectByPk(connection);
+        assertThat(match.selectByPk(connection)).isFalse();
 
         assertThat(match.getProfit().getValue()).isEqualByComparingTo(new BigDecimal(1_000_000));
       }
@@ -577,11 +577,11 @@ class SES_AI_T_MATCHTest {
        *
        * @given マッチングIDが "0123456789"、SELECT の結果が 1 行点数が null、利益が null
        * @when selectByPk を接続で実行する
-       * @then 点数をnullに、利益を空の値に更新する
+       * @then trueを返し、点数をnullに、利益を空の値に更新する
        */
       @MockDbConnection
       @Test
-      void 点数と利益が未設定の行の場合_点数としてnullと利益として空の値を更新する(final Connection connection) throws SQLException {
+      void 点数と利益が未設定の行の場合_trueを返す(final Connection connection) throws SQLException {
         JdbcMocks.stubQuery(
             connection,
             MockResultSetBuilder.builder()
@@ -607,7 +607,7 @@ class SES_AI_T_MATCHTest {
                 .build());
         SES_AI_T_MATCH match = match();
 
-        match.selectByPk(connection);
+        assertThat(match.selectByPk(connection)).isTrue();
 
         assertThat(match.getScore()).isNull();
         assertThat(match.getProfit().isEmpty()).isTrue();
@@ -618,12 +618,12 @@ class SES_AI_T_MATCHTest {
        *
        * @given マッチングIDが null
        * @when selectByPk を接続で実行する
-       * @then SQL の準備を呼ばない
+       * @then falseを返し、SQL の準備を呼ばない
        */
       @MockDbConnection
       @Test
-      void マッチングIDがnullの場合_DBを呼ばない(final Connection connection) throws SQLException {
-        new SES_AI_T_MATCH(TENANT_ID).selectByPk(connection);
+      void マッチングIDがnullの場合_DBを呼ばずfalseを返す(final Connection connection) throws SQLException {
+        assertThat(new SES_AI_T_MATCH(TENANT_ID).selectByPk(connection)).isFalse();
 
         verify(connection, never()).prepareStatement(anyString());
       }

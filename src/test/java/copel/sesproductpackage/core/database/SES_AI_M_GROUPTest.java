@@ -179,11 +179,11 @@ class SES_AI_M_GROUPTest {
        *
        * @given 送信元グループが "G001"、SELECT の結果が 1 行グループ名 "グループA"、登録ユーザー "U001"
        * @when selectByPk を接続に対して実行する
-       * @then グループ名に "グループA" を読み込み、登録ユーザーに "U001" を読み込む
+       * @then trueを返し、グループ名に "グループA" を読み込み、登録ユーザーに "U001" を読み込む
        */
       @MockDbConnection
       @Test
-      void 該当行がある場合_項目を更新する(final Connection connection) throws SQLException {
+      void 該当行がある場合_trueを返す(final Connection connection) throws SQLException {
         JdbcMocks.stubQuery(
             connection,
             MockResultSetBuilder.builder()
@@ -193,27 +193,27 @@ class SES_AI_M_GROUPTest {
         SES_AI_M_GROUP group = new SES_AI_M_GROUP(TENANT_ID);
         group.setFromGroup(FROM_GROUP);
 
-        group.selectByPk(connection);
+        assertThat(group.selectByPk(connection)).isTrue();
 
         assertThat(group.getGroupName()).isEqualTo("グループA");
         assertThat(group.getRegisterUser()).isEqualTo("U001");
       }
 
       /**
-       * 該当行が無い場合に項目を変えないことを確かめる。 存在しない送信元グループを読み込んでも、入力中の値を壊さない。
+       * 該当行が無い場合に false を返し、項目を変えないことを確かめる。 存在しない送信元グループを読み込んでも、入力中の値を壊さない。
        *
        * @given 送信元グループが "G001"、SELECT の結果が 0 行
        * @when selectByPk を接続に対して実行する
-       * @then 送信元グループの値を変えずに何もしない
+       * @then falseを返し、送信元グループの値を変えない
        */
       @MockDbConnection
       @Test
-      void 該当行が無い場合_何もしない(final Connection connection) throws SQLException {
+      void 該当行が無い場合_falseを返す(final Connection connection) throws SQLException {
         JdbcMocks.stubQuery(connection, MockResultSetBuilder.builder().columns(COLUMNS).build());
         SES_AI_M_GROUP group = new SES_AI_M_GROUP(TENANT_ID);
         group.setFromGroup(FROM_GROUP);
 
-        group.selectByPk(connection);
+        assertThat(group.selectByPk(connection)).isFalse();
 
         assertThat(group.getFromGroup()).isEqualTo(FROM_GROUP);
         assertThat(group.getGroupName()).isNull();
@@ -228,12 +228,12 @@ class SES_AI_M_GROUPTest {
        *
        * @given 送信元グループが null
        * @when selectByPk を接続に対して実行する
-       * @then SQL の準備を呼ばない
+       * @then falseを返し、SQL の準備を呼ばない
        */
       @MockDbConnection
       @Test
-      void 送信元グループがnullの場合_DBを呼ばない(final Connection connection) throws SQLException {
-        new SES_AI_M_GROUP(TENANT_ID).selectByPk(connection);
+      void 送信元グループがnullの場合_DBを呼ばずfalseを返す(final Connection connection) throws SQLException {
+        assertThat(new SES_AI_M_GROUP(TENANT_ID).selectByPk(connection)).isFalse();
 
         verify(connection, never()).prepareStatement(anyString());
       }

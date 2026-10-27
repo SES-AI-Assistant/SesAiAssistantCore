@@ -106,11 +106,11 @@ public class SES_AI_T_WATCH extends EntityBase {
   }
 
   @Override
-  public void selectByPk(Connection connection) throws SQLException {
+  public boolean selectByPk(Connection connection) throws SQLException {
     if (this.userId == null || this.targetId == null) {
-      return;
+      return false;
     }
-    executeSelectByPk(
+    return executeSelectByPk(
         connection,
         SELECT_SQL,
         this.tenantId,

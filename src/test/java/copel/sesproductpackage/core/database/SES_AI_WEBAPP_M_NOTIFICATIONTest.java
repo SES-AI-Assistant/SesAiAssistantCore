@@ -217,11 +217,11 @@ class SES_AI_WEBAPP_M_NOTIFICATIONTest {
        *
        * @given 通知デバイスIDが "N001"、SELECT の結果が 1 行有効フラグ true、全件通知フラグ false
        * @when selectByPk を接続で実行する
-       * @then 読み込んだ項目で、有効フラグを true、全件通知フラグを false に更新する
+       * @then trueを返し、読み込んだ項目で、ユーザーIDを "U001" に更新し、有効フラグを true、全件通知フラグを false に更新する
        */
       @MockDbConnection
       @Test
-      void 該当行がある場合_項目を更新する(final Connection connection) throws SQLException {
+      void 該当行がある場合_trueを返す(final Connection connection) throws SQLException {
         JdbcMocks.stubQuery(
             connection,
             MockResultSetBuilder.builder()
@@ -242,7 +242,7 @@ class SES_AI_WEBAPP_M_NOTIFICATIONTest {
         SES_AI_WEBAPP_M_NOTIFICATION notification = new SES_AI_WEBAPP_M_NOTIFICATION(TENANT_ID);
         notification.setNotificationId(NOTIFICATION_ID);
 
-        notification.selectByPk(connection);
+        assertThat(notification.selectByPk(connection)).isTrue();
 
         assertThat(notification.getUserId()).isEqualTo("U001");
         assertThat(notification.getEnabled()).isTrue();
@@ -250,20 +250,20 @@ class SES_AI_WEBAPP_M_NOTIFICATIONTest {
       }
 
       /**
-       * 該当行が無い場合に項目を変えないことを確かめる。 存在しない通知先を読み込んでも、入力中の値を壊さない。
+       * 該当行が無い場合に false を返し、項目を変えないことを確かめる。 存在しない通知先を読み込んでも、入力中の値を壊さない。
        *
        * @given 通知デバイスIDが "N001"、SELECT の結果が 0 行
        * @when selectByPk を接続で実行する
-       * @then ユーザーIDを変えずに何もしない
+       * @then falseを返し、ユーザーIDを変えない
        */
       @MockDbConnection
       @Test
-      void 該当行が無い場合_何もしない(final Connection connection) throws SQLException {
+      void 該当行が無い場合_falseを返す(final Connection connection) throws SQLException {
         JdbcMocks.stubQuery(connection, MockResultSetBuilder.builder().columns(COLUMNS).build());
         SES_AI_WEBAPP_M_NOTIFICATION notification = new SES_AI_WEBAPP_M_NOTIFICATION(TENANT_ID);
         notification.setNotificationId(NOTIFICATION_ID);
 
-        notification.selectByPk(connection);
+        assertThat(notification.selectByPk(connection)).isFalse();
 
         assertThat(notification.getUserId()).isNull();
       }
@@ -277,12 +277,12 @@ class SES_AI_WEBAPP_M_NOTIFICATIONTest {
        *
        * @given 通知デバイスIDが null
        * @when selectByPk を接続で実行する
-       * @then SQL の準備を呼ばない
+       * @then falseを返し、SQL の準備を呼ばない
        */
       @MockDbConnection
       @Test
-      void 通知デバイスIDがnullの場合_DBを呼ばない(final Connection connection) throws SQLException {
-        new SES_AI_WEBAPP_M_NOTIFICATION(TENANT_ID).selectByPk(connection);
+      void 通知デバイスIDがnullの場合_DBを呼ばずfalseを返す(final Connection connection) throws SQLException {
+        assertThat(new SES_AI_WEBAPP_M_NOTIFICATION(TENANT_ID).selectByPk(connection)).isFalse();
 
         verify(connection, never()).prepareStatement(anyString());
       }
@@ -296,17 +296,17 @@ class SES_AI_WEBAPP_M_NOTIFICATIONTest {
        *
        * @given 通知デバイスIDが "N001"、テナントIDが "T001"、SELECT の結果が 0 行
        * @when selectByPk を接続で実行する
-       * @then 条件の2番目に "T001" を設定し、何もしない
+       * @then falseを返し、条件の2番目に "T001" を設定する
        */
       @MockDbConnection
       @Test
-      void テナントIDがT001の場合_何もしない(final Connection connection) throws SQLException {
+      void テナントIDがT001の場合_falseを返す(final Connection connection) throws SQLException {
         PreparedStatement statement =
             JdbcMocks.stubQuery(
                 connection, MockResultSetBuilder.builder().columns(COLUMNS).build());
         SES_AI_WEBAPP_M_NOTIFICATION notification = notification();
 
-        notification.selectByPk(connection);
+        assertThat(notification.selectByPk(connection)).isFalse();
 
         verify(statement).setString(2, TENANT_ID);
       }

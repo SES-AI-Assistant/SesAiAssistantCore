@@ -45,7 +45,7 @@ public class SES_AI_M_SENDER extends EntityBase {
   private static final String EXISTS_SQL =
       "SELECT EXISTS (SELECT 1 FROM SES_AI_M_SENDER WHERE from_id = ?)";
 
-  /** 【PK】 送信者ID* / from_id */
+  /** 【PK】 テナントID + 送信者ID / from_id */
   @Column(required = true, primary = true, physicalName = "from_id", logicalName = "送信者ID")
   private String fromId;
 
@@ -69,11 +69,11 @@ public class SES_AI_M_SENDER extends EntityBase {
   }
 
   @Override
-  public void selectByPk(Connection connection) throws SQLException {
+  public boolean selectByPk(Connection connection) throws SQLException {
     if (this.fromId == null) {
-      return;
+      return false;
     }
-    executeSelectByPk(
+    return executeSelectByPk(
         connection,
         SELECT_SQL,
         this.tenantId,

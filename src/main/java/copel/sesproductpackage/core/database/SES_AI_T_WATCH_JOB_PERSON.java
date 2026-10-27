@@ -175,7 +175,7 @@ public class SES_AI_T_WATCH_JOB_PERSON extends EntityBase {
   }
 
   @Override
-  public void selectByPk(Connection connection) throws SQLException {
+  public boolean selectByPk(Connection connection) throws SQLException {
     throw new UnsupportedOperationException(
         "SES_AI_T_WATCH_JOB_PERSON は読み取り専用Entity。selectByPk操作はサポートしていません。");
   }

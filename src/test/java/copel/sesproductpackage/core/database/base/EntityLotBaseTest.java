@@ -113,8 +113,9 @@ class EntityLotBaseTest {
     }
 
     @Override
-    public void selectByPk(final Connection connection) {
+    public boolean selectByPk(final Connection connection) {
       // テストでは使わない
+      return false;
     }
 
     @Override

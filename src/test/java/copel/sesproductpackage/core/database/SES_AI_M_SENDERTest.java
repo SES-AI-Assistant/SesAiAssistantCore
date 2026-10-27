@@ -179,11 +179,11 @@ class SES_AI_M_SENDERTest {
        *
        * @given 送信者が "S001"、SELECT の結果が 1 行、送信者名 "送信者A"、登録ユーザー "U001"
        * @when selectByPk を接続に対して実行する
-       * @then 送信者名に "送信者A" を読み込み、登録ユーザーに "U001" を読み込む
+       * @then trueを返し、送信者名に "送信者A" を読み込み、登録ユーザーに "U001" を読み込む
        */
       @MockDbConnection
       @Test
-      void 該当行がある場合_項目を更新する(final Connection connection) throws SQLException {
+      void 該当行がある場合_trueを返す(final Connection connection) throws SQLException {
         JdbcMocks.stubQuery(
             connection,
             MockResultSetBuilder.builder()
@@ -193,27 +193,27 @@ class SES_AI_M_SENDERTest {
         SES_AI_M_SENDER sender = new SES_AI_M_SENDER(TENANT_ID);
         sender.setFromId(FROM_ID);
 
-        sender.selectByPk(connection);
+        assertThat(sender.selectByPk(connection)).isTrue();
 
         assertThat(sender.getFromName()).isEqualTo("送信者A");
         assertThat(sender.getRegisterUser()).isEqualTo("U001");
       }
 
       /**
-       * 該当行が無い場合に項目を変えないことを確かめる。 存在しない送信者を読み込んでも、入力中の値を壊さない。
+       * 該当行が無い場合に false を返し、項目を変えないことを確かめる。 存在しない送信者を読み込んでも、入力中の値を壊さない。
        *
        * @given 送信者が "S001"、SELECT の結果が 0 行
        * @when selectByPk を接続に対して実行する
-       * @then 送信者の値を変えずに何もしない
+       * @then falseを返し、送信者の値を変えない
        */
       @MockDbConnection
       @Test
-      void 該当行が無い場合_何もしない(final Connection connection) throws SQLException {
+      void 該当行が無い場合_falseを返す(final Connection connection) throws SQLException {
         JdbcMocks.stubQuery(connection, MockResultSetBuilder.builder().columns(COLUMNS).build());
         SES_AI_M_SENDER sender = new SES_AI_M_SENDER(TENANT_ID);
         sender.setFromId(FROM_ID);
 
-        sender.selectByPk(connection);
+        assertThat(sender.selectByPk(connection)).isFalse();
 
         assertThat(sender.getFromId()).isEqualTo(FROM_ID);
         assertThat(sender.getFromName()).isNull();
@@ -228,12 +228,12 @@ class SES_AI_M_SENDERTest {
        *
        * @given 送信者が null
        * @when selectByPk を接続に対して実行する
-       * @then SQL の準備を呼ばない
+       * @then falseを返し、SQL の準備を呼ばない
        */
       @MockDbConnection
       @Test
-      void 送信者がnullの場合_DBを呼ばない(final Connection connection) throws SQLException {
-        new SES_AI_M_SENDER(TENANT_ID).selectByPk(connection);
+      void 送信者がnullの場合_DBを呼ばずfalseを返す(final Connection connection) throws SQLException {
+        assertThat(new SES_AI_M_SENDER(TENANT_ID).selectByPk(connection)).isFalse();
 
         verify(connection, never()).prepareStatement(anyString());
       }

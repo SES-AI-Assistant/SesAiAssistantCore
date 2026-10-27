@@ -717,16 +717,16 @@ class SES_AI_T_JOBTest {
        *
        * @given 案件ID "0123456789"、SELECT の結果が 1 行エリア "関東_首都圏"、出社要件 3
        * @when selectByPk を接続で実行する
-       * @then エリアを 関東_首都圏、出社要件を 3 に更新する
+       * @then trueを返し、エリアを 関東_首都圏、出社要件を 3、場所を "東京" に更新する
        */
       @MockDbConnection
       @Test
-      void 該当行がある場合_項目を更新する(final Connection connection) throws SQLException {
+      void 該当行がある場合_trueを返す(final Connection connection) throws SQLException {
         JdbcMocks.stubQuery(connection, row());
         SES_AI_T_JOB job = new SES_AI_T_JOB(TENANT_ID);
         job.setJobId(JOB_ID);
 
-        job.selectByPk(connection);
+        assertThat(job.selectByPk(connection)).isTrue();
 
         assertThat(job.getArea()).isEqualTo(Area.関東_首都圏);
         assertThat(job.getOfficeRequirements()).isEqualTo(3);
@@ -738,11 +738,11 @@ class SES_AI_T_JOBTest {
        *
        * @given 案件ID "0123456789"、SELECT の結果が 1 行、単価・エリア・出社要件が NULL
        * @when selectByPk を接続で実行する
-       * @then 単価・エリア・出社要件を未設定にする
+       * @then trueを返し、単価・エリア・出社要件を未設定にする
        */
       @MockDbConnection
       @Test
-      void 任意の項目がNULLの行の場合_該当の項目を更新する(final Connection connection) throws SQLException {
+      void 任意の項目がNULLの行の場合_trueを返す(final Connection connection) throws SQLException {
         JdbcMocks.stubQuery(
             connection,
             MockResultSetBuilder.builder()
@@ -773,7 +773,7 @@ class SES_AI_T_JOBTest {
         SES_AI_T_JOB job = new SES_AI_T_JOB(TENANT_ID);
         job.setJobId(JOB_ID);
 
-        job.selectByPk(connection);
+        assertThat(job.selectByPk(connection)).isTrue();
 
         assertThat(job.getUnitPrice().getValue()).isNull();
         assertThat(job.getArea()).isNull();
@@ -781,19 +781,19 @@ class SES_AI_T_JOBTest {
       }
 
       /**
-       * 該当行が無い場合に項目を変えないことを確かめる。 存在しない案件を読み込んでも、入力中の値を壊さない。
+       * 該当行が無い場合に false を返し、項目を変えないことを確かめる。 存在しない案件を読み込んでも、入力中の値を壊さない。
        *
        * @given 案件ID "0123456789"、SELECT の結果が 0 行
        * @when selectByPk を接続で実行する
-       * @then 案件名を変えずに何もしない
+       * @then falseを返し、案件名を変えない
        */
       @MockDbConnection
       @Test
-      void 該当行が無い場合_何もしない(final Connection connection) throws SQLException {
+      void 該当行が無い場合_falseを返す(final Connection connection) throws SQLException {
         JdbcMocks.stubQuery(connection, MockResultSetBuilder.builder().columns(COLUMNS).build());
         SES_AI_T_JOB job = job();
 
-        job.selectByPk(connection);
+        assertThat(job.selectByPk(connection)).isFalse();
 
         assertThat(job.getTitle()).isEqualTo("Javaエンジニア");
       }
@@ -807,12 +807,12 @@ class SES_AI_T_JOBTest {
        *
        * @given 案件IDが null
        * @when selectByPk を接続で実行する
-       * @then SQL の準備を呼ばない
+       * @then falseを返し、SQL の準備を呼ばない
        */
       @MockDbConnection
       @Test
-      void 案件IDがnullの場合_DBを呼ばない(final Connection connection) throws SQLException {
-        new SES_AI_T_JOB(TENANT_ID).selectByPk(connection);
+      void 案件IDがnullの場合_DBを呼ばずfalseを返す(final Connection connection) throws SQLException {
+        assertThat(new SES_AI_T_JOB(TENANT_ID).selectByPk(connection)).isFalse();
 
         verify(connection, never()).prepareStatement(anyString());
       }

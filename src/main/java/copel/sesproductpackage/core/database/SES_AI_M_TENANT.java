@@ -64,11 +64,11 @@ public class SES_AI_M_TENANT extends EntityBase {
   }
 
   @Override
-  public void selectByPk(Connection connection) throws SQLException {
+  public boolean selectByPk(Connection connection) throws SQLException {
     if (this.tenantId == null) {
-      return;
+      return false;
     }
-    executeSelectByPkWithoutTenantFilter(
+    return executeSelectByPkWithoutTenantFilter(
         connection,
         SELECT_SQL,
         (stmt) -> stmt.setString(1, this.tenantId),

@@ -41,7 +41,7 @@ public class SES_AI_M_GROUP extends EntityBase {
   /** DELETE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_M_GROUP WHERE from_group = ?";
 
-  /** 【PK】 送信元グループ* / from_group */
+  /** 【PK】 テナントID + 送信元グループ / from_group */
   @Column(required = true, primary = true, physicalName = "from_group", logicalName = "送信元グループ")
   private String fromGroup;
 
@@ -65,11 +65,11 @@ public class SES_AI_M_GROUP extends EntityBase {
   }
 
   @Override
-  public void selectByPk(Connection connection) throws SQLException {
+  public boolean selectByPk(Connection connection) throws SQLException {
     if (this.fromGroup == null) {
-      return;
+      return false;
     }
-    executeSelectByPk(
+    return executeSelectByPk(
         connection,
         SELECT_SQL,
         this.tenantId,
