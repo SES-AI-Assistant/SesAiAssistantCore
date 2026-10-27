@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import copel.sesproductpackage.core.api.gpt.entity.JobInfoSchema;
+import copel.sesproductpackage.core.api.gpt.entity.PersonInfoSchema;
 import copel.sesproductpackage.core.util.ApplicationClock;
 import copel.sesproductpackage.tools.testsupport.clock.FixedClock;
 import java.lang.reflect.Field;
@@ -496,10 +498,82 @@ class SchemaGeneratorTest {
       void 年の制約と書式がある場合_年の部分を置き換えた書式を返す() {
         Map<String, Object> props = properties(SchemaGenerator.generate(YearConstraints.class));
 
-        assertThat(props.get("year_pattern"))
-            .isEqualTo(Map.of("type", "string", "pattern", "^(2026|2027)/\\d{1,2}$"));
-        assertThat(props.get("bracket_pattern"))
-            .isEqualTo(Map.of("type", "string", "pattern", "^(2026|2027)/x$"));
+        assertThat(castMap(props.get("year_pattern")))
+            .containsEntry("pattern", "^(2026|2027)/\\d{1,2}$");
+        assertThat(castMap(props.get("bracket_pattern")))
+            .containsEntry("pattern", "^(2026|2027)/x$");
+      }
+
+      /**
+       * 現在の年と翌年だけの制約があり説明文が無い場合に、本日の日付だけを説明文にすることを確かめる。 AI は今日の日付を知らないため、日付を渡さないと即日を本日の年月にできない。
+       *
+       * @given 現在時刻が2026年10月20日で、説明文が無い year フィールドがある
+       * @when generate を対象クラスで呼び出す
+       * @then year の description が本日は2026年10月20日である
+       */
+      @Test
+      @FixedClock("2026-10-20T10:00:00+09:00")
+      void 年の制約があり説明文がない場合_本日の日付だけの説明文を返す() {
+        assertThat(property(SchemaGenerator.generate(YearConstraints.class), "year"))
+            .containsEntry("description", "本日は2026年10月20日である。");
+      }
+
+      /**
+       * 現在の年と翌年だけの制約があり説明文がある場合に、説明文の末尾へ本日の日付を足すことを確かめる。 指定した説明文を残したまま、AI に今日の日付を伝える必要がある。
+       *
+       * @given 現在時刻が2026年10月5日で、説明文が開始年月の説明である described フィールドがある
+       * @when generate を対象クラスで呼び出す
+       * @then described の description が説明文の後に本日は2026年10月5日であることを続ける
+       */
+      @Test
+      @FixedClock("2026-10-05T10:00:00+09:00")
+      void 年の制約があり説明文がある場合_説明文の末尾に本日の日付を足した説明文を返す() {
+        assertThat(property(SchemaGenerator.generate(YearConstraints.class), "described"))
+            .containsEntry("description", "開始年月。本日は2026年10月5日である。");
+      }
+
+      /**
+       * 案件情報の開始年月が、本日の日付を含む説明文と現在年の書式で生成されることを確かめる。 AI は今日の日付を知らないため、即日を本日の年月にするには説明文で日付を渡す必要がある。
+       *
+       * @given 現在時刻が2026年10月27日で、入力が JobInfoSchema である
+       * @when generate を JobInfoSchema で呼び出す
+       * @then start_year_month は本日の日付を続けた説明文と現在年と翌年の書式を持ち、example を持たず、必須に含まれる
+       */
+      @Test
+      @FixedClock("2026-10-27T10:00:00+09:00")
+      void 入力が案件情報の場合_開始年月に本日の日付を含むスキーマを返す() {
+        Map<String, Object> schema = SchemaGenerator.generate(JobInfoSchema.class);
+        Map<String, Object> startYearMonth = property(schema, "start_year_month");
+
+        assertThat(startYearMonth)
+            .containsEntry(
+                "description",
+                "案件の開始年月。必ずyyyy/MM形式で設定してください。未記載の場合や即日、などの表現がされている場合は本日日付にして。本日は2026年10月27日である。")
+            .containsEntry("pattern", "^(2026|2027)/(0?[1-9]|1[0-2])$")
+            .doesNotContainKey("example");
+        assertThat(((List<?>) schema.get("required")).contains("start_year_month")).isTrue();
+      }
+
+      /**
+       * 要員情報の開始年月が、本日の日付を含む説明文と現在年の書式で生成されることを確かめる。 AI は今日の日付を知らないため、即日を本日の年月にするには説明文で日付を渡す必要がある。
+       *
+       * @given 現在時刻が2026年10月27日で、入力が PersonInfoSchema である
+       * @when generate を PersonInfoSchema で呼び出す
+       * @then start_year_month は本日の日付を続けた説明文と現在年と翌年の書式を持ち、example を持たず、必須に含まれる
+       */
+      @Test
+      @FixedClock("2026-10-27T10:00:00+09:00")
+      void 入力が要員情報の場合_開始年月に本日の日付を含むスキーマを返す() {
+        Map<String, Object> schema = SchemaGenerator.generate(PersonInfoSchema.class);
+        Map<String, Object> startYearMonth = property(schema, "start_year_month");
+
+        assertThat(startYearMonth)
+            .containsEntry(
+                "description",
+                "稼働開始が可能な年月。必ずyyyy/MM形式で設定してください。未記載の場合や即日、などの表現がされている場合は本日日付にして。本日は2026年10月27日である。")
+            .containsEntry("pattern", "^(2026|2027)/(0?[1-9]|1[0-2])$")
+            .doesNotContainKey("example");
+        assertThat(((List<?>) schema.get("required")).contains("start_year_month")).isTrue();
       }
 
       /**
@@ -1068,6 +1142,9 @@ class SchemaGeneratorTest {
 
     @Schema(currentAndNextYearOnly = true, pattern = "^[0-9]{4}/x$")
     private String bracketPattern;
+
+    @Schema(currentAndNextYearOnly = true, description = "開始年月。")
+    private String described;
   }
 
   /** 条件付きスキーマの成功のケースで使う入力。 */

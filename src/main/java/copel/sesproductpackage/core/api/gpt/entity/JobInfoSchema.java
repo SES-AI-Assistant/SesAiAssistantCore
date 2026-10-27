@@ -58,7 +58,6 @@ public class JobInfoSchema {
       description = "案件の開始年月。必ずyyyy/MM形式で設定してください。未記載の場合や即日、などの表現がされている場合は本日日付にして。",
       pattern = "^\\d{4}/(0?[1-9]|1[0-2])$",
       required = true,
-      example = "2026/06",
       currentAndNextYearOnly = true)
   private String startYearMonth;
 
