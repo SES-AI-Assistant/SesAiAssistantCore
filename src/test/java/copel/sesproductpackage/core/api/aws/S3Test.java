@@ -104,7 +104,7 @@ class S3Test {
        */
       @Test
       @FixedClock("2026-10-20T10:00:00+09:00")
-      void 必要な値が揃っている場合_更新日時を更新する() {
+      void 必要な値が揃っている場合_更新日時を更新する() throws Exception {
         try (MockedStatic<S3Client> s3 = mockStatic(S3Client.class)) {
           S3Client client = prepareS3(s3);
           S3 file = new S3(BUCKET, KEY, Region.AP_NORTHEAST_1);
@@ -126,17 +126,18 @@ class S3Test {
     class 異常系 {
 
       /**
-       * 保存の呼び出しが失敗した場合に、例外を投げず更新日時を設定しないことを確かめる。 保存の失敗で呼び出し元の処理を止めず、更新日時で失敗を判断できるようにすることを守る。
+       * 保存の呼び出しが失敗した場合に、原因例外を持つ IOException を投げることを確かめる。 保存の失敗を握りつぶさず呼び出し元に伝え、原因の例外も辿れるようにすることを守る。
        *
        * @given PutObject が SDK の例外を投げる
        * @when save を呼び出す
-       * @then 例外を投げず、更新日時を null のままにする
+       * @then IOException を投げ、その原因が SDK の例外であり、更新日時は null のままである
        */
       @Test
-      void 保存の呼び出しが失敗する場合_何もしない() {
+      void 保存の呼び出しが失敗する場合_IOExceptionを投げる() {
         try (MockedStatic<S3Client> s3 = mockStatic(S3Client.class)) {
           S3Client client = prepareS3(s3);
-          doThrow(SdkClientException.create("接続失敗"))
+          SdkClientException cause = SdkClientException.create("接続失敗");
+          doThrow(cause)
               .when(client)
               .putObject(
                   any(PutObjectRequest.class),
@@ -144,8 +145,7 @@ class S3Test {
           S3 file = new S3(BUCKET, KEY, Region.AP_NORTHEAST_1);
           file.setData(new byte[] {1});
 
-          file.save();
-
+          assertThatThrownBy(file::save).isInstanceOf(IOException.class).hasCause(cause);
           assertThat(file.getUpdateDate()).isNull();
         }
       }
@@ -162,7 +162,7 @@ class S3Test {
        * @then PutObject を呼び出さない
        */
       @Test
-      void バケット名がnullの場合_何もしない() {
+      void バケット名がnullの場合_何もしない() throws Exception {
         try (MockedStatic<S3Client> s3 = mockStatic(S3Client.class)) {
           S3Client client = prepareS3(s3);
           S3 file = new S3(null, KEY, Region.AP_NORTHEAST_1);
@@ -185,7 +185,7 @@ class S3Test {
        * @then PutObject を呼び出さない
        */
       @Test
-      void キーがnullの場合_何もしない() {
+      void キーがnullの場合_何もしない() throws Exception {
         try (MockedStatic<S3Client> s3 = mockStatic(S3Client.class)) {
           S3Client client = prepareS3(s3);
           S3 file = new S3(BUCKET, null, Region.AP_NORTHEAST_1);
@@ -208,7 +208,7 @@ class S3Test {
        * @then PutObject を呼び出さない
        */
       @Test
-      void データがnullの場合_何もしない() {
+      void データがnullの場合_何もしない() throws Exception {
         try (MockedStatic<S3Client> s3 = mockStatic(S3Client.class)) {
           S3Client client = prepareS3(s3);
           S3 file = new S3(BUCKET, KEY, Region.AP_NORTHEAST_1);

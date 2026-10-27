@@ -62,8 +62,15 @@ public class S3 {
     this.s3Client = builder.build();
   }
 
-  /** このオブジェクトに持つdataをS3に保存します. */
-  public void save() {
+  /**
+   * このオブジェクトに持つdataをS3に保存します.
+   *
+   * <p>バケット名・オブジェクトキー・データのいずれかが null の場合は、保存せず警告ログを出して終えます。 保存に失敗した場合は握りつぶさず、呼び出し元が失敗に気付けるよう原因例外付きの
+   * IOException を再送出します。
+   *
+   * @throws IOException S3 への保存に失敗した場合（原因例外を cause に持つ）
+   */
+  public void save() throws IOException {
     // バケット名かファイルパスが空であれば処理を終了する
     if (this.bucketName == null || this.objectKey == null || this.data == null) {
       log.warn("【SesAiAssitantCore】S3にファイルを保存しようとしましたが、バケット名、ファイルパス、データのいずれかがNULLであるため保存を中止しました。");
@@ -81,7 +88,8 @@ public class S3 {
       this.updateDate = Date.from(ApplicationClock.INSTANCE.clock().instant());
 
     } catch (Exception e) {
-      log.error("【SesAiAssitantCore】S3へのファイル保存中にエラーが発生しました:{}", e.getMessage());
+      log.error("【SesAiAssitantCore】S3へのファイル保存中にエラーが発生しました: {}", e.getMessage());
+      throw new IOException("【SesAiAssitantCore】S3へファイルを保存できませんでした: " + e.getMessage(), e);
     }
   }
 
