@@ -277,6 +277,46 @@ class SES_AI_T_JOBTest {
   }
 
   @Nested
+  class setOverview {
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 案件概要が200文字ちょうどの場合に、そのまま保持することを確かめる。 保存先の列に収まる値を加工すると内容が欠ける。
+       *
+       * @given 案件概要が 200 文字の文字列
+       * @when setOverview を 200 文字の文字列で実行する
+       * @then 案件概要に 200 文字の文字列をそのまま保持する
+       */
+      @Test
+      void 案件概要が200文字の場合_指定した案件概要を返す() {
+        SES_AI_T_JOB job = new SES_AI_T_JOB(TENANT_ID);
+
+        job.setOverview("あ".repeat(200));
+
+        assertThat(job.getOverview()).isEqualTo("あ".repeat(200));
+      }
+
+      /**
+       * 案件概要が200文字を超える場合に、省略記号を含めて200文字に切り詰めることを確かめる。 保存先の列の長さを超えると案件の登録が失われる。
+       *
+       * @given 案件概要が 201 文字の文字列
+       * @when setOverview を 201 文字の文字列で実行する
+       * @then 案件概要を先頭の 199 文字に省略記号を付けた 200 文字で保持する
+       */
+      @Test
+      void 案件概要が201文字の場合_先頭の199文字に省略記号を付けた文字列を返す() {
+        SES_AI_T_JOB job = new SES_AI_T_JOB(TENANT_ID);
+
+        job.setOverview("あ".repeat(201));
+
+        assertThat(job.getOverview()).isEqualTo("あ".repeat(199) + "…");
+      }
+    }
+  }
+
+  @Nested
   class getOfficeRequirementsForNotification {
 
     @Nested

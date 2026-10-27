@@ -78,6 +78,9 @@ public class SES_AI_T_JOB extends SesAiTableEntityBase {
   /** 場所 / place カラムの最大文字数（DDL の VARCHAR(30) に対応）. */
   public static final int PLACE_MAX_LENGTH = 30;
 
+  /** 案件概要 / overview カラムの最大文字数（DDL の VARCHAR(200) に対応）. */
+  public static final int OVERVIEW_MAX_LENGTH = 200;
+
   // ================================
   // メンバ
   // ================================
@@ -162,6 +165,18 @@ public class SES_AI_T_JOB extends SesAiTableEntityBase {
         OriginalStringUtils.isUnspecified(place)
             ? null
             : OriginalStringUtils.truncateByCodePoints(place, PLACE_MAX_LENGTH);
+  }
+
+  /**
+   * 案件概要を設定します.
+   *
+   * <p>案件概要はLLMの抽出結果をそのまま受け取るが、スキーマの文字数指定（maxLength 100）が守られず、カラム長（200）を超える場合がある
+   * （実際に285文字が返り、INSERTが失敗して案件の登録自体が失われた）。切り詰めたことが読み手に分かるよう、 省略記号「…」を含めて カラムの最大文字数に収めて保持する.
+   *
+   * @param overview 案件概要
+   */
+  public void setOverview(final String overview) {
+    this.overview = OriginalStringUtils.truncateWithEllipsis(overview, OVERVIEW_MAX_LENGTH);
   }
 
   /**
