@@ -14,6 +14,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import lombok.Data;
@@ -80,6 +81,20 @@ public class SES_AI_T_PERSON extends SesAiTableEntityBase {
           + "regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g') % ? AND "
           + "similarity(regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g'), ?) > ? LIMIT "
           + "1";
+
+  /**
+   * 同一要員の検索SQL.
+   *
+   * <p>氏名・年齢・性別・場所の全てが一致する要員を同一とする。 年齢・性別・場所が記載されていないことも要員の特徴として扱い、記載なしどうしだけを一致とみなす。
+   * 記載なしを何にでも一致させると、同じ氏名（イニシャル）の別人を同一視するためである。
+   */
+  private static final String FIND_SAME_PERSON_SQL =
+      "SELECT person_id, unit_price FROM SES_AI_T_PERSON WHERE tenant_id = ? AND "
+          + "btrim(name) = ? AND "
+          + "age IS NOT DISTINCT FROM CAST(? AS INTEGER) AND "
+          + "NULLIF(gender, 'Unknown') IS NOT DISTINCT FROM CAST(? AS VARCHAR) AND "
+          + "NULLIF(btrim(place), '') IS NOT DISTINCT FROM CAST(? AS VARCHAR) AND "
+          + "person_id <> ALL(?) ORDER BY register_date, person_id LIMIT 1";
 
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_T_PERSON WHERE person_id = ?";
@@ -285,6 +300,62 @@ public class SES_AI_T_PERSON extends SesAiTableEntityBase {
       preparedStatement.setString(2, maskedText);
       preparedStatement.setString(3, maskedText);
       preparedStatement.setDouble(4, similarityThreshold);
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        if (resultSet.next()) {
+          result = new SES_AI_T_PERSON(tenantId);
+          result.setPersonId(resultSet.getString("person_id"));
+          BigDecimal unitPriceValue = resultSet.getBigDecimal("unit_price");
+          result.setUnitPrice(unitPriceValue == null ? Money.empty() : new Money(unitPriceValue));
+        }
+      }
+    }
+    return result;
+  }
+
+  /**
+   * 氏名・年齢・性別・場所が一致する同一要員を検索し、存在する場合はそのレコードのIDと単価を返す.
+   *
+   * <p>1通のメールに複数の要員が書かれていても、本文の類似度では区別できない。 そのため要員本人の属性で同一かを判定する。
+   *
+   * <p>氏名・年齢・性別・場所の全てが一致する要員を同一とする。年齢が0以下、性別が null または Unknown、場所が null または空の場合は
+   * 記載なしとして扱い、記載なしどうしだけを一致とみなす。記載されていないことも要員の特徴であり、 記載なしを何にでも一致させると、同じ氏名（イニシャル）の別人を同一視するためである。
+   * 複数見つかった場合は、最も早く登録された要員を返す。
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param name 氏名
+   * @param age 年齢（0以下は不明）
+   * @param gender 性別（null または Unknown は不明）
+   * @param place 場所（null または空は不明）
+   * @param excludePersonIds 検索から除く要員ID。同じメッセージで登録済みの要員を除くために使う
+   * @return 同一要員が見つかった場合はそのSES_AI_T_PERSON、見つからなかった場合はnull
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   */
+  public static SES_AI_T_PERSON findSamePerson(
+      final Connection connection,
+      final String tenantId,
+      final String name,
+      final int age,
+      final Gender gender,
+      final String place,
+      final Collection<String> excludePersonIds)
+      throws SQLException {
+    if (connection == null || tenantId == null || name == null || name.trim().isEmpty()) {
+      return null;
+    }
+    Integer ageCondition = age > 0 ? age : null;
+    String genderCondition = gender == null || gender == Gender.Unknown ? null : gender.toString();
+    String placeCondition = place == null || place.trim().isEmpty() ? null : place.trim();
+
+    SES_AI_T_PERSON result = null;
+    try (PreparedStatement preparedStatement = connection.prepareStatement(FIND_SAME_PERSON_SQL)) {
+      preparedStatement.setString(1, tenantId);
+      preparedStatement.setString(2, name.trim());
+      preparedStatement.setObject(3, ageCondition);
+      preparedStatement.setString(4, genderCondition);
+      preparedStatement.setString(5, placeCondition);
+      preparedStatement.setArray(
+          6, connection.createArrayOf("varchar", excludePersonIds.toArray(new String[0])));
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
           result = new SES_AI_T_PERSON(tenantId);

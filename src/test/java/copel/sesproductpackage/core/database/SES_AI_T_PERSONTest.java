@@ -2,6 +2,7 @@ package copel.sesproductpackage.core.database;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -24,6 +25,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -465,6 +467,266 @@ class SES_AI_T_PERSONTest {
         assertThat(SES_AI_T_PERSON.clearFileIdWhereFileId(connection, null)).isZero();
 
         verify(connection, never()).prepareStatement(anyString());
+      }
+    }
+  }
+
+  @Nested
+  class findSamePerson {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 同一要員が見つかった場合に、要員IDと単価を持つ要員を返すことを確かめる。 同じ要員を重複して登録しないために使う。
+       *
+       * @given 検索の結果が 1 行要員ID "0123456789"、単価 600000
+       * @when findSamePerson を氏名 "山田太郎"、年齢 35、性別 Man、場所 "渋谷" で実行する
+       * @then 要員ID "0123456789" と単価 600000 の要員を返す
+       */
+      @MockDbConnection
+      @Test
+      void 同一要員がある場合_要員IDと単価を持つ要員を返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(
+            connection,
+            MockResultSetBuilder.builder()
+                .columns("person_id", "unit_price")
+                .row(PERSON_ID, new BigDecimal(600_000))
+                .build());
+
+        SES_AI_T_PERSON result =
+            SES_AI_T_PERSON.findSamePerson(
+                connection, TENANT_ID, "山田太郎", 35, Gender.Man, "渋谷", List.of());
+
+        assertThat(result.getPersonId()).isEqualTo(PERSON_ID);
+        assertThat(result.getUnitPrice().getValue()).isEqualByComparingTo(new BigDecimal(600_000));
+      }
+
+      /**
+       * 年齢・性別・場所が記載ありの場合に、その値を検索条件に設定することを確かめる。 記載のある項目は一致を求める。
+       *
+       * @given 年齢 35、性別 Man、前後に空白のある場所 " 渋谷 "
+       * @when findSamePerson を実行する
+       * @then 年齢 35、性別 "Man"、場所 "渋谷" を条件に設定する
+       */
+      @MockDbConnection
+      @Test
+      void 年齢と性別と場所がある場合_同一要員が無ければnullを返す(final Connection connection) throws SQLException {
+        PreparedStatement statement =
+            JdbcMocks.stubQuery(
+                connection,
+                MockResultSetBuilder.builder().columns("person_id", "unit_price").build());
+
+        assertThat(
+                SES_AI_T_PERSON.findSamePerson(
+                    connection, TENANT_ID, "山田太郎", 35, Gender.Man, " 渋谷 ", List.of()))
+            .isNull();
+
+        verify(statement).setString(2, "山田太郎");
+        verify(statement).setObject(3, 35);
+        verify(statement).setString(4, "Man");
+        verify(statement).setString(5, "渋谷");
+      }
+
+      /**
+       * 年齢・性別・場所が記載なしの場合に、条件を null にして比較を除外することを確かめる。 記載の無い項目で別人と判定しない。
+       *
+       * @given 年齢 -1、性別 Unknown、場所が空文字
+       * @when findSamePerson を実行する
+       * @then 年齢・性別・場所の条件を null に設定する
+       */
+      @MockDbConnection
+      @Test
+      void 年齢と性別と場所が不明の場合_同一要員が無ければnullを返す(final Connection connection) throws SQLException {
+        PreparedStatement statement =
+            JdbcMocks.stubQuery(
+                connection,
+                MockResultSetBuilder.builder().columns("person_id", "unit_price").build());
+
+        assertThat(
+                SES_AI_T_PERSON.findSamePerson(
+                    connection, TENANT_ID, "山田太郎", -1, Gender.Unknown, "", List.of()))
+            .isNull();
+
+        verify(statement).setObject(3, null);
+        verify(statement).setString(4, null);
+        verify(statement).setString(5, null);
+      }
+
+      /**
+       * 性別と場所が null の場合に、条件を null にして比較を除外することを確かめる。 AI が項目を出力しない場合に備える。
+       *
+       * @given 性別が null、場所が null
+       * @when findSamePerson を実行する
+       * @then 性別・場所の条件を null に設定する
+       */
+      @MockDbConnection
+      @Test
+      void 性別と場所がnullの場合_同一要員が無ければnullを返す(final Connection connection) throws SQLException {
+        PreparedStatement statement =
+            JdbcMocks.stubQuery(
+                connection,
+                MockResultSetBuilder.builder().columns("person_id", "unit_price").build());
+
+        assertThat(
+                SES_AI_T_PERSON.findSamePerson(
+                    connection, TENANT_ID, "山田太郎", 35, null, null, List.of()))
+            .isNull();
+
+        verify(statement).setString(4, null);
+        verify(statement).setString(5, null);
+      }
+
+      /**
+       * 単価が未設定の同一要員を、単価を空の値として返すことを確かめる。 単価の無い要員でも候補として扱えるようにする。
+       *
+       * @given 検索の結果が 1 行要員ID "0123456789"、単価が null
+       * @when findSamePerson を実行する
+       * @then 単価が空の要員を返す
+       */
+      @MockDbConnection
+      @Test
+      void 単価が未設定の同一要員の場合_単価が空の要員を返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(
+            connection,
+            MockResultSetBuilder.builder()
+                .columns("person_id", "unit_price")
+                .row(PERSON_ID, null)
+                .build());
+
+        SES_AI_T_PERSON result =
+            SES_AI_T_PERSON.findSamePerson(
+                connection, TENANT_ID, "山田太郎", 35, Gender.Man, "渋谷", List.of());
+
+        assertThat(result.getUnitPrice().isEmpty()).isTrue();
+      }
+    }
+
+    @Nested
+    class 境界値 {
+      /**
+       * 除外する要員IDを渡した場合に、その要員IDを検索の条件に渡すことを確かめる。 同じメッセージで登録した要員を、同一要員として扱わないためである。
+       *
+       * @given 除外する要員IDが "P1" と "P2"
+       * @when findSamePerson を実行する
+       * @then 要員ID "P1" と "P2" の配列を作って6番目の条件に渡し、nullを返す
+       */
+      @MockDbConnection
+      @Test
+      void 除外する要員IDがある場合_除外した検索でnullを返す(final Connection connection) throws SQLException {
+        PreparedStatement statement =
+            JdbcMocks.stubQuery(
+                connection,
+                MockResultSetBuilder.builder().columns("person_id", "unit_price").build());
+
+        assertThat(
+                SES_AI_T_PERSON.findSamePerson(
+                    connection, TENANT_ID, "山田太郎", 35, Gender.Man, "渋谷", List.of("P1", "P2")))
+            .isNull();
+
+        verify(connection).createArrayOf("varchar", new String[] {"P1", "P2"});
+        verify(statement).setArray(eq(6), any());
+      }
+
+      /**
+       * 同一要員が無い場合に null を返すことを確かめる。 無いのに候補を返すと、別人の要員を更新する。
+       *
+       * @given 検索の結果が 0 行
+       * @when findSamePerson を実行する
+       * @then nullを返す
+       */
+      @MockDbConnection
+      @Test
+      void 同一要員が無い場合_nullを返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(
+            connection, MockResultSetBuilder.builder().columns("person_id", "unit_price").build());
+
+        assertThat(
+                SES_AI_T_PERSON.findSamePerson(
+                    connection, TENANT_ID, "山田太郎", 35, Gender.Man, "渋谷", List.of()))
+            .isNull();
+      }
+
+      /**
+       * 氏名が null または空白の場合に DB を呼ばずに null を返すことを確かめる。 氏名の無い検索は他の要員と一致してしまう。
+       *
+       * @given 氏名が null と空白
+       * @when findSamePerson を実行する
+       * @then どちらも null を返し、SQL の準備を呼ばない
+       */
+      @MockDbConnection
+      @Test
+      void 氏名がnullまたは空白の場合_nullを返しDBを呼ばない(final Connection connection) throws SQLException {
+        assertThat(
+                SES_AI_T_PERSON.findSamePerson(
+                    connection, TENANT_ID, null, 35, Gender.Man, "渋谷", List.of()))
+            .isNull();
+        assertThat(
+                SES_AI_T_PERSON.findSamePerson(
+                    connection, TENANT_ID, " ", 35, Gender.Man, "渋谷", List.of()))
+            .isNull();
+
+        verify(connection, never()).prepareStatement(anyString());
+      }
+
+      /**
+       * テナントIDが null の場合に DB を呼ばずに null を返すことを確かめる。 テナントの無い検索は他テナントの要員を返す。
+       *
+       * @given テナントIDが null
+       * @when findSamePerson を実行する
+       * @then nullを返し、SQL の準備を呼ばない
+       */
+      @MockDbConnection
+      @Test
+      void テナントIDがnullの場合_nullを返しDBを呼ばない(final Connection connection) throws SQLException {
+        assertThat(
+                SES_AI_T_PERSON.findSamePerson(
+                    connection, null, "山田太郎", 35, Gender.Man, "渋谷", List.of()))
+            .isNull();
+
+        verify(connection, never()).prepareStatement(anyString());
+      }
+
+      /**
+       * DB 接続が null の場合に null を返すことを確かめる。 接続が無い状態で検索を行わない。
+       *
+       * @given 接続が null
+       * @when findSamePerson を接続 null で実行する
+       * @then nullを返す
+       */
+      @Test
+      void 接続がnullの場合_nullを返す() throws SQLException {
+        assertThat(
+                SES_AI_T_PERSON.findSamePerson(
+                    null, TENANT_ID, "山田太郎", 35, Gender.Man, "渋谷", List.of()))
+            .isNull();
+      }
+    }
+
+    @Nested
+    class テナント隔離 {
+
+      /**
+       * テナントIDがT001の場合に、T001のテナントの同一要員だけを探すことを確かめる。 他テナントの要員を同一とみなして上書きしないためである。
+       *
+       * @given テナントIDが "T001"
+       * @when findSamePerson を実行する
+       * @then テナントID "T001" を検索の1番目の条件に渡して、nullを返す
+       */
+      @MockDbConnection
+      @Test
+      void テナントIDがT001の場合_T001の同一要員が無ければnullを返す(final Connection connection) throws SQLException {
+        PreparedStatement statement =
+            JdbcMocks.stubQuery(
+                connection,
+                MockResultSetBuilder.builder().columns("person_id", "unit_price").build());
+
+        assertThat(
+                SES_AI_T_PERSON.findSamePerson(
+                    connection, TENANT_ID, "山田太郎", 35, Gender.Man, "渋谷", List.of()))
+            .isNull();
+
+        verify(statement).setString(1, TENANT_ID);
       }
     }
   }
