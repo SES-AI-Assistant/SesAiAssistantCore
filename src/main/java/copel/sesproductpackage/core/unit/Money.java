@@ -164,6 +164,18 @@ public class Money implements Comparable<Money> {
   }
 
   /**
+   * 単価の絞り込み条件にバインドする値を返す.
+   *
+   * <p>単価不問（未設定・応相談・スキル見合い）は単価で絞り込まないため null を返す。 SQL 側は {@code COALESCE(?, 列)} で null
+   * を受け、条件を常に成立させる。
+   *
+   * @return 絞り込みに使う円単位の金額。単価不問の場合は null
+   */
+  public BigDecimal toFilterValue() {
+    return isEmpty() || isNegotiable() ? null : value;
+  }
+
+  /**
    * 画面表示用：「100万円」形式.
    *
    * @return 「100万円」形式の文字列、未設定の場合はnull

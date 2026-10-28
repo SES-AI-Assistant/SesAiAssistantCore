@@ -573,6 +573,66 @@ class MoneyTest {
   }
 
   @Nested
+  class toFilterValue {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 固定単価は、その金額を絞り込みの値として返すことを確かめる。 単価が決まっている案件と要員は、単価の高低でマッチを絞り込む。
+       *
+       * @given 値が 600000 円
+       * @when toFilterValue を実行する
+       * @then 600000 を返す
+       */
+      @Test
+      void 値が600000円の場合_600000を返す() {
+        assertThat(new Money(600_000L).toFilterValue()).isEqualByComparingTo("600000");
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 単価が未設定の場合は、絞り込まないために null を返すことを確かめる。 単価を読み取れなかった案件と要員を、単価の条件で候補から外さない。
+       *
+       * @given 値が未設定
+       * @when toFilterValue を実行する
+       * @then null を返す
+       */
+      @Test
+      void 単価が未設定の場合_nullを返す() {
+        assertThat(Money.empty().toFilterValue()).isNull();
+      }
+
+      /**
+       * 応相談は、絞り込まないために null を返すことを確かめる。 応相談は単価を提案時に決めるので、単価の条件を当てはめない。
+       *
+       * @given 値が 0 円
+       * @when toFilterValue を実行する
+       * @then null を返す
+       */
+      @Test
+      void 値が0円の場合_nullを返す() {
+        assertThat(new Money(0L).toFilterValue()).isNull();
+      }
+
+      /**
+       * スキル見合いは、絞り込まないために null を返すことを確かめる。 スキル見合いは単価を提案時に決めるので、単価の条件を当てはめない。
+       *
+       * @given 値が 9990000 円
+       * @when toFilterValue を実行する
+       * @then null を返す
+       */
+      @Test
+      void 値が9990000円の場合_nullを返す() {
+        assertThat(Money.NEGOTIABLE_PRICE.toFilterValue()).isNull();
+      }
+    }
+  }
+
+  @Nested
   class toYenValue {
 
     @Nested

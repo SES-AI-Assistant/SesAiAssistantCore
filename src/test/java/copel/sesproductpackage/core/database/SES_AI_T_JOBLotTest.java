@@ -509,6 +509,68 @@ class SES_AI_T_JOBLotTest {
       }
 
       /**
+       * 要員の単価が応相談の場合に、単価で案件を絞り込まないことを確かめる。 単価を提案時に決める要員は、案件の単価が低いことを理由に候補から外さない。
+       *
+       * @given 件数が 1 件、検索の結果が 1 行、要員の単価が 0 円、開始日が 2026-01-01
+       * @when retrieveWithFilter を接続、テナントID "T001"、単価 0 円、出社要件 3、エリア 関東_首都圏 で実行する
+       * @then SQL に単価が未設定か 0 以下の案件を通す条件と COALESCE を含め、件数の問い合わせの 1 番目に null を設定し、1件の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void 要員の単価が0円の場合_単価を絞り込まず1件の一覧を返す(final Connection connection) throws SQLException {
+        PreparedStatement countStatement = stubCountAndRows(connection, 1L, row(true, TENANT_ID));
+        SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+
+        lot.retrieveWithFilter(
+            connection,
+            TENANT_ID,
+            vector(),
+            new Money(0L),
+            new OriginalDateTime("2026-01-01 00:00:00"),
+            3,
+            Area.関東_首都圏,
+            0.8,
+            10);
+
+        verify(connection, atLeastOnce())
+            .prepareStatement(
+                contains("(unit_price IS NULL OR unit_price <= 0 OR unit_price = 9990000 OR"));
+        verify(countStatement).setBigDecimal(1, null);
+        assertThat(lot.size()).isEqualTo(1);
+      }
+
+      /**
+       * 要員の開始日が未設定の場合に、開始日で案件を絞り込まないことを確かめる。 開始日が分からない要員を、開始日の条件で一律に候補から外さない。
+       *
+       * @given 件数が 1 件、検索の結果が 1 行、要員の開始日が未設定、単価が 1000000 円
+       * @when retrieveWithFilter を接続、テナントID "T001"、開始日 未設定、出社要件 3、エリア 関東_首都圏 で実行する
+       * @then SQL に開始日の COALESCE の条件を含め、件数の問い合わせの 2 番目に null を設定し、1件の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void 要員の開始日が未設定の場合_開始日を絞り込まず1件の一覧を返す(final Connection connection) throws SQLException {
+        PreparedStatement countStatement = stubCountAndRows(connection, 1L, row(true, TENANT_ID));
+        SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+
+        lot.retrieveWithFilter(
+            connection,
+            TENANT_ID,
+            vector(),
+            new Money(1_000_000L),
+            new OriginalDateTime((java.sql.Timestamp) null),
+            3,
+            Area.関東_首都圏,
+            0.8,
+            10);
+
+        verify(connection, atLeastOnce())
+            .prepareStatement(
+                contains("COALESCE(start_date, 'infinity'::timestamp) <= COALESCE(?::timestamp,"));
+        verify(countStatement).setTimestamp(2, null);
+        assertThat(lot.size()).isEqualTo(1);
+      }
+
+      /**
        * 要員のエリアが無くても、フルリモートの案件を検索の候補に含めることを確かめる。 出社要件が 0 の案件は場所を問わないため、エリアが無いことで候補を落とさない。
        *
        * @given 件数が 1 件、検索の結果が 1 行、要員のオフィス可用性が 3、エリアが null
