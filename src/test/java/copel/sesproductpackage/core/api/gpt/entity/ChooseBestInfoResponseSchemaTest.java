@@ -104,6 +104,148 @@ class ChooseBestInfoResponseSchemaTest {
         assertThat(best.getId()).isEqualTo("G");
         assertThat(best.toEvaluiationText()).contains("■尚可スキル: -\n");
       }
+
+      /**
+       * 尚可スキルが NotMet の候補であっても、引数なしの最良候補として返すことを確かめる。 引数なしの判定は尚可を見ない従来の仕様のため、その挙動を守る。
+       *
+       * @given 候補 N は必須 FullyMet、尚可スキルが NotMet、その他制約を満たす
+       * @when 引数なしの getBestResult を呼び出す
+       * @then N を返す
+       */
+      @Test
+      void 尚可スキルがNotMetの候補の場合_尚可を判定せず候補を返す() {
+        ChooseBestInfoResponseSchema schema =
+            schemaOf(candidate("N", 85, FULLY, NOT_MET, true, true));
+
+        assertThat(schema.getBestResult().getId()).isEqualTo("N");
+      }
+    }
+  }
+
+  @Nested
+  class getBestResult_FilteringRules {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 必須のしきい値を PartiallyMet にした場合に、一部のみ満たす候補を含めてマッチ度が最大の候補を返すことを確かめる。
+       * テナントの設定で必須を広げた場合に、一部の一致の候補を選べるようにする。
+       *
+       * @given 候補 A は必須が FullyMet でマッチ度80、候補 B は必須が PartiallyMet でマッチ度90
+       * @when 必須を PartiallyMet、尚可を null にしたルールで getBestResult を呼び出す
+       * @then 候補 B を返す
+       */
+      @Test
+      void 必須のしきい値がPartiallyMetの場合_一部満たす候補を含めて最大のマッチ度の候補を返す() {
+        ChooseBestInfoResponseSchema schema =
+            schemaOf(
+                candidate("A", 80, FULLY, FULLY, true, true),
+                candidate("B", 90, PARTIAL, FULLY, true, true));
+
+        assertThat(schema.getBestResult(rules(PARTIAL, null, true)).getId()).isEqualTo("B");
+      }
+
+      /**
+       * 尚可のしきい値を FullyMet にした場合に、尚可を満たす候補の中からマッチ度が最大の候補を返すことを確かめる。 尚可の判定を外すと、尚可を満たさない候補が選ばれてしまう。
+       *
+       * @given 候補 X は尚可が NotMet でマッチ度90、候補 Y は尚可が FullyMet でマッチ度80
+       * @when 必須と尚可を FullyMet にしたルールで getBestResult を呼び出す
+       * @then 候補 Y を返す
+       */
+      @Test
+      void 尚可のしきい値がFullyMetの場合_尚可を満たす候補の中から最大のマッチ度の候補を返す() {
+        ChooseBestInfoResponseSchema schema =
+            schemaOf(
+                candidate("X", 90, FULLY, NOT_MET, true, true),
+                candidate("Y", 80, FULLY, FULLY, true, true));
+
+        assertThat(schema.getBestResult(rules(FULLY, FULLY, true)).getId()).isEqualTo("Y");
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 必須のしきい値が FullyMet で、必須が一部のみ満たす候補だけの場合に null を返すことを確かめる。 必須を満たさない候補を選ぶと、要件に合わない人材を提案してしまう。
+       *
+       * @given 候補 B は必須が PartiallyMet で、尚可とその他制約は満たす
+       * @when 必須と尚可を FullyMet にしたルールで getBestResult を呼び出す
+       * @then null を返す
+       */
+      @Test
+      void 必須のしきい値がFullyMetで一部のみ満たす候補だけの場合_nullを返す() {
+        ChooseBestInfoResponseSchema schema =
+            schemaOf(candidate("B", 90, PARTIAL, FULLY, true, true));
+
+        assertThat(schema.getBestResult(rules(FULLY, FULLY, true))).isNull();
+      }
+
+      /**
+       * 尚可のしきい値が null の場合に、尚可を満たさない候補も対象にして返すことを確かめる。 尚可を制限なしにした場合に、尚可の不一致で候補を落とさないことを守る。
+       *
+       * @given 候補 X は必須が FullyMet、尚可が NotMet でマッチ度90
+       * @when 必須を FullyMet、尚可を null にしたルールで getBestResult を呼び出す
+       * @then 候補 X を返す
+       */
+      @Test
+      void 尚可のしきい値がnullの場合_尚可を満たさない候補を返す() {
+        ChooseBestInfoResponseSchema schema =
+            schemaOf(candidate("X", 90, FULLY, NOT_MET, true, true));
+
+        assertThat(schema.getBestResult(rules(FULLY, null, true)).getId()).isEqualTo("X");
+      }
+
+      /**
+       * 候補の一覧が未設定の場合に null を返すことを確かめる。 一覧が無いときに例外を投げると、選出処理全体が止まるので、その仕様を守る。
+       *
+       * @given 候補の一覧が未設定である
+       * @when 必須と尚可を FullyMet にしたルールで getBestResult を呼び出す
+       * @then null を返す
+       */
+      @Test
+      void 候補の一覧が未設定の場合_nullを返す() {
+        assertThat(new ChooseBestInfoResponseSchema().getBestResult(rules(FULLY, FULLY, true)))
+            .isNull();
+      }
+
+      /**
+       * ルールが null の場合に、引数なしの getBestResult と同じく尚可を判定せず候補を返すことを確かめる。
+       * ルールの省略時と引数なしの版で選出の基準を食い違わせないことを守る。
+       *
+       * @given 候補 A は必須 FullyMet、尚可 FullyMet、候補 C はその他制約を満たさず、候補 W は尚可が NotMet でマッチ度が最大
+       * @when ルールを null にして getBestResult を呼び出す
+       * @then 候補 W を返し、引数なしの getBestResult と同じ結果を返す
+       */
+      @Test
+      void ルールがnullの場合_尚可を判定せず最大のマッチ度の候補を返す() {
+        ChooseBestInfoResponseSchema schema =
+            schemaOf(
+                candidate("A", 80, FULLY, FULLY, true, true),
+                candidate("C", 90, FULLY, FULLY, true, false),
+                candidate("W", 95, FULLY, NOT_MET, true, true));
+
+        assertThat(schema.getBestResult((FilteringRules) null).getId()).isEqualTo("W");
+        assertThat(schema.getBestResult((FilteringRules) null)).isEqualTo(schema.getBestResult());
+      }
+
+      /**
+       * マッチ度が同点の候補が複数ある場合に、一覧で先に並ぶ候補を返すことを確かめる。 同点の選出結果が毎回変わると通知の対象が揺れるので、先頭の候補に固定することを守る。
+       *
+       * @given 候補 P と Q はどちらも必須 FullyMet、尚可 FullyMet、その他制約を満たし、マッチ度がともに90で、P が先に並ぶ
+       * @when 必須と尚可を FullyMet にしたルールで getBestResult を呼び出す
+       * @then 候補 P を返す
+       */
+      @Test
+      void 同点の候補が複数ある場合_一覧で先に並ぶ候補を返す() {
+        ChooseBestInfoResponseSchema schema =
+            schemaOf(
+                candidate("P", 90, FULLY, FULLY, true, true),
+                candidate("Q", 90, FULLY, FULLY, true, true));
+
+        assertThat(schema.getBestResult(rules(FULLY, FULLY, true)).getId()).isEqualTo("P");
+      }
     }
   }
 

@@ -23,7 +23,9 @@ public enum Permission {
   VIEW_USAGE_HISTORY("利用履歴閲覧"),
   // 管理系
   MANAGE_USERS("ユーザー管理"),
-  MANAGE_MASTER_DATA("マスターデータ管理");
+  MANAGE_MASTER_DATA("マスターデータ管理"),
+  /** テナント設定の管理（自テナントのマッチング強度の参照・変更）. */
+  MANAGE_TENANT_SETTINGS("テナント設定管理");
 
   /** 名称. */
   private final String name;

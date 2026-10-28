@@ -1,5 +1,6 @@
 package copel.sesproductpackage.core.database;
 
+import copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateResponseSchema.EvaluateType;
 import copel.sesproductpackage.core.database.base.EntityLotBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import java.sql.Connection;
@@ -16,8 +17,8 @@ import java.util.List;
 public class SES_AI_M_TENANTLot extends EntityLotBase<SES_AI_M_TENANT> {
   /** 全件SELECT文. */
   private static final String SELECT_ALL_SQL =
-      "SELECT tenant_id, tenant_name, tenant_status_cd, register_date, register_user FROM "
-          + "SES_AI_M_TENANT";
+      "SELECT tenant_id, tenant_name, tenant_status_cd, match_must_level, match_want_level, "
+          + "register_date, register_user FROM SES_AI_M_TENANT";
 
   public SES_AI_M_TENANTLot() {
     super();
@@ -63,6 +64,10 @@ public class SES_AI_M_TENANTLot extends EntityLotBase<SES_AI_M_TENANT> {
     SES_AI_M_TENANT tenant = new SES_AI_M_TENANT(tenantId);
     tenant.setTenantName(resultSet.getString("tenant_name"));
     tenant.setTenantStatusCd(resultSet.getString("tenant_status_cd"));
+    String mustLevel = resultSet.getString("match_must_level");
+    tenant.setMatchMustLevel(mustLevel == null ? null : EvaluateType.valueOf(mustLevel));
+    String wantLevel = resultSet.getString("match_want_level");
+    tenant.setMatchWantLevel(wantLevel == null ? null : EvaluateType.valueOf(wantLevel));
     tenant.setRegisterDate(new OriginalDateTime(resultSet.getString("register_date")));
     tenant.setRegisterUser(resultSet.getString("register_user"));
     return tenant;

@@ -72,39 +72,94 @@ public class MatchEvaluateResponseSchema {
   // メソッド
   // ================================================
   /**
-   * 評価結果を元に、マッチするかどうかを返却する.
+   * 評価結果を元に、既定のルールでマッチするかどうかを返却する.
+   *
+   * <p>既定のルールは必須を FullyMet、尚可を判定しない（null）とする。その他制約は判定しない。{@link #isMatch(FilteringRules)} に null
+   * を渡した場合と同じ結果になる。
    *
    * @return マッチしていればtrue、そうでなければfalse.
    */
   public boolean isMatch() {
+    return isMatch(null);
+  }
+
+  /**
+   * 評価結果を元に、フィルタリングルールの必須・尚可のしきい値でマッチするかどうかを返却する.
+   *
+   * <p>必須・尚可はそれぞれのリストを {@link #summarizeSkills(List)} で1つの評価区分にまとめ、しきい値を満たすかで判定する。しきい値が null
+   * の項目は判定しない。ルールが null の場合は既定のルール（必須 FullyMet、尚可は判定しない）で判定する。
+   *
+   * <p>事前条件として、必須のリスト・単価・出社要件のいずれかが未設定の場合は、しきい値に関わらず false を返す。 {@link
+   * FilteringRules#isOtherConstraintsRequired()} は参照しない（その他制約は本メソッドでは判定しない）。
+   *
+   * @param rules フィルタリングルール。nullの場合は既定のルール
+   * @return マッチしていればtrue、そうでなければfalse.
+   */
+  public boolean isMatch(final FilteringRules rules) {
+    FilteringRules applied =
+        rules == null ? new FilteringRules(EvaluateType.FullyMet, null, false) : rules;
     // 1. 必須オブジェクトの存在チェック（事前条件）
     if (this.mustList == null || this.priceResult == null || this.officeResult == null) {
       return false;
     }
-    // 2. 必須条件：1つでも FullyMet 以外があればNG
-    // PartiallyMet（類似経験のみ明記）は必須スキルを満たすとは言えないため対象外とし、スコアと評価文にのみ反映する
-    boolean isAllMustMet =
-        this.mustList.stream().allMatch(must -> must.getResult() == EvaluateType.FullyMet);
-    if (!isAllMustMet) {
+    // 2. 必須条件：まとめた評価がしきい値を満たさなければNG（しきい値が null なら判定しない）
+    // 既定のしきい値 FullyMet では PartiallyMet（類似経験のみ明記）は対象外とし、スコアと評価文にのみ反映する。
+    // テナント設定で必須に PartiallyMet を許容する場合は、しきい値 PartiallyMet で判定する。
+    if (applied.getMustSkillLevel() != null
+        && !summarizeSkills(this.mustList).satisfies(applied.getMustSkillLevel())) {
       return false;
     }
-    // 3. 案件単価要件
+    // 3. 尚可条件：まとめた評価がしきい値を満たさなければNG（しきい値が null なら判定しない）
+    if (applied.getWantSkillLevel() != null
+        && !summarizeSkills(this.wantList).satisfies(applied.getWantSkillLevel())) {
+      return false;
+    }
+    // 4. 案件単価要件
     if (!this.priceResult.isResult()) {
       return false;
     }
-    // 4. 出社要件
+    // 5. 出社要件
     if (this.officeResult.getResult() != EvaluateType.FullyMet) {
       return false;
     }
-    // 5. 場所要件（存在し、かつ NotMet の場合はNG）
+    // 6. 場所要件（存在し、かつ NotMet の場合はNG）
     if (this.placeResult != null && this.placeResult.getResult() == EvaluateType.NotMet) {
       return false;
     }
-    // 6. 人月工数要件（存在し、かつ満たさない場合はNG）
+    // 7. 人月工数要件（存在し、かつ満たさない場合はNG）
     if (this.personMonthsResult != null && !this.personMonthsResult.isResult()) {
       return false;
     }
     return true;
+  }
+
+  /**
+   * スキル評価の一覧を、1つの評価区分にまとめる.
+   *
+   * <p>必須・尚可の集約ルールは、候補単位の必須スキル評価・尚可スキル評価の定義（{@link ChooseBestInfoResponseSchema}）と揃えている。一覧が null
+   * または空の場合は記載が無いため FullyMet とする。 1件でも FullyMet と PartiallyMet 以外（NotMet、Unknown、評価の値が未設定）があれば
+   * NotMet とし、PartiallyMet より優先する。 全件が FullyMet なら FullyMet、それ以外（FullyMet と PartiallyMet の混在）は
+   * PartiallyMet とする。
+   *
+   * @param skills スキル評価の一覧。null も可
+   * @return まとめた評価区分
+   */
+  public static EvaluateType summarizeSkills(final List<SkillEvaluateResult> skills) {
+    if (skills == null || skills.isEmpty()) {
+      return EvaluateType.FullyMet;
+    }
+    boolean hasUnmet =
+        skills.stream()
+            .anyMatch(
+                skill ->
+                    skill.getResult() != EvaluateType.FullyMet
+                        && skill.getResult() != EvaluateType.PartiallyMet);
+    if (hasUnmet) {
+      return EvaluateType.NotMet;
+    }
+    boolean allFullyMet =
+        skills.stream().allMatch(skill -> skill.getResult() == EvaluateType.FullyMet);
+    return allFullyMet ? EvaluateType.FullyMet : EvaluateType.PartiallyMet;
   }
 
   /**
@@ -562,6 +617,20 @@ public class MatchEvaluateResponseSchema {
         case NotMet -> 0.0;
         case Unknown -> 0.0;
       };
+    }
+
+    /**
+     * 評価区分がしきい値の評価区分を満たすかを返します。
+     *
+     * <p>列挙値は満たす度合いの高い順に並んでいる（FullyMet、PartiallyMet、NotMet、Unknown）。 しきい値が FullyMet なら FullyMet
+     * だけを満たし、PartiallyMet なら FullyMet と PartiallyMet を満たす。 Unknown は FullyMet と PartiallyMet
+     * のどちらのしきい値でも満たさない。
+     *
+     * @param threshold しきい値の評価区分（null は呼び出し側で判定しない項目として扱う）
+     * @return しきい値を満たす場合は true
+     */
+    public boolean satisfies(final EvaluateType threshold) {
+      return this.ordinal() <= threshold.ordinal();
     }
   }
 }

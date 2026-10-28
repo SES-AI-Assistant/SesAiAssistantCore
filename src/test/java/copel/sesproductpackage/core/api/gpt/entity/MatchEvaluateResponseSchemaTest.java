@@ -49,6 +49,21 @@ class MatchEvaluateResponseSchemaTest {
 
         assertThat(schema.isMatch()).isTrue();
       }
+
+      /**
+       * 引数なしの判定では尚可を判定しないことを確かめる。 既存の呼び出し元は尚可の条件で除外しない前提のため、従来の判定結果を変えないことを守る。
+       *
+       * @given 必須が全て FullyMet、単価と出社要件を満たし、尚可が NotMet である
+       * @when 引数なしの isMatch を呼び出す
+       * @then true を返す
+       */
+      @Test
+      void 尚可が満たさない場合_trueを返す() {
+        MatchEvaluateResponseSchema schema = matchingSchema();
+        schema.setWantList(List.of(skill(EvaluateType.NotMet)));
+
+        assertThat(schema.isMatch()).isTrue();
+      }
     }
 
     @Nested
@@ -218,6 +233,352 @@ class MatchEvaluateResponseSchemaTest {
         schema.setPersonMonthsResult(new PersonMonthsEvaluateResult(false, ""));
 
         assertThat(schema.isMatch()).isFalse();
+      }
+    }
+  }
+
+  @Nested
+  class isMatch_FilteringRules {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 必須と尚可を FullyMet としたルールで、全て満たす候補がマッチすることを確かめる。 既定の絞り込みと同じ条件で、満たした候補を除外しないことを守る。
+       *
+       * @given 必須が FullyMet、尚可が FullyMet、単価と出社要件を満たす
+       * @when 必須と尚可を FullyMet にしたルールで isMatch を呼び出す
+       * @then true を返す
+       */
+      @Test
+      void 必須がFullyMetで尚可がFullyMetの場合_trueを返す() {
+        MatchEvaluateResponseSchema schema = matchingSchema();
+        schema.setWantList(List.of(skill(EvaluateType.FullyMet)));
+
+        assertThat(schema.isMatch(rules(EvaluateType.FullyMet, EvaluateType.FullyMet))).isTrue();
+      }
+
+      /**
+       * 必須を FullyMet、尚可を PartiallyMet としたルールで、尚可の一部を満たす候補がマッチすることを確かめる。
+       * テナントの設定で尚可を広げた場合に、一部の一致を含める。
+       *
+       * @given 必須が FullyMet、尚可が FullyMet と PartiallyMet の2件、単価と出社要件を満たす
+       * @when 必須を FullyMet、尚可を PartiallyMet にしたルールで isMatch を呼び出す
+       * @then true を返す
+       */
+      @Test
+      void 必須がFullyMetで尚可がPartiallyMetの場合_尚可の一部を満たしていてもtrueを返す() {
+        MatchEvaluateResponseSchema schema = matchingSchema();
+        schema.setWantList(List.of(skill(EvaluateType.FullyMet), skill(EvaluateType.PartiallyMet)));
+
+        assertThat(schema.isMatch(rules(EvaluateType.FullyMet, EvaluateType.PartiallyMet)))
+            .isTrue();
+      }
+
+      /**
+       * 必須を PartiallyMet、尚可を制限なしとしたルールで、必須の一部を満たす候補がマッチすることを確かめる。 テナントの設定で必須を広げた場合に、一部の一致を含める。
+       *
+       * @given 必須が FullyMet と PartiallyMet の2件、単価と出社要件を満たす
+       * @when 必須を PartiallyMet、尚可を null にしたルールで isMatch を呼び出す
+       * @then true を返す
+       */
+      @Test
+      void 必須がPartiallyMetで尚可が制限なしの場合_必須の一部を満たしていてもtrueを返す() {
+        MatchEvaluateResponseSchema schema = matchingSchema();
+        schema.setMustList(List.of(skill(EvaluateType.FullyMet), skill(EvaluateType.PartiallyMet)));
+
+        assertThat(schema.isMatch(rules(EvaluateType.PartiallyMet, null))).isTrue();
+      }
+
+      /**
+       * 必須を FullyMet、尚可を制限なしとしたルールで、尚可を満たさない候補もマッチすることを確かめる。 尚可を制限なしにした場合に、尚可の不一致で除外しないことを守る。
+       *
+       * @given 必須が FullyMet、尚可が NotMet、単価と出社要件を満たす
+       * @when 必須を FullyMet、尚可を null にしたルールで isMatch を呼び出す
+       * @then true を返す
+       */
+      @Test
+      void 必須がFullyMetで尚可が制限なしの場合_尚可を満たさなくてもtrueを返す() {
+        MatchEvaluateResponseSchema schema = matchingSchema();
+        schema.setWantList(List.of(skill(EvaluateType.NotMet)));
+
+        assertThat(schema.isMatch(rules(EvaluateType.FullyMet, null))).isTrue();
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 必須のしきい値が FullyMet で必須の一部のみ満たす場合に、マッチしないことを確かめる。 FullyMet
+       * のしきい値は必須の全てを満たす条件のため、一部だけでは除外することを守る。
+       *
+       * @given 必須が PartiallyMet の1件、単価と出社要件を満たす
+       * @when 必須を FullyMet、尚可を null にしたルールで isMatch を呼び出す
+       * @then false を返す
+       */
+      @Test
+      void 必須のしきい値がFullyMetで必須が一部のみ満たす場合_falseを返す() {
+        MatchEvaluateResponseSchema schema = matchingSchema();
+        schema.setMustList(List.of(skill(EvaluateType.PartiallyMet)));
+
+        assertThat(schema.isMatch(rules(EvaluateType.FullyMet, null))).isFalse();
+      }
+
+      /**
+       * 必須のしきい値が PartiallyMet で必須に満たさない項目がある場合に、マッチしないことを確かめる。 PartiallyMet のしきい値でも NotMet
+       * の項目は除外するため、その判定を守る。
+       *
+       * @given 必須が FullyMet と NotMet の2件、単価と出社要件を満たす
+       * @when 必須を PartiallyMet、尚可を null にしたルールで isMatch を呼び出す
+       * @then false を返す
+       */
+      @Test
+      void 必須のしきい値がPartiallyMetで必須に満たさない項目がある場合_falseを返す() {
+        MatchEvaluateResponseSchema schema = matchingSchema();
+        schema.setMustList(List.of(skill(EvaluateType.FullyMet), skill(EvaluateType.NotMet)));
+
+        assertThat(schema.isMatch(rules(EvaluateType.PartiallyMet, null))).isFalse();
+      }
+
+      /**
+       * 必須のしきい値が PartiallyMet で必須に不明な項目がある場合に、マッチしないことを確かめる。
+       * 不明な項目を満たしたものとして扱うと根拠の無い候補を通すので、除外することを守る。
+       *
+       * @given 必須が Unknown の1件、単価と出社要件を満たす
+       * @when 必須を PartiallyMet、尚可を null にしたルールで isMatch を呼び出す
+       * @then false を返す
+       */
+      @Test
+      void 必須のしきい値がPartiallyMetで必須に不明な項目がある場合_falseを返す() {
+        MatchEvaluateResponseSchema schema = matchingSchema();
+        schema.setMustList(List.of(skill(EvaluateType.Unknown)));
+
+        assertThat(schema.isMatch(rules(EvaluateType.PartiallyMet, null))).isFalse();
+      }
+
+      /**
+       * 必須のしきい値が null の場合に、必須を判定せずにマッチすることを確かめる。 必須を制限なしにした場合に、必須の不一致で除外しないことを守る。
+       *
+       * @given 必須が NotMet の1件、単価と出社要件を満たす
+       * @when 必須と尚可を null にしたルールで isMatch を呼び出す
+       * @then true を返す
+       */
+      @Test
+      void 必須のしきい値がnullの場合_必須を判定せずtrueを返す() {
+        MatchEvaluateResponseSchema schema = matchingSchema();
+        schema.setMustList(List.of(skill(EvaluateType.NotMet)));
+
+        assertThat(schema.isMatch(rules(null, null))).isTrue();
+      }
+
+      /**
+       * 尚可のしきい値が FullyMet で尚可の一部のみ満たす場合に、マッチしないことを確かめる。 尚可を FullyMet で指定した場合は全てを満たす候補だけを残すことを守る。
+       *
+       * @given 必須が FullyMet、尚可が PartiallyMet の1件、単価と出社要件を満たす
+       * @when 必須と尚可を FullyMet にしたルールで isMatch を呼び出す
+       * @then false を返す
+       */
+      @Test
+      void 尚可のしきい値がFullyMetで尚可が一部のみ満たす場合_falseを返す() {
+        MatchEvaluateResponseSchema schema = matchingSchema();
+        schema.setWantList(List.of(skill(EvaluateType.PartiallyMet)));
+
+        assertThat(schema.isMatch(rules(EvaluateType.FullyMet, EvaluateType.FullyMet))).isFalse();
+      }
+
+      /**
+       * 尚可のしきい値が PartiallyMet で尚可に満たさない項目がある場合に、マッチしないことを確かめる。 尚可を PartiallyMet で指定しても NotMet
+       * の項目は除外するため、その判定を守る。
+       *
+       * @given 必須が FullyMet、尚可が FullyMet と NotMet の2件、単価と出社要件を満たす
+       * @when 必須を FullyMet、尚可を PartiallyMet にしたルールで isMatch を呼び出す
+       * @then false を返す
+       */
+      @Test
+      void 尚可のしきい値がPartiallyMetで尚可に満たさない項目がある場合_falseを返す() {
+        MatchEvaluateResponseSchema schema = matchingSchema();
+        schema.setWantList(List.of(skill(EvaluateType.FullyMet), skill(EvaluateType.NotMet)));
+
+        assertThat(schema.isMatch(rules(EvaluateType.FullyMet, EvaluateType.PartiallyMet)))
+            .isFalse();
+      }
+
+      /**
+       * 必須のリストが未設定の場合に、しきい値に関わらずマッチしないことを確かめる。 必須の評価が無い候補を採用すると、根拠の無い提案になるので除外することを守る。
+       *
+       * @given 必須のリストが未設定で、他の項目は全て満たす
+       * @when 必須と尚可を null にしたルールで isMatch を呼び出す
+       * @then false を返す
+       */
+      @Test
+      void 必須のリストが未設定の場合_falseを返す() {
+        MatchEvaluateResponseSchema schema = matchingSchema();
+        schema.setMustList(null);
+
+        assertThat(schema.isMatch(rules(null, null))).isFalse();
+      }
+
+      /**
+       * 尚可のリストが未設定の場合に、尚可を全て満たしたものとして扱うことを確かめる。 尚可の記載が無い案件は尚可の条件を課さない仕様のため、マッチさせることを守る。
+       *
+       * @given 尚可のリストが未設定で、他の項目は全て満たす
+       * @when 必須を FullyMet、尚可を FullyMet にしたルールで isMatch を呼び出す
+       * @then true を返す
+       */
+      @Test
+      void 尚可のリストが未設定の場合_尚可をFullyMetとみなしてtrueを返す() {
+        MatchEvaluateResponseSchema schema = matchingSchema();
+        schema.setWantList(null);
+
+        assertThat(schema.isMatch(rules(EvaluateType.FullyMet, EvaluateType.FullyMet))).isTrue();
+      }
+
+      /**
+       * ルールが null の場合に、引数なしの isMatch と同じく尚可を判定しないことを確かめる。
+       * ルールの省略時と引数なしの判定の結果をそろえ、呼び出し元で結果が食い違わないことを守る。
+       *
+       * @given 必須が FullyMet、尚可が NotMet の1件、単価と出社要件を満たす
+       * @when ルールを null にして isMatch を呼び出す
+       * @then 尚可を判定せず、true を返す
+       */
+      @Test
+      void ルールがnullの場合_尚可を判定せずtrueを返す() {
+        MatchEvaluateResponseSchema schema = matchingSchema();
+        schema.setWantList(List.of(skill(EvaluateType.NotMet)));
+
+        assertThat(schema.isMatch((FilteringRules) null)).isTrue();
+      }
+
+      /**
+       * 尚可のしきい値が PartiallyMet で尚可に不明な項目がある場合に、マッチしないことを確かめる。
+       * 不明な項目を満たしたものとして扱うと根拠の無い候補を通すので、除外することを守る。
+       *
+       * @given 必須が FullyMet、尚可が FullyMet と Unknown の2件、単価と出社要件を満たす
+       * @when 必須を FullyMet、尚可を PartiallyMet にしたルールで isMatch を呼び出す
+       * @then false を返す
+       */
+      @Test
+      void 尚可のしきい値がPartiallyMetで尚可に不明な項目がある場合_falseを返す() {
+        MatchEvaluateResponseSchema schema = matchingSchema();
+        schema.setWantList(List.of(skill(EvaluateType.FullyMet), skill(EvaluateType.Unknown)));
+
+        assertThat(schema.isMatch(rules(EvaluateType.FullyMet, EvaluateType.PartiallyMet)))
+            .isFalse();
+      }
+    }
+  }
+
+  @Nested
+  class summarizeSkills {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 全ての項目が FullyMet の場合に、FullyMet にまとめることを確かめる。 全ての必須スキルを満たす場合だけ、必須の判定を満たしたものとして扱うことを守る。
+       *
+       * @given 項目が FullyMet の2件
+       * @when summarizeSkills を呼び出す
+       * @then FullyMet を返す
+       */
+      @Test
+      void 全ての項目がFullyMetの場合_FullyMetを返す() {
+        assertThat(
+                MatchEvaluateResponseSchema.summarizeSkills(
+                    List.of(skill(EvaluateType.FullyMet), skill(EvaluateType.FullyMet))))
+            .isEqualTo(EvaluateType.FullyMet);
+      }
+
+      /**
+       * FullyMet と PartiallyMet が混在する場合に、PartiallyMet にまとめることを確かめる。 一部だけ類似経験がある案件を、部分的な一致として区別する。
+       *
+       * @given 項目が FullyMet と PartiallyMet の2件
+       * @when summarizeSkills を呼び出す
+       * @then PartiallyMet を返す
+       */
+      @Test
+      void FullyMetとPartiallyMetが混在する場合_PartiallyMetを返す() {
+        assertThat(
+                MatchEvaluateResponseSchema.summarizeSkills(
+                    List.of(skill(EvaluateType.FullyMet), skill(EvaluateType.PartiallyMet))))
+            .isEqualTo(EvaluateType.PartiallyMet);
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 一覧が null の場合に、記載が無いものとして FullyMet にまとめることを確かめる。 尚可の記載が無い案件は一律 FullyMet とする仕様を守る。
+       *
+       * @given 一覧が null
+       * @when summarizeSkills を呼び出す
+       * @then FullyMet を返す
+       */
+      @Test
+      void 一覧がnullの場合_FullyMetを返す() {
+        assertThat(MatchEvaluateResponseSchema.summarizeSkills(null))
+            .isEqualTo(EvaluateType.FullyMet);
+      }
+
+      /**
+       * 一覧が空の場合に、記載が無いものとして FullyMet にまとめることを確かめる。 必須スキルの記載が無い案件は一律 FullyMet とする仕様を守る。
+       *
+       * @given 一覧が空
+       * @when summarizeSkills を呼び出す
+       * @then FullyMet を返す
+       */
+      @Test
+      void 一覧が空の場合_FullyMetを返す() {
+        assertThat(MatchEvaluateResponseSchema.summarizeSkills(List.of()))
+            .isEqualTo(EvaluateType.FullyMet);
+      }
+
+      /**
+       * NotMet が1件でもある場合に、PartiallyMet より優先して NotMet にまとめることを確かめる。
+       * 同一・類似のいずれも無い必須スキルが1つでもあれば満たさないため、その優先順を守る。
+       *
+       * @given 項目が PartiallyMet と NotMet の2件
+       * @when summarizeSkills を呼び出す
+       * @then NotMet を返す
+       */
+      @Test
+      void NotMetが1件でもある場合_NotMetを返す() {
+        assertThat(
+                MatchEvaluateResponseSchema.summarizeSkills(
+                    List.of(skill(EvaluateType.PartiallyMet), skill(EvaluateType.NotMet))))
+            .isEqualTo(EvaluateType.NotMet);
+      }
+
+      /**
+       * Unknown が1件でもある場合に、NotMet にまとめることを確かめる。 不明な項目を満たしたものとして扱うと根拠の無い候補を通すので、満たさない側に寄せることを守る。
+       *
+       * @given 項目が FullyMet と Unknown の2件
+       * @when summarizeSkills を呼び出す
+       * @then NotMet を返す
+       */
+      @Test
+      void Unknownが1件でもある場合_NotMetを返す() {
+        assertThat(
+                MatchEvaluateResponseSchema.summarizeSkills(
+                    List.of(skill(EvaluateType.FullyMet), skill(EvaluateType.Unknown))))
+            .isEqualTo(EvaluateType.NotMet);
+      }
+
+      /**
+       * 評価の値が未設定の項目がある場合に、NotMet にまとめることを確かめる。 評価の無い項目を満たしたものとして扱うと、判定していない項目を通すので除外することを守る。
+       *
+       * @given 項目が FullyMet と評価の値が null の2件
+       * @when summarizeSkills を呼び出す
+       * @then NotMet を返す
+       */
+      @Test
+      void 評価の値が未設定の項目がある場合_NotMetを返す() {
+        assertThat(
+                MatchEvaluateResponseSchema.summarizeSkills(
+                    List.of(skill(EvaluateType.FullyMet), skill(null))))
+            .isEqualTo(EvaluateType.NotMet);
       }
     }
   }
@@ -881,6 +1242,17 @@ class MatchEvaluateResponseSchemaTest {
     schema.setPriceResult(new PriceEvaluateResult(true, ""));
     schema.setOfficeResult(new OfficeEvaluateResult(EvaluateType.FullyMet, ""));
     return schema;
+  }
+
+  /**
+   * 必須と尚可のしきい値を持つフィルタリングルールを作る.
+   *
+   * @param must 必須のしきい値
+   * @param want 尚可のしきい値
+   * @return フィルタリングルール
+   */
+  private static FilteringRules rules(final EvaluateType must, final EvaluateType want) {
+    return new FilteringRules(must, want, true);
   }
 
   /**
