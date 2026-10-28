@@ -130,6 +130,71 @@ public class MatchEvaluateResponseSchema {
   }
 
   /**
+   * 既定のルールで、段階Bの詳細評価がマッチ条件を満たすかを返却する.
+   *
+   * <p>既定のルールは必須を FullyMet、尚可を判定しない（null）とする。 {@link #isMatch(FilteringRules)} に null
+   * を渡した場合と同じ結果になる。
+   *
+   * @return マッチしていればtrue、そうでなければfalse.
+   */
+  public boolean isMatch() {
+    return isMatch(null);
+  }
+
+  /**
+   * フィルタリングルールの必須・尚可のしきい値で、段階Bの詳細評価がマッチ条件を満たすかを返却する.
+   *
+   * <p>判定は必須と尚可の2つだけで行う。必須は {@link #summarizeSkills(List)} で1つの評価区分にまとめた結果が、しきい値以上かで判定する。尚可は
+   * しきい値が設定されている場合だけ同じ方法で判定し、しきい値が null の場合は判定しない。 ルールが null の場合は既定のルール（必須 FullyMet、尚可は判定しない）で判定する。
+   *
+   * <p>単価・出社・場所・人月工数は段階Bでは評価しないため判定に使わない。その他の評価（otherList）も判定に使わず、スコアと評価文にのみ反映する。 {@link
+   * FilteringRules#isOtherConstraintsRequired()} は参照しない（その他制約は段階Aだけで判定する）。
+   *
+   * @param rules フィルタリングルール。nullの場合は既定のルール
+   * @return マッチしていればtrue、そうでなければfalse.
+   */
+  public boolean isMatch(final FilteringRules rules) {
+    FilteringRules applied =
+        rules == null ? new FilteringRules(EvaluateType.FullyMet, null, false) : rules;
+    // 必須：まとめた評価がしきい値を満たさなければNG（しきい値が null なら判定しない）
+    if (applied.getMustSkillLevel() != null
+        && !summarizeSkills(this.mustList).satisfies(applied.getMustSkillLevel())) {
+      return false;
+    }
+    // 尚可：まとめた評価がしきい値を満たさなければNG（しきい値が null なら判定しない）
+    return applied.getWantSkillLevel() == null
+        || summarizeSkills(this.wantList).satisfies(applied.getWantSkillLevel());
+  }
+
+  /**
+   * スキル評価の一覧を、1つの評価区分にまとめる.
+   *
+   * <p>一覧が null または空の場合は記載が無いため FullyMet とする。 1件でも FullyMet と PartiallyMet
+   * 以外（NotMet、Unknown、評価の値が未設定）があれば NotMet とし、PartiallyMet より優先する。 全件が FullyMet なら
+   * FullyMet、それ以外（FullyMet と PartiallyMet の混在）は PartiallyMet とする。
+   *
+   * @param skills スキル評価の一覧。null も可
+   * @return まとめた評価区分
+   */
+  private static EvaluateType summarizeSkills(final List<SkillEvaluateResult> skills) {
+    if (skills == null || skills.isEmpty()) {
+      return EvaluateType.FullyMet;
+    }
+    boolean hasUnmet =
+        skills.stream()
+            .anyMatch(
+                skill ->
+                    skill.getResult() != EvaluateType.FullyMet
+                        && skill.getResult() != EvaluateType.PartiallyMet);
+    if (hasUnmet) {
+      return EvaluateType.NotMet;
+    }
+    boolean allFullyMet =
+        skills.stream().allMatch(skill -> skill.getResult() == EvaluateType.FullyMet);
+    return allFullyMet ? EvaluateType.FullyMet : EvaluateType.PartiallyMet;
+  }
+
+  /**
    * 必須スキルの評価結果をテキスト形式で取得する.
    *
    * @return 必須スキル評価結果

@@ -20,7 +20,11 @@ public class FilteringRules {
   /** 尚好スキルの要求レベル。nullの場合は無視。 */
   private EvaluateType wantSkillLevel;
 
-  /** その他制約条件の検証が必須かどうか。 */
+  /**
+   * その他制約条件の検証が必須かどうか。
+   *
+   * <p>段階A（ChooseBestInfoResponseSchema）でのみ参照する。段階B（MatchEvaluateResponseSchema#isMatch）では参照しない。
+   */
   private boolean otherConstraintsRequired;
 
   /**
