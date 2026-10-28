@@ -643,6 +643,99 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
       }
 
       /**
+       * 案件の単価が応相談の場合に、単価で要員を絞り込まないことを確かめる。 単価を提案時に決める案件は、要員の希望単価が高いことを理由に候補から外さない。
+       *
+       * @given 件数が 1 件、検索の結果が 1 行、案件の単価が 0 円、開始日が 2026-01-01
+       * @when retrieveByPersonVectorWithFilter を単価 0 円、出社要件 3、エリア 関東_首都圏 で実行する
+       * @then SQL に単価の COALESCE の条件を含め、件数の問い合わせの 1 番目に null を設定し、1件の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void 案件の単価が0円の場合_単価を絞り込まず1件の一覧を返す(final Connection connection) throws SQLException {
+        PreparedStatement countStatement = stubCountAndRows(connection, 1L, row(true));
+        SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
+
+        lot.retrieveByPersonVectorWithFilter(
+            connection,
+            TENANT_ID,
+            vector(),
+            new Money(0L),
+            new OriginalDateTime("2026-01-01 00:00:00"),
+            3,
+            Area.関東_首都圏,
+            0.8,
+            10);
+
+        verify(connection, atLeastOnce())
+            .prepareStatement(contains("p.unit_price <= COALESCE(?::numeric, p.unit_price)"));
+        verify(countStatement).setBigDecimal(1, null);
+        assertThat(lot.size()).isEqualTo(1);
+      }
+
+      /**
+       * 案件の開始日が未設定の場合に、開始日で要員を絞り込まないことを確かめる。 開始日が分からない案件を、開始日の条件で一律に候補から外さない。
+       *
+       * @given 件数が 1 件、検索の結果が 1 行、案件の開始日が未設定、単価が 1000000 円
+       * @when retrieveByPersonVectorWithFilter を開始日 未設定、出社要件 3、エリア 関東_首都圏 で実行する
+       * @then SQL に開始日の COALESCE の条件を含め、件数の問い合わせの 2 番目に null を設定し、1件の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void 案件の開始日が未設定の場合_開始日を絞り込まず1件の一覧を返す(final Connection connection) throws SQLException {
+        PreparedStatement countStatement = stubCountAndRows(connection, 1L, row(true));
+        SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
+
+        lot.retrieveByPersonVectorWithFilter(
+            connection,
+            TENANT_ID,
+            vector(),
+            new Money(1_000_000L),
+            new OriginalDateTime((java.sql.Timestamp) null),
+            3,
+            Area.関東_首都圏,
+            0.8,
+            10);
+
+        verify(connection, atLeastOnce())
+            .prepareStatement(
+                contains(
+                    "COALESCE(p.start_date, '-infinity'::timestamp) >= COALESCE(?::timestamp,"));
+        verify(countStatement).setTimestamp(2, null);
+        assertThat(lot.size()).isEqualTo(1);
+      }
+
+      /**
+       * 単価が未設定・応相談・スキル見合いの要員を、案件の単価で除外しないことを確かめる。 単価を提案時に決める要員は、案件の単価の上限を理由に候補から外さない。
+       *
+       * @given 件数が 1 件、検索の結果が 1 行、案件の単価が 1000000 円、開始日が 2026-01-01
+       * @when retrieveByPersonVectorWithFilter を単価 1000000 円、出社要件 3、エリア 関東_首都圏 で実行する
+       * @then SQL に単価が未設定、0 以下、9990000 の要員を通す条件を含め、1件の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void 要員の単価が未設定か応相談かスキル見合いの場合_除外せず1件の一覧を返す(final Connection connection) throws SQLException {
+        stubCountAndRows(connection, 1L, row(true));
+        SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
+
+        lot.retrieveByPersonVectorWithFilter(
+            connection,
+            TENANT_ID,
+            vector(),
+            new Money(1_000_000L),
+            new OriginalDateTime("2026-01-01 00:00:00"),
+            3,
+            Area.関東_首都圏,
+            0.8,
+            10);
+
+        verify(connection, atLeastOnce())
+            .prepareStatement(
+                contains(
+                    "(p.unit_price IS NULL OR p.unit_price <= 0 OR p.unit_price = 9990000 OR"));
+        assertThat(lot.size()).isEqualTo(1);
+      }
+
+      /**
        * 価格と開始日とオフィス要件とエリアで絞り込んだ類似検索の件数と行を読み込むことを確かめる。 出社要件とエリアが揃う要員を候補として並べる。
        *
        * @given 件数が 1 件、検索の結果が 1 行、オフィス要件が 3、エリアが 関東_首都圏

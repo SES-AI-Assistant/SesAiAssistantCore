@@ -22,6 +22,19 @@ import java.util.List;
  */
 public class SES_AI_T_JOBLot extends SesAiTableLotBase<SES_AI_T_JOB> {
 
+  /**
+   * 単価と開始日の絞り込み条件（バインドは単価、開始日の2つ）.
+   *
+   * <p>要員の単価以上の案件に絞る。単価が未設定・応相談（0 以下）の案件は単価を見る必要がないため除外しない。 バインドが null（要員の単価不問、開始日の未設定）の場合は、列の値が
+   * NULL の案件も含めて条件を常に成立させる。開始日が NULL の案件は、要員の開始日が指定されているときは除外する。
+   */
+  private static final String UNIT_PRICE_AND_START_DATE_CONDITION =
+      "(unit_price IS NULL OR unit_price <= 0 OR unit_price = "
+          + Money.NEGOTIABLE_PRICE.getValue().toPlainString()
+          + " OR unit_price >= COALESCE(?::numeric, unit_price)) "
+          + "AND COALESCE(start_date, 'infinity'::timestamp) "
+          + "<= COALESCE(?::timestamp, 'infinity'::timestamp)";
+
   /** 複合条件全文検索用 SELECT 接頭辞（末尾に WHERE を含む）. */
   private static final String SELECT_RAW_CONTENT_FOR_FULLTEXT =
       "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
@@ -51,7 +64,8 @@ public class SES_AI_T_JOBLot extends SesAiTableLotBase<SES_AI_T_JOB> {
           + "unit_price, title, overview, must_skills, want_skills, start_date, place, area, "
           + "office_requirements, other_requirements, register_date, register_user, ttl, "
           + "vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE "
-          + "unit_price >= ? AND start_date <= ? AND 1 - (vector_data <=> ?::vector) "
+          + UNIT_PRICE_AND_START_DATE_CONDITION
+          + " AND 1 - (vector_data <=> ?::vector) "
           + ">= ? ORDER BY distance ASC";
 
   /**
@@ -64,7 +78,8 @@ public class SES_AI_T_JOBLot extends SesAiTableLotBase<SES_AI_T_JOB> {
           + "unit_price, title, overview, must_skills, want_skills, start_date, place, area, "
           + "office_requirements, other_requirements, register_date, register_user, ttl, "
           + "vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE "
-          + "unit_price >= ? AND start_date <= ? AND office_requirements <= ? AND "
+          + UNIT_PRICE_AND_START_DATE_CONDITION
+          + " AND office_requirements <= ? AND "
           + "(office_requirements = 0 OR area = ?) AND 1 - (vector_data <=> ?::vector) >= ? "
           + "ORDER BY distance ASC";
 
@@ -154,8 +169,8 @@ public class SES_AI_T_JOBLot extends SesAiTableLotBase<SES_AI_T_JOB> {
    * @param connection DBコネクション
    * @param tenantId テナントID
    * @param query 検索ベクトル
-   * @param price 最低価格（単価がこの値以上のもの）
-   * @param startDate 最遅開始日（開始日がこの日付以前のもの）
+   * @param price 要員の単価（案件の単価がこの値以上のもの）。単価不問（未設定・応相談・スキル見合い）の場合は単価で絞り込まない
+   * @param startDate 最遅開始日（開始日がこの日付以前のもの）。未設定の場合は開始日で絞り込まない
    * @param similarityThreshold 類似度閾値(0.0～1.0)
    * @param limit 取得上限件数
    * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
@@ -181,7 +196,7 @@ public class SES_AI_T_JOBLot extends SesAiTableLotBase<SES_AI_T_JOB> {
         query.toString(),
         similarityThreshold,
         (stmt, paramIndex, vectorValue, threshold) -> {
-          stmt.setBigDecimal(paramIndex, price.getValue());
+          stmt.setBigDecimal(paramIndex, price.toFilterValue());
           stmt.setTimestamp(paramIndex + 1, startDate.toTimestamp());
           stmt.setString(paramIndex + 2, vectorValue);
           stmt.setDouble(paramIndex + 3, threshold);
@@ -196,7 +211,7 @@ public class SES_AI_T_JOBLot extends SesAiTableLotBase<SES_AI_T_JOB> {
         },
         (stmt, paramIndex, vectorValue, threshold) -> {
           stmt.setString(paramIndex, vectorValue);
-          stmt.setBigDecimal(paramIndex + 1, price.getValue());
+          stmt.setBigDecimal(paramIndex + 1, price.toFilterValue());
           stmt.setTimestamp(paramIndex + 2, startDate.toTimestamp());
           stmt.setString(paramIndex + 3, vectorValue);
           stmt.setDouble(paramIndex + 4, threshold);
@@ -210,8 +225,8 @@ public class SES_AI_T_JOBLot extends SesAiTableLotBase<SES_AI_T_JOB> {
    * @param connection DBコネクション
    * @param tenantId テナントID
    * @param query 検索ベクトル
-   * @param price 最低価格（単価がこの値以上のもの）
-   * @param startDate 最遅開始日（開始日がこの日付以前のもの）
+   * @param price 要員の単価（案件の単価がこの値以上のもの）。単価不問（未設定・応相談・スキル見合い）の場合は単価で絞り込まない
+   * @param startDate 最遅開始日（開始日がこの日付以前のもの）。未設定の場合は開始日で絞り込まない
    * @param officeAvailability 最大オフィス要件（オフィス要件がこの値以下のもの）
    * @param area 要員のエリア。案件の出社要件が 0（フルリモート）の案件はエリアを問わない。それ以外は案件のエリアがこの値と一致するもの。null
    *     の場合は、フルリモートの案件だけが対象になる
@@ -244,7 +259,7 @@ public class SES_AI_T_JOBLot extends SesAiTableLotBase<SES_AI_T_JOB> {
         query.toString(),
         similarityThreshold,
         (stmt, paramIndex, vectorValue, threshold) -> {
-          stmt.setBigDecimal(paramIndex, price.getValue());
+          stmt.setBigDecimal(paramIndex, price.toFilterValue());
           stmt.setTimestamp(paramIndex + 1, startDate.toTimestamp());
           stmt.setInt(paramIndex + 2, officeAvailability);
           stmt.setString(paramIndex + 3, areaName);
@@ -261,7 +276,7 @@ public class SES_AI_T_JOBLot extends SesAiTableLotBase<SES_AI_T_JOB> {
         },
         (stmt, paramIndex, vectorValue, threshold) -> {
           stmt.setString(paramIndex, vectorValue);
-          stmt.setBigDecimal(paramIndex + 1, price.getValue());
+          stmt.setBigDecimal(paramIndex + 1, price.toFilterValue());
           stmt.setTimestamp(paramIndex + 2, startDate.toTimestamp());
           stmt.setInt(paramIndex + 3, officeAvailability);
           stmt.setString(paramIndex + 4, areaName);

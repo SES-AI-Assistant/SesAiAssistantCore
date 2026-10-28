@@ -23,6 +23,19 @@ import java.util.List;
  */
 public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLSHEET_PERSON> {
 
+  /**
+   * 単価と開始日の絞り込み条件（バインドは単価、開始日の2つ）.
+   *
+   * <p>案件の単価以下の要員に絞る。単価が未設定・応相談（0 以下）・スキル見合いの要員は単価を見る必要がないため除外しない。 バインドが
+   * null（案件の単価不問、開始日の未設定）の場合は、列の値が NULL の要員も含めて条件を常に成立させる。開始日が NULL の要員は、案件の開始日が指定されているときは除外する。
+   */
+  private static final String UNIT_PRICE_AND_START_DATE_CONDITION =
+      "(p.unit_price IS NULL OR p.unit_price <= 0 OR p.unit_price = "
+          + Money.NEGOTIABLE_PRICE.getValue().toPlainString()
+          + " OR p.unit_price <= COALESCE(?::numeric, p.unit_price)) "
+          + "AND COALESCE(p.start_date, '-infinity'::timestamp) "
+          + ">= COALESCE(?::timestamp, '-infinity'::timestamp)";
+
   /** SELECT_ALL_SQL - 全件取得. */
   private static final String SELECT_ALL_SQL =
       "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
@@ -83,7 +96,8 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
   /** 要員ベクトル検索用COUNT_QUERY_PART（価格・開始日フィルタ付き）. */
   private static final String COUNT_QUERY_PART_FOR_PERSON_VECTOR_WITH_FILTER_2_VALUES =
       "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id WHERE "
-          + "p.unit_price <= ? AND p.start_date >= ? AND 1 - (p.vector_data <=> ?::vector) >= ?";
+          + UNIT_PRICE_AND_START_DATE_CONDITION
+          + " AND 1 - (p.vector_data <=> ?::vector) >= ?";
 
   /** 要員ベクトル検索SQL（価格・開始日フィルタ付き）. */
   private static final String RETRIEVE_BY_PERSON_VECTOR_WITH_FILTER_2_VALUES_SQL =
@@ -96,7 +110,9 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
           + "p.ng_requirements, p.other_requirements, p.url, p.vector_data <=> "
           + "?::vector AS distance, p.tenant_id "
           + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
-          + "WHERE p.unit_price <= ? AND p.start_date >= ? AND 1 - (p.vector_data <=> ?::vector) "
+          + "WHERE "
+          + UNIT_PRICE_AND_START_DATE_CONDITION
+          + " AND 1 - (p.vector_data <=> ?::vector) "
           + ">= ? ORDER BY distance ASC LIMIT ?";
 
   /**
@@ -107,7 +123,8 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    */
   private static final String COUNT_QUERY_PART_FOR_PERSON_VECTOR_WITH_FILTER_4_VALUES =
       "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id WHERE "
-          + "p.unit_price <= ? AND p.start_date >= ? AND p.office_availability >= ? AND "
+          + UNIT_PRICE_AND_START_DATE_CONDITION
+          + " AND p.office_availability >= ? AND "
           + "(? = 0 OR p.area = ?) AND 1 - (p.vector_data <=> ?::vector) >= ?";
 
   /**
@@ -126,7 +143,9 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
           + "p.ng_requirements, p.other_requirements, p.url, p.vector_data <=> "
           + "?::vector AS distance, p.tenant_id "
           + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
-          + "WHERE p.unit_price <= ? AND p.start_date >= ? AND p.office_availability >= ? AND "
+          + "WHERE "
+          + UNIT_PRICE_AND_START_DATE_CONDITION
+          + " AND p.office_availability >= ? AND "
           + "(? = 0 OR p.area = ?) AND 1 - (p.vector_data <=> ?::vector) >= ? ORDER BY distance "
           + "ASC LIMIT ?";
 
@@ -172,8 +191,8 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param connection DBコネクション
    * @param tenantId テナントID
    * @param query 検索ベクトル
-   * @param price 最大価格（単価がこの値以下のもの）
-   * @param startDate 最早開始日（開始日がこの日付以降のもの）
+   * @param price 案件の単価（要員の単価がこの値以下のもの）。単価不問（未設定・応相談・スキル見合い）の場合は単価で絞り込まない
+   * @param startDate 最早開始日（開始日がこの日付以降のもの）。未設定の場合は開始日で絞り込まない
    * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
    * @param limit 取得上限件数
    * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
@@ -208,8 +227,8 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param connection DBコネクション
    * @param tenantId テナントID
    * @param query 検索ベクトル
-   * @param price 最大価格（単価がこの値以下のもの）
-   * @param startDate 最早開始日（開始日がこの日付以降のもの）
+   * @param price 案件の単価（要員の単価がこの値以下のもの）。単価不問（未設定・応相談・スキル見合い）の場合は単価で絞り込まない
+   * @param startDate 最早開始日（開始日がこの日付以降のもの）。未設定の場合は開始日で絞り込まない
    * @param officeRequirements 案件の出社要件。最小オフィス可用性（オフィス可用性がこの値以上のもの）としても使う
    * @param area 案件のエリア。出社要件が 0（フルリモート）の場合はエリアを問わない。1以上の場合はエリアがこの値と一致するもの。null
    *     の場合は、1以上の出社要件では候補が0件になる
@@ -353,7 +372,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
         tenantId,
         (stmt, paramIndex) -> {
           int idx = paramIndex;
-          stmt.setBigDecimal(idx++, price.getValue());
+          stmt.setBigDecimal(idx++, price.toFilterValue());
           stmt.setTimestamp(idx++, startDate.toTimestamp());
           if (officeRequirements != null) {
             idx = bindOfficeRequirementsAndArea(stmt, idx, officeRequirements, area);
@@ -384,7 +403,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
               // SQL の SELECT 句の先頭に距離の計算（?::vector AS distance）があるため、ベクトルが先頭と、類似度の条件の2か所に要る。
               // 先頭を飛ばすと、以降の値が1つずつずれて「numeric から vector にキャストできない」エラーになる
               stmt.setString(idx, vectorStr);
-              stmt.setBigDecimal(idx + 1, price.getValue());
+              stmt.setBigDecimal(idx + 1, price.toFilterValue());
               stmt.setTimestamp(idx + 2, startDate.toTimestamp());
               if (officeRequirements != null) {
                 // 出社要件とエリアは検索条件の途中にあり、その後ろに類似度の条件が続く。
