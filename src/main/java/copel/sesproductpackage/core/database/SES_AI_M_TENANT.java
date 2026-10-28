@@ -166,7 +166,7 @@ public class SES_AI_M_TENANT extends EntityBase {
    * マッチング強度の設定から、AIのマッチ判定に渡すフィルタリングルールを作成する.
    *
    * <p>FullyMet と PartiallyMet はそのまましきい値にする。NotMet、Unknown、NULL は制限なしとして、しきい値を null にする。
-   * その他制約の必須フラグは true を設定する。ただし MatchEvaluateResponseSchema の isMatch(FilteringRules) では参照されず、
+   * その他制約の必須フラグは true を設定する。ただし段階Bの MatchEvaluateResponseSchema では参照されず、
    * ChooseBestInfoResponseSchema の getFilteredSortedResults と getBestResult でのみ参照される。
    *
    * @return フィルタリングルール

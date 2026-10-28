@@ -21,8 +21,8 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
   private static final String SELECT_ALL_SQL =
       "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, "
           + "evaluation_text, score, must_evaluation_text, want_evaluation_text, "
-          + "place_evaluation_text, office_evaluation_text, other_evaluation_text, profit, "
-          + "register_date, register_user, tenant_id FROM SES_AI_T_MATCH ORDER BY "
+          + "other_evaluation_text, profit, register_date, register_user, tenant_id "
+          + "FROM SES_AI_T_MATCH ORDER BY "
           + "register_date DESC";
 
   @Override
@@ -83,8 +83,6 @@ public class SES_AI_T_MATCHLot extends EntityLotBase<SES_AI_T_MATCH> {
     match.setScore(resultSet.getObject("score") != null ? resultSet.getInt("score") : null);
     match.setMustEvaluationText(resultSet.getString("must_evaluation_text"));
     match.setWantEvaluationText(resultSet.getString("want_evaluation_text"));
-    match.setPlaceEvaluationText(resultSet.getString("place_evaluation_text"));
-    match.setOfficeEvaluationText(resultSet.getString("office_evaluation_text"));
     match.setOtherEvaluationText(resultSet.getString("other_evaluation_text"));
     BigDecimal profitVal = resultSet.getBigDecimal("profit");
     match.setProfit(profitVal == null ? Money.empty() : new Money(profitVal));

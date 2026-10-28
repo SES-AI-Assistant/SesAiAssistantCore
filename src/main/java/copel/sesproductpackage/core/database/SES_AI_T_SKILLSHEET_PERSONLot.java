@@ -99,13 +99,23 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
           + "WHERE p.unit_price <= ? AND p.start_date >= ? AND 1 - (p.vector_data <=> ?::vector) "
           + ">= ? ORDER BY distance ASC LIMIT ?";
 
-  /** 要員ベクトル検索用COUNT_QUERY_PART（価格・開始日・オフィス可用性・エリアフィルタ付き）. */
+  /**
+   * 要員ベクトル検索用COUNT_QUERY_PART（価格・開始日・オフィス可用性・エリアフィルタ付き）.
+   *
+   * <p>エリアの条件は {@code (? = 0 OR p.area = ?)} とし、案件の出社要件が 0（フルリモート）の場合はエリアを問わない。
+   * フルリモート判定と可用性の比較の両方に出社要件を使うため、同じ値を続けて渡す。
+   */
   private static final String COUNT_QUERY_PART_FOR_PERSON_VECTOR_WITH_FILTER_4_VALUES =
       "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id WHERE "
-          + "p.unit_price <= ? AND p.start_date >= ? AND p.office_availability >= ? AND p.area = ? "
-          + "AND 1 - (p.vector_data <=> ?::vector) >= ?";
+          + "p.unit_price <= ? AND p.start_date >= ? AND p.office_availability >= ? AND "
+          + "(? = 0 OR p.area = ?) AND 1 - (p.vector_data <=> ?::vector) >= ?";
 
-  /** 要員ベクトル検索SQL（価格・開始日・オフィス可用性・エリアフィルタ付き）. */
+  /**
+   * 要員ベクトル検索SQL（価格・開始日・オフィス可用性・エリアフィルタ付き）.
+   *
+   * <p>エリアの条件は {@code (? = 0 OR p.area = ?)} とし、案件の出社要件が 0（フルリモート）の場合はエリアを問わない。
+   * フルリモート判定と可用性の比較の両方に出社要件を使うため、同じ値を続けて渡す。
+   */
   private static final String RETRIEVE_BY_PERSON_VECTOR_WITH_FILTER_4_VALUES_SQL =
       "SELECT s.file_id, s.file_name, s.file_content_summary, p.person_id, p.mail_subject, "
           + "p.raw_content, p.content_summary, p.register_date, p.register_user, p.unit_price, "
@@ -117,8 +127,8 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
           + "?::vector AS distance, p.tenant_id "
           + "FROM SES_AI_T_SKILLSHEET s INNER JOIN SES_AI_T_PERSON p ON s.file_id = p.file_id "
           + "WHERE p.unit_price <= ? AND p.start_date >= ? AND p.office_availability >= ? AND "
-          + "p.area = ? AND 1 - (p.vector_data <=> ?::vector) >= ? ORDER BY distance ASC LIMIT "
-          + "?";
+          + "(? = 0 OR p.area = ?) AND 1 - (p.vector_data <=> ?::vector) >= ? ORDER BY distance "
+          + "ASC LIMIT ?";
 
   /** コンストラクタ. */
   public SES_AI_T_SKILLSHEET_PERSONLot() {
@@ -200,8 +210,9 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
    * @param query 検索ベクトル
    * @param price 最大価格（単価がこの値以下のもの）
    * @param startDate 最早開始日（開始日がこの日付以降のもの）
-   * @param officeRequirements 最小オフィス可用性（オフィス可用性がこの値以上のもの）
-   * @param area 対象エリア（エリアがこの値と一致するもの）
+   * @param officeRequirements 案件の出社要件。最小オフィス可用性（オフィス可用性がこの値以上のもの）としても使う
+   * @param area 案件のエリア。出社要件が 0（フルリモート）の場合はエリアを問わない。1以上の場合はエリアがこの値と一致するもの。null
+   *     の場合は、1以上の出社要件では候補が0件になる
    * @param similarityThreshold 類似度閾値 (0.0 ~ 1.0)
    * @param limit 取得上限件数
    * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
@@ -230,6 +241,28 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
         1,
         limit,
         COUNT_QUERY_PART_FOR_PERSON_VECTOR_WITH_FILTER_4_VALUES);
+  }
+
+  /**
+   * 出社要件とエリアの条件のパラメータを、指定の位置から3つバインドする.
+   *
+   * <p>SQL の順は {@code p.office_availability >= ?}、{@code (? = 0 OR p.area = ?)}
+   * のため、出社要件、出社要件、エリアの順にバインドする。 エリアが null の場合は SQL の NULL をバインドする。そのため出社要件が 1 以上の検索では一致する要員が無い。
+   *
+   * @param stmt 準備文
+   * @param idx 出社要件をバインドする最初の位置
+   * @param officeRequirements 案件の出社要件
+   * @param area 案件のエリア（null 可）
+   * @return 次にバインドする位置
+   * @throws SQLException バインドに失敗した場合
+   */
+  private static int bindOfficeRequirementsAndArea(
+      final PreparedStatement stmt, final int idx, final int officeRequirements, final Area area)
+      throws SQLException {
+    stmt.setInt(idx, officeRequirements);
+    stmt.setInt(idx + 1, officeRequirements);
+    stmt.setString(idx + 2, area == null ? null : area.name());
+    return idx + 3;
   }
 
   private void executeRetrieve(
@@ -322,9 +355,8 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
           int idx = paramIndex;
           stmt.setBigDecimal(idx++, price.getValue());
           stmt.setTimestamp(idx++, startDate.toTimestamp());
-          if (officeRequirements != null && area != null) {
-            stmt.setInt(idx++, officeRequirements);
-            stmt.setString(idx++, area.name());
+          if (officeRequirements != null) {
+            idx = bindOfficeRequirementsAndArea(stmt, idx, officeRequirements, area);
           }
           stmt.setString(idx++, query.toString());
           stmt.setDouble(idx++, similarityThreshold);
@@ -354,14 +386,15 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
               stmt.setString(idx, vectorStr);
               stmt.setBigDecimal(idx + 1, price.getValue());
               stmt.setTimestamp(idx + 2, startDate.toTimestamp());
-              if (officeRequirements != null && area != null) {
-                stmt.setInt(idx + 3, officeRequirements);
-                stmt.setString(idx + 4, area.name());
-                stmt.setString(idx + 5, vectorStr);
-                stmt.setDouble(idx + 6, similarityThreshold);
-                stmt.setInt(idx + 8, size);
-                stmt.setInt(idx + 9, (page - 1) * size);
-                return idx + 7;
+              if (officeRequirements != null) {
+                // 出社要件とエリアは検索条件の途中にあり、その後ろに類似度の条件が続く。
+                // tenant_id は SQL への挿入位置に合わせて戻り値で受け、LIMIT と OFFSET はその後ろに置く
+                int next = bindOfficeRequirementsAndArea(stmt, idx + 3, officeRequirements, area);
+                stmt.setString(next, vectorStr);
+                stmt.setDouble(next + 1, similarityThreshold);
+                stmt.setInt(next + 3, size);
+                stmt.setInt(next + 4, (page - 1) * size);
+                return next + 2;
               } else {
                 stmt.setString(idx + 3, vectorStr);
                 stmt.setDouble(idx + 4, similarityThreshold);

@@ -28,8 +28,8 @@ public class SES_AI_T_MATCH_JOB_PERSONLot extends EntityLotBase<SES_AI_T_MATCH_J
   private static final String SELECT_ALL_SQL =
       "SELECT m.matching_id, m.user_id, m.job_id, m.person_id, m.job_content, m.person_content, "
           + "m.status_cd, m.evaluation_text, m.score, m.must_evaluation_text, "
-          + "m.want_evaluation_text, m.place_evaluation_text, m.office_evaluation_text, "
-          + "m.other_evaluation_text, m.profit, m.register_date, m.register_user, "
+          + "m.want_evaluation_text, m.other_evaluation_text, m.profit, m.register_date, "
+          + "m.register_user, "
           + "m.tenant_id, j.title AS job_title, j.unit_price AS job_unit_price, p.name "
           + "AS person_name, p.age AS person_age, p.gender AS person_gender, "
           + "p.unit_price AS person_unit_price FROM SES_AI_T_MATCH m LEFT JOIN "
@@ -47,8 +47,8 @@ public class SES_AI_T_MATCH_JOB_PERSONLot extends EntityLotBase<SES_AI_T_MATCH_J
   private static final String SELECT_BASE_SQL_FOR_PAGED_QUERY =
       "SELECT m.matching_id, m.user_id, m.job_id, m.person_id, m.job_content, m.person_content, "
           + "m.status_cd, m.evaluation_text, m.score, m.must_evaluation_text, "
-          + "m.want_evaluation_text, m.place_evaluation_text, m.office_evaluation_text, "
-          + "m.other_evaluation_text, m.profit, m.register_date, m.register_user, "
+          + "m.want_evaluation_text, m.other_evaluation_text, m.profit, m.register_date, "
+          + "m.register_user, "
           + "m.tenant_id, j.title AS job_title, j.unit_price AS job_unit_price, p.name "
           + "AS person_name, p.age AS person_age, p.gender AS person_gender, "
           + "p.unit_price AS person_unit_price FROM SES_AI_T_MATCH m LEFT JOIN "
@@ -137,8 +137,6 @@ public class SES_AI_T_MATCH_JOB_PERSONLot extends EntityLotBase<SES_AI_T_MATCH_J
     entity.setScore(resultSet.getObject("score") != null ? resultSet.getInt("score") : null);
     entity.setMustEvaluationText(resultSet.getString("must_evaluation_text"));
     entity.setWantEvaluationText(resultSet.getString("want_evaluation_text"));
-    entity.setPlaceEvaluationText(resultSet.getString("place_evaluation_text"));
-    entity.setOfficeEvaluationText(resultSet.getString("office_evaluation_text"));
     entity.setOtherEvaluationText(resultSet.getString("other_evaluation_text"));
     BigDecimal profitVal = resultSet.getBigDecimal("profit");
     entity.setProfit(profitVal == null ? Money.empty() : new Money(profitVal));

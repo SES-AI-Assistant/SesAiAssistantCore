@@ -3,12 +3,17 @@ package copel.sesproductpackage.core.api.gpt.entity;
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
 import java.util.List;
+import java.util.function.Function;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * AIによるマッチ評価結果エンティティ.
+ * AIによるマッチ評価結果エンティティ（段階B）.
+ *
+ * <p>段階Bの評価は判定には使わない。マッチ判定は段階A（{@link
+ * ChooseBestInfoResponseSchema}）で終えている。段階Bは、必須・尚可・その他の詳細評価の文章と、マッチ登録用の評価文・スコアを作るために使う。
+ * 単価・出社・場所・人月工数はベクトル検索のSQLで絞り込み済みのため、本クラスでは評価しない。
  *
  * @author Copel Co., Ltd.
  */
@@ -34,33 +39,6 @@ public class MatchEvaluateResponseSchema {
   private List<SkillEvaluateResult> wantList;
 
   @Schema(
-      title = "単価評価",
-      description = "案件の単価が要員の希望単価を超えているかどうかの評価結果",
-      required = true,
-      itemType = PriceEvaluateResult.class)
-  private PriceEvaluateResult priceResult;
-
-  @Schema(
-      title = "場所評価",
-      description = "案件の場所と要員の場所がマッチしているかどうかの評価結果",
-      required = true,
-      itemType = PlaceEvaluateResult.class)
-  private PlaceEvaluateResult placeResult;
-
-  @Schema(
-      title = "出社要件評価",
-      description = "案件の求める出社要件と要員出社許容条件がマッチしているかどうかの評価結果",
-      required = true,
-      itemType = OfficeEvaluateResult.class)
-  private OfficeEvaluateResult officeResult;
-
-  @Schema(
-      title = "人月工数評価",
-      description = "案件の求める人月工数と要員の稼働可能人月工数がマッチしているかどうかの評価結果。案件または要員に人月工数に関する記載がある場合のみ設定する項目。",
-      itemType = PersonMonthsEvaluateResult.class)
-  private PersonMonthsEvaluateResult personMonthsResult;
-
-  @Schema(
       title = "その他の評価",
       description =
           "単価・場所・出社・人月工数以外で、案件または要員の情報に明記されている条件（年齢、商流、国籍など）に対するマッチ評価結果。明記された条件が無い場合は空リストとする。",
@@ -68,13 +46,93 @@ public class MatchEvaluateResponseSchema {
       maxItems = 10)
   private List<OtherEvaluateResult> otherList;
 
+  /** 必須スキルの配点（満点）。 合計100点のうち、最も重く見る項目に割り当てる。 */
+  private static final double MUST_POINTS = 57.0;
+
+  /** 尚可スキルの配点（満点）。 必須の次に重く見る項目に割り当てる。 */
+  private static final double WANT_POINTS = 29.0;
+
+  /** その他の評価の配点（満点）。 残りの点数を割り当てる。 */
+  private static final double OTHER_POINTS = 14.0;
+
   // ================================================
   // メソッド
   // ================================================
+
   /**
-   * 評価結果を元に、既定のルールでマッチするかどうかを返却する.
+   * 各項目の評価結果をもとに、決定論的なロジック演算によってマッチスコア（0〜100点）を算出する.
    *
-   * <p>既定のルールは必須を FullyMet、尚可を判定しない（null）とする。その他制約は判定しない。{@link #isMatch(FilteringRules)} に null
+   * <p><b>■ 配点構造（合計 100点満点）</b>
+   *
+   * <ul>
+   *   <li><b>必須スキル（mustList）：最大 57点</b> <br>
+   *       各要素の達成率（FullyMet=1.0, PartiallyMet=0.4, NotMet/Unknown=0.0）の平均 × 57点。 <br>
+   *       ※未設定（nullまたは空）の場合は満点（57点）扱い。
+   *   <li><b>尚可スキル（wantList）：最大 29点</b> <br>
+   *       各要素の達成率の平均 × 29点。 <br>
+   *       ※未設定（nullまたは空）の場合は満点（29点）扱い。
+   *   <li><b>その他の評価（otherList）：最大 14点</b> <br>
+   *       各要素の達成率の平均 × 14点。 <br>
+   *       ※未設定（nullまたは空）の場合は満点（14点）扱い。
+   * </ul>
+   *
+   * <p><b>■ 計算例</b>
+   *
+   * <pre>{@code
+   * 【前提条件】
+   * - 必須スキル(57点満点): 2件中 1件FullyMet(1.0), 1件PartiallyMet(0.4)
+   *     ⇒ 57 * ((1.0 + 0.4) / 2) = 39.9点
+   * - 尚可スキル(29点満点): 未設定(null/空)
+   *     ⇒ 29.0点（満点）
+   * - その他(14点満点): 未設定(null/空)
+   *     ⇒ 14.0点（満点）
+   *
+   * 【合計】 39.9 + 29.0 + 14.0 = 82.9 → 四捨五入で 83点
+   * }</pre>
+   *
+   * @return 算出されたマッチスコア（0〜100点）
+   */
+  public int getMatchScore() {
+    double mustScore = scoreOf(this.mustList, SkillEvaluateResult::getResult, MUST_POINTS);
+    double wantScore = scoreOf(this.wantList, SkillEvaluateResult::getResult, WANT_POINTS);
+    double otherScore = scoreOf(this.otherList, OtherEvaluateResult::getResult, OTHER_POINTS);
+    // 合計点の算出（四捨五入）
+    int totalScore = (int) Math.round(mustScore + wantScore + otherScore);
+    // 範囲の正規化 (0〜100)
+    return Math.max(0, Math.min(100, totalScore));
+  }
+
+  /**
+   * 評価の一覧を、配点に対する達成率の平均で点数に換算する.
+   *
+   * <p>一覧が null または空の場合は記載が無いため、満点を返す。各要素の評価が null の場合は達成率を 0 として平均する。
+   *
+   * @param <T> 評価の要素の型
+   * @param items 評価の一覧。null も可
+   * @param resultOf 要素から評価区分を取り出す関数
+   * @param points 配点（満点）
+   * @return 換算した点数
+   */
+  private static <T> double scoreOf(
+      final List<T> items, final Function<T, EvaluateType> resultOf, final double points) {
+    if (items == null || items.isEmpty()) {
+      return points;
+    }
+    double sum =
+        items.stream()
+            .mapToDouble(
+                item -> {
+                  EvaluateType result = resultOf.apply(item);
+                  return result != null ? result.getRate() : 0.0;
+                })
+            .sum();
+    return points * (sum / items.size());
+  }
+
+  /**
+   * 既定のルールで、段階Bの詳細評価がマッチ条件を満たすかを返却する.
+   *
+   * <p>既定のルールは必須を FullyMet、尚可を判定しない（null）とする。 {@link #isMatch(FilteringRules)} に null
    * を渡した場合と同じ結果になる。
    *
    * @return マッチしていればtrue、そうでなければfalse.
@@ -84,13 +142,13 @@ public class MatchEvaluateResponseSchema {
   }
 
   /**
-   * 評価結果を元に、フィルタリングルールの必須・尚可のしきい値でマッチするかどうかを返却する.
+   * フィルタリングルールの必須・尚可のしきい値で、段階Bの詳細評価がマッチ条件を満たすかを返却する.
    *
-   * <p>必須・尚可はそれぞれのリストを {@link #summarizeSkills(List)} で1つの評価区分にまとめ、しきい値を満たすかで判定する。しきい値が null
-   * の項目は判定しない。ルールが null の場合は既定のルール（必須 FullyMet、尚可は判定しない）で判定する。
+   * <p>判定は必須と尚可の2つだけで行う。必須は {@link #summarizeSkills(List)} で1つの評価区分にまとめた結果が、しきい値以上かで判定する。尚可は
+   * しきい値が設定されている場合だけ同じ方法で判定し、しきい値が null の場合は判定しない。 ルールが null の場合は既定のルール（必須 FullyMet、尚可は判定しない）で判定する。
    *
-   * <p>事前条件として、必須のリスト・単価・出社要件のいずれかが未設定の場合は、しきい値に関わらず false を返す。 {@link
-   * FilteringRules#isOtherConstraintsRequired()} は参照しない（その他制約は本メソッドでは判定しない）。
+   * <p>単価・出社・場所・人月工数は段階Bでは評価しないため判定に使わない。その他の評価（otherList）も判定に使わず、スコアと評価文にのみ反映する。 {@link
+   * FilteringRules#isOtherConstraintsRequired()} は参照しない（その他制約は段階Aだけで判定する）。
    *
    * @param rules フィルタリングルール。nullの場合は既定のルール
    * @return マッチしていればtrue、そうでなければfalse.
@@ -98,53 +156,27 @@ public class MatchEvaluateResponseSchema {
   public boolean isMatch(final FilteringRules rules) {
     FilteringRules applied =
         rules == null ? new FilteringRules(EvaluateType.FullyMet, null, false) : rules;
-    // 1. 必須オブジェクトの存在チェック（事前条件）
-    if (this.mustList == null || this.priceResult == null || this.officeResult == null) {
-      return false;
-    }
-    // 2. 必須条件：まとめた評価がしきい値を満たさなければNG（しきい値が null なら判定しない）
-    // 既定のしきい値 FullyMet では PartiallyMet（類似経験のみ明記）は対象外とし、スコアと評価文にのみ反映する。
-    // テナント設定で必須に PartiallyMet を許容する場合は、しきい値 PartiallyMet で判定する。
+    // 必須：まとめた評価がしきい値を満たさなければNG（しきい値が null なら判定しない）
     if (applied.getMustSkillLevel() != null
         && !summarizeSkills(this.mustList).satisfies(applied.getMustSkillLevel())) {
       return false;
     }
-    // 3. 尚可条件：まとめた評価がしきい値を満たさなければNG（しきい値が null なら判定しない）
-    if (applied.getWantSkillLevel() != null
-        && !summarizeSkills(this.wantList).satisfies(applied.getWantSkillLevel())) {
-      return false;
-    }
-    // 4. 案件単価要件
-    if (!this.priceResult.isResult()) {
-      return false;
-    }
-    // 5. 出社要件
-    if (this.officeResult.getResult() != EvaluateType.FullyMet) {
-      return false;
-    }
-    // 6. 場所要件（存在し、かつ NotMet の場合はNG）
-    if (this.placeResult != null && this.placeResult.getResult() == EvaluateType.NotMet) {
-      return false;
-    }
-    // 7. 人月工数要件（存在し、かつ満たさない場合はNG）
-    if (this.personMonthsResult != null && !this.personMonthsResult.isResult()) {
-      return false;
-    }
-    return true;
+    // 尚可：まとめた評価がしきい値を満たさなければNG（しきい値が null なら判定しない）
+    return applied.getWantSkillLevel() == null
+        || summarizeSkills(this.wantList).satisfies(applied.getWantSkillLevel());
   }
 
   /**
    * スキル評価の一覧を、1つの評価区分にまとめる.
    *
-   * <p>必須・尚可の集約ルールは、候補単位の必須スキル評価・尚可スキル評価の定義（{@link ChooseBestInfoResponseSchema}）と揃えている。一覧が null
-   * または空の場合は記載が無いため FullyMet とする。 1件でも FullyMet と PartiallyMet 以外（NotMet、Unknown、評価の値が未設定）があれば
-   * NotMet とし、PartiallyMet より優先する。 全件が FullyMet なら FullyMet、それ以外（FullyMet と PartiallyMet の混在）は
-   * PartiallyMet とする。
+   * <p>一覧が null または空の場合は記載が無いため FullyMet とする。 1件でも FullyMet と PartiallyMet
+   * 以外（NotMet、Unknown、評価の値が未設定）があれば NotMet とし、PartiallyMet より優先する。 全件が FullyMet なら
+   * FullyMet、それ以外（FullyMet と PartiallyMet の混在）は PartiallyMet とする。
    *
    * @param skills スキル評価の一覧。null も可
    * @return まとめた評価区分
    */
-  public static EvaluateType summarizeSkills(final List<SkillEvaluateResult> skills) {
+  private static EvaluateType summarizeSkills(final List<SkillEvaluateResult> skills) {
     if (skills == null || skills.isEmpty()) {
       return EvaluateType.FullyMet;
     }
@@ -160,104 +192,6 @@ public class MatchEvaluateResponseSchema {
     boolean allFullyMet =
         skills.stream().allMatch(skill -> skill.getResult() == EvaluateType.FullyMet);
     return allFullyMet ? EvaluateType.FullyMet : EvaluateType.PartiallyMet;
-  }
-
-  /**
-   * 各項目の評価結果をもとに、決定論的なロジック演算によってマッチスコア（0〜100点）を算出する.
-   *
-   * <p><b>■ 配点構造（合計 100点満点）</b>
-   *
-   * <ul>
-   *   <li><b>必須スキル（mustList）：最大 40点</b> <br>
-   *       各要素の達成率（FullyMet=1.0, PartiallyMet=0.4, NotMet/Unknown=0.0）の平均 × 40点。 <br>
-   *       ※未設定（nullまたは空）の場合は満点（40点）扱い。
-   *   <li><b>条件面評価：最大 30点</b>
-   *       <ul>
-   *         <li>単価（priceResult）：適合で 10点 / 不可で 0点
-   *         <li>出社要件（officeResult）：FullyMet=10点 / PartiallyMet=4点 / NotMet=0点
-   *         <li>場所（placeResult）：FullyMet=5点 / PartiallyMet=2点 / NotMet=0点（※null時は5点）
-   *         <li>人月工数（personMonthsResult）：適合で 5点 / 不可で 0点（※null時は5点）
-   *       </ul>
-   *   <li><b>尚可スキル（wantList）：最大 20点</b> <br>
-   *       各要素の達成率の平均 × 20点。 <br>
-   *       ※未設定（nullまたは空）の場合は満点（20点）扱い。
-   *   <li><b>その他の評価（otherList）：最大 10点</b> <br>
-   *       各要素の達成率の平均 × 10点。 <br>
-   *       ※未設定（nullまたは空）の場合は満点（10点）扱い。
-   * </ul>
-   *
-   * <p><b>■ 計算例</b>
-   *
-   * <pre>{@code
-   * 【前提条件】
-   * - isMatch() == true
-   * - 必須スキル(40点満点): 2件中 1件FullyMet(1.0), 1件PartiallyMet(0.4)
-   *     ⇒ 40 * ((1.0 + 0.4) / 2) = 28.0点
-   * - 条件面(30点満点): 単価OK(10点), 出社FullyMet(10点), 場所FullyMet(5点), 工数OK(5点)
-   *     ⇒ 10 + 10 + 5 + 5 = 30.0点
-   * - 尚可スキル(20点満点): 未設定(null/空)
-   *     ⇒ 20.0点（満点）
-   * - その他(10点満点): 未設定(null/空)
-   *     ⇒ 10.0点（満点）
-   *
-   * 【合計】 28.0 + 30.0 + 20.0 + 10.0 = 88点
-   * }</pre>
-   *
-   * @return 算出されたマッチスコア（0〜100点）
-   */
-  public int getMatchScore() {
-    // 1. 必須スキルスコア（最大 40点 / null・空は40点満点）
-    double mustScore = 40.0;
-    if (this.mustList != null && !this.mustList.isEmpty()) {
-      double sum =
-          this.mustList.stream()
-              .mapToDouble(m -> m.getResult() != null ? m.getResult().getRate() : 0.0)
-              .sum();
-      mustScore = 40.0 * (sum / this.mustList.size());
-    }
-    // 2. 条件面スコア（最大 30点）
-    double conditionScore = 0.0;
-    // 単価 (10点)
-    if (this.priceResult != null && this.priceResult.isResult()) {
-      conditionScore += 10.0;
-    }
-    // 出社要件 (10点)
-    if (this.officeResult != null && this.officeResult.getResult() != null) {
-      conditionScore += 10.0 * this.officeResult.getResult().getRate();
-    }
-    // 場所 (5点)
-    if (this.placeResult == null) {
-      conditionScore += 5.0;
-    } else if (this.placeResult.getResult() != null) {
-      conditionScore += 5.0 * this.placeResult.getResult().getRate();
-    }
-    // 人月工数 (5点)
-    if (this.personMonthsResult == null || this.personMonthsResult.isResult()) {
-      conditionScore += 5.0;
-    }
-    // 3. 尚可スキルスコア（最大 20点 / null・空は20点満点）
-    double wantScore = 20.0;
-    if (this.wantList != null && !this.wantList.isEmpty()) {
-      double sum =
-          this.wantList.stream()
-              .mapToDouble(w -> w.getResult() != null ? w.getResult().getRate() : 0.0)
-              .sum();
-      wantScore = 20.0 * (sum / this.wantList.size());
-    }
-    // 4. その他スコア（最大 10点 / null・空は10点満点）
-    double otherScore = 10.0;
-    if (this.otherList != null && !this.otherList.isEmpty()) {
-      double sum =
-          this.otherList.stream()
-              .mapToDouble(o -> o.getResult() != null ? o.getResult().getRate() : 0.0)
-              .sum();
-      otherScore = 10.0 * (sum / this.otherList.size());
-    }
-    // 合計点の算出（四捨五入）
-    int totalScore = (int) Math.round(mustScore + conditionScore + wantScore + otherScore);
-    // 範囲の正規化 (0〜100)
-    totalScore = Math.max(0, Math.min(100, totalScore));
-    return totalScore;
   }
 
   /**
@@ -307,46 +241,6 @@ public class MatchEvaluateResponseSchema {
   }
 
   /**
-   * 場所の評価結果をテキスト形式で取得する.
-   *
-   * @return 場所の評価結果.
-   */
-  public String getPlaceEvaluationText() {
-    StringBuilder sb = new StringBuilder();
-    if (this.placeResult != null) {
-      String icon =
-          this.placeResult.getResult() != null ? this.placeResult.getResult().getIcon() : "-";
-      sb.append("■場所：");
-      if (!OriginalStringUtils.isEmpty(this.placeResult.getComment())) {
-        sb.append(this.placeResult.getComment());
-      } else {
-        sb.append(icon);
-      }
-      sb.append("\n");
-    }
-    return sb.toString();
-  }
-
-  /**
-   * 出社要件の評価結果をテキスト形式で取得する.
-   *
-   * @return 出社要件の評価結果.
-   */
-  public String getOfficeEvaluationText() {
-    StringBuilder sb = new StringBuilder();
-    if (this.officeResult != null) {
-      String icon =
-          this.officeResult.getResult() != null ? this.officeResult.getResult().getIcon() : "-";
-      sb.append("■出社要件：").append(icon);
-      if (!OriginalStringUtils.isEmpty(this.officeResult.getComment())) {
-        sb.append("（").append(this.officeResult.getComment()).append("）");
-      }
-      sb.append("\n");
-    }
-    return sb.toString();
-  }
-
-  /**
    * その他条件の評価結果をテキスト形式で取得する.
    *
    * @return その他条件の評価結果.
@@ -370,30 +264,18 @@ public class MatchEvaluateResponseSchema {
   /**
    * 評価結果を通知用の1行サマリーテキストに変換する.
    *
-   * <p>プッシュ通知の本文はスマホで表示できる行数が限られるため、マッチング評価の主要な判定項目（必須スキル・単価・出社・場所）を
-   * 「項目名＋判定アイコン」の組で1行に並べて表現する。評価されていない項目は省略する.
+   * <p>プッシュ通知の本文はスマホで表示できる行数が限られるため、マッチング評価の主要な判定項目を1行に並べる。段階Bでは必須スキルだけを評価するため、表示するのも必須スキルだけとする。
+   * 必須スキルが評価されていない場合は空文字を返す。
    *
-   * @return 評価サマリー（例：「必須◎ 単価◎ 出社〇 場所◎」）。評価項目が1つも無い場合は空文字
+   * @return 評価サマリー（例：「必須◎」）。必須スキルの評価が1つも無い場合は空文字
    */
   public String toNotificationSummary() {
-    StringBuilder sb = new StringBuilder();
-
+    if (this.mustList == null || this.mustList.isEmpty()) {
+      return "";
+    }
     // 必須スキルは1件でも完全一致でなければ〇とし、個別の判定は詳細画面で確認させる
-    if (this.mustList != null && !this.mustList.isEmpty()) {
-      boolean allMet = this.mustList.stream().allMatch(m -> m.result == EvaluateType.FullyMet);
-      sb.append(" 必須").append(allMet ? "◎" : "〇");
-    }
-    if (this.priceResult != null) {
-      sb.append(" 単価").append(this.priceResult.result ? "◎" : "×");
-    }
-    // 判定結果が未設定の項目に既定のアイコンを出すと、判定していないのに◎と誤認させるため項目ごと省略する
-    if (this.officeResult != null && this.officeResult.result != null) {
-      sb.append(" 出社").append(this.officeResult.result.getIcon());
-    }
-    if (this.placeResult != null && this.placeResult.result != null) {
-      sb.append(" 場所").append(this.placeResult.result.getIcon());
-    }
-    return sb.toString().strip();
+    boolean allMet = this.mustList.stream().allMatch(m -> m.result == EvaluateType.FullyMet);
+    return "必須" + (allMet ? "◎" : "〇");
   }
 
   /**
@@ -409,21 +291,7 @@ public class MatchEvaluateResponseSchema {
     sb.append(this.getMustEvaluationText());
     // 3. 尚可項目
     sb.append(this.getWantEvaluationText());
-    // 4. 出社要件
-    sb.append(this.getOfficeEvaluationText());
-    // 5. 場所
-    sb.append(this.getPlaceEvaluationText());
-    // 6. 人月工数（必要に応じて出力）
-    if (this.personMonthsResult != null
-        && !OriginalStringUtils.isEmpty(this.personMonthsResult.getComment())) {
-      String icon = this.personMonthsResult.isResult() ? "○" : "×";
-      sb.append("■人月工数：")
-          .append(icon)
-          .append("（")
-          .append(this.personMonthsResult.getComment())
-          .append("）\n");
-    }
-    // 8. その他
+    // 4. その他
     sb.append(this.getOtherEvaluationText());
     // 2000文字を超える場合は安全にカット（DB制約対策）
     String resultText = sb.toString().trim();
@@ -467,89 +335,6 @@ public class MatchEvaluateResponseSchema {
         description = "判定根拠。FullyMet/PartiallyMetの場合は根拠とした要員情報の記載を30字以内で抜粋し、NotMetの場合は記載が無い旨を書くこと。",
         maxLength = 50,
         example = "スキルシートに『時系列データ分析』の記載がないためNotMet")
-    private String comment;
-  }
-
-  /** 単価評価の結果を表すスキーマです。 */
-  @Data
-  @NoArgsConstructor
-  @AllArgsConstructor
-  public static class PriceEvaluateResult {
-    @Schema(
-        title = "評価結果",
-        description = "案件単価 >= 要員単価であればtrue、それ以外はfalse。案件側がスキル見合いである場合は一律true",
-        required = true,
-        example = "true")
-    private boolean result;
-
-    @Schema(
-        title = "評価コメント",
-        description = "この評価項目結果に対するコメント",
-        maxLength = 30,
-        example = "案件単価60万に対し要員単価は55万")
-    private String comment;
-  }
-
-  /** 勤務場所の評価結果を表すスキーマです。 */
-  @Data
-  @NoArgsConstructor
-  @AllArgsConstructor
-  public static class PlaceEvaluateResult {
-    @Schema(
-        title = "評価結果",
-        description =
-            "案件場所から要員の場所まで在来線1時間以内で通勤できるかどうか。案件側がフルリモートである場合、または案件や要員どちらかの場所が不明な場合は一律FullyMetとする。",
-        itemType = EvaluateType.class,
-        required = true,
-        example = "FullyMet")
-    private EvaluateType result;
-
-    @Schema(
-        title = "評価コメント",
-        description = "評価項目結果に対するコメント",
-        maxLength = 30,
-        example = "案件場所は品川、要員場所は蒲田駅で電車30分程度で可能範囲内")
-    private String comment;
-  }
-
-  /** 出社要件の評価結果を表すスキーマです。 */
-  @Data
-  @NoArgsConstructor
-  @AllArgsConstructor
-  public static class OfficeEvaluateResult {
-    @Schema(
-        title = "評価結果",
-        description = "案件の求める出社要件を要員の出社許容条件が満たしているかどうか。案件または要員側に希望や要件が未記載の場合は一律FullyMetとする。",
-        itemType = EvaluateType.class,
-        required = true,
-        example = "FullyMet")
-    private EvaluateType result;
-
-    @Schema(
-        title = "評価コメント",
-        description = "この評価項目結果に対するコメント",
-        maxLength = 30,
-        example = "案件は週1出社必須で、要員は週2まで出社可能")
-    private String comment;
-  }
-
-  /** 稼働月数の評価結果を表すスキーマです。 */
-  @Data
-  @NoArgsConstructor
-  @AllArgsConstructor
-  public static class PersonMonthsEvaluateResult {
-    @Schema(
-        title = "評価結果",
-        description = "要員の稼働可能人月工数 >= 案件の求める人月工数であればtrue、それ以外はfalse。案件の求める人月工数が不明の場合は一律trueとする。",
-        required = true,
-        example = "true")
-    private boolean result;
-
-    @Schema(
-        title = "評価コメント",
-        description = "この評価項目結果に対するコメント",
-        maxLength = 50,
-        example = "案件は稼働率0.5人月であり、要員は0.3～1.0人月の稼働が可能である")
     private String comment;
   }
 

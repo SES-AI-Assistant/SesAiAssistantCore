@@ -54,14 +54,19 @@ public class SES_AI_T_JOBLot extends SesAiTableLotBase<SES_AI_T_JOB> {
           + "unit_price >= ? AND start_date <= ? AND 1 - (vector_data <=> ?::vector) "
           + ">= ? ORDER BY distance ASC";
 
-  /** ベクトル検索＋価格・開始日・オフィス要件・エリアフィルタ用SQL（ページング用・LIMIT/OFFSET除外）. */
+  /**
+   * ベクトル検索＋価格・開始日・オフィス要件・エリアフィルタ用SQL（ページング用・LIMIT/OFFSET除外）.
+   *
+   * <p>エリアの条件は {@code (office_requirements = 0 OR area = ?)} とし、フルリモートの案件（出社要件が 0）はエリアを問わない。
+   */
   private static final String RETRIEVE_WITH_FILTER_4_VALUES_SQL_WITHOUT_LIMIT =
       "SELECT job_id, from_group, from_id, from_name, mail_subject, raw_content, content_summary, "
           + "unit_price, title, overview, must_skills, want_skills, start_date, place, area, "
           + "office_requirements, other_requirements, register_date, register_user, ttl, "
           + "vector_data <=> ?::vector AS distance, tenant_id FROM SES_AI_T_JOB WHERE "
-          + "unit_price >= ? AND start_date <= ? AND office_requirements <= ? AND area "
-          + "= ? AND 1 - (vector_data <=> ?::vector) >= ? ORDER BY distance ASC";
+          + "unit_price >= ? AND start_date <= ? AND office_requirements <= ? AND "
+          + "(office_requirements = 0 OR area = ?) AND 1 - (vector_data <=> ?::vector) >= ? "
+          + "ORDER BY distance ASC";
 
   /** 全文検索（raw_content の LIKE）用 SELECT 文（WHERE句を含む）. */
   private static final String SELECT_LIKE_SQL =
@@ -208,7 +213,8 @@ public class SES_AI_T_JOBLot extends SesAiTableLotBase<SES_AI_T_JOB> {
    * @param price 最低価格（単価がこの値以上のもの）
    * @param startDate 最遅開始日（開始日がこの日付以前のもの）
    * @param officeAvailability 最大オフィス要件（オフィス要件がこの値以下のもの）
-   * @param area 対象エリア（エリアがこの値と一致するもの）
+   * @param area 要員のエリア。案件の出社要件が 0（フルリモート）の案件はエリアを問わない。それ以外は案件のエリアがこの値と一致するもの。null
+   *     の場合は、フルリモートの案件だけが対象になる
    * @param similarityThreshold 類似度閾値(0.0～1.0)
    * @param limit 取得上限件数
    * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
@@ -225,9 +231,11 @@ public class SES_AI_T_JOBLot extends SesAiTableLotBase<SES_AI_T_JOB> {
       int limit)
       throws SQLException {
     requireConnection(connection);
-    if (query == null || area == null) {
+    if (query == null) {
       return;
     }
+    // エリアが null の場合は SQL の NULL を渡す。案件のエリアと一致しないため、フルリモートの案件だけが候補になる
+    final String areaName = area == null ? null : area.name();
 
     executeVectorPagedQuery(
         connection,
@@ -239,7 +247,7 @@ public class SES_AI_T_JOBLot extends SesAiTableLotBase<SES_AI_T_JOB> {
           stmt.setBigDecimal(paramIndex, price.getValue());
           stmt.setTimestamp(paramIndex + 1, startDate.toTimestamp());
           stmt.setInt(paramIndex + 2, officeAvailability);
-          stmt.setString(paramIndex + 3, area.name());
+          stmt.setString(paramIndex + 3, areaName);
           stmt.setString(paramIndex + 4, vectorValue);
           stmt.setDouble(paramIndex + 5, threshold);
           return paramIndex + 6;
@@ -256,7 +264,7 @@ public class SES_AI_T_JOBLot extends SesAiTableLotBase<SES_AI_T_JOB> {
           stmt.setBigDecimal(paramIndex + 1, price.getValue());
           stmt.setTimestamp(paramIndex + 2, startDate.toTimestamp());
           stmt.setInt(paramIndex + 3, officeAvailability);
-          stmt.setString(paramIndex + 4, area.name());
+          stmt.setString(paramIndex + 4, areaName);
           stmt.setString(paramIndex + 5, vectorValue);
           stmt.setDouble(paramIndex + 6, threshold);
           return paramIndex + 7;
