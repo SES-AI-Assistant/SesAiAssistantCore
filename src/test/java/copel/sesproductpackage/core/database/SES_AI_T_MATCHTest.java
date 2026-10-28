@@ -51,8 +51,6 @@ class SES_AI_T_MATCHTest {
     "score",
     "must_evaluation_text",
     "want_evaluation_text",
-    "place_evaluation_text",
-    "office_evaluation_text",
     "other_evaluation_text",
     "profit",
     "register_date",
@@ -93,8 +91,6 @@ class SES_AI_T_MATCHTest {
     match.setScore(80);
     match.setMustEvaluationText("必須");
     match.setWantEvaluationText("尚可");
-    match.setPlaceEvaluationText("場所");
-    match.setOfficeEvaluationText("出社");
     match.setOtherEvaluationText("その他");
     match.setProfit(new Money(1_000_000L));
     match.setRegisterDate(new OriginalDateTime(REGISTER_DATE_TEXT));
@@ -469,9 +465,10 @@ class SES_AI_T_MATCHTest {
         verify(statement).setString(1, MATCHING_ID);
         verify(statement).setString(7, "20");
         verify(statement).setObject(9, 80);
-        verify(statement).setObject(15, new BigDecimal(1_000_000));
-        verify(statement).setTimestamp(16, Timestamp.valueOf("2026-01-15 12:00:00"));
-        verify(statement).setString(18, TENANT_ID);
+        verify(statement).setObject(13, new BigDecimal(1_000_000));
+        verify(statement).setTimestamp(14, Timestamp.valueOf("2026-01-15 12:00:00"));
+        verify(statement).setString(15, "U000");
+        verify(statement).setString(16, TENANT_ID);
       }
     }
 
@@ -496,7 +493,7 @@ class SES_AI_T_MATCHTest {
 
         verify(statement).setString(7, null);
         verify(statement).setObject(9, null);
-        verify(statement).setObject(15, null);
+        verify(statement).setObject(13, null);
       }
     }
   }
@@ -533,8 +530,6 @@ class SES_AI_T_MATCHTest {
                     80,
                     "必須",
                     "尚可",
-                    "場所",
-                    "出社",
                     "その他",
                     new BigDecimal(1_000_000),
                     REGISTER_DATE_TEXT,
@@ -598,8 +593,6 @@ class SES_AI_T_MATCHTest {
                     null,
                     "必須",
                     "尚可",
-                    "場所",
-                    "出社",
                     "その他",
                     null,
                     REGISTER_DATE_TEXT,
@@ -654,13 +647,12 @@ class SES_AI_T_MATCHTest {
             .prepareStatement(
                 "UPDATE SES_AI_T_MATCH SET user_id = ?, job_id = ?, person_id = ?, job_content = ?,"
                     + " person_content = ?, status_cd = ?, evaluation_text = ?, score = ?,"
-                    + " must_evaluation_text = ?, want_evaluation_text = ?, place_evaluation_text"
-                    + " = ?, office_evaluation_text = ?, other_evaluation_text = ?, profit = ?,"
-                    + " register_date = ?, register_user = ? WHERE matching_id = ? AND tenant_id"
-                    + " = ?");
+                    + " must_evaluation_text = ?, want_evaluation_text = ?, other_evaluation_text"
+                    + " = ?, profit = ?, register_date = ?, register_user = ? WHERE matching_id = ?"
+                    + " AND tenant_id = ?");
         verify(statement).setString(6, "20");
         verify(statement).setObject(8, 80);
-        verify(statement).setString(17, MATCHING_ID);
+        verify(statement).setString(15, MATCHING_ID);
       }
 
       /**
@@ -679,8 +671,8 @@ class SES_AI_T_MATCHTest {
 
         verify(statement).setString(6, null);
         verify(statement).setObject(8, null);
-        verify(statement).setObject(14, null);
-        verify(statement).setTimestamp(15, null);
+        verify(statement).setObject(12, null);
+        verify(statement).setTimestamp(13, null);
       }
     }
 
@@ -730,7 +722,7 @@ class SES_AI_T_MATCHTest {
        *
        * @given テナントIDが "T001"、更新件数が 1 件
        * @when updateByPk を接続で実行する
-       * @then 条件の18番目に "T001" を設定し、trueを返す
+       * @then 条件の16番目に "T001" を設定し、trueを返す
        */
       @MockDbConnection
       @Test
@@ -739,7 +731,7 @@ class SES_AI_T_MATCHTest {
 
         assertThat(match().updateByPk(connection)).isTrue();
 
-        verify(statement).setString(18, TENANT_ID);
+        verify(statement).setString(16, TENANT_ID);
       }
     }
   }

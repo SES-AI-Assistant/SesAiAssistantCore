@@ -3,10 +3,10 @@ package copel.sesproductpackage.core.database;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -385,16 +385,20 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
     class 正常系 {
 
       /**
-       * 出社要件はあるがエリアが無い場合に、出社要件とエリアの条件を付けないことを確かめる。 片方だけの条件で件数を誤らない。
+       * 出社要件が1以上でエリアが無い案件は、エリアの条件に NULL を設定することを確かめる。 エリアの一致が必要な案件を、エリアの無い要員と照合しないため、一致しない NULL
+       * を渡す。
        *
-       * @given オフィス要件が 3、エリアが null
-       * @when retrieveByPersonVectorWithFilter を価格、開始日、オフィス要件、エリア null で実行する
-       * @then 件数に 1 を保持し、出社要件の条件を設定しない
+       * @given 件数の問い合わせが 0 行を返す、出社要件が 3、エリアが null
+       * @when retrieveByPersonVectorWithFilter を価格、開始日、出社要件 3、エリア null で実行する
+       * @then 件数の問い合わせの 3・4 番目に出社要件 3 を設定し、5 番目に null を設定して空の一覧を返す
        */
       @MockDbConnection
       @Test
-      void 出社要件はありエリアがnullの場合_出社要件を設定せずに1件の一覧を返す(final Connection connection) throws SQLException {
-        PreparedStatement countStatement = stubCountAndRows(connection, 1L, row(true));
+      void 出社要件が1以上でエリアがnullの場合_エリアの条件にnullを設定して空の一覧を返す(final Connection connection)
+          throws SQLException {
+        PreparedStatement countStatement =
+            stubCountAndRows(
+                connection, 0L, MockResultSetBuilder.builder().columns(COLUMNS).build());
         SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
 
         lot.retrieveByPersonVectorWithFilter(
@@ -408,8 +412,71 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
             0.8,
             10);
 
+        assertThat(lot.isEmpty()).isTrue();
+        verify(countStatement).setInt(3, 3);
+        verify(countStatement).setInt(4, 3);
+        verify(countStatement).setString(5, null);
+      }
+
+      /**
+       * フルリモートの案件は、エリアの条件を要員のエリアの一致で絞らないことを確かめる。 出社要件が 0 の案件は場所を問わないため、要員のエリアで候補を落とさない。
+       *
+       * @given 案件の出社要件が 0、エリアが 関東_首都圏
+       * @when retrieveByPersonVectorWithFilter を価格、開始日、出社要件 0、エリア 関東_首都圏 で実行する
+       * @then 検索の SQL に出社要件 0 の判定を含め、件数の問い合わせの 3・4 番目に 0 を設定し、1件の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void フルリモートの案件でエリアがある場合_出社要件0の判定を含む1件の一覧を返す(final Connection connection) throws SQLException {
+        PreparedStatement countStatement = stubCountAndRows(connection, 1L, row(true));
+        SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
+
+        lot.retrieveByPersonVectorWithFilter(
+            connection,
+            TENANT_ID,
+            vector(),
+            new Money(1_000_000L),
+            new OriginalDateTime("2026-01-01 00:00:00"),
+            0,
+            Area.関東_首都圏,
+            0.8,
+            10);
+
+        verify(connection, atLeastOnce()).prepareStatement(contains("(? = 0 OR p.area = ?)"));
+        verify(countStatement).setInt(3, 0);
+        verify(countStatement).setInt(4, 0);
         assertThat(lot.size()).isEqualTo(1);
-        verify(countStatement, never()).setInt(anyInt(), anyInt());
+      }
+
+      /**
+       * フルリモートの案件でエリアが無い場合も、エリアの条件で候補を落とさないことを確かめる。 出社要件が 0 の案件は場所を問わないため、エリアが無くても候補にする。
+       *
+       * @given 案件の出社要件が 0、エリアが null
+       * @when retrieveByPersonVectorWithFilter を価格、開始日、出社要件 0、エリア null で実行する
+       * @then 件数の問い合わせの 3・4 番目に 0 を設定し、5 番目に null を設定して1件の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void フルリモートの案件でエリアがnullの場合_出社要件0の判定を含む1件の一覧を返す(final Connection connection)
+          throws SQLException {
+        PreparedStatement countStatement = stubCountAndRows(connection, 1L, row(true));
+        SES_AI_T_SKILLSHEET_PERSONLot lot = new SES_AI_T_SKILLSHEET_PERSONLot();
+
+        lot.retrieveByPersonVectorWithFilter(
+            connection,
+            TENANT_ID,
+            vector(),
+            new Money(1_000_000L),
+            new OriginalDateTime("2026-01-01 00:00:00"),
+            0,
+            null,
+            0.8,
+            10);
+
+        verify(countStatement).setInt(3, 0);
+        verify(countStatement).setInt(4, 0);
+        verify(countStatement).setString(5, null);
+        assertThat(lot.size()).isEqualTo(1);
       }
 
       /**
@@ -418,7 +485,7 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
        *
        * @given 件数が 1 件、オフィス要件 3、エリアが関東_首都圏
        * @when retrieveByPersonVectorWithFilter を全ての条件で実行する
-       * @then 一覧の問い合わせの 1・6 番目にベクトル、2〜5 番目に価格・開始日・オフィス要件・エリアを設定する
+       * @then 一覧の問い合わせの 1・7 番目にベクトル、4・5 番目に出社要件 3、6 番目にエリア、8 番目に類似度を設定し、1件の一覧を返す
        */
       @MockDbConnection
       @Test
@@ -448,12 +515,13 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
         verify(rowStatement).setString(1, vectorStr);
         verify(rowStatement).setBigDecimal(eq(2), any(BigDecimal.class));
         verify(rowStatement).setInt(4, 3);
-        verify(rowStatement).setString(5, Area.関東_首都圏.name());
-        verify(rowStatement).setString(6, vectorStr);
-        verify(rowStatement).setDouble(7, 0.8);
-        verify(rowStatement).setString(8, TENANT_ID);
-        verify(rowStatement).setInt(9, 10);
-        verify(rowStatement).setInt(10, 0);
+        verify(rowStatement).setInt(5, 3);
+        verify(rowStatement).setString(6, Area.関東_首都圏.name());
+        verify(rowStatement).setString(7, vectorStr);
+        verify(rowStatement).setDouble(8, 0.8);
+        verify(rowStatement).setString(9, TENANT_ID);
+        verify(rowStatement).setInt(10, 10);
+        verify(rowStatement).setInt(11, 0);
       }
 
       /**
@@ -601,7 +669,8 @@ class SES_AI_T_SKILLSHEET_PERSONLotTest {
         assertThat(lot.getTotalCount()).isEqualTo(1L);
         assertThat(lot.size()).isEqualTo(1);
         verify(countStatement).setInt(3, 3);
-        verify(countStatement).setString(4, Area.関東_首都圏.name());
+        verify(countStatement).setInt(4, 3);
+        verify(countStatement).setString(5, Area.関東_首都圏.name());
       }
     }
 

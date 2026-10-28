@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -393,12 +394,12 @@ class SES_AI_T_JOBLotTest {
        *
        * @given 件数が 1 件、検索の結果が 1 行、出社要件が 3、エリアが 関東_首都圏
        * @when retrieveWithFilter を価格、開始日、出社要件、エリアで実行する
-       * @then 1件の一覧を返す
+       * @then 検索の SQL に出社要件 0 の判定を含め、件数の問い合わせの 3 番目に 3、4 番目に 関東_首都圏 を設定し、1件の一覧を返す
        */
       @MockDbConnection
       @Test
       void 出社要件とエリアの条件の場合_1件の一覧を返す(final Connection connection) throws SQLException {
-        stubCountAndRows(connection, 1L, row(true, TENANT_ID));
+        PreparedStatement countStatement = stubCountAndRows(connection, 1L, row(true, TENANT_ID));
         SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
 
         lot.retrieveWithFilter(
@@ -412,6 +413,10 @@ class SES_AI_T_JOBLotTest {
             0.8,
             10);
 
+        verify(connection, atLeastOnce())
+            .prepareStatement(contains("(office_requirements = 0 OR area = ?)"));
+        verify(countStatement).setInt(3, 3);
+        verify(countStatement).setString(4, Area.関東_首都圏.name());
         assertThat(lot.size()).isEqualTo(1);
       }
 
@@ -502,6 +507,37 @@ class SES_AI_T_JOBLotTest {
 
         assertThat(lot.size()).isEqualTo(1);
       }
+
+      /**
+       * 要員のエリアが無くても、フルリモートの案件を検索の候補に含めることを確かめる。 出社要件が 0 の案件は場所を問わないため、エリアが無いことで候補を落とさない。
+       *
+       * @given 件数が 1 件、検索の結果が 1 行、要員のオフィス可用性が 3、エリアが null
+       * @when retrieveWithFilter を接続、テナントID "T001"、オフィス可用性 3、エリア null で実行する
+       * @then 検索の SQL に出社要件 0 の判定を含め、件数の問い合わせの 3 番目に 3、4 番目に null を設定し、1件の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void エリアがnullで出社要件0の判定を含む場合_1件の一覧を返す(final Connection connection) throws SQLException {
+        PreparedStatement countStatement = stubCountAndRows(connection, 1L, row(true, TENANT_ID));
+        SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
+
+        lot.retrieveWithFilter(
+            connection,
+            TENANT_ID,
+            vector(),
+            new Money(1_000_000L),
+            new OriginalDateTime("2026-01-01 00:00:00"),
+            3,
+            null,
+            0.8,
+            10);
+
+        verify(connection, atLeastOnce())
+            .prepareStatement(contains("(office_requirements = 0 OR area = ?)"));
+        verify(countStatement).setInt(3, 3);
+        verify(countStatement).setString(4, null);
+        assertThat(lot.size()).isEqualTo(1);
+      }
     }
 
     @Nested
@@ -533,28 +569,34 @@ class SES_AI_T_JOBLotTest {
       }
 
       /**
-       * エリアが null の場合に検索を行わないことを確かめる。 エリアの条件が無い検索は絞り込みの前提を欠く。
+       * 要員のエリアが無い場合に、エリアの条件に NULL を設定することを確かめる。 エリアの一致が必要な案件を、エリアの無い要員と照合しないため NULL を渡して一致させない。
        *
-       * @given ベクトルあり、エリアが null
-       * @when retrieveWithFilter を接続、テナントID "T001"、エリア null で実行する
-       * @then SQL の準備を呼ばない
+       * @given 件数の問い合わせが 0 行を返す、出社許容が 3、エリアが null
+       * @when retrieveWithFilter を接続、テナントID "T001"、出社許容 3、エリア null で実行する
+       * @then 件数の問い合わせの 3 番目に 3、4 番目に null を設定し、空の一覧を返す
        */
       @MockDbConnection
       @Test
-      void エリアがnullの場合_DBを呼ばない(final Connection connection) throws SQLException {
-        new SES_AI_T_JOBLot()
-            .retrieveWithFilter(
-                connection,
-                TENANT_ID,
-                vector(),
-                new Money(1_000_000L),
-                new OriginalDateTime("2026-01-01 00:00:00"),
-                3,
-                null,
-                0.8,
-                10);
+      void エリアがnullの場合_エリアの条件にnullを設定して空の一覧を返す(final Connection connection) throws SQLException {
+        PreparedStatement countStatement =
+            stubCountAndRows(
+                connection, 0L, MockResultSetBuilder.builder().columns(COLUMNS).build());
+        SES_AI_T_JOBLot lot = new SES_AI_T_JOBLot();
 
-        verify(connection, never()).prepareStatement(anyString());
+        lot.retrieveWithFilter(
+            connection,
+            TENANT_ID,
+            vector(),
+            new Money(1_000_000L),
+            new OriginalDateTime("2026-01-01 00:00:00"),
+            3,
+            null,
+            0.8,
+            10);
+
+        assertThat(lot.isEmpty()).isTrue();
+        verify(countStatement).setInt(3, 3);
+        verify(countStatement).setString(4, null);
       }
     }
   }
