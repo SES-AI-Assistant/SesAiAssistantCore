@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 
+import copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateResponseSchema.EvaluateType;
 import copel.sesproductpackage.tools.testsupport.db.JdbcMocks;
 import copel.sesproductpackage.tools.testsupport.db.MockDbConnection;
 import copel.sesproductpackage.tools.testsupport.jdbc.MockResultSetBuilder;
@@ -19,9 +20,15 @@ class SES_AI_M_TENANTLotTest {
   /** テナントID。 */
   private static final String TENANT_ID = "T001";
 
-  /** テナントの取得結果の列。 */
+  /** テナントの取得結果の列。 マッチング強度の列を含む。 */
   private static final String[] COLUMNS = {
-    "tenant_id", "tenant_name", "tenant_status_cd", "register_date", "register_user"
+    "tenant_id",
+    "tenant_name",
+    "tenant_status_cd",
+    "match_must_level",
+    "match_want_level",
+    "register_date",
+    "register_user"
   };
 
   @Nested
@@ -31,11 +38,11 @@ class SES_AI_M_TENANTLotTest {
     class 正常系 {
 
       /**
-       * テナントのテナントを全件読み込むことを確かめる。 画面の一覧は自テナントのテナントだけを表示する。
+       * テナントのテナントを全件読み込み、マッチング強度を列挙値に変換することを確かめる。 画面の一覧は自テナントの設定を表示するため、強度を読み違えないことを守る。
        *
-       * @given SELECT の結果が TENANT_ID と "T002" の 2 行テナントID "T001"
+       * @given SELECT の結果が 2 行で、1行目は必須 PartiallyMet と尚可 NotMet、2行目は必須と尚可が NULL
        * @when selectAll を接続とテナントID "T001" で実行する
-       * @then テナントが TENANT_ID、"T002" の順に 2 件になる
+       * @then 2件の一覧を返し、1件目の必須を PartiallyMet、2件目の必須を null で読み込む
        */
       @MockDbConnection
       @Test
@@ -44,8 +51,15 @@ class SES_AI_M_TENANTLotTest {
             connection,
             MockResultSetBuilder.builder()
                 .columns(COLUMNS)
-                .row(TENANT_ID, "テナントA", "1", "2026-01-15 10:00:00", "U001")
-                .row("T002", "テナントB", "2", "2026-01-16 10:00:00", "U002")
+                .row(
+                    TENANT_ID,
+                    "テナントA",
+                    "1",
+                    "PartiallyMet",
+                    "NotMet",
+                    "2026-01-15 10:00:00",
+                    "U001")
+                .row("T002", "テナントB", "2", null, null, "2026-01-16 10:00:00", "U002")
                 .build());
         SES_AI_M_TENANTLot lot = new SES_AI_M_TENANTLot();
 
@@ -53,7 +67,9 @@ class SES_AI_M_TENANTLotTest {
 
         assertThat(lot.size()).isEqualTo(2);
         assertThat(lot.get(0).getTenantId()).isEqualTo(TENANT_ID);
+        assertThat(lot.get(0).getMatchMustLevel()).isEqualTo(EvaluateType.PartiallyMet);
         assertThat(lot.get(1).getTenantName()).isEqualTo("テナントB");
+        assertThat(lot.get(1).getMatchMustLevel()).isNull();
       }
 
       /**
@@ -150,7 +166,7 @@ class SES_AI_M_TENANTLotTest {
             connection,
             MockResultSetBuilder.builder()
                 .columns(COLUMNS)
-                .row("T002", "テナントA", "1", "2026-01-15 10:00:00", "U001")
+                .row("T002", "テナントA", "1", "FullyMet", "NotMet", "2026-01-15 10:00:00", "U001")
                 .build());
         SES_AI_M_TENANTLot lot = new SES_AI_M_TENANTLot();
 

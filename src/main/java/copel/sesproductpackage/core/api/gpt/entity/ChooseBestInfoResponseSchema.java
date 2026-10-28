@@ -29,25 +29,29 @@ public class ChooseBestInfoResponseSchema {
   private List<CandidateEvaluationResult> candidateResults;
 
   /**
-   * 評価結果を元に、ベストマッチな候補を返却する.
+   * 評価結果を元に、既定のルールでベストマッチな候補を返却する. 必須は FullyMet、尚可は判定せず、その他制約は必須とする。
    *
    * @return 最適なCandidateEvaluationResult（該当なしの場合はnull）
    */
   @SchemaIgnore
   public CandidateEvaluationResult getBestResult() {
-    // 必須オブジェクトの存在チェック
-    if (this.candidateResults == null) {
-      return null;
-    }
-    return this.candidateResults.stream()
-        // 各評価フラグがすべて true である要素のみに絞り込み
-        .filter(r -> r.isPersonMonthsEvaluateResult())
-        .filter(r -> r.isOtherConstraintsResult())
-        // 必須スキル評価が FullyMet の要素のみに絞り込み
-        .filter(r -> EvaluateType.FullyMet.equals(r.getMustSkillEvaluateResult()))
-        // マッチ度の最大値（同点の場合は任意で1つ）を取得
-        .max((r1, r2) -> r1.compareTo(r2))
-        .orElse(null);
+    return getBestResult(null);
+  }
+
+  /**
+   * 評価結果を元に、フィルタリングルールの条件を満たす候補のうちマッチ度が最大の候補を返却する.
+   *
+   * <p>絞り込みは {@link #getFilteredSortedResults(FilteringRules)} と同じ条件を使う。マッチ度が同点の場合は、一覧で先に並ぶ候補を返す。
+   * ルールが null の場合は既定のルール（必須 FullyMet、尚可は判定せず、その他制約は必須）で絞り込む。引数なしの版と同じ結果になる。
+   *
+   * @param rules フィルタリングルール。nullの場合は既定のルール
+   * @return 最適なCandidateEvaluationResult（該当なしの場合はnull）
+   */
+  @SchemaIgnore
+  public CandidateEvaluationResult getBestResult(final FilteringRules rules) {
+    FilteringRules applied =
+        rules == null ? new FilteringRules(EvaluateType.FullyMet, null, true) : rules;
+    return getFilteredSortedResults(applied).stream().findFirst().orElse(null);
   }
 
   /**
@@ -83,7 +87,7 @@ public class ChooseBestInfoResponseSchema {
                 return false;
               }
               EvaluateType level = rules.getMustSkillLevel();
-              return result.ordinal() <= level.ordinal();
+              return result.satisfies(level);
             })
         // 尚好スキル（level=null の場合は無視）
         .filter(
@@ -98,7 +102,7 @@ public class ChooseBestInfoResponseSchema {
                 return false;
               }
               EvaluateType level = rules.getWantSkillLevel();
-              return result.ordinal() <= level.ordinal();
+              return result.satisfies(level);
             })
         .sorted(Comparator.reverseOrder())
         .toList();

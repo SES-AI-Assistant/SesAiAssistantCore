@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 
 /**
  * AIによるマッチ評価要求エンティティ. 【重要】スキル評価は『記載された実務経験』のみを対象とし、推測・拡大解釈は不可。
- * 代替可能な類似経験が明記されている場合のみPartiallyMetとする（必須スキルではマッチ対象外、スコアのみ反映）。 なお、LLMへの評価指示は Javadoc ではなく {@link
- * MatchEvaluateResponseSchema} の各フィールドの @Schema(description) として送信される点に注意。
+ * 代替可能な類似経験が明記されている場合のみPartiallyMetとする（既定の必須判定ではマッチ対象外、テナント設定で許容可。スコアには反映）。 なお、LLMへの評価指示は Javadoc
+ * ではなく {@link MatchEvaluateResponseSchema} の各フィールドの @Schema(description) として送信される点に注意。
  *
  * @author Copel Co., Ltd.
  */

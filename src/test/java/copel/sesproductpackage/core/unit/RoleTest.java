@@ -111,20 +111,21 @@ class RoleTest {
     class 認可 {
 
       /**
-       * 運用ロールが監視管理と送信者、送信元グループ、ユーザーの管理権限を持つことを確かめる。 運用担当の権限が変わると管理操作の範囲が変わるので、権限の集合を固定する。
+       * 運用ロールがウォッチ管理と送信者、送信元グループ、ユーザー、テナント設定の管理権限を持つことを確かめる。 運用担当の権限が変わると管理操作の範囲が変わるので、権限の集合を固定する。
        *
        * @given ロールが運用
        * @when getPermissions を実行する
-       * @then 監視管理を含む管理系の4件の権限を返す
+       * @then ウォッチ管理を含む管理系の5件の権限を返す
        */
       @Test
-      void 運用の場合_管理系の4件の権限を返す() {
+      void 運用の場合_管理系の5件の権限を返す() {
         assertThat(Role.運用.getPermissions())
             .containsExactlyInAnyOrder(
                 Permission.MANAGE_WATCH,
                 Permission.MANAGE_SENDER,
                 Permission.MANAGE_FROM_GROUP,
-                Permission.MANAGE_USERS);
+                Permission.MANAGE_USERS,
+                Permission.MANAGE_TENANT_SETTINGS);
       }
 
       /**

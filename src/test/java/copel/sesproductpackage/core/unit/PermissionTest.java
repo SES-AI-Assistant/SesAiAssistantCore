@@ -34,7 +34,8 @@ class PermissionTest {
         "MANAGE_FROM_GROUP, 送信元グループマスタ管理",
         "VIEW_USAGE_HISTORY, 利用履歴閲覧",
         "MANAGE_USERS, ユーザー管理",
-        "MANAGE_MASTER_DATA, マスターデータ管理"
+        "MANAGE_MASTER_DATA, マスターデータ管理",
+        "MANAGE_TENANT_SETTINGS, テナント設定管理"
       })
       void 権限の列挙値を指定した場合_日本語の名称を返す(final Permission permission, final String expected) {
         assertThat(permission.getName()).isEqualTo(expected);
