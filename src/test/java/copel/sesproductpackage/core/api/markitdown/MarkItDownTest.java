@@ -9,6 +9,10 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.github.stefanbirkner.systemlambda.SystemLambda;
 import copel.sesproductpackage.core.util.Properties;
 import copel.sesproductpackage.core.util.SsmParameterKey;
@@ -20,6 +24,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.lambda.LambdaClient;
@@ -30,6 +35,21 @@ import software.amazon.awssdk.services.lambda.model.LambdaException;
 
 /** {@link MarkItDown} の単体テスト。 */
 class MarkItDownTest {
+
+  /** invoke が出力するログを集めるアペンダー。ログの重大度を確かめるテストだけが使う。 */
+  private final ListAppender<ILoggingEvent> logAppender = new ListAppender<>();
+
+  @BeforeEach
+  void ログを集める() {
+    logAppender.start();
+    ((Logger) LoggerFactory.getLogger(MarkItDown.class)).addAppender(logAppender);
+  }
+
+  @AfterEach
+  void ログの収集を止める() {
+    ((Logger) LoggerFactory.getLogger(MarkItDown.class)).detachAppender(logAppender);
+    logAppender.stop();
+  }
 
   @BeforeEach
   void setFunctionName() {
@@ -157,7 +177,7 @@ class MarkItDownTest {
        *
        * @given 関数の応答に functionError と本文がある
        * @when invoke をリクエストで呼び出す
-       * @then 実行エラーを示す IllegalStateException を投げる
+       * @then 実行エラーを示す IllegalStateException を投げ、WARN を出力する
        */
       @Test
       void 関数がエラーを返す場合_IllegalStateExceptionを投げる() throws Exception {
@@ -169,6 +189,7 @@ class MarkItDownTest {
           assertThatThrownBy(() -> MarkItDown.invoke(request()))
               .isInstanceOf(IllegalStateException.class)
               .hasMessageContaining("Lambda 実行エラー");
+          assertThat(logAppender.list).extracting(ILoggingEvent::getLevel).containsOnly(Level.WARN);
         }
       }
 
@@ -177,7 +198,7 @@ class MarkItDownTest {
        *
        * @given 関数の応答に functionError があり、本文が無い
        * @when invoke をリクエストで呼び出す
-       * @then 実行エラーを示す IllegalStateException を投げる
+       * @then 実行エラーを示す IllegalStateException を投げ、WARN を出力する
        */
       @Test
       void 関数がエラーで本文が無い場合_IllegalStateExceptionを投げる() throws Exception {
@@ -189,6 +210,7 @@ class MarkItDownTest {
           assertThatThrownBy(() -> MarkItDown.invoke(request()))
               .isInstanceOf(IllegalStateException.class)
               .hasMessageContaining("Lambda 実行エラー");
+          assertThat(logAppender.list).extracting(ILoggingEvent::getLevel).containsOnly(Level.WARN);
         }
       }
 
@@ -236,7 +258,7 @@ class MarkItDownTest {
        *
        * @given invoke が LambdaException を投げる
        * @when invoke をリクエストで呼び出す
-       * @then 呼び出しに失敗したことを示す IllegalStateException を投げ、原因を LambdaException とする
+       * @then 呼び出しに失敗したことを示す IllegalStateException を投げ、原因を LambdaException とし、WARN を出力する
        */
       @Test
       void 呼び出しが失敗する場合_IllegalStateExceptionを投げる() throws Exception {
@@ -248,6 +270,7 @@ class MarkItDownTest {
           assertThatThrownBy(() -> MarkItDown.invoke(request()))
               .isInstanceOf(IllegalStateException.class)
               .hasCauseInstanceOf(LambdaException.class);
+          assertThat(logAppender.list).extracting(ILoggingEvent::getLevel).containsOnly(Level.WARN);
         }
       }
 

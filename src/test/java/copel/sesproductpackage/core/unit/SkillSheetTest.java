@@ -8,6 +8,10 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import copel.sesproductpackage.core.util.Properties;
 import copel.sesproductpackage.core.util.SsmParameterKey;
 import copel.sesproductpackage.tools.testsupport.clock.FixedClock;
@@ -33,6 +37,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.LambdaClientBuilder;
@@ -49,8 +54,13 @@ class SkillSheetTest {
   /** Lambda クライアントの構築を差し替えるハンドル。テスト後に解除する。 */
   private MockedStatic<LambdaClient> lambdaStatic;
 
+  /** SkillSheet が出力するログを集めるアペンダー。ログの重大度を確かめるテストだけが使う。 */
+  private final ListAppender<ILoggingEvent> logAppender = new ListAppender<>();
+
   @BeforeEach
   void Lambdaの呼び出しを差し替える() {
+    logAppender.start();
+    ((Logger) LoggerFactory.getLogger(SkillSheet.class)).addAppender(logAppender);
     lambdaClient = mock(LambdaClient.class);
     LambdaClientBuilder builder = mock(LambdaClientBuilder.class, RETURNS_SELF);
     when(builder.build()).thenReturn(lambdaClient);
@@ -62,6 +72,8 @@ class SkillSheetTest {
 
   @AfterEach
   void Lambdaの差し替えを解除する() {
+    ((Logger) LoggerFactory.getLogger(SkillSheet.class)).detachAppender(logAppender);
+    logAppender.stop();
     lambdaStatic.close();
     Properties.removeForTest(SsmParameterKey.MARKITDOWN_NAME.getKey());
   }
@@ -253,7 +265,7 @@ class SkillSheetTest {
        *
        * @given markitdown-lambda が本文を返さない応答、ファイル名が "skill.xlsx"、Excel の内容がある
        * @when setFileContentFromByte をバイト列で実行する
-       * @then ローカルの解析の本文 "a,1.5,\n" を返す
+       * @then ローカルの解析の本文 "a,1.5,\n" を返し、ERROR を出力しない
        * @throws IOException 読み込みに失敗した場合
        */
       @ValueSource(
@@ -271,6 +283,10 @@ class SkillSheetTest {
         skillSheet.setFileContentFromByte(xlsxを作る());
 
         assertThat(skillSheet.getFileContent()).isEqualTo("a,1.5,\n");
+        assertThat(logAppender.list)
+            .extracting(ILoggingEvent::getLevel)
+            .contains(Level.WARN)
+            .doesNotContain(Level.ERROR);
       }
 
       /**
@@ -279,7 +295,7 @@ class SkillSheetTest {
        *
        * @given markitdown-lambda の呼び出しが失敗する、ファイル名が "skill.docx"
        * @when setFileContentFromByte をバイト列で実行する
-       * @then 段落の "本文" と表の "セル" を連結した文字列を返す
+       * @then 段落の "本文" と表の "セル" を連結した文字列を返し、ERROR を出力しない
        * @throws IOException 読み込みに失敗した場合
        */
       @Test
@@ -290,6 +306,10 @@ class SkillSheetTest {
         skillSheet.setFileContentFromByte(docxを作る());
 
         assertThat(skillSheet.getFileContent()).isEqualTo("本文\nセル\t\n");
+        assertThat(logAppender.list)
+            .extracting(ILoggingEvent::getLevel)
+            .contains(Level.WARN)
+            .doesNotContain(Level.ERROR);
       }
 
       /**
