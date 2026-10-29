@@ -32,8 +32,7 @@ class RequestTypeTest {
         "22, EmailFile",
         "31, ScreenMessage",
         "32, ScreenFile",
-        "01, OtherMessage",
-        "02, OtherFile"
+        "01, OtherMessage"
       })
       void コード値を指定した場合_対応するリクエスト種別を返す(final String code, final RequestType expected) {
         assertThat(RequestType.getEnum(code)).isEqualTo(expected);
@@ -54,8 +53,7 @@ class RequestTypeTest {
         "EmailFile, EmailFile",
         "ScreenMessage, ScreenMessage",
         "ScreenFile, ScreenFile",
-        "OtherMessage, OtherMessage",
-        "OtherFile, OtherFile"
+        "OtherMessage, OtherMessage"
       })
       void 列挙名を指定した場合_対応するリクエスト種別を返す(final String name, final RequestType expected) {
         assertThat(RequestType.getEnum(name)).isEqualTo(expected);
@@ -105,12 +103,12 @@ class RequestTypeTest {
       /**
        * ファイルの種別の場合にtrueを返すことを確かめる。 ファイルの種別だけ、スキルシートの判定と本文の文字数の判定から外すためである。
        *
-       * @given リクエスト種別が LineFile、EmailFile、ScreenFile、OtherFile のいずれか
+       * @given リクエスト種別が LineFile、EmailFile、ScreenFile のいずれか
        * @when isFile を実行する
        * @then trueを返す
        */
       @ParameterizedTest
-      @CsvSource({"LineFile", "EmailFile", "ScreenFile", "OtherFile"})
+      @CsvSource({"LineFile", "EmailFile", "ScreenFile"})
       void ファイルの種別の場合_trueを返す(final String name) {
         assertThat(RequestType.valueOf(name).isFile()).isTrue();
       }
@@ -160,12 +158,12 @@ class RequestTypeTest {
       /**
        * 本文を持たない種別の場合にfalseを返すことを確かめる。 ファイルと画面のメッセージは本文の文字数で処理対象を外さないためである。
        *
-       * @given リクエスト種別が LineFile、EmailFile、ScreenMessage、ScreenFile、OtherFile のいずれか
+       * @given リクエスト種別が LineFile、EmailFile、ScreenMessage、ScreenFile のいずれか
        * @when hasBodyText を実行する
        * @then falseを返す
        */
       @ParameterizedTest
-      @CsvSource({"LineFile", "EmailFile", "ScreenMessage", "ScreenFile", "OtherFile"})
+      @CsvSource({"LineFile", "EmailFile", "ScreenMessage", "ScreenFile"})
       void 本文を持たない種別の場合_falseを返す(final String name) {
         assertThat(RequestType.valueOf(name).hasBodyText()).isFalse();
       }
@@ -230,15 +228,15 @@ class RequestTypeTest {
       }
 
       /**
-       * LINEとその他のファイルの場合に、送信者名とファイル名を含む項目名を判定の順に返すことを確かめる。 ファイルの取り込みはファイル名が無いと処理できないためである。
+       * LINEのファイルの場合に、送信者名とファイル名を含む項目名を判定の順に返すことを確かめる。 ファイルの取り込みはファイル名が無いと処理できないためである。
        *
-       * @given リクエスト種別が LineFile または OtherFile
+       * @given リクエスト種別が LineFile
        * @when requiredFieldNames を実行する
        * @then "fromGroup"、"fromId"、"fromName"、"fileName" の順に項目名の一覧を返す
        */
       @ParameterizedTest
-      @CsvSource({"LineFile", "OtherFile"})
-      void LINEとその他のファイルの場合_送信者名とファイル名を含む項目名の一覧を返す(final String name) {
+      @CsvSource({"LineFile"})
+      void LINEのファイルの場合_送信者名とファイル名を含む項目名の一覧を返す(final String name) {
         assertThat(RequestType.valueOf(name).requiredFieldNames())
             .containsExactly("fromGroup", "fromId", "fromName", "fileName");
       }
