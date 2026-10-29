@@ -76,7 +76,8 @@ public final class MarkItDown {
 
       if (response.functionError() != null) {
         final String errBody = response.payload() != null ? response.payload().asUtf8String() : "";
-        log.error(
+        // 例外は呼び出し元へ伝わり、フォールバックできない呼び出し元が ERROR を出すため、ここでは WARN にする
+        log.warn(
             "markitdown-lambda が FunctionError を返しました: type={} body={}",
             response.functionError(),
             errBody);
@@ -95,7 +96,8 @@ public final class MarkItDown {
         throw new IllegalStateException("markitdown-lambda 応答の JSON 解析に失敗しました。", e);
       }
     } catch (final LambdaException e) {
-      log.error("markitdown-lambda の invoke に失敗しました: {}", e.getMessage());
+      // 同上の理由で WARN にする
+      log.warn("markitdown-lambda の invoke に失敗しました: {}", e.getMessage());
       throw new IllegalStateException("Lambda の呼び出しに失敗しました。", e);
     }
   }

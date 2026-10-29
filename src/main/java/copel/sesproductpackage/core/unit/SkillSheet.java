@@ -88,12 +88,14 @@ public class SkillSheet {
           this.fileContent = mdRes.getMarkdown();
           log.info("markitdown-lambda によるパースに成功しました。文字数: {}", this.fileContent.length());
         } else {
+          // フォールバックして処理を続けられるため、アラーム通知の対象になる ERROR ではなく WARN にする
           String errMsg = mdRes.getError() != null ? mdRes.getError().getMessage() : "不明なエラー";
-          log.error("markitdown-lambda によるパースが失敗しました: {}", errMsg);
+          log.warn("markitdown-lambda によるパースが失敗しました: {}", errMsg);
           throw new IOException("markitdown-lambda によるパース失敗: " + errMsg);
         }
       } catch (Exception e) {
-        log.error("markitdown-lambda の呼び出し中にエラーが発生しました。従来のローカルパース処理へフォールバックします。", e);
+        // フォールバックも失敗した場合は IOException が呼び出し元へ伝わり、そこで ERROR になる
+        log.warn("markitdown-lambda の呼び出し中にエラーが発生しました。従来のローカルパース処理へフォールバックします。", e);
         // フォールバックとして従来の Apache POI / PDFBox によるパースを走らせる
         fallbackLocalParse(data);
       }
