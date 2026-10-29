@@ -2,29 +2,62 @@ package copel.sesproductpackage.core.api.storage;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.RETURNS_SELF;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import copel.sesproductpackage.core.util.ApplicationClock;
+import copel.sesproductpackage.tools.testsupport.clock.FixedClock;
+import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 /** {@link ExternalFileLinkLot} の単体テスト。 */
+@FixedClock("2026-01-15T12:00:00+09:00")
 class ExternalFileLinkLotTest {
 
   private static final String DRIVE_VIEW = "https://drive.google.com/file/d/ABC/view";
   private static final String DRIVE_DIRECT = "https://drive.google.com/uc?export=download&id=ABC";
+
+  /** 名前解決の静的モック。外部の DNS へ問い合わせないように、テストごとに開いて閉じる。 */
+  private MockedStatic<InetAddress> dns;
+
+  /**
+   * ドライブのホストを公開アドレスへ解決させ、名前解決をモックに差し替える。
+   *
+   * @throws UnknownHostException 名前解決のスタブに失敗した場合
+   */
+  @BeforeEach
+  void 名前解決をモックに差し替える() throws UnknownHostException {
+    // 解決結果は静的モックを開く前に作る。スタブの途中で別の静的呼び出しをすると Mockito の記録が壊れるため
+    InetAddress[] publicAddress = {InetAddress.getByAddress(new byte[] {8, 8, 8, 8})};
+    dns = mockStatic(InetAddress.class, CALLS_REAL_METHODS);
+    dns.when(() -> InetAddress.getAllByName("drive.google.com")).thenReturn(publicAddress);
+  }
+
+  /** 名前解決のモックと時計を既定に戻す。 */
+  @AfterEach
+  void モックを解除する() {
+    dns.close();
+    ApplicationClock.INSTANCE.resetToDefault();
+  }
 
   @Nested
   class コンストラクタ {
@@ -35,14 +68,14 @@ class ExternalFileLinkLotTest {
       /**
        * テキストに URL が複数ある場合に、URL ごとにリンクを保持することを確かめる。 文中の複数の共有リンクを取りこぼさないようにするため、URL ごとに判定することを守る。
        *
-       * @given テキストに Google ドライブの URL が2件含まれ、通信の応答はドライブのファイルを返す
+       * @given テキストに Google ドライブの URL が2件含まれ、GET の応答はドライブのファイルを返す
        * @when ExternalFileLinkLot を生成して downloadAll を呼び出す
        * @then 2件ともダウンロードして保持する
        */
       @Test
       void テキストに複数のURLがある場合_URLごとにダウンロードしたリストを返す() throws Exception {
         try (MockedStatic<HttpClient> hc = mockStatic(HttpClient.class)) {
-          clientFor(hc, okHead(), okGet(), okHead(), okGet());
+          clientFor(hc, okGet(), okGet());
           ExternalFileLinkLot lot = new ExternalFileLinkLot(DRIVE_VIEW + " と " + DRIVE_VIEW);
 
           lot.downloadAll();
@@ -123,14 +156,14 @@ class ExternalFileLinkLotTest {
       /**
        * 対応するストレージの URL がある場合に、ダウンロードして保持することを確かめる。 取り込むファイルを後の処理で使えるようにすることを守る。
        *
-       * @given テキストに Google ドライブの URL が1件あり、応答はファイルの本文を返す
+       * @given テキストに Google ドライブの URL が1件あり、GET の応答はファイルの本文を返す
        * @when downloadAll を呼び出す
        * @then ダウンロード済みのリンクが1件になる
        */
       @Test
       void 対応するURLがある場合_ダウンロードしたリストを返す() throws Exception {
         try (MockedStatic<HttpClient> hc = mockStatic(HttpClient.class)) {
-          clientFor(hc, okHead(), okGet());
+          clientFor(hc, okGet());
           ExternalFileLinkLot lot = new ExternalFileLinkLot(DRIVE_VIEW);
 
           lot.downloadAll();
@@ -154,7 +187,7 @@ class ExternalFileLinkLotTest {
       @Test
       void ダウンロードが1件失敗する場合_成功した1件だけのリストを返す() throws Exception {
         try (MockedStatic<HttpClient> hc = mockStatic(HttpClient.class)) {
-          clientFor(hc, okHead(), response(500, DRIVE_DIRECT, new byte[0]), okHead(), okGet());
+          clientFor(hc, response(500, DRIVE_DIRECT, new byte[0]), okGet());
           ExternalFileLinkLot lot = new ExternalFileLinkLot(DRIVE_VIEW + " " + DRIVE_VIEW);
 
           lot.downloadAll();
@@ -168,21 +201,22 @@ class ExternalFileLinkLotTest {
     class 境界値 {
 
       /**
-       * 対応外のドメインの URL の場合に、ダウンロードせずに保持しないことを確かめる。 対応外の共有リンクを取り込まないことを守る。
+       * 対応外のドメインの URL の場合に、接続せずに保持しないことを確かめる。 対応外の共有リンクへ通信しないことを守る。
        *
-       * @given テキストの URL の応答の最終 URL が example.com である
+       * @given テキストの URL が https://example.com/a である
        * @when downloadAll を呼び出す
-       * @then ダウンロード済みのリンクが空である
+       * @then ダウンロード済みのリンクが空で、HttpClient の送信を呼ばない
        */
       @Test
       void 対応外のドメインの場合_空のリストを返す() throws Exception {
         try (MockedStatic<HttpClient> hc = mockStatic(HttpClient.class)) {
-          clientFor(hc, response(200, "https://example.com/a", new byte[0]));
+          HttpClient client = clientFor(hc, okGet());
           ExternalFileLinkLot lot = new ExternalFileLinkLot("https://example.com/a");
 
           lot.downloadAll();
 
           assertThat(lot.getDownloadedLinks()).isEmpty();
+          verify(client, never()).send(any(HttpRequest.class), any());
         }
       }
     }
@@ -222,19 +256,11 @@ class ExternalFileLinkLotTest {
     HttpClient.Builder builder = mock(HttpClient.Builder.class, RETURNS_SELF);
     when(builder.build()).thenReturn(client);
     hc.when(HttpClient::newBuilder).thenReturn(builder);
+    // 呼び出し側は必ず1件以上の応答を渡す。送信の結果を順に返すため、先頭を返し、残りを後続の送信に使う
     HttpResponse<?> first = responses[0];
-    HttpResponse<?>[] rest = java.util.Arrays.copyOfRange(responses, 1, responses.length);
+    HttpResponse<?>[] rest = Arrays.copyOfRange(responses, 1, responses.length);
     doReturn(first, (Object[]) rest).when(client).send(any(HttpRequest.class), any());
     return client;
-  }
-
-  /**
-   * 成功した HEAD の応答を作る（最終 URL は Google ドライブのファイル）.
-   *
-   * @return 応答
-   */
-  private static HttpResponse<Void> okHead() {
-    return response(200, DRIVE_VIEW, null);
   }
 
   /**
@@ -251,17 +277,16 @@ class ExternalFileLinkLotTest {
    *
    * @param status ステータス
    * @param uri 最終 URL
-   * @param body 本文（HEAD の場合は null）
-   * @param <T> 本文の型
+   * @param body 本文
    * @return 応答
    */
   @SuppressWarnings("unchecked")
-  private static <T> HttpResponse<T> response(
+  private static HttpResponse<byte[]> response(
       final int status, final String uri, final byte[] body) {
-    HttpResponse<T> response = mock(HttpResponse.class);
+    HttpResponse<byte[]> response = mock(HttpResponse.class);
     when(response.statusCode()).thenReturn(status);
     when(response.uri()).thenReturn(URI.create(uri));
-    when(response.body()).thenReturn((T) body);
+    when(response.body()).thenReturn(body);
     when(response.headers())
         .thenReturn(
             HttpHeaders.of(Map.of("Content-Type", List.of("application/pdf")), (a, b) -> true));
