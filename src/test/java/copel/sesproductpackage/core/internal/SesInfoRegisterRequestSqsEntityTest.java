@@ -551,7 +551,6 @@ class SesInfoRegisterRequestSqsEntityTest {
         "EmailMessage",
         "EmailFile",
         "OtherMessage",
-        "OtherFile",
         "ScreenMessage",
         "ScreenFile"
       })
@@ -588,10 +587,6 @@ class SesInfoRegisterRequestSqsEntityTest {
         "OtherMessage, fromId",
         "OtherMessage, fromName",
         "OtherMessage, rawContent",
-        "OtherFile, fromGroup",
-        "OtherFile, fromId",
-        "OtherFile, fromName",
-        "OtherFile, fileName",
         "ScreenMessage, fromGroup",
         "ScreenMessage, fromId",
         "ScreenMessage, rawContent",
@@ -757,7 +752,7 @@ class SesInfoRegisterRequestSqsEntityTest {
        * @then true を返す
        */
       @ParameterizedTest
-      @CsvSource({"LineFile", "EmailFile", "OtherFile", "ScreenFile", "ScreenMessage"})
+      @CsvSource({"LineFile", "EmailFile", "ScreenFile", "ScreenMessage"})
       void 種別がファイルまたは画面入力の場合_trueを返す(final String requestType) {
         SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
         target.setRequestType(RequestType.valueOf(requestType));
@@ -1043,7 +1038,7 @@ class SesInfoRegisterRequestSqsEntityTest {
        * @then true を返す
        */
       @ParameterizedTest
-      @CsvSource({"LineFile", "EmailFile", "ScreenFile", "OtherFile"})
+      @CsvSource({"LineFile", "EmailFile", "ScreenFile"})
       void 種別がファイルの場合_ファイル名があればtrueを返す(final String requestType) {
         SesInfoRegisterRequestSqsEntity target = new SesInfoRegisterRequestSqsEntity();
         target.setRequestType(RequestType.valueOf(requestType));
@@ -1173,7 +1168,6 @@ class SesInfoRegisterRequestSqsEntityTest {
         "OtherMessage",
         "EmailFile",
         "ScreenFile",
-        "OtherFile",
         "ScreenMessage"
       })
       void LINEのファイル以外の種別の場合_LINEのクライアントを呼ばない(final String requestType) throws Exception {

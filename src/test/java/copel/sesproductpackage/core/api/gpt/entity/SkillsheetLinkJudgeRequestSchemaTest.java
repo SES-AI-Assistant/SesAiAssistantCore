@@ -16,9 +16,10 @@ class SkillsheetLinkJudgeRequestSchemaTest {
     class 正常系 {
 
       /**
-       * ファイル名と担当者の一覧を、スネークケースの JSON 文字列に変換することを確かめる。 判定の依頼内容をログに残す形式が、AI への送信形式と同じ名前で揃うことを守る。
+       * ファイル名とスキルシートの要約と担当者の一覧を、スネークケースの JSON 文字列に変換することを確かめる。 判定の依頼内容をログに残す形式が、AI
+       * への送信形式と同じ名前で揃うことを守る。
        *
-       * @given ファイル名が "skillsheet.xlsx" で、担当者 P001 の要約が "要約" である
+       * @given ファイル名が "skillsheet.xlsx" で、スキルシートの要約が "Java経験10年" で、担当者 P001 の要約が "要約" である
        * @when toString を呼び出す
        * @then スネークケースの JSON 文字列を返す
        */
@@ -30,11 +31,12 @@ class SkillsheetLinkJudgeRequestSchemaTest {
         person.setSummary("要約");
         SkillsheetLinkJudgeRequestSchema schema = new SkillsheetLinkJudgeRequestSchema();
         schema.setFileName("skillsheet.xlsx");
+        schema.setFileSummary("Java経験10年");
         schema.setPersons(List.of(person));
 
         assertThat(schema.toString())
             .isEqualTo(
-                "{\"file_name\":\"skillsheet.xlsx\",\"persons\":[{\"person_id\":\"P001\",\"summary\":\"要約\"}]}");
+                "{\"file_name\":\"skillsheet.xlsx\",\"file_summary\":\"Java経験10年\",\"persons\":[{\"person_id\":\"P001\",\"summary\":\"要約\"}]}");
       }
     }
 
@@ -53,7 +55,8 @@ class SkillsheetLinkJudgeRequestSchemaTest {
         SkillsheetLinkJudgeRequestSchema schema = new SkillsheetLinkJudgeRequestSchema();
         schema.setFileName("a.xlsx");
 
-        assertThat(schema.toString()).isEqualTo("{\"file_name\":\"a.xlsx\",\"persons\":null}");
+        assertThat(schema.toString())
+            .isEqualTo("{\"file_name\":\"a.xlsx\",\"file_summary\":null,\"persons\":null}");
       }
     }
   }

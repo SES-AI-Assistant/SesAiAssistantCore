@@ -15,8 +15,7 @@ public enum RequestType {
   EmailFile,
   ScreenMessage,
   ScreenFile,
-  OtherMessage,
-  OtherFile;
+  OtherMessage;
 
   /**
    * 引数のcodeに対応するEnumを返却します.
@@ -51,9 +50,6 @@ public enum RequestType {
       case "01":
       case "OtherMessage":
         return OtherMessage;
-      case "02":
-      case "OtherFile":
-        return OtherFile;
       default:
         return OtherMessage;
     }
@@ -62,11 +58,11 @@ public enum RequestType {
   /**
    * ファイルを取り込むリクエスト種別かを判定します.
    *
-   * @return LINE・メール・画面・その他のファイルなら true、それ以外は false
+   * @return LINE・メール・画面のファイルなら true、それ以外は false
    */
   public boolean isFile() {
     return switch (this) {
-      case LineFile, EmailFile, ScreenFile, OtherFile -> true;
+      case LineFile, EmailFile, ScreenFile -> true;
       default -> false;
     };
   }
@@ -104,7 +100,7 @@ public enum RequestType {
   public List<String> requiredFieldNames() {
     return switch (this) {
       case LineMessage, OtherMessage -> List.of("fromGroup", "fromId", "fromName", "rawContent");
-      case LineFile, OtherFile -> List.of("fromGroup", "fromId", "fromName", "fileName");
+      case LineFile -> List.of("fromGroup", "fromId", "fromName", "fileName");
       case EmailMessage, ScreenMessage -> List.of("fromGroup", "fromId", "rawContent");
       case EmailFile, ScreenFile -> List.of("fromGroup", "fromId", "fileName");
     };

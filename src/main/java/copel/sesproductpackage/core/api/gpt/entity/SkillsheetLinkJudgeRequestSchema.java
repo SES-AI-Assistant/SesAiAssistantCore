@@ -21,6 +21,9 @@ public class SkillsheetLinkJudgeRequestSchema {
   /** 判定対象のファイル名. */
   private String fileName = null;
 
+  /** 判定対象のスキルシートの簡単な中身（要約）. */
+  private String fileSummary = null;
+
   /** 要員情報. */
   private List<PersonInfo> persons = null;
 
