@@ -8,6 +8,7 @@ import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.core.util.OriginalStringUtils;
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
 import lombok.Data;
@@ -42,6 +43,13 @@ public class SES_AI_T_MATCH extends EntityBase {
           + "evaluation_text, score, must_evaluation_text, want_evaluation_text, "
           + "other_evaluation_text, profit, register_date, register_user FROM SES_AI_T_MATCH "
           + "WHERE matching_id = ?";
+
+  /** SELECT文（テナントIDの条件なし。見つかった行のテナントIDも取得する）. */
+  private static final String SELECT_WITHOUT_TENANT_ID_SQL =
+      "SELECT matching_id, user_id, job_id, person_id, job_content, person_content, status_cd, "
+          + "evaluation_text, score, must_evaluation_text, want_evaluation_text, "
+          + "other_evaluation_text, profit, register_date, register_user, tenant_id "
+          + "FROM SES_AI_T_MATCH WHERE matching_id = ?";
 
   /** UPDATE文（tenantId フィルタなし、テンプレートメソッドが自動追加する）. */
   private static final String UPDATE_SQL =
@@ -182,24 +190,58 @@ public class SES_AI_T_MATCH extends EntityBase {
         SELECT_SQL,
         this.tenantId,
         (stmt) -> stmt.setString(1, this.matchingId),
-        (rs) -> {
-          this.userId = rs.getString("user_id");
-          this.jobId = rs.getString("job_id");
-          this.personId = rs.getString("person_id");
-          this.jobContent = rs.getString("job_content");
-          this.personContent = rs.getString("person_content");
-          this.status = MatchingStatus.getEnum(rs.getString("status_cd"));
-          this.evaluationText = rs.getString("evaluation_text");
-          this.score = rs.getObject("score") != null ? rs.getInt("score") : null;
-          this.mustEvaluationText = rs.getString("must_evaluation_text");
-          this.wantEvaluationText = rs.getString("want_evaluation_text");
-          this.otherEvaluationText = rs.getString("other_evaluation_text");
-          BigDecimal profitValue = rs.getBigDecimal("profit");
-          this.profit = profitValue == null ? Money.empty() : new Money(profitValue);
-          this.registerDate = new OriginalDateTime(rs.getString("register_date"));
-          this.registerUser = rs.getString("register_user");
-        },
+        this::fillFromResultSet,
         "SES_AI_T_MATCH.selectByPk");
+  }
+
+  /**
+   * マッチングをマッチングIDだけで取得します（テナントIDの条件なし）.
+   *
+   * <p>マッチングIDは一意なので、共有ビューのようにテナントが分からない呼び出しで、テナントを特定するために使う。 見つかった場合は、この行のテナントIDで{@code
+   * tenantId}を更新する。
+   *
+   * @author Copel Co., Ltd.
+   * @param connection DBコネクション
+   * @return 該当行がある場合 true、無い場合またはマッチングIDが null の場合 false
+   * @throws SQLException SQL実行エラー
+   */
+  public boolean selectByPkWithoutTenantId(Connection connection) throws SQLException {
+    if (this.matchingId == null) {
+      return false;
+    }
+    return executeSelectByPkWithoutTenantFilter(
+        connection,
+        SELECT_WITHOUT_TENANT_ID_SQL,
+        (stmt) -> stmt.setString(1, this.matchingId),
+        (rs) -> {
+          fillFromResultSet(rs);
+          this.tenantId = rs.getString("tenant_id");
+        },
+        "SES_AI_T_MATCH.selectByPkWithoutTenantId");
+  }
+
+  /**
+   * 1行分の結果セットの値を、このマッチングの項目へ設定します.
+   *
+   * @param rs 1行分の結果セット
+   * @throws SQLException 値の読み取りに失敗した場合
+   */
+  private void fillFromResultSet(final ResultSet rs) throws SQLException {
+    this.userId = rs.getString("user_id");
+    this.jobId = rs.getString("job_id");
+    this.personId = rs.getString("person_id");
+    this.jobContent = rs.getString("job_content");
+    this.personContent = rs.getString("person_content");
+    this.status = MatchingStatus.getEnum(rs.getString("status_cd"));
+    this.evaluationText = rs.getString("evaluation_text");
+    this.score = rs.getObject("score") != null ? rs.getInt("score") : null;
+    this.mustEvaluationText = rs.getString("must_evaluation_text");
+    this.wantEvaluationText = rs.getString("want_evaluation_text");
+    this.otherEvaluationText = rs.getString("other_evaluation_text");
+    BigDecimal profitValue = rs.getBigDecimal("profit");
+    this.profit = profitValue == null ? Money.empty() : new Money(profitValue);
+    this.registerDate = new OriginalDateTime(rs.getString("register_date"));
+    this.registerUser = rs.getString("register_user");
   }
 
   @Override
