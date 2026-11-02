@@ -3,6 +3,7 @@ package copel.sesproductpackage.core.database;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -55,6 +56,26 @@ class SES_AI_T_MATCHTest {
     "profit",
     "register_date",
     "register_user"
+  };
+
+  /** テナントIDを含む取得結果の列。 */
+  private static final String[] COLUMNS_WITH_TENANT_ID = {
+    "matching_id",
+    "user_id",
+    "job_id",
+    "person_id",
+    "job_content",
+    "person_content",
+    "status_cd",
+    "evaluation_text",
+    "score",
+    "must_evaluation_text",
+    "want_evaluation_text",
+    "other_evaluation_text",
+    "profit",
+    "register_date",
+    "register_user",
+    "tenant_id"
   };
 
   /**
@@ -617,6 +638,97 @@ class SES_AI_T_MATCHTest {
       @Test
       void マッチングIDがnullの場合_DBを呼ばずfalseを返す(final Connection connection) throws SQLException {
         assertThat(new SES_AI_T_MATCH(TENANT_ID).selectByPk(connection)).isFalse();
+
+        verify(connection, never()).prepareStatement(anyString());
+      }
+    }
+  }
+
+  @Nested
+  class selectByPkWithoutTenantId {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * マッチングIDが一致する行を、テナントの条件を付けずに読み込むことを確かめる。 共有ビューでは利用者のテナントが分からず、マッチングIDからテナントを特定する。
+       *
+       * @given テナントID "_temp_"、マッチングIDが "0123456789"、SELECT の結果が 1 行テナントID "T002"
+       * @when selectByPkWithoutTenantId を接続で実行する
+       * @then trueを返し、テナントIDを "T002" に更新し、テナントIDを条件に設定しない
+       */
+      @MockDbConnection
+      @Test
+      void 該当行がある場合_テナントIDを更新してtrueを返す(final Connection connection) throws SQLException {
+        PreparedStatement statement =
+            JdbcMocks.stubQuery(
+                connection,
+                MockResultSetBuilder.builder()
+                    .columns(COLUMNS_WITH_TENANT_ID)
+                    .row(
+                        MATCHING_ID,
+                        "U001",
+                        "J001",
+                        "P001",
+                        "案件内容",
+                        "要員内容",
+                        "20",
+                        "評価",
+                        80,
+                        "必須",
+                        "尚可",
+                        "その他",
+                        new BigDecimal(1_000_000),
+                        REGISTER_DATE_TEXT,
+                        "U000",
+                        "T002")
+                    .build());
+        SES_AI_T_MATCH match = new SES_AI_T_MATCH("_temp_");
+        match.setMatchingId(MATCHING_ID);
+
+        assertThat(match.selectByPkWithoutTenantId(connection)).isTrue();
+
+        assertThat(match.getTenantId()).isEqualTo("T002");
+        assertThat(match.getJobId()).isEqualTo("J001");
+        assertThat(match.getStatus()).isEqualTo(MatchingStatus.進行中);
+        verify(statement, never()).setString(eq(2), anyString());
+      }
+
+      /**
+       * 該当行が無い場合に false を返し、テナントIDを変えないことを確かめる。 存在しないマッチングIDで、別のテナントとして扱わない。
+       *
+       * @given テナントID "_temp_"、マッチングIDが "0123456789"、SELECT の結果が 0 行
+       * @when selectByPkWithoutTenantId を接続で実行する
+       * @then falseを返し、テナントIDを "_temp_" のままにする
+       */
+      @MockDbConnection
+      @Test
+      void 該当行が無い場合_falseを返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(
+            connection, MockResultSetBuilder.builder().columns(COLUMNS_WITH_TENANT_ID).build());
+        SES_AI_T_MATCH match = new SES_AI_T_MATCH("_temp_");
+        match.setMatchingId(MATCHING_ID);
+
+        assertThat(match.selectByPkWithoutTenantId(connection)).isFalse();
+
+        assertThat(match.getTenantId()).isEqualTo("_temp_");
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * マッチングIDが null の場合に DB を呼ばず false を返すことを確かめる。 キーの無い検索は全マッチングを対象にしてしまう。
+       *
+       * @given マッチングIDが null
+       * @when selectByPkWithoutTenantId を接続で実行する
+       * @then falseを返し、SQL の準備を呼ばない
+       */
+      @MockDbConnection
+      @Test
+      void マッチングIDがnullの場合_DBを呼ばずfalseを返す(final Connection connection) throws SQLException {
+        assertThat(new SES_AI_T_MATCH(TENANT_ID).selectByPkWithoutTenantId(connection)).isFalse();
 
         verify(connection, never()).prepareStatement(anyString());
       }
