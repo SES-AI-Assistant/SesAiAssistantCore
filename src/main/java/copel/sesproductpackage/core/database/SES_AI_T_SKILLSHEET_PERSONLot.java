@@ -483,8 +483,7 @@ public class SES_AI_T_SKILLSHEET_PERSONLot extends EntityLotBase<SES_AI_T_SKILLS
   /**
    * 要員の raw_content とスキルシートの file_content_summary の両方に対して複合条件でページング検索します（INNER JOIN）.
    *
-   * <p>スキルシートが紐づいている要員のみが対象（has_skillsheet_only: true）。 file_content_summary が NULL の行も NOT
-   * 条件で誤除外されないよう IS NULL チェックを行う。
+   * <p>スキルシートが紐づいている要員のみが対象。 file_content_summary が NULL の行も NOT 条件で誤除外されないよう IS NULL チェックを行う。
    *
    * @param connection DBコネクション
    * @param tenantId テナントID
