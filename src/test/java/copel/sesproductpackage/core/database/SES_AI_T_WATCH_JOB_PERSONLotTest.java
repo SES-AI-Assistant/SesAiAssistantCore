@@ -249,6 +249,28 @@ class SES_AI_T_WATCH_JOB_PERSONLotTest {
         assertThat(lot.isEmpty()).isTrue();
         verify(countStatement).setString(2, TENANT_ID);
       }
+
+      /**
+       * 案件と要員の結合条件に、ウォッチと同じテナントIDの一致が付くことを確かめる。 ウォッチの対象IDに他テナントの案件や要員のIDが入っていても、その内容を一覧に出さないためである。
+       *
+       * @given 件数が 0 件
+       * @when selectByUserIdPaged を接続、テナントID "T001"、ユーザーID "U001" で実行する
+       * @then 件数の検索の SQL に、案件と要員それぞれの tenant_id がウォッチの tenant_id と一致する条件を含む
+       */
+      @MockDbConnection
+      @Test
+      void 結合する場合_案件と要員のテナントIDをウォッチと一致させたSQLを送信する(final Connection connection) throws SQLException {
+        PreparedStatement countStatement = mock(PreparedStatement.class);
+        when(countStatement.executeQuery())
+            .thenReturn(MockResultSetBuilder.builder().columns("cnt").row(0L).build());
+        when(connection.prepareStatement(contains("COUNT(*)"))).thenReturn(countStatement);
+
+        new SES_AI_T_WATCH_JOB_PERSONLot()
+            .selectByUserIdPaged(connection, TENANT_ID, "U001", 1, 10);
+
+        verify(connection).prepareStatement(contains("j.tenant_id = w.tenant_id"));
+        verify(connection).prepareStatement(contains("p.tenant_id = w.tenant_id"));
+      }
     }
   }
 
