@@ -2,11 +2,14 @@ package copel.sesproductpackage.core.database;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -23,6 +26,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -439,6 +443,287 @@ class SES_AI_T_JOBTest {
         job.setUnitPrice(null);
 
         assertThat(job.toNotificationInfo()).isEqualTo("案件名不明");
+      }
+    }
+  }
+
+  @Nested
+  class findSameJob {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 同一案件が見つかった場合に、案件IDと単価を持つ案件を返すことを確かめる。 同じ案件を重複して登録せず、単価の比較に使うためである。
+       *
+       * @given 検索の結果が 1 行案件ID "0123456789"、単価 800000
+       * @when findSameJob を案件名 "基幹システム刷新"、場所 "渋谷" で実行する
+       * @then 案件ID "0123456789" と単価 800000 の案件を返す
+       */
+      @MockDbConnection
+      @Test
+      void 同一案件がある場合_案件IDと単価を持つ案件を返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(
+            connection,
+            MockResultSetBuilder.builder()
+                .columns("job_id", "unit_price")
+                .row(JOB_ID, new BigDecimal(800_000))
+                .build());
+
+        SES_AI_T_JOB result =
+            SES_AI_T_JOB.findSameJob(connection, TENANT_ID, "基幹システム刷新", "渋谷", List.of());
+
+        assertThat(result.getJobId()).isEqualTo(JOB_ID);
+        assertThat(result.getUnitPrice().getValue()).isEqualByComparingTo(new BigDecimal(800_000));
+      }
+
+      /**
+       * 案件名と場所の全角・半角を統一し、前後の空白を除いて検索の条件に渡すことを確かめる。 表記が違うだけの同じ案件を、同一案件として見つけるためである。
+       *
+       * @given 全角英数と全角空白を含む案件名 "　ＡＢＣ　開発 "、場所 " 渋谷 "
+       * @when findSameJob を実行する
+       * @then 案件名 "ABC 開発" と場所 "渋谷" を条件に設定し、同一案件が無ければ null を返す
+       */
+      @MockDbConnection
+      @Test
+      void 全角と空白を含む場合_統一した条件で検索しnullを返す(final Connection connection) throws SQLException {
+        PreparedStatement statement =
+            JdbcMocks.stubQuery(
+                connection, MockResultSetBuilder.builder().columns("job_id", "unit_price").build());
+
+        SES_AI_T_JOB result =
+            SES_AI_T_JOB.findSameJob(connection, TENANT_ID, "　ＡＢＣ　開発 ", " 渋谷 ", List.of());
+
+        assertThat(result).isNull();
+        verify(statement).setString(2, "ABC 開発");
+        verify(statement).setString(3, "渋谷");
+      }
+
+      /**
+       * 場所の全角英数を半角に統一して、検索の条件に渡すことを確かめる。 場所も案件名と同じく、表記が違うだけの同じ案件を見つけるためである。
+       *
+       * @given 全角英数の場所 "ＴＯＫＹＯ"
+       * @when findSameJob を実行する
+       * @then 場所 "TOKYO" を条件に設定し、同一案件が無ければ null を返す
+       */
+      @MockDbConnection
+      @Test
+      void 場所が全角英数の場合_半角に統一した場所で検索しnullを返す(final Connection connection) throws SQLException {
+        PreparedStatement statement =
+            JdbcMocks.stubQuery(
+                connection, MockResultSetBuilder.builder().columns("job_id", "unit_price").build());
+
+        SES_AI_T_JOB result =
+            SES_AI_T_JOB.findSameJob(connection, TENANT_ID, "基幹システム刷新", "ＴＯＫＹＯ", List.of());
+
+        assertThat(result).isNull();
+        verify(statement).setString(3, "TOKYO");
+      }
+
+      /**
+       * 場所が上限の30文字を超える場合に、30文字に切ってから検索の条件に渡すことを確かめる。 保存時に30文字へ切って保存するため、切らずに比べると同じ案件が一致しなくなるからである。
+       *
+       * @given "あ" を31個並べた31文字の場所
+       * @when findSameJob を実行する
+       * @then 場所の条件に "あ" を30個並べた値を設定し、同一案件が無ければ null を返す
+       */
+      @MockDbConnection
+      @Test
+      void 場所が31文字の場合_30文字に切った場所で検索しnullを返す(final Connection connection) throws SQLException {
+        PreparedStatement statement =
+            JdbcMocks.stubQuery(
+                connection, MockResultSetBuilder.builder().columns("job_id", "unit_price").build());
+
+        SES_AI_T_JOB result =
+            SES_AI_T_JOB.findSameJob(connection, TENANT_ID, "基幹システム刷新", "あ".repeat(31), List.of());
+
+        assertThat(result).isNull();
+        verify(statement).setString(3, "あ".repeat(30));
+      }
+
+      /**
+       * 単価が未設定の同一案件を、単価を空の値として返すことを確かめる。 単価の無い案件でも候補として扱えるようにするためである。
+       *
+       * @given 検索の結果が 1 行案件ID "0123456789"、単価が null
+       * @when findSameJob を実行する
+       * @then 単価が空の案件を返す
+       */
+      @MockDbConnection
+      @Test
+      void 単価が未設定の同一案件の場合_単価が空の案件を返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(
+            connection,
+            MockResultSetBuilder.builder()
+                .columns("job_id", "unit_price")
+                .row(JOB_ID, null)
+                .build());
+
+        SES_AI_T_JOB result =
+            SES_AI_T_JOB.findSameJob(connection, TENANT_ID, "基幹システム刷新", "渋谷", List.of());
+
+        assertThat(result.getUnitPrice().isEmpty()).isTrue();
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * 検索の準備に失敗した場合に、SQLException を呼び出し元へ伝えることを確かめる。 失敗を握りつぶして同一案件なしとすると、同じ案件が重複して登録されるためである。
+       *
+       * @given 検索SQLの準備が SQLException を投げる
+       * @when findSameJob を実行する
+       * @then SQLExceptionを投げる
+       */
+      @MockDbConnection
+      @Test
+      void 検索の準備に失敗する場合_SQLExceptionを投げる(final Connection connection) throws SQLException {
+        when(connection.prepareStatement(anyString())).thenThrow(new SQLException("DBエラー"));
+
+        assertThatThrownBy(
+                () -> SES_AI_T_JOB.findSameJob(connection, TENANT_ID, "基幹システム刷新", "渋谷", List.of()))
+            .isInstanceOf(SQLException.class);
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 場所が未設定または不明の場合に、場所の条件を null にして記載なしどうしを比べることを確かめる。 記載の無い案件を、場所のある案件と同一視しないためである。
+       *
+       * @given 場所が null、空文字、"Unknown"
+       * @when findSameJob を実行する
+       * @then いずれも場所の条件を null に設定し、同一案件が無ければ null を返す
+       */
+      @MockDbConnection
+      @Test
+      void 場所が未設定の場合_場所の条件をnullにしてnullを返す(final Connection connection) throws SQLException {
+        PreparedStatement statement =
+            JdbcMocks.stubQuery(
+                connection, MockResultSetBuilder.builder().columns("job_id", "unit_price").build());
+
+        assertThat(SES_AI_T_JOB.findSameJob(connection, TENANT_ID, "基幹システム刷新", null, List.of()))
+            .isNull();
+        assertThat(SES_AI_T_JOB.findSameJob(connection, TENANT_ID, "基幹システム刷新", "", List.of()))
+            .isNull();
+        assertThat(
+                SES_AI_T_JOB.findSameJob(connection, TENANT_ID, "基幹システム刷新", "Unknown", List.of()))
+            .isNull();
+
+        verify(statement, times(3)).setString(3, null);
+      }
+
+      /**
+       * 除外する案件IDを渡した場合に、その案件IDの配列を検索の条件に渡すことを確かめる。 同じメッセージで登録した案件を、同一案件として扱わないためである。
+       *
+       * @given 除外する案件IDが "J1" と "J2"
+       * @when findSameJob を実行する
+       * @then 案件ID "J1" と "J2" の配列を作って4番目の条件に渡し、nullを返す
+       */
+      @MockDbConnection
+      @Test
+      void 除外する案件IDがある場合_除外した検索でnullを返す(final Connection connection) throws SQLException {
+        PreparedStatement statement =
+            JdbcMocks.stubQuery(
+                connection, MockResultSetBuilder.builder().columns("job_id", "unit_price").build());
+
+        assertThat(
+                SES_AI_T_JOB.findSameJob(
+                    connection, TENANT_ID, "基幹システム刷新", "渋谷", List.of("J1", "J2")))
+            .isNull();
+
+        verify(connection).createArrayOf("varchar", new String[] {"J1", "J2"});
+        verify(statement).setArray(eq(4), any());
+      }
+
+      /**
+       * 同一案件が無い場合に null を返すことを確かめる。 無いのに候補を返すと、別の案件を更新してしまうためである。
+       *
+       * @given 検索の結果が 0 行
+       * @when findSameJob を実行する
+       * @then nullを返す
+       */
+      @MockDbConnection
+      @Test
+      void 同一案件が無い場合_nullを返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(
+            connection, MockResultSetBuilder.builder().columns("job_id", "unit_price").build());
+
+        assertThat(SES_AI_T_JOB.findSameJob(connection, TENANT_ID, "基幹システム刷新", "渋谷", List.of()))
+            .isNull();
+      }
+
+      /**
+       * 案件名が未設定、空白、"Unknown" の場合に、DB を呼ばずに null を返すことを確かめる。 不明の案件名どうしを同一視すると、無関係な案件を捨ててしまうためである。
+       *
+       * @given 案件名が null、空白、全角の "Ｕｎｋｎｏｗｎ"
+       * @when findSameJob を実行する
+       * @then いずれも null を返し、SQL の準備を呼ばない
+       */
+      @MockDbConnection
+      @Test
+      void 案件名が未設定の場合_nullを返しDBを呼ばない(final Connection connection) throws SQLException {
+        assertThat(SES_AI_T_JOB.findSameJob(connection, TENANT_ID, null, "渋谷", List.of())).isNull();
+        assertThat(SES_AI_T_JOB.findSameJob(connection, TENANT_ID, " ", "渋谷", List.of())).isNull();
+        assertThat(SES_AI_T_JOB.findSameJob(connection, TENANT_ID, "Ｕｎｋｎｏｗｎ", "渋谷", List.of()))
+            .isNull();
+
+        verify(connection, never()).prepareStatement(anyString());
+      }
+
+      /**
+       * テナントIDが null の場合に、DB を呼ばずに null を返すことを確かめる。 テナントの無い検索は、他テナントの案件を返してしまうためである。
+       *
+       * @given テナントIDが null
+       * @when findSameJob を実行する
+       * @then nullを返し、SQL の準備を呼ばない
+       */
+      @MockDbConnection
+      @Test
+      void テナントIDがnullの場合_nullを返しDBを呼ばない(final Connection connection) throws SQLException {
+        assertThat(SES_AI_T_JOB.findSameJob(connection, null, "基幹システム刷新", "渋谷", List.of()))
+            .isNull();
+
+        verify(connection, never()).prepareStatement(anyString());
+      }
+
+      /**
+       * 接続が null の場合に、null を返すことを確かめる。 接続の無い検索は実行できないためである。
+       *
+       * @given 接続が null
+       * @when findSameJob を実行する
+       * @then nullを返す
+       */
+      @Test
+      void 接続がnullの場合_nullを返す() throws SQLException {
+        assertThat(SES_AI_T_JOB.findSameJob(null, TENANT_ID, "基幹システム刷新", "渋谷", List.of())).isNull();
+      }
+    }
+
+    @Nested
+    class テナント隔離 {
+
+      /**
+       * 検索のSQLにテナントIDの条件を含め、渡したテナントIDを設定することを確かめる。 他のテナントの案件を同一案件として返さないためである。
+       *
+       * @given テナントID "T001"、検索の結果が 0 行
+       * @when findSameJob を実行する
+       * @then SQLに "tenant_id = ?" を含め、1番目の条件にテナントID "T001" を設定する
+       */
+      @MockDbConnection
+      @Test
+      void テナントIDがT001の場合_テナントIDの条件で検索しnullを返す(final Connection connection) throws SQLException {
+        PreparedStatement statement =
+            JdbcMocks.stubQuery(
+                connection, MockResultSetBuilder.builder().columns("job_id", "unit_price").build());
+
+        SES_AI_T_JOB result =
+            SES_AI_T_JOB.findSameJob(connection, TENANT_ID, "基幹システム刷新", "渋谷", List.of());
+
+        assertThat(result).isNull();
+        verify(connection).prepareStatement(contains("tenant_id = ?"));
+        verify(statement).setString(1, TENANT_ID);
       }
     }
   }

@@ -1,6 +1,7 @@
 package copel.sesproductpackage.core.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import java.text.Normalizer;
 
 /**
  * 文字列操作ユーティリティクラス.
@@ -48,6 +49,24 @@ public class OriginalStringUtils {
    */
   public static boolean isUnspecified(final String str) {
     return isEmpty(str) || "unknown".equalsIgnoreCase(str.strip());
+  }
+
+  /**
+   * 同じ内容かを比べるために、文字列の全角・半角を統一し、前後の空白を除く.
+   *
+   * <p>全角英数・半角カナなどを Unicode 正規化（NFKC）で統一し、全角空白も通常の空白にしてから前後を除く。
+   * 正規化の後で未設定（空・NULL・「Unknown」）かを判定するため、 全角の「Ｕｎｋｎｏｗｎ」も未設定として扱う。 DB 側で同じ比較をするときは、列にも同じ正規化（{@code
+   * normalize(列, NFKC)}）をかける。
+   *
+   * @param str 文字列
+   * @return 全角・半角を統一して前後の空白を除いた文字列。未設定の場合は null
+   */
+  public static String toComparable(final String str) {
+    if (str == null) {
+      return null;
+    }
+    String normalized = Normalizer.normalize(str, Normalizer.Form.NFKC).strip();
+    return isUnspecified(normalized) ? null : normalized;
   }
 
   /**
