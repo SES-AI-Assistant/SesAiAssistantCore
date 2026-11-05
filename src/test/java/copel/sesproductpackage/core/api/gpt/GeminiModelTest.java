@@ -28,6 +28,19 @@ class GeminiModelTest {
       }
 
       /**
+       * マッチングの評価に使うモデルがモデル名を返すことを確かめる。 Matcher は評価用の Gemini をこの列挙値で指定するので、名前の対応を守る。
+       *
+       * @given GeminiModel の GEMINI_3_1_FLASH_LITE が存在する
+       * @when getModelName を呼び出す
+       * @then モデル名 gemini-3.1-flash-lite を返す
+       */
+      @Test
+      void GEMINI_3_1_FLASH_LITEの場合_モデル名を返す() {
+        assertThat(GeminiModel.GEMINI_3_1_FLASH_LITE.getModelName())
+            .isEqualTo("gemini-3.1-flash-lite");
+      }
+
+      /**
        * エンベディング用のモデルがモデル名の接頭辞を含めて返すことを確かめる。 SDK は埋め込みモデルの名前に models/ の接頭辞を要求するので、接頭辞を含む名前を守る。
        *
        * @given GeminiModel の GEMINI_EMBEDDING_001 が存在する
