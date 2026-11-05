@@ -179,6 +179,56 @@ class OriginalStringUtilsTest {
   }
 
   @Nested
+  class toComparable {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 全角英数と全角空白を半角に統一し、前後の空白を除いて返すことを確かめる。 表記が違うだけの同じ案件名を、同じものとして比べられるようにするためである。
+       *
+       * @given 前後に全角空白がある全角英数と半角カナの "　ＡＢＣ１２３ ｶﾅ　"
+       * @when toComparable を実行する
+       * @then 半角英数と全角カナに統一し、前後の空白を除いた "ABC123 カナ" を返す
+       */
+      @Test
+      void 全角と半角が混ざる場合_統一して前後の空白を除いた文字列を返す() {
+        assertThat(OriginalStringUtils.toComparable("　ＡＢＣ１２３ ｶﾅ　")).isEqualTo("ABC123 カナ");
+      }
+
+      /**
+       * 値のある文字列は、そのまま返すことを確かめる。 すでに統一された値を変えると、比べる相手と食い違うためである。
+       *
+       * @given 文字列が "基幹システム刷新"
+       * @when toComparable を実行する
+       * @then "基幹システム刷新" を返す
+       */
+      @Test
+      void 統一済みの文字列の場合_元の文字列を返す() {
+        assertThat(OriginalStringUtils.toComparable("基幹システム刷新")).isEqualTo("基幹システム刷新");
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 未設定、空白だけ、全角を含む "Unknown" は、null を返すことを確かめる。 不明の値どうしを同じものとして比べると、無関係な案件を同一視するためである。
+       *
+       * @given 文字列が null、空文字、全角空白だけ、全角の "Ｕｎｋｎｏｗｎ"
+       * @when toComparable を実行する
+       * @then null を返す
+       */
+      @NullSource
+      @ValueSource(strings = {"", "　", "Ｕｎｋｎｏｗｎ"})
+      @ParameterizedTest
+      void 未設定や不明の文字列の場合_nullを返す(final String str) {
+        assertThat(OriginalStringUtils.toComparable(str)).isNull();
+      }
+    }
+  }
+
+  @Nested
   class truncateByCodePoints {
 
     @Nested

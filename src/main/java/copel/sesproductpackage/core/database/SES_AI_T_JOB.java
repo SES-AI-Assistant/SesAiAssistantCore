@@ -12,6 +12,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import lombok.Data;
@@ -71,6 +72,19 @@ public class SES_AI_T_JOB extends SesAiTableEntityBase {
           + "regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g') % ? AND "
           + "similarity(regexp_replace(raw_content, 'https?://[^\\s]+', '', 'g'), ?) > ? LIMIT "
           + "1";
+
+  /**
+   * 同一案件の検索SQL.
+   *
+   * <p>案件名と場所が一致する案件を同一とする。比べる前に、列にも検索条件にも全角・半角の統一と前後の空白の除去をかける。
+   * 場所が記載されていないことも案件の特徴として扱い、記載なしどうしだけを一致とみなす。 記載なしを何にでも一致させると、同じ案件名の別の案件を同一視するためである。
+   */
+  private static final String FIND_SAME_JOB_SQL =
+      "SELECT job_id, unit_price FROM SES_AI_T_JOB WHERE tenant_id = ? AND "
+          + "regexp_replace(normalize(title, NFKC), '^\\s+|\\s+$', '', 'g') = ? AND "
+          + "NULLIF(regexp_replace(normalize(place, NFKC), '^\\s+|\\s+$', '', 'g'), '') "
+          + "IS NOT DISTINCT FROM CAST(? AS VARCHAR) AND "
+          + "job_id <> ALL(?) ORDER BY register_date, job_id LIMIT 1";
 
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_T_JOB WHERE job_id = ?";
@@ -266,6 +280,59 @@ public class SES_AI_T_JOB extends SesAiTableEntityBase {
       preparedStatement.setString(2, maskedText);
       preparedStatement.setString(3, maskedText);
       preparedStatement.setDouble(4, similarityThreshold);
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        if (resultSet.next()) {
+          result = new SES_AI_T_JOB(tenantId);
+          result.setJobId(resultSet.getString("job_id"));
+          BigDecimal unitPriceValue = resultSet.getBigDecimal("unit_price");
+          result.setUnitPrice(unitPriceValue == null ? Money.empty() : new Money(unitPriceValue));
+        }
+      }
+    }
+    return result;
+  }
+
+  /**
+   * 案件名と場所が一致する同一案件を検索し、存在する場合はそのレコードのIDと単価を返す.
+   *
+   * <p>1通のメールに複数の案件が書かれていると、本文（原文）はどの案件でも同じ値になり、類似度では区別できない。 そのため案件自身の属性で同一かを判定する。
+   * 単価は判定に含めない。同じ案件の単価違いを同一として、呼び出し側が単価の高い方を残せるようにするためである。
+   *
+   * <p>比べる前に、案件名と場所の全角・半角を統一し、前後の空白を除く。 案件名が未設定（null・空・「Unknown」）の場合は、無関係な案件を同一視しないよう、検索せずに null
+   * を返す。場所が未設定の場合は、記載なしとして扱い、 記載なしどうしだけを一致とみなす。複数見つかった場合は、最も早く登録された案件を返す。
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param title 案件名
+   * @param place 場所（未設定の場合は記載なしとして扱う）
+   * @param excludeJobIds 検索から除く案件ID。同じメッセージで登録済みの案件を除くために使う。 null や null の要素を含めない
+   * @return 同一案件が見つかった場合はそのSES_AI_T_JOB、見つからなかった場合はnull
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   */
+  public static SES_AI_T_JOB findSameJob(
+      final Connection connection,
+      final String tenantId,
+      final String title,
+      final String place,
+      final Collection<String> excludeJobIds)
+      throws SQLException {
+    String titleCondition = OriginalStringUtils.toComparable(title);
+    if (connection == null || tenantId == null || titleCondition == null) {
+      return null;
+    }
+    // 保存時（setPlace）と同じ順序で、先に上限の文字数で切ってから統一する。
+    // 切らずに比べると、上限を超える場所は保存された値と一致せず、同じ案件が重複して登録される
+    String placeCondition =
+        OriginalStringUtils.toComparable(
+            OriginalStringUtils.truncateByCodePoints(place, PLACE_MAX_LENGTH));
+
+    SES_AI_T_JOB result = null;
+    try (PreparedStatement preparedStatement = connection.prepareStatement(FIND_SAME_JOB_SQL)) {
+      preparedStatement.setString(1, tenantId);
+      preparedStatement.setString(2, titleCondition);
+      preparedStatement.setString(3, placeCondition);
+      preparedStatement.setArray(
+          4, connection.createArrayOf("varchar", excludeJobIds.toArray(new String[0])));
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
           result = new SES_AI_T_JOB(tenantId);
