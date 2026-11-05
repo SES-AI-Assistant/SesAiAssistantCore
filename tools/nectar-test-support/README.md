@@ -137,6 +137,32 @@ class ExampleRepositoryTest {
 | `JdbcMocks.stubQuery(connection, resultSet)` | `prepareStatement(String)` → `executeQuery()` が `resultSet` を返す | 準備文のモック |
 | `JdbcMocks.stubStatement(connection, resultSet)` | `createStatement()` → `executeQuery(String)` が `resultSet` を返す | 文のモック |
 
+### 2.5 登録済みのシステムユーザー: `RegisteredUsers`
+
+Core の `SES_AI_WEBAPP_M_USER` を、1行を返すモック接続から本物の `selectByPk` で読み込んだ状態で作ります。
+`isRegistered()` は `true` になり、ユーザーIDとテナントIDは引数の値になります。
+ロールは未設定（null）、プランは Core の変換で FREE になります。ロールは各テストで必要な値を設定してください。
+`isRegistered` を差し替える必要はありません。
+
+```java
+import copel.sesproductpackage.core.database.SES_AI_WEBAPP_M_USER;
+import copel.sesproductpackage.tools.testsupport.db.RegisteredUsers;
+
+class ExampleServiceTest {
+
+  @Test
+  void 登録済みの利用者で処理する() {
+    SES_AI_WEBAPP_M_USER user = RegisteredUsers.create("U001", "T001");   // ユーザーIDとテナントIDを指定
+    SES_AI_WEBAPP_M_USER other = RegisteredUsers.create("T001");          // ユーザーIDは既定の U001
+  }
+}
+```
+
+- SQL の検索には、ユーザーIDとテナントIDが1番目と2番目のバインド値として渡される。
+- ユーザーIDが null または空文字の場合は、`IllegalArgumentException` を投げる。未登録のユーザーになって気付きにくくなるのを防ぐため。
+- テナントIDが null または空文字の場合も、`IllegalArgumentException` を投げる（Core のエンティティの検査による）。
+- 準備文の作成や実行で SQLException が起きた場合は、`IllegalStateException` を投げる。
+
 ## 3. 読み込み元が memory 以外の場合、または並列実行の場合
 
 `@FixedClock`、`@TestProperty`、`@MockDbConnection` は、読み込み元が memory のときだけ動きます。
