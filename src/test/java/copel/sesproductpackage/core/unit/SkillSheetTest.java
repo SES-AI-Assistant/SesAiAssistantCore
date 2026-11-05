@@ -584,6 +584,35 @@ class SkillSheetTest {
         assertThat(new SkillSheet("F001", "skill.xlsx", "abcdefgh").getFileContent())
             .isEqualTo("abcde");
       }
+
+      /**
+       * 本文に NUL 文字が含まれる場合は、NUL 文字を除いた本文を返すことを確かめる。 NUL 文字は DB
+       * の文字列に保存できず、そのまま渡すと重複チェックや登録が失敗するためである。
+       *
+       * @given 設定値の上限が 0、ファイル内容が NUL 文字を挟んだ "ab\0cd\0"
+       * @when getFileContent を実行する
+       * @then NUL 文字を除いた "abcd" を返す
+       */
+      @TestProperty(key = "SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH", value = "0")
+      @Test
+      void 本文にNUL文字が含まれる場合_NUL文字を除いた本文を返す() {
+        assertThat(new SkillSheet("F001", "skill.xlsx", "ab\u0000cd\u0000").getFileContent())
+            .isEqualTo("abcd");
+      }
+
+      /**
+       * NUL 文字を含む本文が上限を超える場合は、NUL 文字を除いてから上限の文字数で切ることを確かめる。 NUL 文字を数えたまま切ると、保存できる本文が上限より短くなるためである。
+       *
+       * @given 設定値の上限が 4、ファイル内容が "a\0b\0cdef"
+       * @when getFileContent を実行する
+       * @then NUL 文字を除いた先頭 4 文字の "abcd" を返す
+       */
+      @TestProperty(key = "SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH", value = "4")
+      @Test
+      void NUL文字を含む本文が上限を超える場合_NUL文字を除いた先頭部分を返す() {
+        assertThat(new SkillSheet("F001", "skill.xlsx", "a\u0000b\u0000cdef").getFileContent())
+            .isEqualTo("abcd");
+      }
     }
 
     @Nested

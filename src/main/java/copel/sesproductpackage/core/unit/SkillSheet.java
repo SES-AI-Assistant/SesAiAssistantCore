@@ -209,6 +209,8 @@ public class SkillSheet {
   /**
    * 抽出したファイルの本文を返します。
    *
+   * <p>本文に含まれる NUL 文字（0x00）は取り除く。DB に保存できないためである。
+   *
    * <p>上限（SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH）を超える本文は、先頭から上限の文字数ちょうどに切り詰める。上限が 0
    *
    * <p>上限も、クラス初期化時ではなく呼び出し時に Properties から読む。本番の値は変わらず、テストで差し替えられるようにするため。 以下の場合は全文を返す。
@@ -219,12 +221,12 @@ public class SkillSheet {
     if (this.fileContent == null) {
       return null;
     }
+    // PostgreSQL の文字列は NUL 文字（0x00）を保存・検索できず、そのまま渡すと重複チェックや INSERT が失敗するため、上限で切る前に取り除く
+    String content = this.fileContent.replace("\u0000", "");
     int maxLength = Properties.getInt("SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH");
     if (maxLength <= 0) {
-      return this.fileContent;
+      return content;
     }
-    return this.fileContent.length() > maxLength
-        ? this.fileContent.substring(0, maxLength)
-        : this.fileContent;
+    return content.length() > maxLength ? content.substring(0, maxLength) : content;
   }
 }
