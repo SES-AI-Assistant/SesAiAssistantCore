@@ -283,24 +283,6 @@ class ItLogRecorderTest {
             .isInstanceOf(AssertionError.class)
             .hasMessageContaining("前のケースの文言を含むログ");
       }
-
-      /**
-       * 全許可のケースの次のケースで、全許可の状態が残らないことを確かめる。 全許可が次のケースに残ると、想定外の WARN を検知できなくなるので防ぐ必要がある。
-       *
-       * @given 1件目のケースで全許可を宣言して終了し、2件目のケースで "DB接続に失敗" の WARN を出す
-       * @when 2件目のケースを終了する
-       * @then 想定外のログとしてAssertionErrorを投げる
-       */
-      @SuppressWarnings("deprecation")
-      @Test
-      void 全許可のケースの次のケースで想定外のWARNが出た場合_AssertionErrorを投げる() throws Exception {
-        ItLogRecorder recorder = new ItLogRecorder();
-        runCase(recorder, Optional.empty(), recorder::allowWarnings);
-
-        assertThatThrownBy(() -> runCase(recorder, Optional.empty(), () -> LOG.warn("DB接続に失敗")))
-            .isInstanceOf(AssertionError.class)
-            .hasMessageContaining("DB接続に失敗");
-      }
     }
   }
 
@@ -513,85 +495,6 @@ class ItLogRecorderTest {
                         () -> LOG.warn("DB接続に失敗")))
             .isInstanceOf(AssertionError.class)
             .hasMessageContaining("DB接続に失敗");
-      }
-    }
-
-    @Nested
-    class 境界値 {
-
-      /**
-       * 全許可のケースでは、許可していない WARN でも失敗にしないことを確かめる。 移行前の既存のテストは、今までどおり全許可で動く必要がある。
-       *
-       * @given allowWarnings で全許可し、WARN のメッセージが "DB接続に失敗"
-       * @when ケースを開始し、そのログを出して終了する
-       * @then 何もしない
-       */
-      @SuppressWarnings("deprecation")
-      @Test
-      void 全許可の場合_想定外のWARNでも何もしない() {
-        ItLogRecorder recorder = new ItLogRecorder();
-
-        assertThatCode(
-                () ->
-                    runCase(
-                        recorder,
-                        Optional.empty(),
-                        () -> {
-                          recorder.allowWarnings();
-                          LOG.warn("DB接続に失敗");
-                        }))
-            .doesNotThrowAnyException();
-      }
-
-      /**
-       * 全許可と文言指定を併用し、文言が出て想定外の WARN もある場合に、失敗にしないことを確かめる。 全許可が優先されるが、指定した文言は出ているので取りこぼしは無いという仕様である。
-       *
-       * @given allowWarnings で全許可し、許可した文言が "両方存在"、WARN のメッセージが "両方存在のため重複扱い" と "DB接続に失敗"
-       * @when ケースを開始し、そのログを出して終了する
-       * @then 何もしない
-       */
-      @SuppressWarnings("deprecation")
-      @Test
-      void 全許可と文言指定を併用し文言が出て想定外のWARNもある場合_何もしない() {
-        ItLogRecorder recorder = new ItLogRecorder();
-
-        assertThatCode(
-                () ->
-                    runCase(
-                        recorder,
-                        Optional.empty(),
-                        () -> {
-                          recorder.allowWarnings();
-                          recorder.allowWarning("両方存在");
-                          LOG.warn("両方存在のため重複扱い");
-                          LOG.warn("DB接続に失敗");
-                        }))
-            .doesNotThrowAnyException();
-      }
-
-      /**
-       * 全許可のケースでも、文言を指定して出なかった場合は失敗にすることを確かめる。 文言を指定したケースは、その警告が起きることを期待している仕様である。
-       *
-       * @given allowWarnings で全許可し、許可した文言が "両方存在"、WARN のメッセージが無い
-       * @when ケースを開始し、ログを出さずに終了する
-       * @then 取りこぼしを示すAssertionErrorを投げる
-       */
-      @SuppressWarnings("deprecation")
-      @Test
-      void 全許可でも文言が1件も出ない場合_取りこぼしを示すAssertionErrorを投げる() {
-        ItLogRecorder recorder = new ItLogRecorder();
-
-        assertThatThrownBy(
-                () ->
-                    runCase(
-                        recorder,
-                        Optional.empty(),
-                        () -> {
-                          recorder.allowWarnings();
-                          recorder.allowWarning("両方存在");
-                        }))
-            .isInstanceOf(AssertionError.class)
-            .hasMessage("allowWarning で許可した文言が1件も出ませんでした: [両方存在]");
       }
     }
   }

@@ -63,9 +63,6 @@ public final class ItLogRecorder
   /** ケースの開始時点でアプリが実行済みだった SQL の件数です。ケースの SQL を切り出す起点に使います. */
   private int sqlMark;
 
-  /** ケースで WARN 以上のログが出てもよいと全許可したかどうかです。ケースごとに戻します. */
-  private boolean warningsAllowed;
-
   /** ケースで出てもよい WARN 以上のログの文言です。{@link #allowWarning(String)} で追加し、ケースごとに空に戻します. */
   private final Set<String> allowedWarningTexts = new LinkedHashSet<>();
 
@@ -131,7 +128,6 @@ public final class ItLogRecorder
     }
     ItEnvironment environment = ItEnvironment.current();
     this.sqlMark = environment == null ? 0 : environment.statementCount();
-    this.warningsAllowed = false;
     this.allowedWarningTexts.clear();
     this.appender = new ListAppender<>();
     this.appender.start();
@@ -164,9 +160,7 @@ public final class ItLogRecorder
     boolean testFailed = context.getExecutionException().isPresent();
     List<String> warnings = this.warnings();
     List<String> problems = new ArrayList<>();
-    // 全許可のケースでは、想定外の WARN 以上のログを検査しない
-    List<String> unexpected =
-        this.warningsAllowed ? List.of() : unexpectedWarnings(warnings, this.allowedWarningTexts);
+    List<String> unexpected = unexpectedWarnings(warnings, this.allowedWarningTexts);
     if (!unexpected.isEmpty()) {
       problems.add(
           "想定外の WARN 以上のログが出ました（意図したものなら allowWarning(String) で許可する文言を指定する）: " + unexpected);
@@ -249,21 +243,6 @@ public final class ItLogRecorder
       throw new IllegalArgumentException("許可する文言は null と空白だけの文字列にできません");
     }
     this.allowedWarningTexts.add(text);
-  }
-
-  /**
-   * このケースでは WARN 以上のログが出ることを期待していると宣言し、想定外のログを許可します.
-   *
-   * <p>許可する文言を {@link #allowWarning(String)} で指定すること。他リポジトリの移行後に削除予定です。
-   *
-   * <p>全許可と {@link #allowWarning(String)} を同じケースで使った場合は、全許可が優先されます。想定外のログは失敗にしません。 ただし、{@link
-   * #allowWarning(String)} で指定した文言が1件も出なかった場合は、全許可でも失敗にします。
-   *
-   * @deprecated 許可する文言を {@link #allowWarning(String)} で指定すること。他リポジトリの移行後に削除予定
-   */
-  @Deprecated
-  public void allowWarnings() {
-    this.warningsAllowed = true;
   }
 
   /**
