@@ -326,7 +326,7 @@ public class SES_AI_T_PERSON extends SesAiTableEntityBase {
    * @param name 氏名
    * @param age 年齢（0以下は不明）
    * @param gender 性別（null または Unknown は不明）
-   * @param place 場所（null または空は不明）
+   * @param place 場所（null または空は不明。保存時と同じく30文字を超える分は切って比べる）
    * @param excludePersonIds 検索から除く要員ID。同じメッセージで登録済みの要員を除くために使う
    * @return 同一要員が見つかった場合はそのSES_AI_T_PERSON、見つからなかった場合はnull
    * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
@@ -345,7 +345,11 @@ public class SES_AI_T_PERSON extends SesAiTableEntityBase {
     }
     Integer ageCondition = age > 0 ? age : null;
     String genderCondition = gender == null || gender == Gender.Unknown ? null : gender.toString();
-    String placeCondition = place == null || place.trim().isEmpty() ? null : place.trim();
+    // 保存時（setPlace）と同じ順序で、先に上限の文字数で切ってから前後の空白を除く。
+    // 切らずに比べると、上限を超える場所は保存された値と一致せず、同じ要員が重複して登録される
+    String truncatedPlace = OriginalStringUtils.truncateByCodePoints(place, PLACE_MAX_LENGTH);
+    String placeCondition =
+        truncatedPlace == null || truncatedPlace.trim().isEmpty() ? null : truncatedPlace.trim();
 
     SES_AI_T_PERSON result = null;
     try (PreparedStatement preparedStatement = connection.prepareStatement(FIND_SAME_PERSON_SQL)) {
