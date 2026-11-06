@@ -233,7 +233,7 @@ UT（モックで分岐を網羅する）と役割を分け、IT1 は「DB・AWS
 ```
 各リポジトリ src/it/java の *IT クラス ──使う──▶ nectar-it-support
    （ケースと、そのモジュール固有の設定だけ）       ├─ ItEnvironment   : 1つのコンテナ（PostgreSQL + pgvector と moto: S3・SSM・DynamoDB・SQS）を起動する
-                                                     ├─ ItLogRecorder   : ケースごとにアプリのログと、アプリが実行した SQL を記録する
+                                                     ├─ ItLogRecorder   : ケースごとにアプリのログと、アプリが実行した SQL を記録し、想定外の WARN 以上を失敗にする
                                                      ├─ ItDocumentWriter: テスト項目書（Markdown）と実行結果（HTML・Markdown）を出力する
                                                      └─ StatementLog    : PostgreSQL のログから、バインド値を埋めた SQL を取り出す
 nectar-parent ── failsafe・環境変数・システムプロパティ・src/it の取り込み・整形 を設定済み
@@ -271,14 +271,35 @@ nectar-parent ── failsafe・環境変数・システムプロパティ・src
 | 確認 | 方法 | 自動か |
 | :--- | :--- | :--- |
 | 出力（レスポンス、SQS のメッセージ、DB・DynamoDB の状態） | テストのアサーション | 自動 |
-| 想定外の WARN 以上のログ | `ItLogRecorder` がケースの終了時に検査し、出ていれば失敗にする。意図したものだけ `LOGS.allowWarnings()` で許可し、内容を `LOGS.warnings()` で確かめる | 自動（既定で有効） |
+| 想定外の WARN 以上のログ | `ItLogRecorder` がケースの終了時に検査し、出ていれば失敗にする。意図したログだけ `LOGS.allowWarning("文言")` で許可し、内容を `LOGS.warnings()` で確かめる | 自動（既定で有効） |
 | 判断の分岐を通ったことを示すログ（重複と判定した、など） | `LOGS.messages()` に目的のメッセージがあることをアサーションする | 必要なケースだけ自動 |
 | 実行された SQL | PostgreSQL が受け取った SQL を、バインド値を埋めて記録する。`LOGS.sqls()` でアサーションできる（例: `tenant_id = 'T001'` で絞っていること） | 重要な条件（テナント隔離など）だけ自動、それ以外は目視 |
 | ログ全体・SQL 全体の内容 | 実行結果の HTML を読んで確かめる | 目視（人または AI） |
 
 ログや SQL の全文を期待値と一致させるテストは作りません。文言や項目の追加で壊れやすく、本当に守りたい振る舞いを確かめる力は増えないためです。
 その代わり、**HTTP が 200 でも期待と違う動きをしていないか** を、次の3点で確かめます。
-(1) 副作用（SQS・DB・DynamoDB）を必ずアサーションする、(2) 想定外の WARN 以上を失敗にする、(3) 実行結果の HTML でログと SQL を読む。
+(1) 副作用（SQS・DB・DynamoDB）を必ずアサーションする、(2) 想定外の WARN 以上を失敗にし、許可する文言は `allowWarning` で指定する、(3) 実行結果の HTML でログと SQL を読む。
+
+#### 警告の許可（`allowWarning`）
+
+エラーをログに出して 400 などを返す仕様のケースでは、そのログを `allowWarning` で許可します。
+
+```java
+@RegisterExtension static final ItLogRecorder LOGS = new ItLogRecorder();
+
+@Test
+void 要約が空の場合_既定値で登録する() {
+  LOGS.allowWarning("要約が空だったため既定値にした");
+  // ... 要約が空の入力で API を実行する ...
+  assertThat(LOGS.warnings()).anyMatch(w -> w.contains("要約が空だったため既定値にした"));
+}
+```
+
+- 許可する文言は、ケースの中で `LOGS.allowWarning("文言")` を呼んで1件ずつ追加します。ケースの開始時に空に戻ります。空文字と空白だけの文言は指定できません。
+- 照合は**部分一致**です。WARN 以上（ERROR を含む）のログのメッセージが、許可した文言のどれかを含めば許可したものとみなします。
+- **取りこぼし検知**: 許可した文言が1件も出なければ、ケースを失敗にします。同じ文言が複数回出ても失敗にしません。取りこぼしの検査は、テスト本体が既に失敗している場合は行いません（本体の失敗の原因を隠さないため）。
+- `LOGS.allowWarnings()`（全許可）は**非推奨**です。許可する文言を `allowWarning` で指定してください。他リポジトリの移行後に削除予定です。
+- 全許可と `allowWarning` を同じケースで使った場合、想定外のログは失敗にしません。ただし、`allowWarning` で指定した文言が1件も出なければ、全許可でも失敗にします。
 
 SQL は Core がログに出すものではなく、**PostgreSQL のログ** から読みます（`log_statement=all`、`log_parameter_max_length=-1`）。
 そのため Core の実装とログのずれがなく、バインド値を埋めた「DB が実際に受け取った SQL」を見られます。

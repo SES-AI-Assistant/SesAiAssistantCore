@@ -11,7 +11,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import net.logstash.logback.encoder.LogstashEncoder;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -32,8 +36,8 @@ import org.slf4j.LoggerFactory;
  * 結果_ケース.sql.txt}）に書き出し、{@link #sqls()} からアサーションに使えます。SQL は PostgreSQL が受け取ったものをログから読むため、 実装がログに出す
  * SQL とのずれがありません.
  *
- * <p>ケースの間に WARN 以上のログが出た場合は、{@link #allowWarnings()} を呼んでいない限りケースを失敗にします。ステータスが 200
- * でも、内部でエラーを握りつぶして続行した場合などを見逃さないためです.
+ * <p>ケースの間に WARN 以上のログが出た場合は、ケースを失敗にします。ただし、{@link #allowWarning(String)} で許可した文言を含むログは除きます。ステータスが
+ * 200 でも、内部でエラーを握りつぶして続行した場合などを見逃さないためです。許可した文言が1件も出なかった場合も、ケースを失敗にします.
  *
  * @author Copel Co., Ltd.
  */
@@ -59,8 +63,11 @@ public final class ItLogRecorder
   /** ケースの開始時点でアプリが実行済みだった SQL の件数です。ケースの SQL を切り出す起点に使います. */
   private int sqlMark;
 
-  /** ケースで WARN 以上のログが出てもよいと宣言したかどうかです。ケースごとに戻します. */
+  /** ケースで WARN 以上のログが出てもよいと全許可したかどうかです。ケースごとに戻します. */
   private boolean warningsAllowed;
+
+  /** ケースで出てもよい WARN 以上のログの文言です。{@link #allowWarning(String)} で追加し、ケースごとに空に戻します. */
+  private final Set<String> allowedWarningTexts = new LinkedHashSet<>();
 
   /**
    * テストケースの結果と名前から、そのケースのログファイルの場所を返します。実行結果のレポートにログを載せるときにも使います.
@@ -108,6 +115,8 @@ public final class ItLogRecorder
   /**
    * 初期化時のログの記録を終え、ケースのログの記録を始めます.
    *
+   * <p>許可した文言は、ケースごとに空に戻します。前のケースの許可が次のケースに残らないようにするためです.
+   *
    * @param context JUnit の実行コンテキスト
    * @throws IOException フォルダを作れない場合
    */
@@ -123,6 +132,7 @@ public final class ItLogRecorder
     ItEnvironment environment = ItEnvironment.current();
     this.sqlMark = environment == null ? 0 : environment.statementCount();
     this.warningsAllowed = false;
+    this.allowedWarningTexts.clear();
     this.appender = new ListAppender<>();
     this.appender.start();
     rootLogger().addAppender(this.appender);
@@ -139,7 +149,8 @@ public final class ItLogRecorder
   /**
    * ケースのログと SQL の記録を終え、ファイルの名前に結果を付けます.
    *
-   * <p>想定外の WARN 以上のログが出ていた場合は、ファイルの結果を失敗にしたうえでケースを失敗にします.
+   * <p>想定外の WARN 以上のログ、または許可した文言が1件も出なかった場合は、ファイルの結果を失敗にしたうえでケースを失敗にします。
+   * ただし、許可した文言の取りこぼしは、テスト本体が既に失敗している場合は検査しません。本体の失敗の原因を隠さないためです.
    *
    * @param context JUnit の実行コンテキスト
    * @throws IOException ファイルの名前を変えられない場合
@@ -149,8 +160,25 @@ public final class ItLogRecorder
     rootLogger().detachAppender(this.appender);
     rootLogger().detachAppender(this.fileAppender);
     this.fileAppender.stop();
-    String unexpectedWarnings = this.unexpectedWarnings();
-    boolean failed = context.getExecutionException().isPresent() || !unexpectedWarnings.isEmpty();
+
+    boolean testFailed = context.getExecutionException().isPresent();
+    List<String> warnings = this.warnings();
+    List<String> problems = new ArrayList<>();
+    // 全許可のケースでは、想定外の WARN 以上のログを検査しない
+    List<String> unexpected =
+        this.warningsAllowed ? List.of() : unexpectedWarnings(warnings, this.allowedWarningTexts);
+    if (!unexpected.isEmpty()) {
+      problems.add(
+          "想定外の WARN 以上のログが出ました（意図したものなら allowWarning(String) で許可する文言を指定する）: " + unexpected);
+    }
+    // 許可した文言の取りこぼしは、テスト本体が失敗している場合は検査しない
+    List<String> missing =
+        testFailed ? List.of() : missingAllowedTexts(warnings, this.allowedWarningTexts);
+    if (!missing.isEmpty()) {
+      problems.add("allowWarning で許可した文言が1件も出ませんでした: " + missing);
+    }
+    String failure = String.join("\n", problems);
+    boolean failed = testFailed || !failure.isEmpty();
 
     String className = context.getRequiredTestClass().getName();
     String methodName = context.getRequiredTestMethod().getName();
@@ -163,8 +191,8 @@ public final class ItLogRecorder
         sqlFile(finished),
         this.sqls().stream().collect(Collectors.joining("\n\n")),
         StandardCharsets.UTF_8);
-    if (!unexpectedWarnings.isEmpty()) {
-      throw new AssertionError(unexpectedWarnings);
+    if (!failure.isEmpty()) {
+      throw new AssertionError(failure);
     }
   }
 
@@ -178,7 +206,7 @@ public final class ItLogRecorder
   }
 
   /**
-   * 記録したログのうち、WARN 以上のレベルのメッセージを返します.
+   * 記録したログのうち、WARN 以上（ERROR を含む）のレベルのメッセージを、出力された順に返します.
    *
    * @return WARN 以上のログのメッセージのリスト
    */
@@ -208,25 +236,66 @@ public final class ItLogRecorder
   }
 
   /**
-   * このケースでは WARN 以上のログが出ることを期待していると宣言します。エラーをログに出して 400 などを返す仕様のときに呼びます.
+   * このケースで出てもよい WARN 以上のログの文言を1件追加します。ケースの終了時に、ログのメッセージがこの文言を含むかで照合します.
    *
-   * <p>宣言したケースでも、出た WARN 以上のログの内容は {@link #warnings()} で確かめてください.
+   * <p>照合は部分一致で、どれか1つの文言を含むログを許可します。許可した文言が1件も出なかった場合は、ケースを失敗にします。 同じ文言が複数回出ても失敗にしません。エラーをログに出して
+   * 400 などを返す仕様のときに、意図したログだけを許可するために使います.
+   *
+   * @param text 許可する文言。null と空白だけの文字列は指定できません
+   * @throws IllegalArgumentException text が null または空白だけの場合
    */
+  public void allowWarning(final String text) {
+    if (text == null || text.isBlank()) {
+      throw new IllegalArgumentException("許可する文言は null と空白だけの文字列にできません");
+    }
+    this.allowedWarningTexts.add(text);
+  }
+
+  /**
+   * このケースでは WARN 以上のログが出ることを期待していると宣言し、想定外のログを許可します.
+   *
+   * <p>許可する文言を {@link #allowWarning(String)} で指定すること。他リポジトリの移行後に削除予定です。
+   *
+   * <p>全許可と {@link #allowWarning(String)} を同じケースで使った場合は、全許可が優先されます。想定外のログは失敗にしません。 ただし、{@link
+   * #allowWarning(String)} で指定した文言が1件も出なかった場合は、全許可でも失敗にします。
+   *
+   * @deprecated 許可する文言を {@link #allowWarning(String)} で指定すること。他リポジトリの移行後に削除予定
+   */
+  @Deprecated
   public void allowWarnings() {
     this.warningsAllowed = true;
   }
 
   /**
-   * 想定外の WARN 以上のログがあれば、失敗の内容を返します.
+   * 許可した文言のどれも含まない WARN 以上のメッセージを、出力された順に返します.
    *
-   * @return 失敗の内容。想定外のログが無い場合は空文字
+   * <p>照合は部分一致です。メッセージが許可した文言を1つでも含めば、そのメッセージは想定内とみなします.
+   *
+   * @param warnings WARN 以上のログのメッセージのリスト
+   * @param allowedTexts 許可した文言の集まり
+   * @return 想定外のメッセージのリスト。想定外のものが無い場合は空
    */
-  private String unexpectedWarnings() {
-    List<String> warnings = this.warnings();
-    if (this.warningsAllowed || warnings.isEmpty()) {
-      return "";
-    }
-    return "想定外の WARN 以上のログが出ました（意図したものなら allowWarnings() を呼ぶ）: " + warnings;
+  static List<String> unexpectedWarnings(
+      final List<String> warnings, final Collection<String> allowedTexts) {
+    return warnings.stream()
+        .filter(message -> allowedTexts.stream().noneMatch(message::contains))
+        .toList();
+  }
+
+  /**
+   * 1件も該当するログが出なかった、許可した文言を許可した順に返します.
+   *
+   * <p>同じ文言が複数回出ていれば、取りこぼしではないとみなします。1件以上出ていれば十分です.
+   *
+   * @param warnings WARN 以上のログのメッセージのリスト
+   * @param allowedTexts 許可した文言の集まり
+   * @return 出なかった文言のリスト。すべて出た場合は空
+   */
+  static List<String> missingAllowedTexts(
+      final List<String> warnings, final Collection<String> allowedTexts) {
+    return allowedTexts.stream()
+        .filter(text -> warnings.stream().noneMatch(message -> message.contains(text)))
+        .toList();
   }
 
   /**
