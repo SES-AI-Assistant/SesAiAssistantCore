@@ -554,6 +554,30 @@ class SES_AI_T_PERSONTest {
       }
 
       /**
+       * 場所が上限の30文字を超える場合に、30文字に切ってから検索の条件に渡すことを確かめる。
+       * 保存時に30文字へ切って保存するため、切らずに比べると同じ要員が一致せず、重複して登録されるからである。
+       *
+       * @given "あ" を31個並べた31文字の場所
+       * @when findSamePerson を実行する
+       * @then 場所の条件に "あ" を30個並べた値を設定し、同一要員が無ければ null を返す
+       */
+      @MockDbConnection
+      @Test
+      void 場所が31文字の場合_30文字に切った場所で検索しnullを返す(final Connection connection) throws SQLException {
+        PreparedStatement statement =
+            JdbcMocks.stubQuery(
+                connection,
+                MockResultSetBuilder.builder().columns("person_id", "unit_price").build());
+
+        SES_AI_T_PERSON result =
+            SES_AI_T_PERSON.findSamePerson(
+                connection, TENANT_ID, "山田太郎", 35, Gender.Man, "あ".repeat(31), List.of());
+
+        assertThat(result).isNull();
+        verify(statement).setString(5, "あ".repeat(30));
+      }
+
+      /**
        * 性別と場所が null の場合に、条件を null にして比較を除外することを確かめる。 AI が項目を出力しない場合に備える。
        *
        * @given 性別が null、場所が null
