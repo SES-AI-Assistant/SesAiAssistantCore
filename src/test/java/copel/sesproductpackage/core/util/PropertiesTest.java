@@ -43,6 +43,7 @@ import software.amazon.awssdk.services.ssm.SsmClientBuilder;
 import software.amazon.awssdk.services.ssm.model.GetParametersByPathRequest;
 import software.amazon.awssdk.services.ssm.model.GetParametersByPathResponse;
 import software.amazon.awssdk.services.ssm.model.Parameter;
+import software.amazon.awssdk.services.ssm.model.SsmException;
 
 /** {@link Properties} の単体テスト。 */
 @FixedClock("2026-01-15T12:00:00+09:00")
@@ -1056,6 +1057,216 @@ class PropertiesTest {
     }
   }
 
+  /**
+   * 本番の読み込み元として、未読み込みの設定の読み直しを実行する。
+   *
+   * <p>読み込み元が memory のままだと読み直しを行わないため、実行の間だけ本番の値にする。
+   */
+  private static void 本番の読み込み元で設定を読み直す() {
+    読み込み元を設定する("production");
+    try {
+      Properties.reloadIfNotLoaded();
+    } finally {
+      読み込み元を設定する(ConfigSource.CONFIG_SOURCE_MEMORY);
+    }
+  }
+
+  /**
+   * 1回目の Parameter Store の呼び出しが制限で失敗し、2回目以降は環境設定バケット名を返す SSM のモックを作る。
+   *
+   * @param ssm SSM のモック
+   */
+  private static void 初回だけ制限で失敗するSSMを設定する(final SsmClient ssm) {
+    when(ssm.getParametersByPath(any(GetParametersByPathRequest.class)))
+        .thenThrow(SsmException.builder().message("Rate exceeded").build())
+        .thenAnswer(
+            invocation -> {
+              GetParametersByPathRequest request = invocation.getArgument(0);
+              return パラメータの応答(request.path(), Map.of(BUCKET_KEY, "bucket-x"), null);
+            });
+  }
+
+  @Nested
+  class reloadIfNotLoaded {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 起動時に Parameter Store が制限で失敗した設定を、1秒後の呼び出しで読み直すことを確かめる。 読み直さないと、Lambda
+       * の実行環境が破棄されるまで設定が空のままになり、DB に接続できなくなる。
+       *
+       * @given 読み込み元が本番、1回目の Parameter Store が Rate exceeded で失敗し、2回目と S3 は成功して "A=1" を返す
+       * @when 起動時の読み込みの1秒後に reloadIfNotLoaded を実行する
+       * @then Parameter Store を2回呼び、S3 を1回呼び、"A" の値 "1" を登録する
+       */
+      @Test
+      void Parameter_Storeを読み込めていない場合_読み直して設定値を登録する() {
+        SsmClient ssm = mock(SsmClient.class);
+        初回だけ制限で失敗するSSMを設定する(ssm);
+        S3Client s3 = mock(S3Client.class);
+        when(s3.getObject(any(GetObjectRequest.class))).thenReturn(設定ファイル("A=1\n"));
+
+        try (MockedStatic<SsmClient> ssmStatic = SSMを差し替える(ssm);
+            MockedStatic<S3Client> s3Static = S3を差し替える(s3)) {
+          本番の読み込みを実行する();
+          時計を設定する(Instant.parse("2026-01-15T03:00:01Z"));
+          本番の読み込み元で設定を読み直す();
+
+          verify(ssm, times(2)).getParametersByPath(any(GetParametersByPathRequest.class));
+          verify(s3, times(1)).getObject(any(GetObjectRequest.class));
+          assertThat(Properties.get("A")).isEqualTo("1");
+        }
+      }
+
+      /**
+       * Parameter Store は読めたが S3 の設定ファイルを読めていない設定を、1秒後の呼び出しで読み直すことを確かめる。 設定ファイルの値が欠けたままだと、Lambda
+       * の実行環境が破棄されるまで一部の設定が空のままになる。
+       *
+       * @given 読み込み元が本番、環境設定バケット名 "bucket-x" は取得済みで、1回目の S3 は例外を投げ、2回目は "A=1" を返す
+       * @when 起動時の読み込みの1秒後に reloadIfNotLoaded を実行する
+       * @then Parameter Store は1回だけ呼び、S3 を2回呼び、"A" の値 "1" を登録する
+       */
+      @Test
+      void S3の設定ファイルを読み込めていない場合_S3だけを読み直して設定値を登録する() {
+        SsmClient ssm = mock(SsmClient.class);
+        S3Client s3 = mock(S3Client.class);
+        本番の読み込みのモックを設定する(ssm, s3, "A=1\n");
+        when(s3.getObject(any(GetObjectRequest.class)))
+            .thenThrow(new IllegalStateException("S3の障害"))
+            .thenReturn(設定ファイル("A=1\n"));
+
+        try (MockedStatic<SsmClient> ssmStatic = SSMを差し替える(ssm);
+            MockedStatic<S3Client> s3Static = S3を差し替える(s3)) {
+          本番の読み込みを実行する();
+          時計を設定する(Instant.parse("2026-01-15T03:00:01Z"));
+          本番の読み込み元で設定を読み直す();
+
+          verify(ssm, times(1)).getParametersByPath(any(GetParametersByPathRequest.class));
+          verify(s3, times(2)).getObject(any(GetObjectRequest.class));
+          assertThat(Properties.get("A")).isEqualTo("1");
+        }
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 前回の試行から1秒が経つ直前は、読み直さないことを確かめる。 失敗し続けている間に呼び出しのたびに Parameter Store を呼ぶと、制限の原因の負荷をさらに増やす。
+       *
+       * @given 読み込み元が本番、起動時の Parameter Store の呼び出しが Rate exceeded で失敗し、試行から 999 ミリ秒後
+       * @when reloadIfNotLoaded を実行する
+       * @then Parameter Store を1回しか呼ばない
+       */
+      @Test
+      void 前回の試行から999ミリ秒の場合_Parameter_Storeを呼ばない() {
+        SsmClient ssm = mock(SsmClient.class);
+        初回だけ制限で失敗するSSMを設定する(ssm);
+        S3Client s3 = mock(S3Client.class);
+
+        try (MockedStatic<SsmClient> ssmStatic = SSMを差し替える(ssm);
+            MockedStatic<S3Client> s3Static = S3を差し替える(s3)) {
+          本番の読み込みを実行する();
+          時計を設定する(Instant.parse("2026-01-15T03:00:00.999Z"));
+          本番の読み込み元で設定を読み直す();
+
+          verify(ssm, times(1)).getParametersByPath(any(GetParametersByPathRequest.class));
+        }
+      }
+
+      /**
+       * 前回の試行からちょうど1秒が経った時点で、読み直すことを確かめる。 読み直しの間隔を1秒と決めており、その時点から再び試せるようにする。
+       *
+       * @given 読み込み元が本番、起動時の Parameter Store の呼び出しが Rate exceeded で失敗し、試行から 1000 ミリ秒後
+       * @when reloadIfNotLoaded を実行する
+       * @then Parameter Store を2回呼び、"A" の値 "1" を登録する
+       */
+      @Test
+      void 前回の試行から1000ミリ秒の場合_読み直して設定値を登録する() {
+        SsmClient ssm = mock(SsmClient.class);
+        初回だけ制限で失敗するSSMを設定する(ssm);
+        S3Client s3 = mock(S3Client.class);
+        when(s3.getObject(any(GetObjectRequest.class))).thenReturn(設定ファイル("A=1\n"));
+
+        try (MockedStatic<SsmClient> ssmStatic = SSMを差し替える(ssm);
+            MockedStatic<S3Client> s3Static = S3を差し替える(s3)) {
+          本番の読み込みを実行する();
+          時計を設定する(Instant.parse("2026-01-15T03:00:01Z"));
+          本番の読み込み元で設定を読み直す();
+
+          verify(ssm, times(2)).getParametersByPath(any(GetParametersByPathRequest.class));
+          assertThat(Properties.get("A")).isEqualTo("1");
+        }
+      }
+
+      /**
+       * 読み込み済みの設定は、時間が経っても読み直さないことを確かめる。 読み込めた後に呼び出しのたびに AWS を呼ぶと、処理が遅くなり、制限にもかかりやすくなる。
+       *
+       * @given 読み込み元が本番、Parameter Store と S3 を1回ずつ読み込み済みで、1日後
+       * @when reloadIfNotLoaded を実行する
+       * @then Parameter Store と S3 を呼び直さない
+       */
+      @Test
+      void 読み込み済みの場合_再度AWSを呼ばない() {
+        SsmClient ssm = mock(SsmClient.class);
+        S3Client s3 = mock(S3Client.class);
+        本番の読み込みのモックを設定する(ssm, s3, "A=1\n");
+
+        try (MockedStatic<SsmClient> ssmStatic = SSMを差し替える(ssm);
+            MockedStatic<S3Client> s3Static = S3を差し替える(s3)) {
+          本番の読み込みを実行する();
+          時計を設定する(Instant.parse("2026-01-16T03:00:00Z"));
+          本番の読み込み元で設定を読み直す();
+
+          verify(ssm, times(1)).getParametersByPath(any(GetParametersByPathRequest.class));
+          verify(s3, times(1)).getObject(any(GetObjectRequest.class));
+        }
+      }
+
+      /**
+       * 環境設定バケット名が無い環境では、S3 の設定ファイルを読み込めていなくても読み直さないことを確かめる。 バケット名が無い環境で毎秒 Parameter Store
+       * を呼び続けないためである。
+       *
+       * @given 読み込み元が本番、Parameter Store の読み込みは成功して環境設定バケット名を返さず、1秒後
+       * @when reloadIfNotLoaded を実行する
+       * @then Parameter Store を1回しか呼ばない
+       */
+      @Test
+      void 環境設定バケット名が無い場合_再度Parameter_Storeを呼ばない() {
+        SsmClient ssm = mock(SsmClient.class);
+        when(ssm.getParametersByPath(any(GetParametersByPathRequest.class)))
+            .thenReturn(GetParametersByPathResponse.builder().build());
+        S3Client s3 = mock(S3Client.class);
+
+        try (MockedStatic<SsmClient> ssmStatic = SSMを差し替える(ssm);
+            MockedStatic<S3Client> s3Static = S3を差し替える(s3)) {
+          本番の読み込みを実行する();
+          時計を設定する(Instant.parse("2026-01-15T03:00:01Z"));
+          本番の読み込み元で設定を読み直す();
+
+          verify(ssm, times(1)).getParametersByPath(any(GetParametersByPathRequest.class));
+        }
+      }
+
+      /**
+       * 読み込み元が memory の場合は、読み直さないことを確かめる。 テストで AWS を呼ぶと、オフラインで実行できなくなる。
+       *
+       * @given 読み込み元が memory、設定は未読み込みで、SSM のクライアントの構築を差し替える
+       * @when reloadIfNotLoaded を実行する
+       * @then SSM のクライアントの生成を呼ばない
+       */
+      @Test
+      void 読み込み元がmemoryの場合_AWSのクライアントの生成を呼ばない() {
+        try (MockedStatic<SsmClient> ssmStatic = mockStatic(SsmClient.class)) {
+          Properties.reloadIfNotLoaded();
+
+          ssmStatic.verify(SsmClient::builder, never());
+        }
+      }
+    }
+  }
+
   @Nested
   class get {
 
@@ -1074,6 +1285,34 @@ class PropertiesTest {
         Properties.putForTest("k", "v");
 
         assertThat(Properties.get("k")).isEqualTo("v");
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * 設定が未読み込みで前回の試行から1秒経った場合は、読み直した値を返すことを確かめる。 起動時の読み込みに失敗した設定を、次の取得で使える状態に戻すためである。
+       *
+       * @given 読み込み元が本番、起動時の Parameter Store が Rate exceeded で失敗し、1秒後に S3 が "A=1" を返す
+       * @when get を "A" で実行する
+       * @then "1" を返す
+       */
+      @Test
+      void 設定が未読み込みで1秒経った場合_読み直した値を返す() {
+        SsmClient ssm = mock(SsmClient.class);
+        初回だけ制限で失敗するSSMを設定する(ssm);
+        S3Client s3 = mock(S3Client.class);
+        when(s3.getObject(any(GetObjectRequest.class))).thenReturn(設定ファイル("A=1\n"));
+
+        try (MockedStatic<SsmClient> ssmStatic = SSMを差し替える(ssm);
+            MockedStatic<S3Client> s3Static = S3を差し替える(s3)) {
+          本番の読み込みを実行する();
+          時計を設定する(Instant.parse("2026-01-15T03:00:01Z"));
+          読み込み元を設定する("production");
+
+          assertThat(Properties.get("A")).isEqualTo("1");
+        }
       }
     }
 

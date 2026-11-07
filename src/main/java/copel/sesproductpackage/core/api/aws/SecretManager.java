@@ -2,6 +2,7 @@ package copel.sesproductpackage.core.api.aws;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import copel.sesproductpackage.core.util.ApplicationClock;
+import copel.sesproductpackage.core.util.AwsClientRetry;
 import copel.sesproductpackage.core.util.Properties;
 import java.util.HashMap;
 import java.util.Map;
@@ -49,6 +50,7 @@ public class SecretManager {
         SecretsManagerClient.builder()
             .credentialsProvider(DefaultCredentialsProvider.create())
             .region(region)
+            .overrideConfiguration(AwsClientRetry.overrideConfiguration())
             .build();
   }
 
