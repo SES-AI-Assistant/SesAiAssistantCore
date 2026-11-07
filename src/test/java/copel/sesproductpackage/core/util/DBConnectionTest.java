@@ -7,10 +7,12 @@ import static org.mockito.Mockito.RETURNS_SELF;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import copel.sesproductpackage.tools.testsupport.clock.FixedClock;
 import copel.sesproductpackage.tools.testsupport.config.TestProperty;
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -19,6 +21,9 @@ import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
@@ -68,6 +73,14 @@ class DBConnectionTest {
   private static final String TEST_URL = "jdbc:nectar-ut:test";
 
   /**
+   * 接続情報を初期化し直したときに組み立てられる接続先の URL。検証用ドライバが受け付ける。
+   *
+   * <p>接続の待ち時間を 5 秒にする connectTimeout が付くことも、このドライバが受け付けるかどうかで確かめる。
+   */
+  private static final String 初期化し直した接続先のURL =
+      "jdbc:postgresql://127.0.0.1:1/nectar?connectTimeout=5";
+
+  /**
    * 接続先の URL が検証用の接頭辞の場合に、渡されたモックの接続を返す JDBC ドライバ。
    *
    * <p>本番経路（{@link DriverManager} で接続する経路）を、実際の DB に接続せずに最後まで実行するために使う。
@@ -93,7 +106,7 @@ class DBConnectionTest {
 
     @Override
     public boolean acceptsURL(final String url) {
-      return url.startsWith("jdbc:nectar-ut:");
+      return url.startsWith("jdbc:nectar-ut:") || url.equals(初期化し直した接続先のURL);
     }
 
     @Override
@@ -147,6 +160,20 @@ class DBConnectionTest {
       field.setAccessible(true);
       field.set(null, null);
     }
+    静的フィールドを設定する("lastInitializeAttemptTime", 0L);
+  }
+
+  /**
+   * 時計を指定の時刻に進めて、読み込み元を本番に戻す。
+   *
+   * <p>時計の差し替えは読み込み元が memory のときだけできるため、差し替えの間だけ memory にする。再試行の間隔の判定を、実際に待たずに確かめるために使う。
+   *
+   * @param instant 設定する時刻
+   */
+  private static void 時計を進めて本番に戻す(final Instant instant) {
+    読み込み元を設定する(ConfigSource.CONFIG_SOURCE_MEMORY);
+    ApplicationClock.INSTANCE.setClock(Clock.fixed(instant, ZoneId.of("Asia/Tokyo")));
+    読み込み元を設定する("production");
   }
 
   /**
@@ -218,6 +245,47 @@ class DBConnectionTest {
           DriverManager.deregisterDriver(driver);
         }
       }
+
+      /**
+       * 接続先の URL が未設定で前回の試行から1秒が経った場合は、接続情報を初期化し直して接続を返すことを確かめる。 起動時の初期化に失敗した実行環境が、DB
+       * に接続できないまま使われ続けるのを防ぐためである。
+       *
+       * @given 読み込み元が本番、Secrets Manager が1回目は例外を投げ、2回目は host "127.0.0.1" の接続情報を返す
+       * @when getConnection を実行し、1000 ミリ秒後にもう一度実行する
+       * @then 1回目は SQLException を投げ、2回目は connectTimeout が 5 の URL で接続のモックを返し、Secrets Manager を計2回呼ぶ
+       * @throws Exception 接続の取得に失敗した場合
+       */
+      @FixedClock("2026-01-15T12:00:00+09:00")
+      @TestProperty(
+          key = "infrastructure/rds/database/secret-arn",
+          value = "arn:test:dbconnection-retry")
+      @Test
+      void URLが未設定で前回の試行から1000ミリ秒の場合_初期化し直して接続を返す() throws Exception {
+        読み込み元を設定する("production");
+        SecretsManagerClient client = mock(SecretsManagerClient.class);
+        when(client.getSecretValue(ArgumentMatchers.<Consumer<GetSecretValueRequest.Builder>>any()))
+            .thenThrow(new RuntimeException("取得失敗"))
+            .thenReturn(
+                GetSecretValueResponse.builder()
+                    .secretString(
+                        "{\"host\":\"127.0.0.1\",\"port\":\"1\","
+                            + "\"dbname\":\"nectar\",\"username\":\"user1\",\"password\":\"pw1\"}")
+                    .build());
+        Driver driver = new 検証用ドライバ(connection);
+        DriverManager.registerDriver(driver);
+        try (MockedStatic<SecretsManagerClient> statics = SecretsManagerを差し替える(client)) {
+          assertThatThrownBy(DBConnection::getConnection).isInstanceOf(SQLException.class);
+          時計を進めて本番に戻す(Instant.parse("2026-01-15T03:00:01Z"));
+
+          assertThat(DBConnection.getConnection()).isSameAs(connection);
+
+          verify(client, times(2))
+              .getSecretValue(ArgumentMatchers.<Consumer<GetSecretValueRequest.Builder>>any());
+          verify(connection).setAutoCommit(false);
+        } finally {
+          DriverManager.deregisterDriver(driver);
+        }
+      }
     }
 
     @Nested
@@ -250,17 +318,68 @@ class DBConnectionTest {
       }
 
       /**
-       * 読み込み元が本番で URL が未設定の場合は SQLException を投げることを確かめる。 接続情報が無い状態で接続すると誤った接続先に届くので、拒否する。
+       * 接続先の URL が未設定で前回の試行から1秒が経つ直前は、初期化し直さずに SQLException を投げることを確かめる。 失敗し続けている間に呼び出しのたびに Secrets
+       * Manager を呼ぶと、失敗の原因の負荷をさらに増やす。
        *
-       * @given 読み込み元が本番で memory 以外、URL が未設定
-       * @when getConnection を実行する
-       * @then SQLException を投げる
+       * @given 読み込み元が本番、Secrets Manager の取得が例外を投げる
+       * @when getConnection を実行し、999 ミリ秒後にもう一度実行する
+       * @then どちらも DB 接続情報を初期化できていない旨の SQLException を投げ、Secrets Manager を計1回だけ呼ぶ
+       * @throws Exception 接続の取得に失敗した場合
        */
+      @FixedClock("2026-01-15T12:00:00+09:00")
+      @TestProperty(
+          key = "infrastructure/rds/database/secret-arn",
+          value = "arn:test:dbconnection-retry-interval")
       @Test
-      void 読み込み元が本番でURLが未設定の場合_SQLExceptionを投げる() {
+      void URLが未設定で前回の試行から999ミリ秒の場合_SQLExceptionを投げる() throws Exception {
         読み込み元を設定する("production");
+        SecretsManagerClient client = mock(SecretsManagerClient.class);
+        when(client.getSecretValue(ArgumentMatchers.<Consumer<GetSecretValueRequest.Builder>>any()))
+            .thenThrow(new RuntimeException("取得失敗"));
 
-        assertThatThrownBy(DBConnection::getConnection).isInstanceOf(SQLException.class);
+        try (MockedStatic<SecretsManagerClient> statics = SecretsManagerを差し替える(client)) {
+          assertThatThrownBy(DBConnection::getConnection).isInstanceOf(SQLException.class);
+          時計を進めて本番に戻す(Instant.parse("2026-01-15T03:00:00.999Z"));
+
+          assertThatThrownBy(DBConnection::getConnection)
+              .isInstanceOf(SQLException.class)
+              .hasMessageContaining("DB 接続情報を初期化できていません");
+
+          verify(client, times(1))
+              .getSecretValue(ArgumentMatchers.<Consumer<GetSecretValueRequest.Builder>>any());
+        }
+      }
+
+      /**
+       * 接続先の URL が未設定で初期化し直しも失敗した場合は、SQLException を投げることを確かめる。 接続情報が無いまま接続すると、原因の分からない例外になる。
+       *
+       * @given 読み込み元が本番、Secrets Manager の取得が例外を投げる
+       * @when getConnection を実行し、1000 ミリ秒後にもう一度実行する
+       * @then 2回目も DB 接続情報を初期化できていない旨の SQLException を投げ、Secrets Manager を計2回呼ぶ
+       * @throws Exception 接続の取得に失敗した場合
+       */
+      @FixedClock("2026-01-15T12:00:00+09:00")
+      @TestProperty(
+          key = "infrastructure/rds/database/secret-arn",
+          value = "arn:test:dbconnection-retry-failure")
+      @Test
+      void URLが未設定で初期化し直しも失敗する場合_SQLExceptionを投げる() throws Exception {
+        読み込み元を設定する("production");
+        SecretsManagerClient client = mock(SecretsManagerClient.class);
+        when(client.getSecretValue(ArgumentMatchers.<Consumer<GetSecretValueRequest.Builder>>any()))
+            .thenThrow(new RuntimeException("取得失敗"));
+
+        try (MockedStatic<SecretsManagerClient> statics = SecretsManagerを差し替える(client)) {
+          assertThatThrownBy(DBConnection::getConnection).isInstanceOf(SQLException.class);
+          時計を進めて本番に戻す(Instant.parse("2026-01-15T03:00:01Z"));
+
+          assertThatThrownBy(DBConnection::getConnection)
+              .isInstanceOf(SQLException.class)
+              .hasMessageContaining("DB 接続情報を初期化できていません");
+
+          verify(client, times(2))
+              .getSecretValue(ArgumentMatchers.<Consumer<GetSecretValueRequest.Builder>>any());
+        }
       }
     }
   }

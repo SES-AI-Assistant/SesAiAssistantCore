@@ -5,10 +5,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.UnaryOperator;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -45,17 +45,28 @@ public class Properties {
 
   private static final String ENVIRONMENT = resolveEnvironment(System::getenv);
 
-  /** プロパティ. */
-  private static final Map<String, String> properties = new HashMap<>();
+  /** プロパティ. 実行中の再読み込みで書き換えるため、並行して読み取っても壊れない型にする. */
+  private static final Map<String, String> properties = new ConcurrentHashMap<>();
 
   /** S3 バケット名（Parameter Store から動的に解決）. */
   private static String CONFIG_BUCKET;
 
-  /** Parameter Store キャッシュ最終更新時刻. */
-  private static long lastParameterStoreLoadTime = 0;
+  /** Parameter Store キャッシュ最終更新時刻. 一度も読み込めていない間は 0. */
+  private static volatile long lastParameterStoreLoadTime = 0;
 
-  /** S3 キャッシュ最終更新時刻. */
-  private static long lastS3LoadTime = 0;
+  /** S3 キャッシュ最終更新時刻. 一度も読み込めていない間は 0. */
+  private static volatile long lastS3LoadTime = 0;
+
+  /** 最後に AWS からの設定読み込みを試みた時刻. 再試行の間隔を空けるために使う. */
+  private static long lastLoadAttemptTime = 0;
+
+  /**
+   * 設定が未読み込みのときに再試行する最短の間隔（ミリ秒）.
+   *
+   * <p>読み込みに失敗し続けている間、リクエストのたびに Parameter Store を呼ぶと、制限の原因になっている負荷をさらに増やす。1
+   * 秒空けて、同時に来た要求が一度の再試行を共有できるようにする。
+   */
+  static final long RELOAD_INTERVAL_MS = 1000;
 
   /** キャッシュ有効期限のデフォルト値（1日）. */
   private static final long DEFAULT_CACHE_TTL_MS = 86400000;
@@ -69,7 +80,8 @@ public class Properties {
    * クラス初期化時の設定読み込みを行います。
    *
    * <p>本番では、Parameter Store から読み込んでバケット名を解決し、そのバケットから S3 の設定ファイルを読み込む。この順番は、バケット名が Parameter Store
-   * の値に依存するため変えない。例外は握りつぶしてログに出す。Lambda のコールドスタートで一度だけ実行され、結果は static のキャッシュに残る。
+   * の値に依存するため変えない。例外は握りつぶしてログに出す。Lambda のコールドスタートで実行され、結果は static のキャッシュに残る。読み込みに失敗した場合は、{@link
+   * #get(String)} が次の呼び出しで {@link #reloadIfNotLoaded()} を通じて再実行する。
    *
    * <p>読み込み元が memory のときは何もしない。AWS のクライアントを作らないため、オフラインでも即座に完了し、設定値は空から始まる。設定値はテストから {@link
    * #putForTest(String, String)} で入れる。
@@ -79,6 +91,7 @@ public class Properties {
       log.info("設定の読み込み元が memory のため、AWS からの設定読み込みを行いません。");
       return;
     }
+    lastLoadAttemptTime = ApplicationClock.INSTANCE.clock().millis();
     try {
       try (SsmClient ssmClient = buildSsmClientForConfigLoad()) {
         loadFromParameterStore(ssmClient);
@@ -178,7 +191,10 @@ public class Properties {
   static S3Client buildS3ClientForConfigLoad(final UnaryOperator<String> environment) {
     Region region = resolveS3Region(environment);
     String endpointUrl = AwsEndpointUtil.resolveEndpointUrl(environment);
-    S3ClientBuilder b = S3Client.builder().region(region);
+    S3ClientBuilder b =
+        S3Client.builder()
+            .region(region)
+            .overrideConfiguration(AwsClientRetry.overrideConfiguration());
 
     if (endpointUrl != null) {
       try {
@@ -224,7 +240,10 @@ public class Properties {
   static SsmClient buildSsmClientForConfigLoad(final UnaryOperator<String> environment) {
     Region region = resolveS3Region(environment);
     String endpointUrl = AwsEndpointUtil.resolveEndpointUrl(environment);
-    SsmClientBuilder b = SsmClient.builder().region(region);
+    SsmClientBuilder b =
+        SsmClient.builder()
+            .region(region)
+            .overrideConfiguration(AwsClientRetry.overrideConfiguration());
 
     if (endpointUrl != null) {
       try {
@@ -353,7 +372,41 @@ public class Properties {
    * @return 値
    */
   public static String get(final String key) {
+    reloadIfNotLoaded();
     return properties.getOrDefault(key, "");
+  }
+
+  /**
+   * 設定を一度も読み込めていない場合に限り、読み込みをやり直します.
+   *
+   * <p>コールドスタートの初期化で Parameter Store が制限にかかると、設定が空のまま起動し、Lambda
+   * の実行環境が破棄されるまで設定が空のままになる（#392）。これを防ぐため、未読み込みの間は取得のたびに読み込みを試みる。読み込めた後は何もしない。
+   *
+   * <p>やり直す条件は、Parameter Store を一度も読み込めていないとき、または、バケット名が分かっているのに S3
+   * の設定ファイルを一度も読み込めていないとき。バケット名が無い環境で 繰り返さないため、S3 は後者の場合だけ対象にする。やり直しの間隔は {@link
+   * #RELOAD_INTERVAL_MS} 以上空ける。読み込み元が memory のときは何もしない。
+   */
+  static void reloadIfNotLoaded() {
+    if (ConfigSource.INSTANCE.isMemory()) {
+      return;
+    }
+    synchronized (Properties.class) {
+      long now = ApplicationClock.INSTANCE.clock().millis();
+      if (isLoaded() || now - lastLoadAttemptTime < RELOAD_INTERVAL_MS) {
+        return;
+      }
+      log.info("設定が未読み込みのため、読み込みをやり直します。");
+      initializeAtStartup();
+    }
+  }
+
+  /**
+   * Parameter Store と、バケット名が分かっている場合の S3 の設定ファイルを、読み込めているかを返します.
+   *
+   * @return 読み込めていれば true
+   */
+  static boolean isLoaded() {
+    return lastParameterStoreLoadTime != 0 && (CONFIG_BUCKET == null || lastS3LoadTime != 0);
   }
 
   /**
@@ -363,6 +416,7 @@ public class Properties {
    * @return 整数型の値
    */
   public static Integer getInt(final String key) {
+    reloadIfNotLoaded();
     String val = properties.get(key);
     return val != null ? Integer.parseInt(val) : 0;
   }
@@ -374,6 +428,7 @@ public class Properties {
    * @return 小数型の値
    */
   public static Double getDouble(final String key) {
+    reloadIfNotLoaded();
     String val = properties.get(key);
     return val != null ? Double.parseDouble(val) : 0.0;
   }
@@ -422,5 +477,6 @@ public class Properties {
     CONFIG_BUCKET = null;
     lastParameterStoreLoadTime = 0;
     lastS3LoadTime = 0;
+    lastLoadAttemptTime = 0;
   }
 }
