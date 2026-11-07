@@ -82,17 +82,17 @@ class RegisteredUsersTest {
       }
 
       /**
-       * プランが未設定の行を読み込むと、プランが FREE のユーザーを作ることを確かめる。 不明なプランを有料の権限で扱うと権限が過剰になるので、FREE にそろえる。
+       * プランが未設定の行を読み込むと、プランが LIGHT のユーザーを作ることを確かめる。 不明なプランを有料の権限で扱うと権限が過剰になるので、LIGHT にそろえる。
        *
        * @given 引数のユーザーIDが "U001"、テナントIDが "T001" で、接続がプラン列 null の1行を返す
        * @when create を "U001" と "T001" で実行する
-       * @then プランが FREE のユーザーを返す
+       * @then プランが LIGHT のユーザーを返す
        */
       @Test
-      void 行のプランが未設定の場合_プランがFREEのユーザーを返す() {
+      void 行のプランが未設定の場合_プランがLIGHTのユーザーを返す() {
         SES_AI_WEBAPP_M_USER user = RegisteredUsers.create("U001", "T001");
 
-        assertThat(user.getPlan()).isEqualTo(Plan.FREE);
+        assertThat(user.getPlan()).isEqualTo(Plan.LIGHT);
       }
     }
 

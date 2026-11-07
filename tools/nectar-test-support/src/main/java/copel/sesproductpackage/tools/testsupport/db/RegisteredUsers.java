@@ -12,7 +12,7 @@ import org.mockito.Mockito;
  * <p>Core の {@link SES_AI_WEBAPP_M_USER#selectByPk(Connection)} を本物のまま通すため、登録済みの状態を テストの中で {@code
  * isRegistered} を差し替えて作らない。ユーザーIDとテナントIDは、SELECT の行の値として戻り、エンティティの項目に読み込まれる。
  *
- * <p>ロールは行の値を null にするため未設定になる。プランは行の値を null にするため、Core の変換で FREE になる。
+ * <p>ロールは行の値を null にするため未設定になる。プランは行の値を null にするため、Core の変換で LIGHT になる。
  *
  * <p>インスタンスと状態を持たず、ユーザーを作る手順だけを担う。
  *

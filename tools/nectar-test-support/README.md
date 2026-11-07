@@ -141,7 +141,7 @@ class ExampleRepositoryTest {
 
 Core の `SES_AI_WEBAPP_M_USER` を、1行を返すモック接続から本物の `selectByPk` で読み込んだ状態で作ります。
 `isRegistered()` は `true` になり、ユーザーIDとテナントIDは引数の値になります。
-ロールは未設定（null）、プランは Core の変換で FREE になります。ロールは各テストで必要な値を設定してください。
+ロールは未設定（null）、プランは Core の変換で LIGHT になります。ロールは各テストで必要な値を設定してください。
 `isRegistered` を差し替える必要はありません。
 
 ```java

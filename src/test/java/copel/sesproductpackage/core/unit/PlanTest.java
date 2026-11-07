@@ -19,15 +19,27 @@ class PlanTest {
     class 正常系 {
 
       /**
-       * コード値からプランを取得することを確かめる。 DB に保存したプランのコードが読めないと権限が変わるので、コードの対応を固定する。
+       * コード値 "10" からスタンダードプランを取得することを確かめる。 DB に保存したプランのコードが読めないと権限が変わるので、コードの対応を固定する。
        *
        * @given コード値が "10"
        * @when getEnum を "10" で実行する
-       * @then PREMIUM を返す
+       * @then STANDARD を返す
        */
       @Test
-      void コード値が10の場合_PREMIUMを返す() {
-        assertThat(Plan.getEnum("10")).isEqualTo(Plan.PREMIUM);
+      void コード値が10の場合_STANDARDを返す() {
+        assertThat(Plan.getEnum("10")).isEqualTo(Plan.STANDARD);
+      }
+
+      /**
+       * コード値 "00" からライトプランを取得することを確かめる。 DB に保存したプランのコードが読めないと権限が変わるので、コードの対応を固定する。
+       *
+       * @given コード値が "00"
+       * @when getEnum を "00" で実行する
+       * @then LIGHT を返す
+       */
+      @Test
+      void コード値が00の場合_LIGHTを返す() {
+        assertThat(Plan.getEnum("00")).isEqualTo(Plan.LIGHT);
       }
     }
 
@@ -35,17 +47,17 @@ class PlanTest {
     class 境界値 {
 
       /**
-       * 未定義のコード値や null を指定すると FREE を返すことを確かめる。 不明なプランを有料の権限で扱うと権限が過剰になるので、FREE にそろえる。
+       * 未定義のコード値や null を指定するとライトプランを返すことを確かめる。 不明なプランを有料の権限で扱うと権限が過剰になるので、LIGHT にそろえる。
        *
        * @given コード値が未定義の値、または null
        * @when getEnum を未定義の値または null で実行する
-       * @then FREE を返す
+       * @then LIGHT を返す
        */
       @NullSource
       @ValueSource(strings = {"99"})
       @ParameterizedTest
-      void 未定義のコード値やnullの場合_FREEを返す(final String code) {
-        assertThat(Plan.getEnum(code)).isEqualTo(Plan.FREE);
+      void 未定義のコード値やnullの場合_LIGHTを返す(final String code) {
+        assertThat(Plan.getEnum(code)).isEqualTo(Plan.LIGHT);
       }
     }
   }
@@ -57,15 +69,27 @@ class PlanTest {
     class 正常系 {
 
       /**
-       * プランのコード値を取得することを確かめる。 DB に保存するコードが変わると既存データと一致しなくなるので、コードを固定する。
+       * スタンダードプランのコード値を取得することを確かめる。 DB に保存するコードが変わると既存データと一致しなくなるので、コードを固定する。
        *
-       * @given プランが PREMIUM
+       * @given プランが STANDARD
        * @when getCode を実行する
        * @then "10" を返す
        */
       @Test
-      void PREMIUMの場合_10を返す() {
-        assertThat(Plan.PREMIUM.getCode()).isEqualTo("10");
+      void STANDARDの場合_10を返す() {
+        assertThat(Plan.STANDARD.getCode()).isEqualTo("10");
+      }
+
+      /**
+       * ライトプランのコード値を取得することを確かめる。 DB に保存するコードが変わると既存データと一致しなくなるので、コードを固定する。
+       *
+       * @given プランが LIGHT
+       * @when getCode を実行する
+       * @then "00" を返す
+       */
+      @Test
+      void LIGHTの場合_00を返す() {
+        assertThat(Plan.LIGHT.getCode()).isEqualTo("00");
       }
     }
   }
@@ -77,15 +101,27 @@ class PlanTest {
     class 正常系 {
 
       /**
-       * プランの名称を取得することを確かめる。 画面に表示する名称が変わると利用者に混乱を与えるので、名称を固定する。
+       * ライトプランの名称を取得することを確かめる。 画面に表示する名称が変わると利用者に混乱を与えるので、名称を固定する。
        *
-       * @given プランが FREE
+       * @given プランが LIGHT
        * @when getName を実行する
-       * @then "フリープラン" を返す
+       * @then "ライトプラン" を返す
        */
       @Test
-      void FREEの場合_フリープランを返す() {
-        assertThat(Plan.FREE.getName()).isEqualTo("フリープラン");
+      void LIGHTの場合_ライトプランを返す() {
+        assertThat(Plan.LIGHT.getName()).isEqualTo("ライトプラン");
+      }
+
+      /**
+       * スタンダードプランの名称を取得することを確かめる。 画面に表示する名称が変わると利用者に混乱を与えるので、名称を固定する。
+       *
+       * @given プランが STANDARD
+       * @when getName を実行する
+       * @then "スタンダードプラン" を返す
+       */
+      @Test
+      void STANDARDの場合_スタンダードプランを返す() {
+        assertThat(Plan.STANDARD.getName()).isEqualTo("スタンダードプラン");
       }
     }
   }
@@ -97,29 +133,29 @@ class PlanTest {
     class 認可 {
 
       /**
-       * FREE プランが閲覧系と監視管理の権限だけを持つことを確かめる。 無料プランで使える機能の範囲が変わると権限の境界が崩れるので、権限の集合を固定する。
+       * LIGHT プランが閲覧系と監視管理の権限だけを持つことを確かめる。 ライトプランで使える機能の範囲が変わると権限の境界が崩れるので、権限の集合を固定する。
        *
-       * @given プランが FREE
+       * @given プランが LIGHT
        * @when getPermissions を実行する
        * @then 閲覧系の2件と監視管理の計3件の権限を返す
        */
       @Test
-      void FREEの場合_閲覧系と監視管理の3件の権限を返す() {
-        assertThat(Plan.FREE.getPermissions())
+      void LIGHTの場合_閲覧系と監視管理の3件の権限を返す() {
+        assertThat(Plan.LIGHT.getPermissions())
             .containsExactlyInAnyOrder(
                 Permission.VIEW_MATCHING_LIST, Permission.VIEW_JOB_LIST, Permission.MANAGE_WATCH);
       }
 
       /**
-       * PREMIUM プランが管理系を除く6件の権限を持つことを確かめる。 管理系の権限をプランに含めると無料と有料の区別が崩れるので、含まないことを固定する。
+       * STANDARD プランが管理系を除く6件の権限を持つことを確かめる。 管理系の権限をプランに含めると、ライトとスタンダードの区別が崩れるので、含まないことを固定する。
        *
-       * @given プランが PREMIUM
+       * @given プランが STANDARD
        * @when getPermissions を実行する
        * @then 管理系を除く6件の権限を返す
        */
       @Test
-      void PREMIUMの場合_管理系を除く6件の権限を返す() {
-        Set<Permission> permissions = Plan.PREMIUM.getPermissions();
+      void STANDARDの場合_管理系を除く6件の権限を返す() {
+        Set<Permission> permissions = Plan.STANDARD.getPermissions();
 
         assertThat(permissions)
             .containsExactlyInAnyOrder(

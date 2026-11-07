@@ -19,7 +19,8 @@ public enum Role {
           Permission.MANAGE_SENDER,
           Permission.MANAGE_FROM_GROUP,
           Permission.MANAGE_USERS,
-          Permission.MANAGE_TENANT_SETTINGS)),
+          Permission.MANAGE_TENANT_SETTINGS,
+          Permission.DELETE_INFO)),
   システム管理者("99", EnumSet.allOf(Permission.class));
 
   /** コード値. */

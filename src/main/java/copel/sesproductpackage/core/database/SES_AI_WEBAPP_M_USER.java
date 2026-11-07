@@ -122,7 +122,7 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
    * ユーザーが持つ全ての権限を取得します.
    *
    * <p>システム利用不可（ロール 00）または未設定（null・定義外）のユーザーは、プランに関係なく空集合を返します。ロール 00
-   * は業務機能を一切利用させないロールであり、プレミアムプランのプラン権限で業務機能が開放されてはならないためです。
+   * は業務機能を一切利用させないロールであり、スタンダードプランのプラン権限で業務機能が開放されてはならないためです。
    *
    * @return 権限セット（システム利用不可の場合は空集合）
    */
@@ -157,14 +157,14 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
   }
 
   /**
-   * {@link Permission#REGISTER_INFO_LIST_IMPORT} を付与する条件（プレミアムプラン以上）を満たすか.
+   * {@link Permission#REGISTER_INFO_LIST_IMPORT} を付与する条件（スタンダードプラン以上）を満たすか.
    *
    * <p>一般ロール以上の条件は {@link #getPermissions()} で満たしている。システム利用不可のロールは権限を返す前に空集合にするため、ここでは判定しない。
    *
    * @return 付与してよい場合 true
    */
   private boolean isEligibleForRegisterInfoListImport() {
-    return this.plan != null && this.plan != Plan.FREE;
+    return this.plan != null && this.plan != Plan.LIGHT;
   }
 
   @Override
@@ -217,7 +217,7 @@ public class SES_AI_WEBAPP_M_USER extends EntityBase {
   /**
    * 1行分の結果セットの値を、このユーザーの項目へ設定します.
    *
-   * <p>ロールとプランは列のコードから列挙値へ変換する。プランのコードが定義外の場合は {@link Plan#getEnum(String)} が FREE を返す。
+   * <p>ロールとプランは列のコードから列挙値へ変換する。プランのコードが定義外の場合は {@link Plan#getEnum(String)} が LIGHT を返す。
    *
    * @param rs 1行分の結果セット
    * @throws SQLException 値の読み取りに失敗した場合

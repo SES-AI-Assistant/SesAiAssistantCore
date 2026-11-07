@@ -29,6 +29,7 @@ class PermissionTest {
         "DOWNLOAD_SKILLSHEET, スキルシートダウンロード",
         "EXEC_AI_MATCHING, AIマッチング実行",
         "REGISTER_INFO_LIST_IMPORT, 一覧から案件・要員登録",
+        "DELETE_INFO, 案件・要員情報削除",
         "MANAGE_WATCH, ウォッチ管理",
         "MANAGE_SENDER, 送信者マスタ管理",
         "MANAGE_FROM_GROUP, 送信元グループマスタ管理",
