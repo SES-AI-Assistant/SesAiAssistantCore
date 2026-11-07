@@ -9,17 +9,18 @@ import java.util.Set;
  * @author Copel Co., Ltd.
  */
 public enum Plan {
-  FREE(
+  /** ライトプラン（コード "00"）. 閲覧系とウォッチ管理の権限を持つ. 未定義のコード値は、このプランとして扱う. */
+  LIGHT(
       "00",
-      "フリープラン",
+      "ライトプラン",
       EnumSet.of(Permission.VIEW_MATCHING_LIST, Permission.VIEW_JOB_LIST, Permission.MANAGE_WATCH)),
   /**
-   * プレミアムプラン. 管理系の権限（MANAGE_SENDER / MANAGE_FROM_GROUP / VIEW_USAGE_HISTORY / MANAGE_USERS /
-   * MANAGE_MASTER_DATA）はプランではなくロールのみで付与するため、ここには含めない.
+   * スタンダードプラン（コード "10"）. 管理系の権限（MANAGE_SENDER / MANAGE_FROM_GROUP / VIEW_USAGE_HISTORY /
+   * MANAGE_USERS / MANAGE_MASTER_DATA）はプランではなくロールのみで付与するため、ここには含めない.
    */
-  PREMIUM(
+  STANDARD(
       "10",
-      "プレミアムプラン",
+      "スタンダードプラン",
       EnumSet.of(
           Permission.VIEW_MATCHING_LIST,
           Permission.VIEW_JOB_LIST,
@@ -53,6 +54,8 @@ public enum Plan {
   /**
    * コード値からEnumを取得します.
    *
+   * <p>未定義のコード値や null は、最も権限の少ないライトプランとして扱う。不明なプランを有料の権限で扱うと権限が過剰になるため。
+   *
    * @param code コード値
    * @return プランEnum
    */
@@ -62,7 +65,7 @@ public enum Plan {
         return plan;
       }
     }
-    return FREE; // デフォルトはFREE
+    return LIGHT; // デフォルトはLIGHT
   }
 
   /**

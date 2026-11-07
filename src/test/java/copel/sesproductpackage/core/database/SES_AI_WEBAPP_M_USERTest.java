@@ -57,7 +57,7 @@ class SES_AI_WEBAPP_M_USERTest {
   }
 
   /**
-   * 項目が揃ったユーザーを生成する。ロールは運用、プランは PREMIUM とする。
+   * 項目が揃ったユーザーを生成する。ロールは運用、プランは STANDARD とする。
    *
    * @return 生成したユーザー
    */
@@ -66,7 +66,7 @@ class SES_AI_WEBAPP_M_USERTest {
     user.setUserId(USER_ID);
     user.setUserName("山田太郎");
     user.setRole(Role.運用);
-    user.setPlan(Plan.PREMIUM);
+    user.setPlan(Plan.STANDARD);
     user.setRegisterDate(new OriginalDateTime(REGISTER_DATE_TEXT));
     user.setRegisterUser("U000");
     return user;
@@ -198,7 +198,7 @@ class SES_AI_WEBAPP_M_USERTest {
       /**
        * ロールが未設定の場合にシステムを利用できないと判定することを確かめる。 ロールが無いユーザーに業務機能を開放しない。
        *
-       * @given ロールが null、プランが PREMIUM
+       * @given ロールが null、プランが STANDARD
        * @when hasSystemUseAuth を実行する
        * @then falseを返す
        */
@@ -213,7 +213,7 @@ class SES_AI_WEBAPP_M_USERTest {
       /**
        * ロールがシステム利用不可の場合にシステムを利用できないと判定することを確かめる。 システム利用不可のロールは業務機能を一切利用させない。
        *
-       * @given ロールが システム利用不可、プランが PREMIUM
+       * @given ロールが システム利用不可、プランが STANDARD
        * @when hasSystemUseAuth を実行する
        * @then falseを返す
        */
@@ -228,7 +228,7 @@ class SES_AI_WEBAPP_M_USERTest {
       /**
        * ロールがシステムユーザーの場合にシステムを利用できると判定することを確かめる。 利用可能な最も低いロールの境界を確かめる。
        *
-       * @given ロールが システムユーザー、プランが PREMIUM
+       * @given ロールが システムユーザー、プランが STANDARD
        * @when hasSystemUseAuth を実行する
        * @then trueを返す
        */
@@ -249,16 +249,19 @@ class SES_AI_WEBAPP_M_USERTest {
     class 正常系 {
 
       /**
-       * ロールとプランの権限を合わせた権限集合を返すことを確かめる。 運用ロールの管理権限と、PREMIUM プランの一覧インポート権限の両方を使える。
+       * ロールとプランの権限を合わせた権限集合を返すことを確かめる。 運用ロールの管理権限と、STANDARD プランの一覧インポート権限の両方を使える。
        *
-       * @given ロールが 運用、プランが PREMIUM
+       * @given ロールが 運用、プランが STANDARD
        * @when getPermissions を実行する
        * @then 利用者管理と一覧インポートの権限を含む権限集合を返す
        */
       @Test
-      void ロールが運用でプランがPREMIUMの場合_両方の権限を含む権限集合を返す() {
+      void ロールが運用でプランがSTANDARDの場合_両方の権限を含む権限集合を返す() {
         assertThat(user().getPermissions())
-            .contains(Permission.MANAGE_USERS, Permission.REGISTER_INFO_LIST_IMPORT);
+            .contains(
+                Permission.MANAGE_USERS,
+                Permission.REGISTER_INFO_LIST_IMPORT,
+                Permission.DELETE_INFO);
       }
     }
 
@@ -266,14 +269,14 @@ class SES_AI_WEBAPP_M_USERTest {
     class 境界値 {
 
       /**
-       * ロールがシステムユーザーで PREMIUM の場合に一覧インポート権限を含めることを確かめる。 利用可能な最も低いロールでも、プランの権限は付与される。
+       * ロールがシステムユーザーで STANDARD の場合に一覧インポート権限を含めることを確かめる。 利用可能な最も低いロールでも、プランの権限は付与される。
        *
-       * @given ロールが システムユーザー、プランが PREMIUM
+       * @given ロールが システムユーザー、プランが STANDARD
        * @when getPermissions を実行する
        * @then 一覧インポートの権限を含む権限集合を返す
        */
       @Test
-      void ロールがシステムユーザーでプランがPREMIUMの場合_一覧インポートの権限を含む権限集合を返す() {
+      void ロールがシステムユーザーでプランがSTANDARDの場合_一覧インポートの権限を含む権限集合を返す() {
         SES_AI_WEBAPP_M_USER user = user();
         user.setRole(Role.システムユーザー);
 
@@ -287,7 +290,7 @@ class SES_AI_WEBAPP_M_USERTest {
       /**
        * ロールがシステム利用不可の場合に、プランに関係なく空の権限集合を返すことを確かめる。 業務機能はプランの権限で開放してはならない。
        *
-       * @given ロールが システム利用不可、プランが PREMIUM
+       * @given ロールが システム利用不可、プランが STANDARD
        * @when getPermissions を実行する
        * @then 空の権限集合を返す
        */
@@ -302,7 +305,7 @@ class SES_AI_WEBAPP_M_USERTest {
       /**
        * ロールが未設定の場合に、空の権限集合を返すことを確かめる。 ロールの無いユーザーに権限を与えない。
        *
-       * @given ロールが null、プランが PREMIUM
+       * @given ロールが null、プランが STANDARD
        * @when getPermissions を実行する
        * @then 空の権限集合を返す
        */
@@ -315,16 +318,16 @@ class SES_AI_WEBAPP_M_USERTest {
       }
 
       /**
-       * プランが FREE の場合に一覧インポート権限を含めないことを確かめる。 一覧インポートはプレミアムプランだけに提供する機能である。
+       * プランが LIGHT の場合に一覧インポート権限を含めないことを確かめる。 一覧インポートはスタンダードプランだけに提供する機能である。
        *
-       * @given ロールが 運用、プランが FREE
+       * @given ロールが 運用、プランが LIGHT
        * @when getPermissions を実行する
        * @then 一覧インポートの権限を含まず、利用者管理の権限を含む権限集合を返す
        */
       @Test
-      void プランがFREEの場合_一覧インポートの権限を含まない権限集合を返す() {
+      void プランがLIGHTの場合_一覧インポートの権限を含まない権限集合を返す() {
         SES_AI_WEBAPP_M_USER user = user();
-        user.setPlan(Plan.FREE);
+        user.setPlan(Plan.LIGHT);
 
         assertThat(user.getPermissions())
             .doesNotContain(Permission.REGISTER_INFO_LIST_IMPORT)
@@ -359,7 +362,7 @@ class SES_AI_WEBAPP_M_USERTest {
       /**
        * 役割とプランと登録日時を揃えて登録することを確かめる。 役割とプランはコードに変換して保存する。
        *
-       * @given ロールが 運用、プランが PREMIUM、登録日時が "2026-01-15 10:00:00"、登録ユーザーが "U000"、更新件数が 1 件
+       * @given ロールが 運用、プランが STANDARD、登録日時が "2026-01-15 10:00:00"、登録ユーザーが "U000"、更新件数が 1 件
        * @when insert を接続で実行する
        * @then ロールのコード "30" とプランのコード "10" を設定し、1件を返す
        */
@@ -417,7 +420,7 @@ class SES_AI_WEBAPP_M_USERTest {
        *
        * @given ユーザーIDが "U001"、テナントIDが "T001"、SELECT の結果が 1 行ロール "30"、プラン "10"
        * @when selectByPk を接続で実行する
-       * @then trueを返し、ロールを 運用、プランを PREMIUM に更新し、登録済みとする
+       * @then trueを返し、ロールを 運用、プランを STANDARD に更新し、登録済みとする
        */
       @MockDbConnection
       @Test
@@ -433,7 +436,7 @@ class SES_AI_WEBAPP_M_USERTest {
         assertThat(user.selectByPk(connection)).isTrue();
 
         assertThat(user.getRole()).isEqualTo(Role.運用);
-        assertThat(user.getPlan()).isEqualTo(Plan.PREMIUM);
+        assertThat(user.getPlan()).isEqualTo(Plan.STANDARD);
         assertThat(user.isRegistered()).isTrue();
       }
 
@@ -591,7 +594,7 @@ class SES_AI_WEBAPP_M_USERTest {
       /**
        * ユーザーIDとテナントIDが一致する行を、項目の値で更新することを確かめる。 ユーザー情報の変更を保存する。
        *
-       * @given ユーザーIDが "U001"、ロールが 運用、プランが PREMIUM、更新件数が 1 件
+       * @given ユーザーIDが "U001"、ロールが 運用、プランが STANDARD、更新件数が 1 件
        * @when updateByPk を接続で実行する
        * @then tenant_id を条件に含めた UPDATE 文を準備し、trueを返す
        */
@@ -701,7 +704,7 @@ class SES_AI_WEBAPP_M_USERTest {
       /**
        * ユーザーIDが一致する行を、テナントの条件を付けずに更新し、テナントIDも書き換えることを確かめる。 システム管理者がユーザーのテナントを付け替える。
        *
-       * @given ユーザーIDが "U001"、テナントIDが "T001"、ロールが 運用、プランが PREMIUM、更新件数が 1 件
+       * @given ユーザーIDが "U001"、テナントIDが "T001"、ロールが 運用、プランが STANDARD、更新件数が 1 件
        * @when updateByPkWithoutTenantId を接続で実行する
        * @then tenant_id の位置に "T001" を設定し、trueを返す
        */

@@ -56,7 +56,7 @@ class SES_AI_WEBAPP_M_USERLotTest {
        *
        * @given SELECT の結果が 1 行テナントID "T001"、ロール "30"、プラン "10"
        * @when selectAll を接続とテナントID "T001" で実行する
-       * @then ロールが 運用、プランが PREMIUM の 1 件の一覧を返す
+       * @then ロールが 運用、プランが STANDARD の 1 件の一覧を返す
        */
       @MockDbConnection
       @Test
@@ -166,7 +166,7 @@ class SES_AI_WEBAPP_M_USERLotTest {
 
         assertThat(lot.size()).isEqualTo(2);
         assertThat(lot.get(1).getTenantId()).isEqualTo("T002");
-        assertThat(lot.get(1).getPlan()).isEqualTo(Plan.FREE);
+        assertThat(lot.get(1).getPlan()).isEqualTo(Plan.LIGHT);
       }
     }
 
