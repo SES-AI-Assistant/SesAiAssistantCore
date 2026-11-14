@@ -43,39 +43,39 @@
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
   </Match>
   <Match>
-    <Class name="copel.sesproductpackage.core.api.gpt.entity.ChooseBestInfoRequestSchema"/>
+    <Class name="copel.sesproductpackage.core.api.gpt.schema.entity.ChooseBestInfoRequestSchema"/>
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
   </Match>
   <Match>
-    <Class name="copel.sesproductpackage.core.api.gpt.entity.ChooseBestInfoResponseSchema"/>
+    <Class name="copel.sesproductpackage.core.api.gpt.schema.entity.ChooseBestInfoResponseSchema"/>
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
   </Match>
   <Match>
-    <Class name="copel.sesproductpackage.core.api.gpt.entity.ContentParseSchema"/>
+    <Class name="copel.sesproductpackage.core.api.gpt.schema.entity.ContentParseSchema"/>
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
   </Match>
   <Match>
-    <Class name="copel.sesproductpackage.core.api.gpt.entity.JobInfoSchema"/>
+    <Class name="copel.sesproductpackage.core.api.gpt.schema.entity.JobInfoSchema"/>
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
   </Match>
   <Match>
-    <Class name="copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateRequestSchema"/>
+    <Class name="copel.sesproductpackage.core.api.gpt.schema.entity.MatchEvaluateRequestSchema"/>
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
   </Match>
   <Match>
-    <Class name="copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateResponseSchema"/>
+    <Class name="copel.sesproductpackage.core.api.gpt.schema.entity.MatchEvaluateResponseSchema"/>
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
   </Match>
   <Match>
-    <Class name="copel.sesproductpackage.core.api.gpt.entity.PersonInfoSchema"/>
+    <Class name="copel.sesproductpackage.core.api.gpt.schema.entity.PersonInfoSchema"/>
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
   </Match>
   <Match>
-    <Class name="copel.sesproductpackage.core.api.gpt.entity.SkillsheetInfoSchema"/>
+    <Class name="copel.sesproductpackage.core.api.gpt.schema.entity.SkillsheetInfoSchema"/>
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
   </Match>
   <Match>
-    <Class name="copel.sesproductpackage.core.api.gpt.entity.SkillsheetLinkJudgeRequestSchema"/>
+    <Class name="copel.sesproductpackage.core.api.gpt.schema.entity.SkillsheetLinkJudgeRequestSchema"/>
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
   </Match>
   <Match>

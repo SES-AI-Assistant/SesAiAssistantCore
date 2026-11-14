@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 
-import copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateResponseSchema.EvaluateType;
+import copel.sesproductpackage.core.api.gpt.schema.entity.MatchEvaluateResponseSchema.EvaluateType;
 import copel.sesproductpackage.tools.testsupport.db.JdbcMocks;
 import copel.sesproductpackage.tools.testsupport.db.MockDbConnection;
 import copel.sesproductpackage.tools.testsupport.jdbc.MockResultSetBuilder;

@@ -3,7 +3,7 @@ package copel.sesproductpackage.core.util;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import copel.sesproductpackage.core.api.gpt.entity.ContentParseSchema;
+import copel.sesproductpackage.core.api.gpt.schema.entity.ContentParseSchema;
 import copel.sesproductpackage.core.unit.InformationType;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

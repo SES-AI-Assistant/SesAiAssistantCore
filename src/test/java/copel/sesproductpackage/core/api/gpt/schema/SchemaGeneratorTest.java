@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import copel.sesproductpackage.core.api.gpt.entity.JobInfoSchema;
-import copel.sesproductpackage.core.api.gpt.entity.PersonInfoSchema;
+import copel.sesproductpackage.core.api.gpt.schema.entity.JobInfoSchema;
+import copel.sesproductpackage.core.api.gpt.schema.entity.PersonInfoSchema;
 import copel.sesproductpackage.core.util.ApplicationClock;
 import copel.sesproductpackage.tools.testsupport.clock.FixedClock;
 import java.lang.reflect.Field;

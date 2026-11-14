@@ -1,4 +1,4 @@
-package copel.sesproductpackage.core.api.gpt.entity;
+package copel.sesproductpackage.core.api.gpt.schema.entity;
 
 import copel.sesproductpackage.core.api.gpt.schema.Schema;
 import lombok.AllArgsConstructor;
