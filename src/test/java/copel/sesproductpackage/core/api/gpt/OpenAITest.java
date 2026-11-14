@@ -149,6 +149,24 @@ class OpenAITest {
       }
 
       /**
+       * 応答が429の後に成功する場合に、接続ごとに1回ずつ閉じて2回目の結果を返すことを確かめる。 再試行で接続を取り直しても、前の接続を残さない仕様である。
+       *
+       * @given 1回目の応答が429で、2回目の応答が埋め込み 0.5 と 0.25 である
+       * @when embedding を "文字列" で呼び出す
+       * @then 1回目と2回目の接続をそれぞれ1回閉じ、0.5 と 0.25 を要素に持つベクトルを返す
+       */
+      @Test
+      void ステータス429が1回発生した後に成功する場合_接続ごとに1回閉じて2回目の結果を返す() throws Exception {
+        HttpURLConnection failing = status(429, null, null);
+        HttpURLConnection ok = status(200, null, EMBEDDING_OK);
+        try (AutoCloseable opened = openSequence(failing, ok)) {
+          assertThat(new OpenAI("key").embedding("文字列")).containsExactly(0.5f, 0.25f);
+        }
+        verify(failing, times(1)).disconnect();
+        verify(ok, times(1)).disconnect();
+      }
+
+      /**
        * 埋め込みを要求する場合に、入力文字列と float 形式を要求の本文に含めることを確かめる。 埋め込みの要求が指定どおりに組み立てられることを守る。
        *
        * @given 入力が "文字列" である
@@ -219,11 +237,11 @@ class OpenAITest {
       }
 
       /**
-       * 送信の入出力が失敗する場合に、IOException を投げることを確かめる。 通信の失敗を実行時の例外に変えずに、入出力の例外として伝えることを守る。
+       * 送信の入出力が失敗する場合に、IOException を投げ、接続を閉じることを確かめる。 通信の失敗を実行時の例外に変えずに伝え、失敗した接続を残さないことを守る。
        *
        * @given 接続の出力ストリームの取得が IOException を投げる
        * @when embedding を "文字列" で呼び出す
-       * @then IOException を投げる
+       * @then IOException を投げ、接続を1回閉じる
        */
       @Test
       void 送信の入出力が失敗する場合_IOExceptionを投げる() throws Exception {
@@ -233,6 +251,7 @@ class OpenAITest {
           assertThatThrownBy(() -> new OpenAI("key").embedding("文字列"))
               .isInstanceOf(IOException.class);
         }
+        verify(conn, times(1)).disconnect();
       }
 
       /**
@@ -251,12 +270,12 @@ class OpenAITest {
       }
 
       /**
-       * 読み取りがタイムアウトした場合に、SocketTimeoutException をそのまま投げ、再試行しないことを確かめる。 タイムアウトの再試行は Lambda
-       * の時間を使い切るため、行わない仕様である。
+       * 読み取りがタイムアウトした場合に、SocketTimeoutException をそのまま投げ、再試行せず、接続を閉じることを確かめる。 タイムアウトの再試行は Lambda
+       * の時間を使い切り、閉じない接続は残り続けるためである。
        *
        * @given 応答コードの取得が SocketTimeoutException を投げる
        * @when embedding を "文字列" で呼び出す
-       * @then SocketTimeoutException を投げ、応答コードを1回だけ取得する
+       * @then SocketTimeoutException を投げ、応答コードを1回だけ取得し、接続を1回閉じる
        */
       @Test
       void 読み取りがタイムアウトする場合_SocketTimeoutExceptionを投げる() throws Exception {
@@ -266,6 +285,7 @@ class OpenAITest {
               .isInstanceOf(SocketTimeoutException.class);
         }
         verify(conn, times(1)).getResponseCode();
+        verify(conn, times(1)).disconnect();
       }
     }
 
@@ -304,6 +324,22 @@ class OpenAITest {
         try (AutoCloseable opened = open(okChat(new ByteArrayOutputStream()))) {
           assertThat(new OpenAI("key").generate("質問").getAnswer()).isEqualTo("はい");
         }
+      }
+
+      /**
+       * 応答が200の場合に、回答を返し、接続を1回だけ閉じることを確かめる。 本文を読み終えた接続を、二重に閉じず残さない仕様である。
+       *
+       * @given 応答のステータスが200で、回答が "はい" である
+       * @when generate を "質問" で呼び出す
+       * @then 回答 "はい" を返し、接続を1回だけ閉じる
+       */
+      @Test
+      void 応答が200の場合_接続を1回だけ閉じて回答を返す() throws Exception {
+        HttpURLConnection conn = okChat(new ByteArrayOutputStream());
+        try (AutoCloseable opened = open(conn)) {
+          assertThat(new OpenAI("key").generate("質問").getAnswer()).isEqualTo("はい");
+        }
+        verify(conn, times(1)).disconnect();
       }
 
       /**
@@ -411,12 +447,12 @@ class OpenAITest {
     class 異常系 {
 
       /**
-       * 読み取りがタイムアウトした場合に、SocketTimeoutException をそのまま投げ、再試行しないことを確かめる。
-       * 質問応答は元から再試行しない仕様であり、タイムアウトも同じ扱いにする。
+       * 読み取りがタイムアウトした場合に、SocketTimeoutException をそのまま投げ、再試行せず、接続を閉じることを確かめる。
+       * 質問応答は元から再試行しない仕様であり、タイムアウトも同じ扱いにして、閉じない接続を残さない。
        *
        * @given 応答コードの取得が SocketTimeoutException を投げる
        * @when generate を "質問" で呼び出す
-       * @then SocketTimeoutException を投げ、応答コードを1回だけ取得する
+       * @then SocketTimeoutException を投げ、応答コードを1回だけ取得し、接続を1回閉じる
        */
       @Test
       void 読み取りがタイムアウトする場合_SocketTimeoutExceptionを投げる() throws Exception {
@@ -426,6 +462,27 @@ class OpenAITest {
               .isInstanceOf(SocketTimeoutException.class);
         }
         verify(conn, times(1)).getResponseCode();
+        verify(conn, times(1)).disconnect();
+      }
+
+      /**
+       * 応答が500でエラー本文がある場合に、接続を1回だけ閉じて HttpStatusException を投げることを確かめる。
+       * エラー応答の途中と最後で二重に閉じず、例外の種類と状態コードも変えない仕様である。
+       *
+       * @given 応答のステータスが500で、エラー本文が JSON の文字列である
+       * @when generate を "質問" で呼び出す
+       * @then 状態コード500の HttpStatusException を投げ、接続を1回だけ閉じる
+       */
+      @Test
+      void 応答が500でエラー本文がある場合_HttpStatusExceptionを投げる() throws Exception {
+        HttpURLConnection conn = status(500, "{\"error\":\"x\"}", null);
+        try (AutoCloseable opened = open(conn)) {
+          assertThatThrownBy(() -> new OpenAI("key").generate("質問"))
+              .isInstanceOfSatisfying(
+                  ApiRetryHelper.HttpStatusException.class,
+                  e -> assertThat(e.getStatusCode()).isEqualTo(500));
+        }
+        verify(conn, times(1)).disconnect();
       }
 
       /**
@@ -465,11 +522,12 @@ class OpenAITest {
       }
 
       /**
-       * エラー本文の読み取りが失敗する場合に、要約だけの RuntimeException を投げることを確かめる。 本文が読めなくても、エラーの原因を伝えることを守る。
+       * エラー本文の読み取りが失敗する場合に、要約だけの RuntimeException を投げ、接続を閉じることを確かめる。
+       * 本文が読めなくても、エラーの原因を伝え、接続を残さないことを守る。
        *
        * @given 応答のステータスが500で、エラー本文の取得が IOException を投げる
        * @when generate を "質問" で呼び出す
-       * @then 500 の説明だけを含む RuntimeException を投げる
+       * @then 500 の説明だけを含む RuntimeException を投げ、接続を1回閉じる
        */
       @Test
       void エラー本文の読み取りが失敗する場合_RuntimeExceptionを投げる() throws Exception {
@@ -489,6 +547,7 @@ class OpenAITest {
               .isInstanceOf(RuntimeException.class)
               .hasMessage("500 Internal Server Error: OpenAIのサーバーで問題が発生しました");
         }
+        verify(conn, times(1)).disconnect();
       }
 
       /**
@@ -508,11 +567,11 @@ class OpenAITest {
       }
 
       /**
-       * 応答の本文の読み取りが失敗する場合に、IOException を投げることを確かめる。 読めなかった応答を空の回答として扱わないことを守る。
+       * 応答の本文の読み取りが失敗する場合に、IOException を投げ、接続を閉じることを確かめる。 読めなかった応答を空の回答として扱わず、接続を残さないことを守る。
        *
        * @given 応答のステータスが200で、本文の取得が IOException を投げる
        * @when generate を "質問" で呼び出す
-       * @then IOException を投げる
+       * @then IOException を投げ、接続を1回閉じる
        */
       @Test
       void 本文の読み取りが失敗する場合_IOExceptionを投げる() throws Exception {
@@ -524,6 +583,7 @@ class OpenAITest {
           assertThatThrownBy(() -> new OpenAI("key").generate("質問"))
               .isInstanceOf(IOException.class);
         }
+        verify(conn, times(1)).disconnect();
       }
 
       /**

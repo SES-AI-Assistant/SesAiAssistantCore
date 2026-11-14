@@ -227,6 +227,8 @@ public class OpenAI implements Transformer {
    * <p>接続と読み取りには {@link HttpTimeout#DEFAULT} を設定する。タイムアウトした場合は {@link
    * java.net.SocketTimeoutException} をそのまま投げ、再試行はしない（再試行の対象は状態コードが 429 と 503 の場合だけ）。
    *
+   * <p>接続は、正常応答・エラー応答・例外のどの経路でも、最後に1回だけ閉じる。 接続を開けなかった場合は、閉じる対象がないため何もしない。
+   *
    * @param endpoint 送信先の URL
    * @param requestBody JSON に変換して送信する値
    * @return 応答本文
@@ -234,64 +236,68 @@ public class OpenAI implements Transformer {
    */
   private String postJson(final String endpoint, final Object requestBody) throws IOException {
     HttpURLConnection conn = connectionOpener.open(endpoint);
-    HttpTimeout.DEFAULT.applyTo(conn);
-    conn.setRequestMethod("POST");
-    conn.setRequestProperty("Content-Type", "application/json");
-    conn.setRequestProperty("Authorization", "Bearer " + this.apiKey);
-    conn.setDoOutput(true);
+    try {
+      HttpTimeout.DEFAULT.applyTo(conn);
+      conn.setRequestMethod("POST");
+      conn.setRequestProperty("Content-Type", "application/json");
+      conn.setRequestProperty("Authorization", "Bearer " + this.apiKey);
+      conn.setDoOutput(true);
 
-    String jsonBody = ObjectMapperFactory.OBJECT_MAPPER.writeValueAsString(requestBody);
-    try (OutputStream os = conn.getOutputStream()) {
-      byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
-      os.write(input, 0, input.length);
-    }
+      String jsonBody = ObjectMapperFactory.OBJECT_MAPPER.writeValueAsString(requestBody);
+      try (OutputStream os = conn.getOutputStream()) {
+        byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
+        os.write(input, 0, input.length);
+      }
 
-    int responseCode = conn.getResponseCode();
-    String summary;
-    switch (responseCode) {
-      case HttpURLConnection.HTTP_BAD_REQUEST -> summary =
-          "400 Bad Request: 無効なパラメータ、または不適切なリクエストフォーマットです";
-      case HttpURLConnection.HTTP_UNAUTHORIZED -> summary =
-          "401 Unauthorized: APIキーが無効、または提供されていないエラー";
-      case HttpURLConnection.HTTP_FORBIDDEN -> summary =
-          "403 Forbidden: アカウントの制限、または対象モデルが利用不可のエラー";
-      case HttpURLConnection.HTTP_NOT_FOUND -> summary =
-          "404 Not Found: APIのエンドポイントが間違っている、またはモデル名が無効のエラー";
-      case HttpURLConnection.HTTP_CLIENT_TIMEOUT -> summary =
-          "408 Request Timeout: リクエストが時間内に処理されなかったエラー";
-      case 429 -> summary = "429 Too Many Requests（レート制限・利用枠・課金など。詳細は OpenAI レスポンス参照）";
-      case HttpURLConnection.HTTP_INTERNAL_ERROR -> summary =
-          "500 Internal Server Error: OpenAIのサーバーで問題が発生しました";
-      case HttpURLConnection.HTTP_UNAVAILABLE -> summary =
-          "503 Service Unavailable: OpenAIのサーバーがメンテナンス中、または負荷が高い状態です";
-      default -> summary = null;
-    }
-    if (summary != null) {
-      // エラー本文は読めなくても例外は投げる。本文が空の場合は要約だけを残す
-      String body = null;
-      try (InputStream es = conn.getErrorStream()) {
-        if (es != null) {
-          body = new String(es.readAllBytes(), StandardCharsets.UTF_8);
+      int responseCode = conn.getResponseCode();
+      String summary;
+      switch (responseCode) {
+        case HttpURLConnection.HTTP_BAD_REQUEST -> summary =
+            "400 Bad Request: 無効なパラメータ、または不適切なリクエストフォーマットです";
+        case HttpURLConnection.HTTP_UNAUTHORIZED -> summary =
+            "401 Unauthorized: APIキーが無効、または提供されていないエラー";
+        case HttpURLConnection.HTTP_FORBIDDEN -> summary =
+            "403 Forbidden: アカウントの制限、または対象モデルが利用不可のエラー";
+        case HttpURLConnection.HTTP_NOT_FOUND -> summary =
+            "404 Not Found: APIのエンドポイントが間違っている、またはモデル名が無効のエラー";
+        case HttpURLConnection.HTTP_CLIENT_TIMEOUT -> summary =
+            "408 Request Timeout: リクエストが時間内に処理されなかったエラー";
+        case 429 -> summary = "429 Too Many Requests（レート制限・利用枠・課金など。詳細は OpenAI レスポンス参照）";
+        case HttpURLConnection.HTTP_INTERNAL_ERROR -> summary =
+            "500 Internal Server Error: OpenAIのサーバーで問題が発生しました";
+        case HttpURLConnection.HTTP_UNAVAILABLE -> summary =
+            "503 Service Unavailable: OpenAIのサーバーがメンテナンス中、または負荷が高い状態です";
+        default -> summary = null;
+      }
+      if (summary != null) {
+        // エラー本文は読めなくても例外は投げる。本文が空の場合は要約だけを残す
+        String body = null;
+        try (InputStream es = conn.getErrorStream()) {
+          if (es != null) {
+            body = new String(es.readAllBytes(), StandardCharsets.UTF_8);
+          }
+        } catch (IOException e) {
+          log.warn("【OpenAI】エラーレスポンス本文の読み取りに失敗しました: {}", e.getMessage());
         }
-      } catch (IOException e) {
-        log.warn("【OpenAI】エラーレスポンス本文の読み取りに失敗しました: {}", e.getMessage());
+        throw new ApiRetryHelper.HttpStatusException(
+            responseCode,
+            body == null || body.isBlank() ? summary : summary + " | OpenAI: " + body);
       }
-      conn.disconnect();
-      throw new ApiRetryHelper.HttpStatusException(
-          responseCode, body == null || body.isBlank() ? summary : summary + " | OpenAI: " + body);
-    }
 
-    StringBuilder response = new StringBuilder();
-    try (BufferedReader br =
-        new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
-      String line;
-      while ((line = br.readLine()) != null) {
-        response.append(line);
+      StringBuilder response = new StringBuilder();
+      try (BufferedReader br =
+          new BufferedReader(
+              new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+        String line;
+        while ((line = br.readLine()) != null) {
+          response.append(line);
+        }
       }
+      return response.toString();
     } finally {
+      // 例外が起きた経路も含め、どの経路でも接続を1回だけ閉じる
       conn.disconnect();
     }
-    return response.toString();
   }
 
   /** 埋め込み（Embedding）APIへのリクエストを表します。 */
