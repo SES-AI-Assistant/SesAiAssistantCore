@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -779,6 +780,26 @@ class GeminiTest {
       }
 
       /**
+       * 判定を実行すると接続と読み取りのタイムアウトを設定して送信することを確かめる。 応答が止まった判定の呼び出しを、無期限に待たずに打ち切る仕様である。
+       *
+       * @given 設定の URL が DECISION_URL、判定 API が person_1 の回答を返す
+       * @when decide を入力 "共有の入力" と Yes/No の質問 person_1 で実行する
+       * @then 接続のタイムアウトに 5000、読み取りのタイムアウトに 60000 を設定し、確率 0.97 の回答を返す
+       */
+      @Test
+      void 判定を実行する場合_接続と読み取りのタイムアウトを設定して回答を返す() throws Exception {
+        HttpURLConnection conn = connection(200, DECISION_OK, new ByteArrayOutputStream());
+        useOpener(conn);
+        NoulQuestion person = NoulQuestion.of("person_1", "条件を満たすか");
+
+        DecisionResult result = new Gemini("key").decide("共有の入力", List.of(person));
+
+        verify(conn).setConnectTimeout(5000);
+        verify(conn).setReadTimeout(60000);
+        assertThat(result.answerOf(person).getProbability()).isEqualTo(0.97);
+      }
+
+      /**
        * 質問応答用のモデルが別の場合でも、判定の要求は判定用のモデルの名前で送ることを確かめる。 判定の課金と品質は判定用のモデルで決まるため、質問応答の設定に左右されない仕様を守る。
        *
        * @given 質問応答のモデルが gemini-1.5-pro の Gemini、判定 API が person_1 の回答を返す
@@ -1203,6 +1224,27 @@ class GeminiTest {
         assertThatThrownBy(() -> new Gemini("key").decide("共有の入力", questions))
             .isInstanceOf(IOException.class)
             .hasMessage("接続失敗");
+      }
+
+      /**
+       * 読み取りがタイムアウトした場合に、SocketTimeoutException をそのまま投げ、再試行しないことを確かめる。 再試行の対象は状態コードが 429 と 503
+       * の場合だけで、タイムアウトの再試行は Lambda の時間を使い切るため行わない仕様である。
+       *
+       * @given 応答コードの取得が SocketTimeoutException を投げる接続を、接続の生成が1回だけ返す
+       * @when decide を入力 "共有の入力" と Yes/No の質問 person_1 で実行する
+       * @then SocketTimeoutException を投げ、接続を1回だけ開く
+       */
+      @Test
+      void 読み取りがタイムアウトする場合_SocketTimeoutExceptionを投げる() throws Exception {
+        HttpURLConnection conn = connection(200, DECISION_OK, new ByteArrayOutputStream());
+        when(conn.getResponseCode()).thenThrow(new SocketTimeoutException("Read timed out"));
+        Gemini.ConnectionOpener opener = useOpener(conn);
+        List<NoulQuestion> questions = List.of(NoulQuestion.of("person_1", "条件を満たすか"));
+
+        assertThatThrownBy(() -> new Gemini("key").decide("共有の入力", questions))
+            .isInstanceOf(SocketTimeoutException.class);
+
+        verify(opener, times(1)).open(DECISION_URL);
       }
 
       /**

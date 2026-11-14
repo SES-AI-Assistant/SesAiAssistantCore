@@ -451,6 +451,9 @@ public class Gemini implements Transformer {
      * <p>エラー本文が読めない場合や JSON でない場合も、状態コードを含む例外にする。 400 のうち error.code が安全性のフィルタの値の場合だけ {@link
      * DecisionBlockedException} にする。
      *
+     * <p>接続と読み取りには {@link HttpTimeout#DEFAULT} を設定する。タイムアウトした場合は {@link
+     * java.net.SocketTimeoutException} をそのまま投げ、再試行はしない（再試行の対象は状態コードが 429 と 503 の場合だけ）。
+     *
      * @return 応答本文
      * @throws IOException 入出力の操作に失敗した場合
      * @throws RuntimeException 応答が 200 以外の場合（状態コードを持つ例外、またはブロックの例外）
@@ -458,6 +461,7 @@ public class Gemini implements Transformer {
     String send() throws IOException {
       HttpURLConnection conn = connectionOpener.open(endpoint);
       try {
+        HttpTimeout.DEFAULT.applyTo(conn);
         conn.setRequestMethod("POST");
         conn.setRequestProperty("Content-Type", "application/json");
         conn.setRequestProperty("x-goog-api-key", apiKey);

@@ -224,6 +224,9 @@ public class OpenAI implements Transformer {
    * 正常応答（200）と想定外のコードは何もしない。上記以外のエラー応答は、要約と OpenAI の本文を含む {@link
    * ApiRetryHelper.HttpStatusException} を投げる（再試行の判定は状態コードで行う）。
    *
+   * <p>接続と読み取りには {@link HttpTimeout#DEFAULT} を設定する。タイムアウトした場合は {@link
+   * java.net.SocketTimeoutException} をそのまま投げ、再試行はしない（再試行の対象は状態コードが 429 と 503 の場合だけ）。
+   *
    * @param endpoint 送信先の URL
    * @param requestBody JSON に変換して送信する値
    * @return 応答本文
@@ -231,6 +234,7 @@ public class OpenAI implements Transformer {
    */
   private String postJson(final String endpoint, final Object requestBody) throws IOException {
     HttpURLConnection conn = connectionOpener.open(endpoint);
+    HttpTimeout.DEFAULT.applyTo(conn);
     conn.setRequestMethod("POST");
     conn.setRequestProperty("Content-Type", "application/json");
     conn.setRequestProperty("Authorization", "Bearer " + this.apiKey);
