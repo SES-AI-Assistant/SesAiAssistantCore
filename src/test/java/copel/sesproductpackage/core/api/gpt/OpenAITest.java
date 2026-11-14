@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -16,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -162,6 +164,23 @@ class OpenAITest {
         assertThat(sent.toString(StandardCharsets.UTF_8))
             .contains("\"input\":\"文字列\"", "\"encoding_format\":\"float\"");
       }
+
+      /**
+       * 埋め込みを要求する接続に、接続と読み取りのタイムアウトを設定することを確かめる。 応答が止まった呼び出しを、無期限に待たずに打ち切る仕様である。
+       *
+       * @given 応答の埋め込みが 0.5 と 0.25 である HTTP 接続のモックがある
+       * @when embedding を "文字列" で呼び出す
+       * @then 接続のタイムアウトに 5000、読み取りのタイムアウトに 60000 を設定し、0.5 と 0.25 を要素に持つベクトルを返す
+       */
+      @Test
+      void 埋め込みを要求する場合_接続と読み取りのタイムアウトを設定してベクトルを返す() throws Exception {
+        HttpURLConnection conn = okEmbedding();
+        try (AutoCloseable opened = open(conn)) {
+          assertThat(new OpenAI("key").embedding("文字列")).containsExactly(0.5f, 0.25f);
+        }
+        verify(conn).setConnectTimeout(5000);
+        verify(conn).setReadTimeout(60000);
+      }
     }
 
     @Nested
@@ -230,6 +249,24 @@ class OpenAITest {
               .isInstanceOf(IOException.class);
         }
       }
+
+      /**
+       * 読み取りがタイムアウトした場合に、SocketTimeoutException をそのまま投げ、再試行しないことを確かめる。 タイムアウトの再試行は Lambda
+       * の時間を使い切るため、行わない仕様である。
+       *
+       * @given 応答コードの取得が SocketTimeoutException を投げる
+       * @when embedding を "文字列" で呼び出す
+       * @then SocketTimeoutException を投げ、応答コードを1回だけ取得する
+       */
+      @Test
+      void 読み取りがタイムアウトする場合_SocketTimeoutExceptionを投げる() throws Exception {
+        HttpURLConnection conn = readTimingOut();
+        try (AutoCloseable opened = open(conn)) {
+          assertThatThrownBy(() -> new OpenAI("key").embedding("文字列"))
+              .isInstanceOf(SocketTimeoutException.class);
+        }
+        verify(conn, times(1)).getResponseCode();
+      }
     }
 
     @Nested
@@ -267,6 +304,23 @@ class OpenAITest {
         try (AutoCloseable opened = open(okChat(new ByteArrayOutputStream()))) {
           assertThat(new OpenAI("key").generate("質問").getAnswer()).isEqualTo("はい");
         }
+      }
+
+      /**
+       * 質問を送る接続に、接続と読み取りのタイムアウトを設定することを確かめる。 応答が止まった呼び出しを、無期限に待たずに打ち切る仕様である。
+       *
+       * @given 応答の回答が "はい" である HTTP 接続のモックがある
+       * @when generate を "質問" で呼び出す
+       * @then 接続のタイムアウトに 5000、読み取りのタイムアウトに 60000 を設定し、回答 "はい" を返す
+       */
+      @Test
+      void 質問を送る場合_接続と読み取りのタイムアウトを設定して回答を返す() throws Exception {
+        HttpURLConnection conn = okChat(new ByteArrayOutputStream());
+        try (AutoCloseable opened = open(conn)) {
+          assertThat(new OpenAI("key").generate("質問").getAnswer()).isEqualTo("はい");
+        }
+        verify(conn).setConnectTimeout(5000);
+        verify(conn).setReadTimeout(60000);
       }
 
       /**
@@ -355,6 +409,24 @@ class OpenAITest {
 
     @Nested
     class 異常系 {
+
+      /**
+       * 読み取りがタイムアウトした場合に、SocketTimeoutException をそのまま投げ、再試行しないことを確かめる。
+       * 質問応答は元から再試行しない仕様であり、タイムアウトも同じ扱いにする。
+       *
+       * @given 応答コードの取得が SocketTimeoutException を投げる
+       * @when generate を "質問" で呼び出す
+       * @then SocketTimeoutException を投げ、応答コードを1回だけ取得する
+       */
+      @Test
+      void 読み取りがタイムアウトする場合_SocketTimeoutExceptionを投げる() throws Exception {
+        HttpURLConnection conn = readTimingOut();
+        try (AutoCloseable opened = open(conn)) {
+          assertThatThrownBy(() -> new OpenAI("key").generate("質問"))
+              .isInstanceOf(SocketTimeoutException.class);
+        }
+        verify(conn, times(1)).getResponseCode();
+      }
 
       /**
        * 応答が401の場合に、APIキーの説明を含む RuntimeException を投げることを確かめる。 認証の失敗を原因付きで伝え、再試行しないことを守る。
@@ -666,6 +738,22 @@ class OpenAITest {
    */
   private static InputStream stream(final String text) {
     return new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
+  }
+
+  /**
+   * 応答コードの取得で読み取りがタイムアウトする HTTP 接続を作る.
+   *
+   * @return 応答コードの取得で SocketTimeoutException を投げる HTTP 接続のモック
+   */
+  private static HttpURLConnection readTimingOut() {
+    HttpURLConnection conn = mock(HttpURLConnection.class);
+    try {
+      when(conn.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+      when(conn.getResponseCode()).thenThrow(new SocketTimeoutException("Read timed out"));
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
+    return conn;
   }
 
   @Nested
