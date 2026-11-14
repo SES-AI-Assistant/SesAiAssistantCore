@@ -75,10 +75,6 @@
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
   </Match>
   <Match>
-    <Class name="copel.sesproductpackage.core.api.gpt.schema.entity.SkillsheetLinkJudgeRequestSchema"/>
-    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
-  </Match>
-  <Match>
     <Class name="copel.sesproductpackage.core.api.line.LineMessagingApi"/>
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
   </Match>
@@ -145,6 +141,12 @@
   </Match>
   <Match>
     <Class name="copel.sesproductpackage.core.database.base.EntityBase"/>
+    <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+  </Match>
+  <!-- DecisionQuestion: 質問キーと選択肢の制約違反を生成時に拒否するための意図的な例外（EntityBase と同じ理由）。
+       サブクラスは sealed で NoulQuestion と ChoiceQuestion（いずれも final）に限られ、不正な状態のまま継承されない。 -->
+  <Match>
+    <Class name="copel.sesproductpackage.core.api.gpt.decision.DecisionQuestion"/>
     <Bug pattern="CT_CONSTRUCTOR_THROW"/>
   </Match>
   <!-- EntityBase.executeInsert: INSERT 文は呼び出し側が定数で渡すSQLに tenant_id の列と ? を追加するだけで、

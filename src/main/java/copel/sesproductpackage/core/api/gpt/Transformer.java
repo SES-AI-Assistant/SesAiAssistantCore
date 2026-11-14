@@ -1,6 +1,9 @@
 package copel.sesproductpackage.core.api.gpt;
 
+import copel.sesproductpackage.core.api.gpt.decision.DecisionQuestion;
+import copel.sesproductpackage.core.api.gpt.decision.DecisionResult;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * GPT処理リスナー.
@@ -70,5 +73,34 @@ public interface Transformer {
       throws IOException, RuntimeException {
     throw new UnsupportedOperationException(
         "Structured generation is not supported by " + this.getClass().getSimpleName());
+  }
+
+  /**
+   * 共有の入力に対して複数の質問を一度に投げ、型付きの判定結果を返します.
+   *
+   * <p>判定は回答の文章を生成せず、質問ごとの確率と確信度だけを返す。 Yes/No の質問と択一の質問は、同じ入力の中に混在させられる。
+   * 共有の入力は質問の数に関係なく1回分として課金される。
+   *
+   * <p>使用例：
+   *
+   * <pre>{@code
+   * NoulQuestion q1 = NoulQuestion.of("person_123", "この要員は条件を満たすか");
+   * ChoiceQuestion q2 = ChoiceQuestion.of("link", "該当する要員は", options);
+   * DecisionResult r = transformer.decide(input, List.of(q1, q2));
+   * NoulAnswer a1 = r.answerOf(q1);
+   * ChoiceAnswer a2 = r.answerOf(q2);
+   * }</pre>
+   *
+   * @param input 全質問で共有する入力
+   * @param questions 質問の一覧。1問以上1,000問以下で、質問キーは重複させない
+   * @return 質問キーごとの回答を持つ判定結果
+   * @throws IOException 入出力（ファイル・ストリーム）の操作に失敗した場合
+   * @throws RuntimeException 判定 API のエラー、安全性フィルタによるブロックなどの実行時の異常が発生した場合
+   */
+  default DecisionResult decide(
+      final String input, final List<? extends DecisionQuestion<?>> questions)
+      throws IOException, RuntimeException {
+    throw new UnsupportedOperationException(
+        "Decision is not supported by " + this.getClass().getSimpleName());
   }
 }

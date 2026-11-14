@@ -19,6 +19,7 @@ public enum GeminiModel implements GptModel {
   GEMINI_3_PRO_PREVIEW("gemini-3-pro-preview"),
   GEMINI_3_FLASH("gemini-3-flash"),
   GEMINI_3_FLASH_PREVIEW("gemini-3-flash-preview"),
+  GEMINI_DECISION_1("gemini-decision-1"),
   GEMINI_EMBEDDING_001("models/gemini-embedding-001");
 
   private final String modelName;

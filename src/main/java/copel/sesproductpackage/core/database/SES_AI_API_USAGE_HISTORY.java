@@ -42,7 +42,7 @@ public class SES_AI_API_USAGE_HISTORY extends DynamoDb<SES_AI_API_USAGE_HISTORY>
   /** 【SK】 APIを使用したユーザーのID. システムがAPIを利用した場合はモジュール名が入力されます 例：ユーザーID、lambda関数名など */
   private String userId;
 
-  /** 【SK】 API種別. 例：Generate、Embedding、FineTuningなど */
+  /** 【SK】 API種別. 例：Generate、Embedding、FineTuning、Decisionなど */
   private ApiType apiType;
 
   /** 入力文字数. */
@@ -231,6 +231,7 @@ public class SES_AI_API_USAGE_HISTORY extends DynamoDb<SES_AI_API_USAGE_HISTORY>
   public enum ApiType {
     Generate,
     Embedding,
-    FineTuning
+    FineTuning,
+    Decision
   }
 }

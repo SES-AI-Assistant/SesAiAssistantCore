@@ -47,13 +47,13 @@ public class MatchEvaluateResponseSchema {
   private List<OtherEvaluateResult> otherList;
 
   /** 必須スキルの配点（満点）。 合計100点のうち、最も重く見る項目に割り当てる。 */
-  private static final double MUST_POINTS = 57.0;
+  public static final double MUST_POINTS = 57.0;
 
   /** 尚可スキルの配点（満点）。 必須の次に重く見る項目に割り当てる。 */
-  private static final double WANT_POINTS = 29.0;
+  public static final double WANT_POINTS = 29.0;
 
   /** その他の評価の配点（満点）。 残りの点数を割り当てる。 */
-  private static final double OTHER_POINTS = 14.0;
+  public static final double OTHER_POINTS = 14.0;
 
   // ================================================
   // メソッド
@@ -176,7 +176,7 @@ public class MatchEvaluateResponseSchema {
    * @param skills スキル評価の一覧。null も可
    * @return まとめた評価区分
    */
-  private static EvaluateType summarizeSkills(final List<SkillEvaluateResult> skills) {
+  public static EvaluateType summarizeSkills(final List<SkillEvaluateResult> skills) {
     if (skills == null || skills.isEmpty()) {
       return EvaluateType.FullyMet;
     }
