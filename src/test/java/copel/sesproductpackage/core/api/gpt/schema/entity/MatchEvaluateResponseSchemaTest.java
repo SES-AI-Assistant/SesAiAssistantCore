@@ -372,10 +372,108 @@ class MatchEvaluateResponseSchemaTest {
   }
 
   @Nested
+  class summarizeSkills {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 全件が FullyMet の一覧は FullyMet にまとめることを確かめる。 全てを満たす場合だけ完全一致として扱う仕様を守る。
+       *
+       * @given スキル評価が FullyMet の2件
+       * @when summarizeSkills を評価の一覧で呼び出す
+       * @then FullyMet を返す
+       */
+      @Test
+      void 全件がFullyMetの場合_FullyMetを返す() {
+        assertThat(
+                MatchEvaluateResponseSchema.summarizeSkills(
+                    List.of(skill(EvaluateType.FullyMet), skill(EvaluateType.FullyMet))))
+            .isEqualTo(EvaluateType.FullyMet);
+      }
+
+      /**
+       * FullyMet と PartiallyMet が混在する一覧は PartiallyMet にまとめることを確かめる。 代替可能な経験を含む場合は部分充足として扱う仕様を守る。
+       *
+       * @given スキル評価が FullyMet と PartiallyMet の2件
+       * @when summarizeSkills を評価の一覧で呼び出す
+       * @then PartiallyMet を返す
+       */
+      @Test
+      void FullyMetとPartiallyMetが混在する場合_PartiallyMetを返す() {
+        assertThat(
+                MatchEvaluateResponseSchema.summarizeSkills(
+                    List.of(skill(EvaluateType.FullyMet), skill(EvaluateType.PartiallyMet))))
+            .isEqualTo(EvaluateType.PartiallyMet);
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 一覧に NotMet が1件でもある場合は NotMet にまとめることを確かめる。 1件でも不足があれば全体を不足として扱う仕様を守る。
+       *
+       * @given スキル評価が FullyMet と NotMet の2件
+       * @when summarizeSkills を評価の一覧で呼び出す
+       * @then NotMet を返す
+       */
+      @Test
+      void NotMetが1件でもある場合_NotMetを返す() {
+        assertThat(
+                MatchEvaluateResponseSchema.summarizeSkills(
+                    List.of(skill(EvaluateType.FullyMet), skill(EvaluateType.NotMet))))
+            .isEqualTo(EvaluateType.NotMet);
+      }
+
+      /**
+       * 評価の値が未設定の項目がある場合は NotMet にまとめることを確かめる。 評価が不明な項目を充足として扱わない仕様を守る。
+       *
+       * @given スキル評価が FullyMet と評価の値が未設定の2件
+       * @when summarizeSkills を評価の一覧で呼び出す
+       * @then NotMet を返す
+       */
+      @Test
+      void 評価の値が未設定の項目がある場合_NotMetを返す() {
+        assertThat(
+                MatchEvaluateResponseSchema.summarizeSkills(
+                    List.of(skill(EvaluateType.FullyMet), skill(null))))
+            .isEqualTo(EvaluateType.NotMet);
+      }
+
+      /**
+       * 一覧が空の場合は記載が無いため FullyMet にまとめることを確かめる。 記載の無い必須や尚可は不足にしない仕様を守る。
+       *
+       * @given スキル評価の一覧が空
+       * @when summarizeSkills を空の一覧で呼び出す
+       * @then FullyMet を返す
+       */
+      @Test
+      void 一覧が空の場合_FullyMetを返す() {
+        assertThat(MatchEvaluateResponseSchema.summarizeSkills(List.of()))
+            .isEqualTo(EvaluateType.FullyMet);
+      }
+    }
+  }
+
+  @Nested
   class getMatchScore {
 
     @Nested
     class 正常系 {
+
+      /**
+       * 必須と尚可とその他の配点の合計が100点になることを確かめる。 配点の定数の値 57 29 14 が評価の合計に反映される仕様を守る。
+       *
+       * @given 必須が FullyMet の1件、尚可とその他の一覧が未設定
+       * @when getMatchScore を呼び出す
+       * @then 必須の配点 57 に尚可の 29 とその他の 14 を加えた 100 を返す
+       */
+      @Test
+      void 必須だけ満たす場合_配点の合計の100点を返す() {
+        assertThat(schema(List.of(skill(EvaluateType.FullyMet)), null, null).getMatchScore())
+            .isEqualTo(100);
+      }
 
       /**
        * 全ての評価が FullyMet の場合に、配点の合計の100点を返すことを確かめる。 配点の合計が100点になる仕様を守る。

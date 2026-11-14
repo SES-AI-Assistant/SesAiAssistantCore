@@ -41,6 +41,18 @@ class GeminiModelTest {
       }
 
       /**
+       * 判定用のモデルがモデル名を返すことを確かめる。 判定の要求はこの列挙値のモデル名で送るため、名前の対応を守る。
+       *
+       * @given GeminiModel の GEMINI_DECISION_1 が存在する
+       * @when getModelName を呼び出す
+       * @then モデル名 gemini-decision-1 を返す
+       */
+      @Test
+      void GEMINI_DECISION_1の場合_モデル名を返す() {
+        assertThat(GeminiModel.GEMINI_DECISION_1.getModelName()).isEqualTo("gemini-decision-1");
+      }
+
+      /**
        * エンベディング用のモデルがモデル名の接頭辞を含めて返すことを確かめる。 SDK は埋め込みモデルの名前に models/ の接頭辞を要求するので、接頭辞を含む名前を守る。
        *
        * @given GeminiModel の GEMINI_EMBEDDING_001 が存在する
