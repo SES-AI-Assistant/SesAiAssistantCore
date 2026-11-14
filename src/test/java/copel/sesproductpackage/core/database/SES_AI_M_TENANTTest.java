@@ -8,8 +8,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import copel.sesproductpackage.core.api.gpt.entity.FilteringRules;
-import copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateResponseSchema.EvaluateType;
+import copel.sesproductpackage.core.api.gpt.schema.entity.FilteringRules;
+import copel.sesproductpackage.core.api.gpt.schema.entity.MatchEvaluateResponseSchema.EvaluateType;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
 import copel.sesproductpackage.tools.testsupport.db.JdbcMocks;
 import copel.sesproductpackage.tools.testsupport.db.MockDbConnection;

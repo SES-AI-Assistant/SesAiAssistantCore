@@ -1,4 +1,4 @@
-package copel.sesproductpackage.core.api.gpt.entity;
+package copel.sesproductpackage.core.api.gpt.schema.entity;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;

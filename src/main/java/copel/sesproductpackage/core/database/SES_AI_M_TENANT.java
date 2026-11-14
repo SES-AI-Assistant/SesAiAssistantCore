@@ -1,7 +1,7 @@
 package copel.sesproductpackage.core.database;
 
-import copel.sesproductpackage.core.api.gpt.entity.FilteringRules;
-import copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateResponseSchema.EvaluateType;
+import copel.sesproductpackage.core.api.gpt.schema.entity.FilteringRules;
+import copel.sesproductpackage.core.api.gpt.schema.entity.MatchEvaluateResponseSchema.EvaluateType;
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;

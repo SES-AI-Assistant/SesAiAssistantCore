@@ -1,8 +1,8 @@
-package copel.sesproductpackage.core.api.gpt.entity;
+package copel.sesproductpackage.core.api.gpt.schema.entity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateResponseSchema.EvaluateType;
+import copel.sesproductpackage.core.api.gpt.schema.entity.MatchEvaluateResponseSchema.EvaluateType;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

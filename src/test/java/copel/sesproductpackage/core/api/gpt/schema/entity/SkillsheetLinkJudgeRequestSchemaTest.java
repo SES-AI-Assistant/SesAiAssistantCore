@@ -1,4 +1,4 @@
-package copel.sesproductpackage.core.api.gpt.entity;
+package copel.sesproductpackage.core.api.gpt.schema.entity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

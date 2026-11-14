@@ -1,4 +1,4 @@
-package copel.sesproductpackage.core.api.gpt.entity;
+package copel.sesproductpackage.core.api.gpt.schema.entity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -6,8 +6,8 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-import copel.sesproductpackage.core.api.gpt.entity.ChooseBestInfoResponseSchema.CandidateEvaluationResult;
-import copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateResponseSchema.EvaluateType;
+import copel.sesproductpackage.core.api.gpt.schema.entity.ChooseBestInfoResponseSchema.CandidateEvaluationResult;
+import copel.sesproductpackage.core.api.gpt.schema.entity.MatchEvaluateResponseSchema.EvaluateType;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

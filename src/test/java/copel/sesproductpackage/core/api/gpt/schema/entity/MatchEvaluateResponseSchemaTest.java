@@ -1,10 +1,10 @@
-package copel.sesproductpackage.core.api.gpt.entity;
+package copel.sesproductpackage.core.api.gpt.schema.entity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateResponseSchema.EvaluateType;
-import copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateResponseSchema.OtherEvaluateResult;
-import copel.sesproductpackage.core.api.gpt.entity.MatchEvaluateResponseSchema.SkillEvaluateResult;
+import copel.sesproductpackage.core.api.gpt.schema.entity.MatchEvaluateResponseSchema.EvaluateType;
+import copel.sesproductpackage.core.api.gpt.schema.entity.MatchEvaluateResponseSchema.OtherEvaluateResult;
+import copel.sesproductpackage.core.api.gpt.schema.entity.MatchEvaluateResponseSchema.SkillEvaluateResult;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
