@@ -94,4 +94,15 @@ public enum MimeType {
   public boolean isText() {
     return this == TEXT_PLAIN || this == MULTIPART_ALTERNATIVE;
   }
+
+  /**
+   * HTML の本文として処理する種類か判定する.
+   *
+   * <p>HTML の本文は、タグを除くだけの text/plain と違い、{@link HtmlBody} で表示される文字を取り出す。 そのため isText とは分けて判定する。
+   *
+   * @return TEXT_HTML であればtrue
+   */
+  public boolean isHtml() {
+    return this == TEXT_HTML;
+  }
 }
