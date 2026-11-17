@@ -3,10 +3,12 @@ package copel.sesproductpackage.core.unit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /** {@link MimeType} の単体テスト。 */
 class MimeTypeTest {
@@ -168,6 +170,41 @@ class MimeTypeTest {
           names = {"TEXT_HTML", "PDF", "INVALID"})
       void 種類が本文の形式以外の場合_falseを返す(final MimeType mimeType) {
         assertThat(mimeType.isText()).isFalse();
+      }
+    }
+  }
+
+  @Nested
+  class isHtml {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 文字コードが付いた text/html が HTML の本文として扱われることを確かめる。 メールの HTML 本文は charset
+       * が付くのが通常であり、タグを除くだけの本文と分けるためである。
+       *
+       * @given Content-Type が "text/html; charset=UTF-8"
+       * @when getEnum で種類を求め、isHtml を実行する
+       * @then true を返す
+       */
+      @Test
+      void 文字コードが付いたHTMLの場合_trueを返す() {
+        assertThat(MimeType.getEnum("text/html; charset=UTF-8").isHtml()).isTrue();
+      }
+
+      /**
+       * text/plain と multipart/alternative が HTML の本文として扱われないことを確かめる。 text/plain
+       * はタグを除くだけの処理で済み、multipart は本文の中身で判定するためである。
+       *
+       * @given Content-Type が "text/plain" または "multipart/alternative"
+       * @when getEnum で種類を求め、isHtml を実行する
+       * @then false を返す
+       */
+      @ParameterizedTest
+      @ValueSource(strings = {"text/plain", "multipart/alternative"})
+      void ContentTypeがHTML以外の場合_falseを返す(final String contentType) {
+        assertThat(MimeType.getEnum(contentType).isHtml()).isFalse();
       }
     }
   }

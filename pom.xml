@@ -189,6 +189,13 @@
       <artifactId>google-genai</artifactId>
       <version>1.65.0</version>
     </dependency>
+
+    <!-- Jsoup（HTML メールの本文を文字に整形する。shade で Core の JAR に同梱される） -->
+    <dependency>
+      <groupId>org.jsoup</groupId>
+      <artifactId>jsoup</artifactId>
+      <version>1.19.1</version>
+    </dependency>
   </dependencies>
 
   <build>
