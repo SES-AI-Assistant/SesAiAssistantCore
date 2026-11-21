@@ -635,6 +635,83 @@ class MatchEvaluateResponseSchemaTest {
     class 境界値 {
 
       /**
+       * 必須のコメントが無い場合に、括弧を付けず記号だけを表示することを確かめる。 画面に {@code (null)} を出さない仕様である。
+       *
+       * @given 必須の評価が "観点"、FullyMet、コメントが null の1件
+       * @when getMustEvaluationText を実行する
+       * @then 項目名と記号の行だけを含み、{@code (null)} を含まない文字列を返す
+       */
+      @Test
+      void 必須のコメントが未設定の場合_括弧を付けない文字列を返す() {
+        MatchEvaluateResponseSchema schema =
+            schema(List.of(new SkillEvaluateResult("観点", EvaluateType.FullyMet, null)), null, null);
+
+        assertThat(schema.getMustEvaluationText()).isEqualTo("■必須\n・観点：◎\n");
+      }
+
+      /**
+       * 必須のコメントが空文字の場合に、括弧を付けず記号だけを表示することを確かめる。 空の括弧を出さない仕様である。
+       *
+       * @given 必須の評価が "観点"、FullyMet、コメントが空文字の1件
+       * @when getMustEvaluationText を実行する
+       * @then 項目名と記号の行だけを含む文字列を返す
+       */
+      @Test
+      void 必須のコメントが空文字の場合_括弧を付けない文字列を返す() {
+        MatchEvaluateResponseSchema schema =
+            schema(List.of(new SkillEvaluateResult("観点", EvaluateType.FullyMet, "")), null, null);
+
+        assertThat(schema.getMustEvaluationText()).isEqualTo("■必須\n・観点：◎\n");
+      }
+
+      /**
+       * 必須のコメントが空白のみの場合に、括弧を付けず記号だけを表示することを確かめる。 その他と同じ空の判定にする仕様である。
+       *
+       * @given 必須の評価が "観点"、FullyMet、コメントが空白のみの1件
+       * @when getMustEvaluationText を実行する
+       * @then 項目名と記号の行だけを含む文字列を返す
+       */
+      @Test
+      void 必須のコメントが空白のみの場合_括弧を付けない文字列を返す() {
+        MatchEvaluateResponseSchema schema =
+            schema(List.of(new SkillEvaluateResult("観点", EvaluateType.FullyMet, "  ")), null, null);
+
+        assertThat(schema.getMustEvaluationText()).isEqualTo("■必須\n・観点：◎\n");
+      }
+
+      /**
+       * 必須のコメントが文字列 "null" の場合に、括弧を付けず記号だけを表示することを確かめる。 生成 AI が "null" と返す場合に備える仕様である。
+       *
+       * @given 必須の評価が "観点"、FullyMet、コメントが文字列 "null" の1件
+       * @when getMustEvaluationText を実行する
+       * @then 項目名と記号の行だけを含む文字列を返す
+       */
+      @Test
+      void 必須のコメントが文字列nullの場合_括弧を付けない文字列を返す() {
+        MatchEvaluateResponseSchema schema =
+            schema(
+                List.of(new SkillEvaluateResult("観点", EvaluateType.FullyMet, "null")), null, null);
+
+        assertThat(schema.getMustEvaluationText()).isEqualTo("■必須\n・観点：◎\n");
+      }
+
+      /**
+       * 必須のコメントの前後に空白がある場合に、空白を取り除かず括弧に入れることを確かめる。 その他と同じくコメントを整形しない仕様である。
+       *
+       * @given 必須の評価が "観点"、FullyMet、コメント " 根拠 " の1件
+       * @when getMustEvaluationText を実行する
+       * @then 空白を残した括弧付きのコメントを含む文字列を返す
+       */
+      @Test
+      void 必須のコメントの前後に空白がある場合_空白を残した括弧付きのコメントを返す() {
+        MatchEvaluateResponseSchema schema =
+            schema(
+                List.of(new SkillEvaluateResult("観点", EvaluateType.FullyMet, " 根拠 ")), null, null);
+
+        assertThat(schema.getMustEvaluationText()).isEqualTo("■必須\n・観点：◎( 根拠 )\n");
+      }
+
+      /**
        * 必須の一覧が未設定の場合に、空文字を返すことを確かめる。 必須の記載が無い案件は見出しも出さない。
        *
        * @given 必須の一覧が null
@@ -661,14 +738,14 @@ class MatchEvaluateResponseSchemaTest {
       /**
        * 必須の評価の値が未設定の場合に、記号の代わりにハイフンを表示することを確かめる。 判定の無い項目を満たすと誤認させない仕様を守る。
        *
-       * @given 必須の評価の値が null、項目 "時系列データ分析"、根拠が null の1件
+       * @given 必須の評価の値が null、項目 "時系列データ分析"、根拠 "根拠" の1件
        * @when getMustEvaluationText を実行する
        * @then 項目名とハイフンの行を含む文字列を返す
        */
       @Test
       void 必須の評価の値が未設定の場合_ハイフンを表示した文字列を返す() {
         MatchEvaluateResponseSchema schema =
-            schema(List.of(new SkillEvaluateResult("時系列データ分析", null, null)), null, null);
+            schema(List.of(new SkillEvaluateResult("時系列データ分析", null, "根拠")), null, null);
 
         assertThat(schema.getMustEvaluationText()).isEqualTo("■必須\n・時系列データ分析：-\n");
       }
@@ -722,6 +799,94 @@ class MatchEvaluateResponseSchemaTest {
     class 境界値 {
 
       /**
+       * 尚可のコメントが無い場合に、括弧を付けず記号だけを表示することを確かめる。 画面に {@code (null)} を出さない仕様である。
+       *
+       * @given 尚可の評価が "観点"、PartiallyMet、コメントが null の1件
+       * @when getWantEvaluationText を実行する
+       * @then 項目名と記号の行だけを含み、{@code (null)} を含まない文字列を返す
+       */
+      @Test
+      void 尚可のコメントが未設定の場合_括弧を付けない文字列を返す() {
+        MatchEvaluateResponseSchema schema =
+            schema(
+                null,
+                List.of(new SkillEvaluateResult("観点", EvaluateType.PartiallyMet, null)),
+                null);
+
+        assertThat(schema.getWantEvaluationText()).isEqualTo("■尚可\n・観点：〇\n");
+      }
+
+      /**
+       * 尚可のコメントが空文字の場合に、括弧を付けず記号だけを表示することを確かめる。 空の括弧を出さない仕様である。
+       *
+       * @given 尚可の評価が "観点"、PartiallyMet、コメントが空文字の1件
+       * @when getWantEvaluationText を実行する
+       * @then 項目名と記号の行だけを含む文字列を返す
+       */
+      @Test
+      void 尚可のコメントが空文字の場合_括弧を付けない文字列を返す() {
+        MatchEvaluateResponseSchema schema =
+            schema(
+                null, List.of(new SkillEvaluateResult("観点", EvaluateType.PartiallyMet, "")), null);
+
+        assertThat(schema.getWantEvaluationText()).isEqualTo("■尚可\n・観点：〇\n");
+      }
+
+      /**
+       * 尚可のコメントが空白のみの場合に、括弧を付けず記号だけを表示することを確かめる。 その他と同じ空の判定にする仕様である。
+       *
+       * @given 尚可の評価が "観点"、PartiallyMet、コメントが空白のみの1件
+       * @when getWantEvaluationText を実行する
+       * @then 項目名と記号の行だけを含む文字列を返す
+       */
+      @Test
+      void 尚可のコメントが空白のみの場合_括弧を付けない文字列を返す() {
+        MatchEvaluateResponseSchema schema =
+            schema(
+                null,
+                List.of(new SkillEvaluateResult("観点", EvaluateType.PartiallyMet, "  ")),
+                null);
+
+        assertThat(schema.getWantEvaluationText()).isEqualTo("■尚可\n・観点：〇\n");
+      }
+
+      /**
+       * 尚可のコメントが文字列 "null" の場合に、括弧を付けず記号だけを表示することを確かめる。 生成 AI が "null" と返す場合に備える仕様である。
+       *
+       * @given 尚可の評価が "観点"、PartiallyMet、コメントが文字列 "null" の1件
+       * @when getWantEvaluationText を実行する
+       * @then 項目名と記号の行だけを含む文字列を返す
+       */
+      @Test
+      void 尚可のコメントが文字列nullの場合_括弧を付けない文字列を返す() {
+        MatchEvaluateResponseSchema schema =
+            schema(
+                null,
+                List.of(new SkillEvaluateResult("観点", EvaluateType.PartiallyMet, "null")),
+                null);
+
+        assertThat(schema.getWantEvaluationText()).isEqualTo("■尚可\n・観点：〇\n");
+      }
+
+      /**
+       * 尚可のコメントの前後に空白がある場合に、空白を取り除かず括弧に入れることを確かめる。 その他と同じくコメントを整形しない仕様である。
+       *
+       * @given 尚可の評価が "観点"、PartiallyMet、コメント " 根拠 " の1件
+       * @when getWantEvaluationText を実行する
+       * @then 空白を残した括弧付きのコメントを含む文字列を返す
+       */
+      @Test
+      void 尚可のコメントの前後に空白がある場合_空白を残した括弧付きのコメントを返す() {
+        MatchEvaluateResponseSchema schema =
+            schema(
+                null,
+                List.of(new SkillEvaluateResult("観点", EvaluateType.PartiallyMet, " 根拠 ")),
+                null);
+
+        assertThat(schema.getWantEvaluationText()).isEqualTo("■尚可\n・観点：〇( 根拠 )\n");
+      }
+
+      /**
        * 尚可の一覧が未設定の場合に、空文字を返すことを確かめる。 尚可の記載が無い案件は見出しも出さない。
        *
        * @given 尚可の一覧が null
@@ -748,14 +913,14 @@ class MatchEvaluateResponseSchemaTest {
       /**
        * 尚可の評価の値が未設定の場合に、記号の代わりにハイフンを表示することを確かめる。 判定の無い項目を満たすと誤認させない仕様を守る。
        *
-       * @given 尚可の評価の値が null、項目 "Java"、根拠が null の1件
+       * @given 尚可の評価の値が null、項目 "Java"、根拠 "根拠" の1件
        * @when getWantEvaluationText を実行する
        * @then 項目名とハイフンの行を含む文字列を返す
        */
       @Test
       void 尚可の評価の値が未設定の場合_ハイフンを表示した文字列を返す() {
         MatchEvaluateResponseSchema schema =
-            schema(null, List.of(new SkillEvaluateResult("Java", null, null)), null);
+            schema(null, List.of(new SkillEvaluateResult("Java", null, "根拠")), null);
 
         assertThat(schema.getWantEvaluationText()).isEqualTo("■尚可\n・Java：-\n");
       }
@@ -799,12 +964,61 @@ class MatchEvaluateResponseSchemaTest {
                 null,
                 List.of(new OtherEvaluateResult("成長環境", EvaluateType.FullyMet, "裁量あり")));
 
-        assertThat(schema.getOtherEvaluationText()).isEqualTo("■その他：\n・成長環境：◎（裁量あり）\n");
+        assertThat(schema.getOtherEvaluationText()).isEqualTo("■その他：\n・成長環境：◎(裁量あり)\n");
       }
     }
 
     @Nested
     class 境界値 {
+
+      /**
+       * その他のコメントが空文字の場合に、括弧を付けず記号だけを表示することを確かめる。 空の括弧を出さない仕様である。
+       *
+       * @given その他の評価が "成長環境"、FullyMet、コメントが空文字の1件
+       * @when getOtherEvaluationText を実行する
+       * @then 項目名と記号の行だけを含む文字列を返す
+       */
+      @Test
+      void その他のコメントが空文字の場合_括弧を付けない文字列を返す() {
+        MatchEvaluateResponseSchema schema =
+            schema(null, null, List.of(new OtherEvaluateResult("成長環境", EvaluateType.FullyMet, "")));
+
+        assertThat(schema.getOtherEvaluationText()).isEqualTo("■その他：\n・成長環境：◎\n");
+      }
+
+      /**
+       * その他のコメントが空白のみの場合に、括弧を付けず記号だけを表示することを確かめる。 必須・尚可と同じ空の判定にする仕様である。
+       *
+       * @given その他の評価が "成長環境"、FullyMet、コメントが空白のみの1件
+       * @when getOtherEvaluationText を実行する
+       * @then 項目名と記号の行だけを含む文字列を返す
+       */
+      @Test
+      void その他のコメントが空白のみの場合_括弧を付けない文字列を返す() {
+        MatchEvaluateResponseSchema schema =
+            schema(
+                null, null, List.of(new OtherEvaluateResult("成長環境", EvaluateType.FullyMet, "  ")));
+
+        assertThat(schema.getOtherEvaluationText()).isEqualTo("■その他：\n・成長環境：◎\n");
+      }
+
+      /**
+       * その他のコメントが文字列 "null" の場合に、括弧を付けず記号だけを表示することを確かめる。 生成 AI が "null" と返す場合に備える仕様である。
+       *
+       * @given その他の評価が "成長環境"、FullyMet、コメントが文字列 "null" の1件
+       * @when getOtherEvaluationText を実行する
+       * @then 項目名と記号の行だけを含む文字列を返す
+       */
+      @Test
+      void その他のコメントが文字列nullの場合_括弧を付けない文字列を返す() {
+        MatchEvaluateResponseSchema schema =
+            schema(
+                null,
+                null,
+                List.of(new OtherEvaluateResult("成長環境", EvaluateType.FullyMet, "null")));
+
+        assertThat(schema.getOtherEvaluationText()).isEqualTo("■その他：\n・成長環境：◎\n");
+      }
 
       /**
        * コメントが無いその他の評価の場合に、記号だけを表示することを確かめる。 コメントが無くても判定の結果は表示する仕様を守る。
@@ -846,7 +1060,7 @@ class MatchEvaluateResponseSchemaTest {
         MatchEvaluateResponseSchema schema =
             schema(null, null, List.of(new OtherEvaluateResult("成長環境", null, "裁量あり")));
 
-        assertThat(schema.getOtherEvaluationText()).isEqualTo("■その他：\n・成長環境：-（裁量あり）\n");
+        assertThat(schema.getOtherEvaluationText()).isEqualTo("■その他：\n・成長環境：-(裁量あり)\n");
       }
 
       /**
@@ -970,7 +1184,26 @@ class MatchEvaluateResponseSchemaTest {
 
         assertThat(schema.toEvaluiationText())
             .isEqualTo(
-                "マッチ度：83点\n■必須\n・時系列データ分析：◎(根拠A)\n■尚可\n・Java：〇(類似)\n" + "■その他：\n・成長環境：◎（裁量あり）");
+                "マッチ度：83点\n■必須\n・時系列データ分析：◎(根拠A)\n■尚可\n・Java：〇(類似)\n" + "■その他：\n・成長環境：◎(裁量あり)");
+      }
+
+      /**
+       * 必須・尚可・その他のコメントが無い場合に、{@code (null)} を含まない評価文を返すことを確かめる。 評価文が括弧付きの null で汚れない仕様である。
+       *
+       * @given 必須・尚可・その他の各1件のコメントがいずれも null
+       * @when toEvaluiationText を実行する
+       * @then {@code (null)} を含まず、各項目を記号だけで並べた評価文を返す
+       */
+      @Test
+      void コメントが無い場合_nullを含まない評価文を返す() {
+        MatchEvaluateResponseSchema schema =
+            schema(
+                List.of(new SkillEvaluateResult("観点A", EvaluateType.FullyMet, null)),
+                List.of(new SkillEvaluateResult("観点B", EvaluateType.FullyMet, null)),
+                List.of(new OtherEvaluateResult("成長環境", EvaluateType.FullyMet, null)));
+
+        assertThat(schema.toEvaluiationText())
+            .isEqualTo("マッチ度：100点\n■必須\n・観点A：◎\n■尚可\n・観点B：◎\n■その他：\n・成長環境：◎");
       }
     }
 

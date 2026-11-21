@@ -200,21 +200,7 @@ public class MatchEvaluateResponseSchema {
    * @return 必須スキル評価結果
    */
   public String getMustEvaluationText() {
-    StringBuilder sb = new StringBuilder();
-    if (this.mustList != null && !this.mustList.isEmpty()) {
-      sb.append("■必須\n");
-      for (SkillEvaluateResult must : this.mustList) {
-        sb.append("・")
-            .append(must.getPerspective())
-            .append("：")
-            .append(
-                must.getResult() != null
-                    ? must.getResult().getIcon() + "(" + must.getComment() + ")"
-                    : "-")
-            .append("\n");
-      }
-    }
-    return sb.toString();
+    return skillEvaluationText("■必須\n", this.mustList);
   }
 
   /**
@@ -223,21 +209,45 @@ public class MatchEvaluateResponseSchema {
    * @return 尚可スキル評価結果
    */
   public String getWantEvaluationText() {
+    return skillEvaluationText("■尚可\n", this.wantList);
+  }
+
+  /**
+   * 必須・尚可のスキル評価結果を、見出し付きのテキストにする.
+   *
+   * <p>必須と尚可は見出し以外の組み立てが同じため、ここに集約して修正を1箇所にする。評価値が未設定の項目は、根拠コメントを出さず {@code -} のみとする（既存の出力を変えないため）。
+   *
+   * @param heading 見出し（改行を含む）
+   * @param list スキル評価結果の一覧（null・空の場合は空文字を返す）
+   * @return 評価結果のテキスト
+   */
+  private static String skillEvaluationText(String heading, List<SkillEvaluateResult> list) {
     StringBuilder sb = new StringBuilder();
-    if (this.wantList != null && !this.wantList.isEmpty()) {
-      sb.append("■尚可\n");
-      for (SkillEvaluateResult must : this.wantList) {
-        sb.append("・")
-            .append(must.getPerspective())
-            .append("：")
-            .append(
-                must.getResult() != null
-                    ? must.getResult().getIcon() + "(" + must.getComment() + ")"
-                    : "-")
-            .append("\n");
+    if (list != null && !list.isEmpty()) {
+      sb.append(heading);
+      for (SkillEvaluateResult skill : list) {
+        sb.append("・").append(skill.getPerspective()).append("：");
+        if (skill.getResult() == null) {
+          sb.append("-");
+        } else {
+          sb.append(skill.getResult().getIcon()).append(commentText(skill.getComment()));
+        }
+        sb.append("\n");
       }
     }
     return sb.toString();
+  }
+
+  /**
+   * 根拠コメントを括弧付きの文字列にする.
+   *
+   * <p>コメントが空のときに {@code (null)} などが出力されないよう、空なら空文字を返す。必須・尚可・その他で括弧を揃えるため、括弧の組み立てはここに集約する。
+   *
+   * @param comment 根拠コメント
+   * @return 半角括弧付きのコメント。コメントが空の場合は空文字
+   */
+  private static String commentText(String comment) {
+    return OriginalStringUtils.isEmpty(comment) ? "" : "(" + comment + ")";
   }
 
   /**
@@ -251,11 +261,12 @@ public class MatchEvaluateResponseSchema {
       sb.append("■その他：\n");
       for (OtherEvaluateResult other : this.otherList) {
         String icon = other.getResult() != null ? other.getResult().getIcon() : "-";
-        sb.append("・").append(other.getPerspective()).append("：").append(icon);
-        if (!OriginalStringUtils.isEmpty(other.getComment())) {
-          sb.append("（").append(other.getComment()).append("）");
-        }
-        sb.append("\n");
+        sb.append("・")
+            .append(other.getPerspective())
+            .append("：")
+            .append(icon)
+            .append(commentText(other.getComment()))
+            .append("\n");
       }
     }
     return sb.toString();
