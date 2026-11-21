@@ -425,6 +425,84 @@ class SES_AI_T_MATCHTest {
     class 境界値 {
 
       /**
+       * 必須の評価が null の場合に尚可の評価だけを返すことを確かめる。 文字列 "null" と先頭の改行を画面に出さない仕様である。
+       *
+       * @given 必須スキル評価文が null、尚可スキル評価文が "尚可"
+       * @when getSkillEvaluateText を実行する
+       * @then "尚可" だけの文章を返す
+       */
+      @Test
+      void 必須の評価がnullの場合_尚可の評価だけの文章を返す() {
+        SES_AI_T_MATCH match = match();
+        match.setMustEvaluationText(null);
+
+        assertThat(match.getSkillEvaluateText()).isEqualTo("尚可");
+      }
+
+      /**
+       * 必須の評価が空文字の場合に尚可の評価だけを返すことを確かめる。 空の必須を改行で連結すると、先頭に空行が残る。
+       *
+       * @given 必須スキル評価文が空文字、尚可スキル評価文が "尚可"
+       * @when getSkillEvaluateText を実行する
+       * @then "尚可" だけの文章を返す
+       */
+      @Test
+      void 必須の評価が空文字の場合_尚可の評価だけの文章を返す() {
+        SES_AI_T_MATCH match = match();
+        match.setMustEvaluationText("");
+
+        assertThat(match.getSkillEvaluateText()).isEqualTo("尚可");
+      }
+
+      /**
+       * 必須と尚可の評価がどちらも null の場合に空文字を返すことを確かめる。 評価文が無い行で "null" を画面に出さない仕様である。
+       *
+       * @given 必須スキル評価文と尚可スキル評価文がどちらも null
+       * @when getSkillEvaluateText を実行する
+       * @then 空文字を返す
+       */
+      @Test
+      void 必須と尚可の評価がどちらもnullの場合_空文字を返す() {
+        SES_AI_T_MATCH match = match();
+        match.setMustEvaluationText(null);
+        match.setWantEvaluationText(null);
+
+        assertThat(match.getSkillEvaluateText()).isEmpty();
+      }
+
+      /**
+       * 必須と尚可の評価がどちらも空文字の場合に空文字を返すことを確かめる。 改行だけの文章を画面に出さない仕様である。
+       *
+       * @given 必須スキル評価文と尚可スキル評価文がどちらも空文字
+       * @when getSkillEvaluateText を実行する
+       * @then 空文字を返す
+       */
+      @Test
+      void 必須と尚可の評価がどちらも空文字の場合_空文字を返す() {
+        SES_AI_T_MATCH match = match();
+        match.setMustEvaluationText("");
+        match.setWantEvaluationText("");
+
+        assertThat(match.getSkillEvaluateText()).isEmpty();
+      }
+
+      /**
+       * 必須の評価が null で尚可の評価が空文字の場合に空文字を返すことを確かめる。 どちらかが null でも空文字でも同じ扱いにする仕様である。
+       *
+       * @given 必須スキル評価文が null、尚可スキル評価文が空文字
+       * @when getSkillEvaluateText を実行する
+       * @then 空文字を返す
+       */
+      @Test
+      void 必須の評価がnullで尚可の評価が空文字の場合_空文字を返す() {
+        SES_AI_T_MATCH match = match();
+        match.setMustEvaluationText(null);
+        match.setWantEvaluationText("");
+
+        assertThat(match.getSkillEvaluateText()).isEmpty();
+      }
+
+      /**
        * 尚可の評価が null の場合に必須の評価だけを返すことを確かめる。 尚可が無いと改行だけが末尾に残る。
        *
        * @given 必須スキル評価文が "必須"、尚可スキル評価文が null

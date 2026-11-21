@@ -289,14 +289,19 @@ public class SES_AI_T_MATCH extends EntityBase {
   /**
    * スキル要件（必須スキルと尚可スキル）の評価結果を生成する.
    *
+   * <p>評価文が null または空文字のものは連結しない。必須が空のときに文字列 "null" や先頭の改行が画面に出ないようにするため。 両方が空の場合は空文字を返す。
+   *
    * @return 評価結果文章.
    */
   public String getSkillEvaluateText() {
-    StringBuilder sb = new StringBuilder();
-    sb.append(this.mustEvaluationText);
-    if (this.wantEvaluationText != null && !this.wantEvaluationText.isEmpty()) {
-      sb.append("\n").append(this.wantEvaluationText);
+    boolean hasMust = this.mustEvaluationText != null && !this.mustEvaluationText.isEmpty();
+    boolean hasWant = this.wantEvaluationText != null && !this.wantEvaluationText.isEmpty();
+    if (hasMust && hasWant) {
+      return this.mustEvaluationText + "\n" + this.wantEvaluationText;
     }
-    return sb.toString();
+    if (hasMust) {
+      return this.mustEvaluationText;
+    }
+    return hasWant ? this.wantEvaluationText : "";
   }
 }
