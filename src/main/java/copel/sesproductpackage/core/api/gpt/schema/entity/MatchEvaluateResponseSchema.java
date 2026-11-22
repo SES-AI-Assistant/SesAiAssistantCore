@@ -258,7 +258,7 @@ public class MatchEvaluateResponseSchema {
   public String getOtherEvaluationText() {
     StringBuilder sb = new StringBuilder();
     if (this.otherList != null && !this.otherList.isEmpty()) {
-      sb.append("■その他：\n");
+      sb.append("■その他\n");
       for (OtherEvaluateResult other : this.otherList) {
         String icon = other.getResult() != null ? other.getResult().getIcon() : "-";
         sb.append("・")

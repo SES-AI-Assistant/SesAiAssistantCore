@@ -964,7 +964,7 @@ class MatchEvaluateResponseSchemaTest {
                 null,
                 List.of(new OtherEvaluateResult("成長環境", EvaluateType.FullyMet, "裁量あり")));
 
-        assertThat(schema.getOtherEvaluationText()).isEqualTo("■その他：\n・成長環境：◎(裁量あり)\n");
+        assertThat(schema.getOtherEvaluationText()).isEqualTo("■その他\n・成長環境：◎(裁量あり)\n");
       }
     }
 
@@ -983,7 +983,7 @@ class MatchEvaluateResponseSchemaTest {
         MatchEvaluateResponseSchema schema =
             schema(null, null, List.of(new OtherEvaluateResult("成長環境", EvaluateType.FullyMet, "")));
 
-        assertThat(schema.getOtherEvaluationText()).isEqualTo("■その他：\n・成長環境：◎\n");
+        assertThat(schema.getOtherEvaluationText()).isEqualTo("■その他\n・成長環境：◎\n");
       }
 
       /**
@@ -999,7 +999,7 @@ class MatchEvaluateResponseSchemaTest {
             schema(
                 null, null, List.of(new OtherEvaluateResult("成長環境", EvaluateType.FullyMet, "  ")));
 
-        assertThat(schema.getOtherEvaluationText()).isEqualTo("■その他：\n・成長環境：◎\n");
+        assertThat(schema.getOtherEvaluationText()).isEqualTo("■その他\n・成長環境：◎\n");
       }
 
       /**
@@ -1017,7 +1017,7 @@ class MatchEvaluateResponseSchemaTest {
                 null,
                 List.of(new OtherEvaluateResult("成長環境", EvaluateType.FullyMet, "null")));
 
-        assertThat(schema.getOtherEvaluationText()).isEqualTo("■その他：\n・成長環境：◎\n");
+        assertThat(schema.getOtherEvaluationText()).isEqualTo("■その他\n・成長環境：◎\n");
       }
 
       /**
@@ -1033,7 +1033,7 @@ class MatchEvaluateResponseSchemaTest {
             schema(
                 null, null, List.of(new OtherEvaluateResult("成長環境", EvaluateType.FullyMet, null)));
 
-        assertThat(schema.getOtherEvaluationText()).isEqualTo("■その他：\n・成長環境：◎\n");
+        assertThat(schema.getOtherEvaluationText()).isEqualTo("■その他\n・成長環境：◎\n");
       }
 
       /**
@@ -1060,7 +1060,7 @@ class MatchEvaluateResponseSchemaTest {
         MatchEvaluateResponseSchema schema =
             schema(null, null, List.of(new OtherEvaluateResult("成長環境", null, "裁量あり")));
 
-        assertThat(schema.getOtherEvaluationText()).isEqualTo("■その他：\n・成長環境：-(裁量あり)\n");
+        assertThat(schema.getOtherEvaluationText()).isEqualTo("■その他\n・成長環境：-(裁量あり)\n");
       }
 
       /**
@@ -1184,7 +1184,7 @@ class MatchEvaluateResponseSchemaTest {
 
         assertThat(schema.toEvaluiationText())
             .isEqualTo(
-                "マッチ度：83点\n■必須\n・時系列データ分析：◎(根拠A)\n■尚可\n・Java：〇(類似)\n" + "■その他：\n・成長環境：◎(裁量あり)");
+                "マッチ度：83点\n■必須\n・時系列データ分析：◎(根拠A)\n■尚可\n・Java：〇(類似)\n" + "■その他\n・成長環境：◎(裁量あり)");
       }
 
       /**
@@ -1203,7 +1203,7 @@ class MatchEvaluateResponseSchemaTest {
                 List.of(new OtherEvaluateResult("成長環境", EvaluateType.FullyMet, null)));
 
         assertThat(schema.toEvaluiationText())
-            .isEqualTo("マッチ度：100点\n■必須\n・観点A：◎\n■尚可\n・観点B：◎\n■その他：\n・成長環境：◎");
+            .isEqualTo("マッチ度：100点\n■必須\n・観点A：◎\n■尚可\n・観点B：◎\n■その他\n・成長環境：◎");
       }
     }
 
