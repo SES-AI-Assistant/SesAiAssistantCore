@@ -842,17 +842,113 @@ class SES_AI_T_MATCHTest {
       /**
        * 評価文の末尾に空白と改行が続く場合に、取り除いて返すことを確かめる。 提案文のテンプレートが区切りの改行を足すので、評価文の末尾に空行を残さない。
        *
-       * @given 必須スキル評価文が {@code ■必須\n・A：◎\n\n }、尚可スキル評価文が {@code ■尚可\n・B：〇\n\n}
+       * @given 必須スキル評価文が {@code ■必須\n・A：◎\n}、尚可スキル評価文が {@code ■尚可\n・B：〇\n\n} と半角スペース2つ
        * @when getSkillEvaluateText を実行する
-       * @then 末尾が空白と改行で終わらない文章を返す
+       * @then 末尾の空白と改行だけを除いた {@code ■必須\n・A：◎\n\n■尚可\n・B：〇} を返す
        */
       @Test
       void 末尾に空白と改行が続く場合_末尾を取り除いた文章を返す() {
         SES_AI_T_MATCH match = match();
-        match.setMustEvaluationText("■必須\n・A：◎\n\n  ");
-        match.setWantEvaluationText("■尚可\n・B：〇\n\n");
+        match.setMustEvaluationText("■必須\n・A：◎\n");
+        match.setWantEvaluationText("■尚可\n・B：〇\n\n  ");
 
-        assertThat(match.getSkillEvaluateText()).isEqualTo("■必須\n・A：◎\n\n  \n■尚可\n・B：〇");
+        assertThat(match.getSkillEvaluateText()).isEqualTo("■必須\n・A：◎\n\n■尚可\n・B：〇");
+      }
+
+      /**
+       * 閉じ括弧の後ろに空白とタブが続く未充足の項目で、空白も含めてコメントを取り除くことを確かめる。 AI の出力は行末に空白が付く場合がある。
+       *
+       * @given 必須スキル評価文が半角スペース、全角スペース、タブを括弧の後ろに持つ三つの未充足の項目と充足の項目
+       * @when getSkillEvaluateText を実行する
+       * @then 空白もコメントも取り除いた三つの項目と、そのままの充足の項目を返す
+       */
+      @Test
+      void 未充足の閉じ括弧の後ろに空白が続く場合_空白とコメントを取り除いた文章を返す() {
+        SES_AI_T_MATCH match = match();
+        match.setMustEvaluationText("・A：×(a) \n・B：×(b)　\n・C：×(c)\t\n・D：◎(y)");
+        match.setWantEvaluationText("");
+
+        assertThat(match.getSkillEvaluateText()).isEqualTo("・A：×\n・B：×\n・C：×\n・D：◎(y)");
+      }
+
+      /**
+       * 未充足の項目と次の項目の間に空行がある場合に、空行を変えずにコメントを取り除くことを確かめる。 空行は評価文の区切りで、コメントの一部ではない。
+       *
+       * @given 必須スキル評価文が {@code ・A：×(a)\n\n・B：◎(y)}、尚可スキル評価文が空文字
+       * @when getSkillEvaluateText を実行する
+       * @then 空行を残した {@code ・A：×\n\n・B：◎(y)} を返す
+       */
+      @Test
+      void 未充足の項目と次の項目の間に空行がある場合_空行を残してコメントを取り除いた文章を返す() {
+        SES_AI_T_MATCH match = match();
+        match.setMustEvaluationText("・A：×(a)\n\n・B：◎(y)");
+        match.setWantEvaluationText("");
+
+        assertThat(match.getSkillEvaluateText()).isEqualTo("・A：×\n\n・B：◎(y)");
+      }
+
+      /**
+       * 閉じ括弧の後ろに文字が続く未充足の項目で、コメントも後ろの文字も変えないことを確かめる。 形式が保証されない入力から本文の情報を消さない。
+       *
+       * @given 必須スキル評価文が {@code ・A：×(a) 補足\n・B：◎(y)}、尚可スキル評価文が空文字
+       * @when getSkillEvaluateText を実行する
+       * @then 元の {@code ・A：×(a) 補足\n・B：◎(y)} を返す
+       */
+      @Test
+      void 未充足の閉じ括弧の後ろに文字が続く場合_元の文章を返す() {
+        SES_AI_T_MATCH match = match();
+        match.setMustEvaluationText("・A：×(a) 補足\n・B：◎(y)");
+        match.setWantEvaluationText("");
+
+        assertThat(match.getSkillEvaluateText()).isEqualTo("・A：×(a) 補足\n・B：◎(y)");
+      }
+
+      /**
+       * コメントが閉じたあとに項目でも見出しでもない行が続く場合に、文章を変えないことを確かめる。 その行が項目の続きかを判断できないので、本文の情報を消さない。
+       *
+       * @given 必須スキル評価文が {@code ・A：×(a\nb)\nc\n・B：◎(y)}、尚可スキル評価文が空文字
+       * @when getSkillEvaluateText を実行する
+       * @then 元の {@code ・A：×(a\nb)\nc\n・B：◎(y)} を返す
+       */
+      @Test
+      void コメントのあとに項目でも見出しでもない行が続く場合_元の文章を返す() {
+        SES_AI_T_MATCH match = match();
+        match.setMustEvaluationText("・A：×(a\nb)\nc\n・B：◎(y)");
+        match.setWantEvaluationText("");
+
+        assertThat(match.getSkillEvaluateText()).isEqualTo("・A：×(a\nb)\nc\n・B：◎(y)");
+      }
+
+      /**
+       * 改行が復帰文字だけの評価文で、次の項目を巻き込まずにコメントを取り除くことを確かめる。 復帰文字を境界にしないと、次の項目の評価が画面から消える。
+       *
+       * @given 必須スキル評価文が {@code ・A：×(a)\r・B：◎(y)}、尚可スキル評価文が空文字
+       * @when getSkillEvaluateText を実行する
+       * @then 次の項目を残した {@code ・A：×\r・B：◎(y)} を返す
+       */
+      @Test
+      void 改行が復帰文字だけの場合_次の項目を残してコメントを取り除いた文章を返す() {
+        SES_AI_T_MATCH match = match();
+        match.setMustEvaluationText("・A：×(a)\r・B：◎(y)");
+        match.setWantEvaluationText("");
+
+        assertThat(match.getSkillEvaluateText()).isEqualTo("・A：×\r・B：◎(y)");
+      }
+
+      /**
+       * 改行が復帰文字と改行文字の組の評価文で、次の項目を残してコメントを取り除くことを確かめる。 Windows 形式の改行でも同じ表示にそろえる。
+       *
+       * @given 必須スキル評価文が {@code ・A：×(a)\r\n・B：◎(y)}、尚可スキル評価文が空文字
+       * @when getSkillEvaluateText を実行する
+       * @then 次の項目を残した {@code ・A：×\r\n・B：◎(y)} を返す
+       */
+      @Test
+      void 改行が復帰文字と改行文字の組の場合_次の項目を残してコメントを取り除いた文章を返す() {
+        SES_AI_T_MATCH match = match();
+        match.setMustEvaluationText("・A：×(a)\r\n・B：◎(y)");
+        match.setWantEvaluationText("");
+
+        assertThat(match.getSkillEvaluateText()).isEqualTo("・A：×\r\n・B：◎(y)");
       }
     }
   }
