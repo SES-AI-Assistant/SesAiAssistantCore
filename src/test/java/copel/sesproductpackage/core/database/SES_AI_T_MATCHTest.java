@@ -419,10 +419,141 @@ class SES_AI_T_MATCHTest {
       void 尚可の評価がある場合_改行で連結した文章を返す() {
         assertThat(match().getSkillEvaluateText()).isEqualTo("必須\n尚可");
       }
+
+      /**
+       * コメントが {@code (null)} の評価から括弧を取り除いて連結することを確かめる。 旧実装が保存した {@code (null)} を画面に出さない仕様である。
+       *
+       * @given 必須スキル評価文が {@code ◎(null)}、尚可スキル評価文が {@code 〇(良い)}
+       * @when getSkillEvaluateText を実行する
+       * @then 必須は記号だけ、尚可はそのままの文章を改行で連結して返す
+       */
+      @Test
+      void 必須のコメントがnullの括弧の場合_括弧を取り除いて連結した文章を返す() {
+        SES_AI_T_MATCH match = match();
+        match.setMustEvaluationText("◎(null)");
+        match.setWantEvaluationText("〇(良い)");
+
+        assertThat(match.getSkillEvaluateText()).isEqualTo("◎\n〇(良い)");
+      }
+
+      /**
+       * 尚可のコメントが {@code (null)} の評価から括弧を取り除くことを確かめる。 必須と尚可のどちらにも同じ除去を適用する仕様である。
+       *
+       * @given 必須スキル評価文が {@code ◎(良い)}、尚可スキル評価文が {@code -(null)}
+       * @when getSkillEvaluateText を実行する
+       * @then 必須はそのまま、尚可は記号だけの文章を改行で連結して返す
+       */
+      @Test
+      void 尚可のコメントがnullの括弧の場合_括弧を取り除いて連結した文章を返す() {
+        SES_AI_T_MATCH match = match();
+        match.setMustEvaluationText("◎(良い)");
+        match.setWantEvaluationText("-(null)");
+
+        assertThat(match.getSkillEvaluateText()).isEqualTo("◎(良い)\n-");
+      }
+
+      /**
+       * コメントが空の括弧の評価から括弧を取り除いて連結することを確かめる。 旧実装が保存した空の括弧を画面に出さない仕様である。
+       *
+       * @given 必須スキル評価文が {@code -()}、尚可スキル評価文が {@code ◎()}
+       * @when getSkillEvaluateText を実行する
+       * @then 記号だけを改行で連結した文章を返す
+       */
+      @Test
+      void コメントが空の括弧の場合_括弧を取り除いて連結した文章を返す() {
+        SES_AI_T_MATCH match = match();
+        match.setMustEvaluationText("-()");
+        match.setWantEvaluationText("◎()");
+
+        assertThat(match.getSkillEvaluateText()).isEqualTo("-\n◎");
+      }
+
+      /**
+       * コメントの本文に {@code (null)} を含む場合に、その部分だけを取り除くことを確かめる。 コメントのほかの文字を変えない仕様である。
+       *
+       * @given 必須スキル評価文が {@code ◎(abc(null))}、尚可スキル評価文が空文字
+       * @when getSkillEvaluateText を実行する
+       * @then {@code (null)} の部分だけを取り除いた必須の文章を返す
+       */
+      @Test
+      void コメントの本文にnullの括弧を含む場合_その部分だけを取り除いた文章を返す() {
+        SES_AI_T_MATCH match = match();
+        match.setMustEvaluationText("◎(abc(null))");
+        match.setWantEvaluationText("");
+
+        assertThat(match.getSkillEvaluateText()).isEqualTo("◎(abc)");
+      }
+
+      /**
+       * 評価文を読んでも、保存する値のゲッターは変わらないことを確かめる。 DB に保存した値を書き換えない仕様である。
+       *
+       * @given 必須スキル評価文が {@code ◎(null)}、尚可スキル評価文が {@code 〇()}
+       * @when getSkillEvaluateText を実行する
+       * @then 必須と尚可の評価文のゲッターは元の文字列を返す
+       */
+      @Test
+      void 評価文を読んだ場合_保存した評価文のゲッターは元の文字列を返す() {
+        SES_AI_T_MATCH match = match();
+        match.setMustEvaluationText("◎(null)");
+        match.setWantEvaluationText("〇()");
+
+        match.getSkillEvaluateText();
+
+        assertThat(match.getMustEvaluationText()).isEqualTo("◎(null)");
+        assertThat(match.getWantEvaluationText()).isEqualTo("〇()");
+      }
     }
 
     @Nested
     class 境界値 {
+
+      /**
+       * コメントが空白だけの括弧と大文字の括弧は、取り除かないことを確かめる。 旧実装が出した形だけを対象にする仕様である。
+       *
+       * @given 必須スキル評価文が空白だけの括弧を持つ {@code ◎( )}、尚可スキル評価文が大文字の {@code 〇(NULL)}
+       * @when getSkillEvaluateText を実行する
+       * @then どちらの括弧も残した文章を改行で連結して返す
+       */
+      @Test
+      void コメントが空白だけの括弧と大文字の括弧の場合_括弧を残した文章を返す() {
+        SES_AI_T_MATCH match = match();
+        match.setMustEvaluationText("◎(  )");
+        match.setWantEvaluationText("〇(NULL)");
+
+        assertThat(match.getSkillEvaluateText()).isEqualTo("◎(  )\n〇(NULL)");
+      }
+
+      /**
+       * 必須が括弧だけで取り除くと空になる場合に、尚可だけを返すことを確かめる。 先頭に改行だけの空行を画面に出さない仕様である。
+       *
+       * @given 必須スキル評価文が {@code (null)}、尚可スキル評価文が "尚可"
+       * @when getSkillEvaluateText を実行する
+       * @then 改行を含まない "尚可" だけの文章を返す
+       */
+      @Test
+      void 必須が括弧だけで取り除くと空になる場合_尚可の評価だけの文章を返す() {
+        SES_AI_T_MATCH match = match();
+        match.setMustEvaluationText("(null)");
+        match.setWantEvaluationText("尚可");
+
+        assertThat(match.getSkillEvaluateText()).isEqualTo("尚可");
+      }
+
+      /**
+       * 必須と尚可が括弧だけで取り除くとどちらも空になる場合に、空文字を返すことを確かめる。 改行だけの文章を画面に出さない仕様である。
+       *
+       * @given 必須スキル評価文が {@code ()}、尚可スキル評価文が {@code (null)}
+       * @when getSkillEvaluateText を実行する
+       * @then 空文字を返す
+       */
+      @Test
+      void 必須と尚可が括弧だけで取り除くとどちらも空になる場合_空文字を返す() {
+        SES_AI_T_MATCH match = match();
+        match.setMustEvaluationText("()");
+        match.setWantEvaluationText("(null)");
+
+        assertThat(match.getSkillEvaluateText()).isEmpty();
+      }
 
       /**
        * 必須の評価が null の場合に尚可の評価だけを返すことを確かめる。 文字列 "null" と先頭の改行を画面に出さない仕様である。
