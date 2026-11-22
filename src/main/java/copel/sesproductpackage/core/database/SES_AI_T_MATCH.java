@@ -40,8 +40,8 @@ public class SES_AI_T_MATCH extends EntityBase {
    */
   private static final Pattern UNMET_COMMENT =
       Pattern.compile(
-          "^(・[^：\\r\\n]*：[×-])\\((?:(?![\\r\\n][・■]).)*\\)[ 　\\t]*"
-              + "(?=(?:(?:\\r\\n|\\n|\\r)[ 　\\t]*)*(?:\\r\\n|\\n|\\r)[・■]|[\\s　]*\\z)",
+          "^(・[^：\\r\\n]*：[×-])\\((?:(?![\\r\\n][・■]).)*\\)[ 　\\t]*+"
+              + "(?=[ 　\\t\\r\\n]*[\\r\\n][・■]|[ 　\\t\\r\\n]*\\z)",
           Pattern.MULTILINE | Pattern.DOTALL);
 
   public SES_AI_T_MATCH(String tenantId) {

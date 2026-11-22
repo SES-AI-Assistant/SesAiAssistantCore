@@ -858,7 +858,7 @@ class SES_AI_T_MATCHTest {
       /**
        * 閉じ括弧の後ろに空白とタブが続く未充足の項目で、空白も含めてコメントを取り除くことを確かめる。 AI の出力は行末に空白が付く場合がある。
        *
-       * @given 必須スキル評価文が半角スペース、全角スペース、タブを括弧の後ろに持つ三つの未充足の項目と充足の項目
+       * @given 必須スキル評価文が {@code ・A：×(a) \n・B：×(b)　\n・C：×(c)\t\n・D：◎(y)}、尚可スキル評価文が空文字
        * @when getSkillEvaluateText を実行する
        * @then 空白もコメントも取り除いた三つの項目と、そのままの充足の項目を返す
        */
@@ -885,6 +885,23 @@ class SES_AI_T_MATCHTest {
         match.setWantEvaluationText("");
 
         assertThat(match.getSkillEvaluateText()).isEqualTo("・A：×\n\n・B：◎(y)");
+      }
+
+      /**
+       * 閉じ括弧の後ろに改行が5000個続いて文字で終わる評価文で、例外を投げずに文章を変えないことを確かめる。 長い空行の判定でスタックを使い切ると、詳細画面が表示できない。
+       *
+       * @given 必須スキル評価文が {@code ・A：×(a)} の後ろに改行を5000個と "x" を続けた文字列、尚可スキル評価文が空文字
+       * @when getSkillEvaluateText を実行する
+       * @then 元の文字列を返す
+       */
+      @Test
+      void 閉じ括弧の後ろに改行が5000個続く場合_元の文章を返す() {
+        SES_AI_T_MATCH match = match();
+        String must = "・A：×(a)" + "\n".repeat(5000) + "x";
+        match.setMustEvaluationText(must);
+        match.setWantEvaluationText("");
+
+        assertThat(match.getSkillEvaluateText()).isEqualTo(must);
       }
 
       /**
