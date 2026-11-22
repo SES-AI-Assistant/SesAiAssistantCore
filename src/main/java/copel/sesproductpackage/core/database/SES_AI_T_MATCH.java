@@ -11,6 +11,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -24,6 +25,9 @@ import lombok.ToString;
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 public class SES_AI_T_MATCH extends EntityBase {
+
+  /** 中身の無いコメントの括弧。旧実装がコメントの無い評価に付けた {@code (null)} と {@code ()}. */
+  private static final Pattern EMPTY_COMMENT = Pattern.compile("\\(null\\)|\\(\\)");
 
   public SES_AI_T_MATCH(String tenantId) {
     super(tenantId);
@@ -289,19 +293,29 @@ public class SES_AI_T_MATCH extends EntityBase {
   /**
    * スキル要件（必須スキルと尚可スキル）の評価結果を生成する.
    *
-   * <p>評価文が null または空文字のものは連結しない。必須が空のときに文字列 "null" や先頭の改行が画面に出ないようにするため。 両方が空の場合は空文字を返す。
+   * <p>保存済みの評価文には、旧実装が出した {@code (null)} と {@code ()} が残っているため、表示時に取り除く。 DB の値は書き換えない。
+   * 取り除いた結果が空になった評価文は連結せず、必須が空のときに先頭の改行が画面に出ないようにする。両方が空の場合は空文字を返す。
    *
    * @return 評価結果文章.
    */
   public String getSkillEvaluateText() {
-    boolean hasMust = this.mustEvaluationText != null && !this.mustEvaluationText.isEmpty();
-    boolean hasWant = this.wantEvaluationText != null && !this.wantEvaluationText.isEmpty();
-    if (hasMust && hasWant) {
-      return this.mustEvaluationText + "\n" + this.wantEvaluationText;
+    String must = removeEmptyComment(this.mustEvaluationText);
+    String want = removeEmptyComment(this.wantEvaluationText);
+    if (!must.isEmpty() && !want.isEmpty()) {
+      return must + "\n" + want;
     }
-    if (hasMust) {
-      return this.mustEvaluationText;
-    }
-    return hasWant ? this.wantEvaluationText : "";
+    return must.isEmpty() ? want : must;
+  }
+
+  /**
+   * 評価文から、中身の無いコメントの括弧（{@code (null)} と {@code ()}）を取り除く.
+   *
+   * <p>空白だけの括弧と大文字の {@code (NULL)} は、旧実装が出した形ではないため取り除かない。
+   *
+   * @param evaluationText 評価文。null も可
+   * @return 括弧を取り除いた評価文。null の場合は空文字
+   */
+  private static String removeEmptyComment(String evaluationText) {
+    return evaluationText == null ? "" : EMPTY_COMMENT.matcher(evaluationText).replaceAll("");
   }
 }
