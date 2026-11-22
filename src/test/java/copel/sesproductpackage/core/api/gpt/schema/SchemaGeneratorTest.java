@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import copel.sesproductpackage.core.api.gpt.schema.entity.JobInfoSchema;
 import copel.sesproductpackage.core.api.gpt.schema.entity.PersonInfoSchema;
+import copel.sesproductpackage.core.api.gpt.schema.entity.SkillsheetInfoSchema;
 import copel.sesproductpackage.core.util.ApplicationClock;
 import copel.sesproductpackage.tools.testsupport.clock.FixedClock;
 import java.lang.reflect.Field;
@@ -370,6 +371,116 @@ class SchemaGeneratorTest {
         Map<String, Object> inner = property(SchemaGenerator.generate(NestedStatic.class), "inner");
 
         assertThat(castMap(inner.get("properties"))).containsOnlyKeys("value");
+      }
+
+      /**
+       * スキルシートの案件の項目が、案件ごとの開始、終了、スキルと内容だけを持つスキーマを返すことを確かめる。 月数を AI に算出させない仕様を、スキーマの形で守るためである。
+       *
+       * @given 入力が SkillsheetInfoSchema である
+       * @when generate を SkillsheetInfoSchema で呼び出す
+       * @then project_experiences は maxItems が 50 で、案件の項目が start_month、end_month、skills、perspective
+       *     だけを持つ
+       */
+      @Test
+      void 入力がスキルシート情報の場合_案件ごとの項目だけを持つスキーマを返す() {
+        Map<String, Object> schema = SchemaGenerator.generate(SkillsheetInfoSchema.class);
+        Map<String, Object> projectExperiences = property(schema, "project_experiences");
+        Map<String, Object> projectItems = castMap(projectExperiences.get("items"));
+
+        assertThat(projectExperiences).containsEntry("maxItems", 50);
+        assertThat(properties(projectItems))
+            .containsOnlyKeys("start_month", "end_month", "skills", "perspective");
+        assertThat(properties(schema)).containsOnlyKeys("project_experiences");
+      }
+
+      /**
+       * スキルシートのスキーマの説明が、案件ごとに抽出し月数は算出しないと指示し、合算と例の年数を含まないことを確かめる。 AI が月数を合算すると、Java の集計と食い違うためである。
+       *
+       * @given 入力が SkillsheetInfoSchema である
+       * @when generate を SkillsheetInfoSchema で呼び出す
+       * @then スキーマの文字列に "案件ごとに開始、終了、スキルを抽出し、月数は算出しない" を含み、"合算" と "例: 3年" を含まない
+       */
+      @Test
+      void 入力がスキルシート情報の場合_月数を算出させない指示を含むスキーマを返す() {
+        String schema = SchemaGenerator.generate(SkillsheetInfoSchema.class).toString();
+
+        assertThat(schema)
+            .contains("案件ごとに開始、終了、スキルを抽出し、月数は算出しない")
+            .doesNotContain("合算")
+            .doesNotContain("例: 3年");
+      }
+
+      /**
+       * 案件のスキル一覧が、15件までで1件30文字以内の要素だと示すスキーマを返すことを確かめる。 AI の出力の件数と長さを絞り、登録できない長さの値を防ぐためである。
+       *
+       * @given 入力が SkillsheetInfoSchema である
+       * @when generate を SkillsheetInfoSchema で呼び出す
+       * @then skills は maxItems が 15 で、要素は文字列で maxLength が 30 である
+       */
+      @Test
+      void 入力がスキルシート情報の場合_スキル一覧の件数と要素の文字数を制限するスキーマを返す() {
+        Map<String, Object> schema = SchemaGenerator.generate(SkillsheetInfoSchema.class);
+        Map<String, Object> projectItems =
+            castMap(property(schema, "project_experiences").get("items"));
+        Map<String, Object> skills = property(projectItems, "skills");
+
+        assertThat(skills).containsEntry("maxItems", 15);
+        assertThat(castMap(skills.get("items")))
+            .containsEntry("type", "string")
+            .containsEntry("maxLength", 30);
+      }
+
+      /**
+       * 本日の日付を付ける項目の説明文の末尾に本日の日付を続け、年月の書式は絞らないことを確かめる。 AI が現在を具体的な年月にして返せるようにするためである。
+       *
+       * @given 現在時刻が2026年11月22日で、説明文が "終了年月" で年月の書式を持つ項目がある
+       * @when generate を対象クラスで呼び出す
+       * @then 説明文は末尾に本日の日付を続けた終了年月の文で、書式は変わらず 2023年4月 に合致する
+       */
+      @Test
+      @FixedClock("2026-11-22T10:00:00+09:00")
+      void 本日の日付を付ける項目の場合_説明文の末尾に日付を続けた書式を返す() {
+        Map<String, Object> endMonth =
+            property(SchemaGenerator.generate(TodayInDescription.class), "end_month");
+
+        assertThat(endMonth)
+            .containsEntry("description", "終了年月。本日は2026年11月22日である。")
+            .containsEntry("pattern", "^[0-9]{4}年([1-9]|1[0-2])月$");
+        assertThat("2023年4月").matches((String) endMonth.get("pattern"));
+      }
+
+      /**
+       * 説明文が無い本日の日付を付ける項目の場合に、本日の日付だけを説明文にすることを確かめる。 説明文が無くても、AI に今日の日付を伝えるためである。
+       *
+       * @given 現在時刻が2026年11月22日で、説明文が無く本日の日付を付ける項目がある
+       * @when generate を対象クラスで呼び出す
+       * @then 説明文は本日の日付の一文だけで、書式を持たない
+       */
+      @Test
+      @FixedClock("2026-11-22T10:00:00+09:00")
+      void 説明文が無い本日の日付の項目の場合_本日の日付だけの説明文を返す() {
+        Map<String, Object> noDescription =
+            property(SchemaGenerator.generate(TodayInDescription.class), "no_description");
+
+        assertThat(noDescription)
+            .containsEntry("description", "本日は2026年11月22日である。")
+            .doesNotContainKey("pattern");
+      }
+
+      /**
+       * 本日の日付を付けない項目の説明文に、日付を含めないことを確かめる。 日付は必要な項目だけに付け、他の項目の指示を変えないためである。
+       *
+       * @given 現在時刻が2026年11月22日で、本日の日付を付けない説明文の項目がある
+       * @when generate を対象クラスで呼び出す
+       * @then 説明文は元の説明だけを持つ
+       */
+      @Test
+      @FixedClock("2026-11-22T10:00:00+09:00")
+      void 本日の日付を付けない項目の場合_説明文だけを返す() {
+        Map<String, Object> plain =
+            property(SchemaGenerator.generate(TodayInDescription.class), "plain");
+
+        assertThat(plain).containsEntry("description", "日付を付けない項目。");
       }
     }
 
@@ -1145,6 +1256,21 @@ class SchemaGeneratorTest {
 
     @Schema(currentAndNextYearOnly = true, description = "開始年月。")
     private String described;
+  }
+
+  /** 本日の日付を説明文に付ける項目を持つ入力。 */
+  static class TodayInDescription {
+    @Schema(
+        description = "終了年月。",
+        todayInDescription = true,
+        pattern = "^[0-9]{4}年([1-9]|1[0-2])月$")
+    private String endMonth;
+
+    @Schema(todayInDescription = true)
+    private String noDescription;
+
+    @Schema(description = "日付を付けない項目。")
+    private String plain;
   }
 
   /** 条件付きスキーマの成功のケースで使う入力。 */

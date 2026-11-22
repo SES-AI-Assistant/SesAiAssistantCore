@@ -160,19 +160,36 @@ public final class SchemaGenerator {
       // モデルは今日の日付を知らないため、「即日」「未記載」を本日の年月にする指示が機能しない。
       // 説明文に本日の日付を埋め込んで伝える。
       LocalDate today = LocalDate.now(ApplicationClock.INSTANCE.clock());
-      fieldSchema.put(
-          "description",
-          schema.description()
-              + "本日は"
-              + today.getYear()
-              + "年"
-              + today.getMonthValue()
-              + "月"
-              + today.getDayOfMonth()
-              + "日である。");
+      fieldSchema.put("description", schema.description() + todaySentence(today));
+    }
+
+    if (schema != null && schema.todayInDescription()) {
+      // 「現在」を具体的な年月で返させるため、本日の日付を説明文の末尾に付ける。pattern は絞らない。
+      // currentAndNextYearOnly と併用された場合も、既に付いた説明文の末尾に続けて付ける。
+      LocalDate today = LocalDate.now(ApplicationClock.INSTANCE.clock());
+      String description = String.valueOf(fieldSchema.getOrDefault("description", ""));
+      fieldSchema.put("description", description + todaySentence(today));
     }
 
     return fieldSchema;
+  }
+
+  /**
+   * 本日の日付を伝える一文を作ります.
+   *
+   * <p>AIは今日の日付を知らないため、説明文の末尾に「本日は2026年11月22日である。」の形で埋め込んで伝える。
+   *
+   * @param today 本日の日付
+   * @return 「本日は○年○月○日である。」の一文
+   */
+  private static String todaySentence(final LocalDate today) {
+    return "本日は"
+        + today.getYear()
+        + "年"
+        + today.getMonthValue()
+        + "月"
+        + today.getDayOfMonth()
+        + "日である。";
   }
 
   /**
@@ -359,6 +376,9 @@ public final class SchemaGenerator {
       }
     } else {
       itemsSchema.put("type", getJsonType(itemType));
+      if (schema != null && schema.itemMaxLength() >= 0) {
+        itemsSchema.put("maxLength", schema.itemMaxLength());
+      }
     }
 
     fieldSchema.put("items", itemsSchema);

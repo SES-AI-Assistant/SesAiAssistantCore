@@ -75,6 +75,10 @@
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
   </Match>
   <Match>
+    <Class name="copel.sesproductpackage.core.api.gpt.schema.entity.SkillsheetInfoSchema$ProjectExperience"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
     <Class name="copel.sesproductpackage.core.api.line.LineMessagingApi"/>
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
   </Match>
