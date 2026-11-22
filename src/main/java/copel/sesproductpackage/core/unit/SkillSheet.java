@@ -207,13 +207,29 @@ public class SkillSheet {
   }
 
   /**
+   * 本文から読み取りの妨げになる行を取り除き、ファイル内容を書き換えます.
+   *
+   * <p>取り除くのは、空白だけの行、Markdown の表でセルがすべて空の行、区切り行の2つ目以降の連続、同じ行の3回目以降の出現の4種類だけで、それ以外の行は変えない。
+   * 未抽出（null）の場合は何もしない。 AI に渡す本文は、この処理の後に {@link #getFileContent()} で上限の文字数に切り詰める（前処理 → 切り詰めの順）。
+   * 空の行や繰り返しの行で上限の文字数を使い切らないよう、切り詰めより前に取り除く。
+   */
+  public void removeNoiseLines() {
+    if (this.fileContent == null) {
+      return;
+    }
+    this.fileContent = TextLines.of(this.fileContent).withoutNoise().join();
+  }
+
+  /**
    * 抽出したファイルの本文を返します。
    *
    * <p>本文に含まれる NUL 文字（0x00）は取り除く。DB に保存できないためである。
    *
-   * <p>上限（SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH）を超える本文は、先頭から上限の文字数ちょうどに切り詰める。上限が 0
+   * <p>上限（SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH）を超える本文は、先頭から上限の文字数ちょうどに切り詰める。
    *
-   * <p>上限も、クラス初期化時ではなく呼び出し時に Properties から読む。本番の値は変わらず、テストで差し替えられるようにするため。 以下の場合は全文を返す。
+   * <p>上限が 0 以下の場合は、切り詰めずに全文を返す。
+   *
+   * <p>上限は、クラス初期化時ではなく呼び出し時に Properties から読む。本番の値は変わらず、テストで差し替えられるようにするため。
    *
    * @return 本文（未抽出の場合は null）
    */

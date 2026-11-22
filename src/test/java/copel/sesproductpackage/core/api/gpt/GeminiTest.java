@@ -20,6 +20,7 @@ import ch.qos.logback.core.read.ListAppender;
 import com.google.genai.Models;
 import com.google.genai.types.ContentEmbedding;
 import com.google.genai.types.EmbedContentResponse;
+import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.GenerateContentResponse;
 import copel.sesproductpackage.core.api.gpt.decision.ChoiceQuestion;
 import copel.sesproductpackage.core.api.gpt.decision.DecisionBlockedException;
@@ -568,6 +569,29 @@ class GeminiTest {
 
         assertThat(new Gemini("key").generate("質問", Person.class).name).isEqualTo("田中");
       }
+
+      /**
+       * 温度を指定しない構造化の要求には、温度を含めないことを確かめる。 温度を指定しない既存の要員と案件の呼び出しの要求を、変えないためである。
+       *
+       * @given 応答の本文が name と age を持つ JSON である
+       * @when generate を "質問" と Person の型で呼び出す
+       * @then 送信した設定に温度が含まれない
+       */
+      @Test
+      void 温度を指定しない場合_温度を含まない要求を送信する() throws Exception {
+        Models models = mock(Models.class);
+        doReturn(text("{\"name\":\"田中\",\"age\":30}"))
+            .when(models)
+            .generateContent(anyString(), anyString(), any());
+        useClient(models);
+
+        new Gemini("key").generate("質問", Person.class);
+
+        ArgumentCaptor<GenerateContentConfig> captor =
+            ArgumentCaptor.forClass(GenerateContentConfig.class);
+        verify(models).generateContent(anyString(), anyString(), captor.capture());
+        assertThat(captor.getValue().temperature()).isEmpty();
+      }
     }
 
     @Nested
@@ -708,6 +732,38 @@ class GeminiTest {
         assertThatThrownBy(() -> new Gemini("key").generate("質問", Person.class))
             .isInstanceOf(RuntimeException.class)
             .hasMessageContaining("API returned empty response");
+      }
+    }
+  }
+
+  @Nested
+  class generate_String_Class_float {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 温度を0にした構造化の要求が、温度0を含む設定で送信されることを確かめる。 スキルシートの要約は同じ本文から同じ結果を得る必要があり、出力のばらつきを抑えるためである。
+       *
+       * @given 応答の本文が name と age を持つ JSON で、温度に 0 を指定する
+       * @when generate を "質問" と Person の型と温度 0 で呼び出す
+       * @then 送信した設定の温度が 0 を含み、name が "田中" の Person を返す
+       */
+      @Test
+      void 温度を0にした場合_温度0を含む要求を送信する() throws Exception {
+        Models models = mock(Models.class);
+        doReturn(text("{\"name\":\"田中\",\"age\":30}"))
+            .when(models)
+            .generateContent(anyString(), anyString(), any());
+        useClient(models);
+
+        Person person = new Gemini("key").generate("質問", Person.class, 0f);
+
+        ArgumentCaptor<GenerateContentConfig> captor =
+            ArgumentCaptor.forClass(GenerateContentConfig.class);
+        verify(models).generateContent(anyString(), anyString(), captor.capture());
+        assertThat(captor.getValue().temperature()).contains(0f);
+        assertThat(person.name).isEqualTo("田中");
       }
     }
   }

@@ -659,4 +659,122 @@ class SkillSheetTest {
       }
     }
   }
+
+  @Nested
+  class removeNoiseLines {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * 空白の行、空の表の行、区切り行の2つ目以降、3回目以降の重複行を取り除き、それ以外の行を残すことを確かめる。 読み取りの妨げになる行だけを除き、本文の内容を消さないためである。
+       *
+       * @given ファイル内容が見出し、空行、空白の行、表の見出し、空の表の行、区切り行2行、表の値、同じ行4回、末尾の順の Markdown
+       * @when removeNoiseLines を実行する
+       * @then 除去対象の行を除いた本文を返す
+       */
+      @Test
+      void 除去対象の行を含む場合_対象の行だけを除いた本文を返す() {
+        SkillSheet sheet =
+            new SkillSheet(
+                "F001",
+                "skill.xlsx",
+                "見出し\n\n   \n| 項目 | 内容 |\n|  |  |\n| --- | --- |\n| --- | --- |\n| 値 | 1 |\n"
+                    + "同じ行\n同じ行\n同じ行\n同じ行\n末尾");
+
+        sheet.removeNoiseLines();
+
+        assertThat(sheet.getFileContent())
+            .isEqualTo("見出し\n| 項目 | 内容 |\n| --- | --- |\n| 値 | 1 |\n同じ行\n同じ行\n末尾");
+      }
+
+      /**
+       * 日付の範囲やスキルの名前の行は、取り除かずに残すことを確かめる。 経歴の期間やスキルを消すと、AI が経歴を読み違えるためである。
+       *
+       * @given ファイル内容が "2023年4月〜2024年3月"、"Java"、"SE" の3行
+       * @when removeNoiseLines を実行する
+       * @then 本文を変えずに返す
+       */
+      @Test
+      void 日付とスキルの行の場合_本文と同じ文字列を返す() {
+        SkillSheet sheet = new SkillSheet("F001", "skill.xlsx", "2023年4月〜2024年3月\nJava\nSE");
+
+        sheet.removeNoiseLines();
+
+        assertThat(sheet.getFileContent()).isEqualTo("2023年4月〜2024年3月\nJava\nSE");
+      }
+
+      /**
+       * 空白の行を取り除いたあとの本文が上限以内なら、全文を返すことを確かめる。 空白の行で上限の文字数を使い切らず、本文の内容を欠かさないためである。
+       *
+       * @given 設定値の上限が 15000、ファイル内容が 14000 文字の本文の後に空白だけの行が2000行続く
+       * @when removeNoiseLines を実行して getFileContent を実行する
+       * @then 14000文字の本文の全文を返す
+       */
+      @TestProperty(key = "SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH", value = "15000")
+      @Test
+      void 空白の行が上限を超える場合_前処理後の全文を返す() {
+        String body = "あ".repeat(14000);
+        SkillSheet sheet = new SkillSheet("F001", "skill.xlsx", body + "\n" + "   \n".repeat(2000));
+
+        sheet.removeNoiseLines();
+
+        assertThat(sheet.getFileContent()).isEqualTo(body);
+      }
+
+      /**
+       * 前処理のあとで上限の文字数に切り詰めることを確かめる。 先頭の空白の行を切り詰めの前に取り除かないと、本文の先頭が上限の分だけ欠けるためである。
+       *
+       * @given 設定値の上限が 15000、ファイル内容が 100 行の空白の行と 15100 文字の本文
+       * @when removeNoiseLines を実行して getFileContent を実行する
+       * @then 空白の行を除いた本文の先頭15000文字を返す
+       */
+      @TestProperty(key = "SES_AI_T_SKILLSHEET_MAX_RAW_CONTENT_LENGTH", value = "15000")
+      @Test
+      void 前処理後も上限を超える場合_前処理後の先頭部分を返す() {
+        SkillSheet sheet =
+            new SkillSheet("F001", "skill.xlsx", "   \n".repeat(100) + "い".repeat(15100));
+
+        sheet.removeNoiseLines();
+
+        assertThat(sheet.getFileContent()).isEqualTo("い".repeat(15000));
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * ファイル内容が null の場合は、前処理をせず未抽出のままにすることを確かめる。 未抽出の本文を空文字として扱うと、抽出済みと誤認するためである。
+       *
+       * @given ファイル内容が null
+       * @when removeNoiseLines を実行する
+       * @then getFileContent が null を返す
+       */
+      @Test
+      void ファイル内容がnullの場合_nullを返す() {
+        SkillSheet sheet = new SkillSheet("F001", "skill.xlsx", null);
+
+        sheet.removeNoiseLines();
+
+        assertThat(sheet.getFileContent()).isNull();
+      }
+
+      /**
+       * ファイル内容が空文字の場合は、例外を投げずに空文字のままにすることを確かめる。 空のファイルでも登録の処理を止めないためである。
+       *
+       * @given ファイル内容が空文字
+       * @when removeNoiseLines を実行する
+       * @then getFileContent が空文字を返す
+       */
+      @Test
+      void ファイル内容が空文字の場合_空文字を返す() {
+        SkillSheet sheet = new SkillSheet("F001", "skill.xlsx", "");
+
+        sheet.removeNoiseLines();
+
+        assertThat(sheet.getFileContent()).isEmpty();
+      }
+    }
+  }
 }

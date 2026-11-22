@@ -242,6 +242,44 @@ public class Gemini implements Transformer {
   @Override
   public <T> T generate(final String prompt, final Class<T> responseType)
       throws IOException, RuntimeException {
+    return generateStructured(prompt, responseType, null);
+  }
+
+  /**
+   * LLM APIに対して、温度を指定して構造化出力を生成させます.
+   *
+   * <p>温度を下げると、同じ入力に対する出力のばらつきが小さくなる。スキルシートの要約のように、同じ本文から同じ結果を得たい場合に使う。 温度を指定しない {@link
+   * #generate(String, Class)} の応答には影響しない。
+   *
+   * @param <T> 応答型
+   * @param prompt LLM APIに送信するプロンプト
+   * @param responseType 応答型を指定する {@code Class<T>}
+   * @param temperature 温度（0で出力のばらつきを最小にする）
+   * @return プロンプトに対する応答をresponseType型のインスタンスとして返します
+   * @throws IOException ファイルI/Oエラーが発生した場合
+   * @throws RuntimeException APIエラー、スキーマ不正、マッピングエラーが発生した場合
+   */
+  public <T> T generate(final String prompt, final Class<T> responseType, final float temperature)
+      throws IOException, RuntimeException {
+    return generateStructured(prompt, responseType, temperature);
+  }
+
+  /**
+   * LLM APIに対して構造化出力を生成させ、応答を指定の型に読み込みます.
+   *
+   * <p>温度は指定された場合だけ要求に含める。指定しない場合は要求から温度を外し、SDK の既定値をそのまま使う。
+   *
+   * @param <T> 応答型
+   * @param prompt LLM APIに送信するプロンプト
+   * @param responseType 応答型を指定する {@code Class<T>}
+   * @param temperature 温度。null の場合は要求に含めない
+   * @return プロンプトに対する応答をresponseType型のインスタンスとして返します
+   * @throws IOException ファイルI/Oエラーが発生した場合
+   * @throws RuntimeException APIエラー、スキーマ不正、マッピングエラーが発生した場合
+   */
+  private <T> T generateStructured(
+      final String prompt, final Class<T> responseType, final Float temperature)
+      throws IOException, RuntimeException {
     if (prompt == null || prompt.isBlank()) {
       throw new RuntimeException("Prompt must not be blank");
     }
@@ -253,11 +291,14 @@ public class Gemini implements Transformer {
       // SchemaGenerator は型ごとに必ず非空のスキーマを返すため、空の確認は行わない
       Map<String, Object> jsonSchema = SchemaGenerator.generate(responseType);
 
-      GenerateContentConfig config =
+      GenerateContentConfig.Builder configBuilder =
           GenerateContentConfig.builder()
               .responseMimeType("application/json")
-              .responseJsonSchema(jsonSchema)
-              .build();
+              .responseJsonSchema(jsonSchema);
+      if (temperature != null) {
+        configBuilder = configBuilder.temperature(temperature);
+      }
+      GenerateContentConfig config = configBuilder.build();
 
       Models models = modelsFactory.create(this.apiKey);
       GenerateContentResponse response =

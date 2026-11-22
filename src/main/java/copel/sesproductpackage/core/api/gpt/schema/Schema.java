@@ -246,4 +246,23 @@ public @interface Schema {
    * @return 今年および翌年のみに限定する場合true。デフォルトはfalse
    */
   boolean currentAndNextYearOnly() default false;
+
+  /**
+   * 本日の日付を説明文の末尾に埋め込むかどうか.
+   *
+   * <p>trueの場合、スキーマ生成時の本日の日付を「本日は2026年11月22日である。」の形式で説明文（description）の末尾に付ける。
+   * 「現在」を具体的な年月で返させるための指示であり、{@link #currentAndNextYearOnly()} と違い pattern は絞らない。
+   *
+   * @return 本日の日付を説明文に付ける場合true。デフォルトはfalse
+   */
+  boolean todayInDescription() default false;
+
+  /**
+   * 配列要素の最大文字数（単純型の要素用）.
+   *
+   * <p>JSON Schemaの items の "maxLength" プロパティにマッピングされます。 要素型が単純型（文字列など）の配列に指定します。
+   *
+   * @return 要素の最大文字数。デフォルトは-1（未指定）
+   */
+  int itemMaxLength() default -1;
 }
