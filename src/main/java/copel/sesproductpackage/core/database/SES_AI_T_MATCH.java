@@ -29,6 +29,21 @@ public class SES_AI_T_MATCH extends EntityBase {
   /** 中身の無いコメントの括弧。旧実装がコメントの無い評価に付けた {@code (null)} と {@code ()}. */
   private static final Pattern EMPTY_COMMENT = Pattern.compile("\\(null\\)|\\(\\)");
 
+  /**
+   * 未充足（×）と不明（-）の評価行のコメント. {@code ・項目：×(コメント)} の括弧の部分を指す.
+   *
+   * <p>項目名とコメントは AI の自由記述のため、行頭の項目名（「：」を含まない）に続く記号の直後の括弧だけを対象にする。 最初の {@code (} から最後の {@code )}
+   * までを取り除く。コメントは改行を含んでもよい。 取り除くのは、最後の {@code )}
+   * の後ろに空白とタブだけが続き、空行をはさんで次の「・」または「■」で始まる行か文字列の末尾に達する場合だけである。 括弧が閉じていない行、{@code )}
+   * の後ろに文字が続く行、コメントのあとに項目でも見出しでもない行が続く場合は、情報を消さないよう対象にしない。 改行は {@code \n}、{@code \r\n}、{@code \r}
+   * のどれも境界にする。
+   */
+  private static final Pattern UNMET_COMMENT =
+      Pattern.compile(
+          "^(・[^：\\r\\n]*：[×-])\\((?:(?![\\r\\n][・■]).)*\\)[ 　\\t]*+"
+              + "(?=[ 　\\t\\r\\n]*[\\r\\n][・■]|[ 　\\t\\r\\n]*\\z)",
+          Pattern.MULTILINE | Pattern.DOTALL);
+
   public SES_AI_T_MATCH(String tenantId) {
     super(tenantId);
     this.tenantId = tenantId;
@@ -294,17 +309,19 @@ public class SES_AI_T_MATCH extends EntityBase {
    * スキル要件（必須スキルと尚可スキル）の評価結果を生成する.
    *
    * <p>保存済みの評価文には、旧実装が出した {@code (null)} と {@code ()} が残っているため、表示時に取り除く。 DB の値は書き換えない。
+   * 未充足（×）と不明（-）の項目のコメントも取り除き、提案ダイアログの評価文と同じ表示にそろえる。 ◎と〇のコメントは残す。
    * 取り除いた結果が空になった評価文は連結せず、必須が空のときに先頭の改行が画面に出ないようにする。両方が空の場合は空文字を返す。
+   * 提案文のテンプレートが区切りの改行を足すため、末尾の空白と改行は取り除く。
    *
    * @return 評価結果文章.
    */
   public String getSkillEvaluateText() {
-    String must = removeEmptyComment(this.mustEvaluationText);
-    String want = removeEmptyComment(this.wantEvaluationText);
+    String must = removeUnmetComment(removeEmptyComment(this.mustEvaluationText));
+    String want = removeUnmetComment(removeEmptyComment(this.wantEvaluationText));
     if (!must.isEmpty() && !want.isEmpty()) {
-      return must + "\n" + want;
+      return (must + "\n" + want).stripTrailing();
     }
-    return must.isEmpty() ? want : must;
+    return (must.isEmpty() ? want : must).stripTrailing();
   }
 
   /**
@@ -317,5 +334,17 @@ public class SES_AI_T_MATCH extends EntityBase {
    */
   private static String removeEmptyComment(String evaluationText) {
     return evaluationText == null ? "" : EMPTY_COMMENT.matcher(evaluationText).replaceAll("");
+  }
+
+  /**
+   * 評価文から、未充足（×）と不明（-）の項目のコメントを取り除く.
+   *
+   * <p>項目名の括弧と、◎や〇の項目のコメントは取り除かない。 行頭が「・」でない文字列は、形式が合わないため変更しない。
+   *
+   * @param evaluationText 評価文。{@link #removeEmptyComment(String)} を通した値
+   * @return コメントを取り除いた評価文
+   */
+  private static String removeUnmetComment(String evaluationText) {
+    return UNMET_COMMENT.matcher(evaluationText).replaceAll("$1");
   }
 }
