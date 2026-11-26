@@ -54,12 +54,12 @@ class SES_AI_M_TENANTLotTest {
                 .row(
                     TENANT_ID,
                     "テナントA",
-                    "1",
+                    "01",
                     "PartiallyMet",
                     "NotMet",
                     "2026-01-15 10:00:00",
                     "U001")
-                .row("T002", "テナントB", "2", null, null, "2026-01-16 10:00:00", "U002")
+                .row("T002", "テナントB", "02", null, null, "2026-01-16 10:00:00", "U002")
                 .build());
         SES_AI_M_TENANTLot lot = new SES_AI_M_TENANTLot();
 
@@ -166,7 +166,7 @@ class SES_AI_M_TENANTLotTest {
             connection,
             MockResultSetBuilder.builder()
                 .columns(COLUMNS)
-                .row("T002", "テナントA", "1", "FullyMet", "NotMet", "2026-01-15 10:00:00", "U001")
+                .row("T002", "テナントA", "01", "FullyMet", "NotMet", "2026-01-15 10:00:00", "U001")
                 .build());
         SES_AI_M_TENANTLot lot = new SES_AI_M_TENANTLot();
 

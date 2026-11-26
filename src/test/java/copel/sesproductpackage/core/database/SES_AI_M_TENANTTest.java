@@ -22,6 +22,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /** {@link SES_AI_M_TENANT} の単体テスト。 */
 class SES_AI_M_TENANTTest {
@@ -108,7 +110,7 @@ class SES_AI_M_TENANTTest {
       /**
        * テナント情報を登録するSQLにマッチング強度の列を含めて実行することを確かめる。 テナント情報の列が欠けると登録できないため、列の並びを固定する。
        *
-       * @given テナントIDが "T001"、テナント名が "テナントA"、ステータス区分が "1"、登録日時が "2026-01-15 10:00:00"、登録ユーザーが
+       * @given テナントIDが "T001"、テナント名が "テナントA"、ステータス区分が "01"、登録日時が "2026-01-15 10:00:00"、登録ユーザーが
        *     "U001"
        * @when insert を接続で実行する
        * @then 7個の列を含むINSERT文を準備し、テナント情報を設定して1件を返す
@@ -119,7 +121,7 @@ class SES_AI_M_TENANTTest {
         PreparedStatement statement = stubUpdate(connection, 1);
         SES_AI_M_TENANT tenant = new SES_AI_M_TENANT(TENANT_ID);
         tenant.setTenantName("テナントA");
-        tenant.setTenantStatusCd("1");
+        tenant.setTenantStatusCd("01");
         tenant.setRegisterDate(new OriginalDateTime(REGISTER_DATE_TEXT));
         tenant.setRegisterUser("U001");
 
@@ -132,7 +134,7 @@ class SES_AI_M_TENANTTest {
                     + " VALUES (?, ?, ?, ?, ?, ?, ?)");
         verify(statement).setString(1, TENANT_ID);
         verify(statement).setString(2, "テナントA");
-        verify(statement).setString(3, "1");
+        verify(statement).setString(3, "01");
         verify(statement).setTimestamp(6, Timestamp.valueOf(REGISTER_DATE_TEXT));
         verify(statement).setString(7, "U001");
       }
@@ -231,7 +233,7 @@ class SES_AI_M_TENANTTest {
       /**
        * テナントIDが一致する行の項目とマッチング強度を読み込むことを確かめる。 画面で編集する前に、保存済みのテナント情報とマッチング強度を読み込む必要がある。
        *
-       * @given テナントIDが "T001"、SELECT の結果が 1 行、テナント名 "テナントA"、ステータス区分 "1"、必須 PartiallyMet、尚可 NotMet
+       * @given テナントIDが "T001"、SELECT の結果が 1 行、テナント名 "テナントA"、ステータス区分 "01"、必須 PartiallyMet、尚可 NotMet
        * @when selectByPk を接続で実行する
        * @then trueを返し、テナント名、ステータス区分、必須と尚可のマッチング強度を読み込む
        */
@@ -242,14 +244,14 @@ class SES_AI_M_TENANTTest {
             connection,
             MockResultSetBuilder.builder()
                 .columns(COLUMNS)
-                .row(TENANT_ID, "テナントA", "1", "PartiallyMet", "NotMet", REGISTER_DATE_TEXT, "U001")
+                .row(TENANT_ID, "テナントA", "01", "PartiallyMet", "NotMet", REGISTER_DATE_TEXT, "U001")
                 .build());
         SES_AI_M_TENANT tenant = new SES_AI_M_TENANT(TENANT_ID);
 
         assertThat(tenant.selectByPk(connection)).isTrue();
 
         assertThat(tenant.getTenantName()).isEqualTo("テナントA");
-        assertThat(tenant.getTenantStatusCd()).isEqualTo("1");
+        assertThat(tenant.getTenantStatusCd()).isEqualTo("01");
         assertThat(tenant.getMatchMustLevel()).isEqualTo(EvaluateType.PartiallyMet);
         assertThat(tenant.getMatchWantLevel()).isEqualTo(EvaluateType.NotMet);
       }
@@ -290,7 +292,7 @@ class SES_AI_M_TENANTTest {
             connection,
             MockResultSetBuilder.builder()
                 .columns(COLUMNS)
-                .row(TENANT_ID, "テナントA", "1", null, null, REGISTER_DATE_TEXT, "U001")
+                .row(TENANT_ID, "テナントA", "01", null, null, REGISTER_DATE_TEXT, "U001")
                 .build());
         SES_AI_M_TENANT tenant = new SES_AI_M_TENANT(TENANT_ID);
 
@@ -329,7 +331,7 @@ class SES_AI_M_TENANTTest {
       /**
        * テナントIDが一致する行のテナント名、ステータス区分、マッチング強度を更新することを確かめる。 テナント情報とテナントごとの絞り込みの強さの変更を保存する。
        *
-       * @given テナントIDが "T001"、テナント名が "テナントB"、ステータス区分が "2"、必須が PartiallyMet、尚可が FullyMet、更新件数が 1 件
+       * @given テナントIDが "T001"、テナント名が "テナントB"、ステータス区分が "02"、必須が PartiallyMet、尚可が FullyMet、更新件数が 1 件
        * @when updateByPk を接続で実行する
        * @then テナント名、ステータス区分、必須、尚可、テナントIDの順に設定して更新し、trueを返す
        */
@@ -339,7 +341,7 @@ class SES_AI_M_TENANTTest {
         PreparedStatement statement = stubUpdate(connection, 1);
         SES_AI_M_TENANT tenant = new SES_AI_M_TENANT(TENANT_ID);
         tenant.setTenantName("テナントB");
-        tenant.setTenantStatusCd("2");
+        tenant.setTenantStatusCd("02");
         tenant.setMatchMustLevel(EvaluateType.PartiallyMet);
         tenant.setMatchWantLevel(EvaluateType.FullyMet);
 
@@ -350,7 +352,7 @@ class SES_AI_M_TENANTTest {
                 "UPDATE SES_AI_M_TENANT SET tenant_name = ?, tenant_status_cd = ?,"
                     + " match_must_level = ?, match_want_level = ? WHERE tenant_id = ?");
         verify(statement).setString(1, "テナントB");
-        verify(statement).setString(2, "2");
+        verify(statement).setString(2, "02");
         verify(statement).setString(3, "PartiallyMet");
         verify(statement).setString(4, "FullyMet");
         verify(statement).setString(5, TENANT_ID);
@@ -621,6 +623,97 @@ class SES_AI_M_TENANTTest {
 
         assertThat(rules.getMustSkillLevel()).isNull();
         assertThat(rules.getWantSkillLevel()).isNull();
+      }
+    }
+  }
+
+  @Nested
+  class isSuspended {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * ステータス区分が "02" の行を読み込んだ場合に、停止中と判定することを確かめる。 停止中のテナントは取込を止める必要があるため、"02" だけを停止として扱うことを守る。
+       *
+       * @given テナントIDが "T001"、SELECT の結果が 1 行でステータス区分が "02"
+       * @when 行を selectByPk で読み込んだ後に isSuspended を呼び出す
+       * @then selectByPk が true を返し、isSuspended が true を返す
+       */
+      @MockDbConnection
+      @Test
+      void ステータス区分が02の場合_trueを返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(
+            connection,
+            MockResultSetBuilder.builder()
+                .columns(COLUMNS)
+                .row(TENANT_ID, "テナントA", "02", "PartiallyMet", "NotMet", REGISTER_DATE_TEXT, "U001")
+                .build());
+        SES_AI_M_TENANT tenant = new SES_AI_M_TENANT(TENANT_ID);
+        assertThat(tenant.selectByPk(connection)).isTrue();
+
+        assertThat(tenant.isSuspended()).isTrue();
+      }
+
+      /**
+       * ステータス区分が "01" の行を読み込んだ場合に、稼働中と判定して取込を止めないことを確かめる。
+       * 稼働中のテナントは取込とマッチングを通常どおり行う必要があるため、停止と判定しないことを守る。
+       *
+       * @given テナントIDが "T001"、SELECT の結果が 1 行でステータス区分が "01"
+       * @when 行を selectByPk で読み込んだ後に isSuspended を呼び出す
+       * @then selectByPk が true を返し、isSuspended が false を返す
+       */
+      @MockDbConnection
+      @Test
+      void ステータス区分が01の場合_falseを返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(
+            connection,
+            MockResultSetBuilder.builder()
+                .columns(COLUMNS)
+                .row(TENANT_ID, "テナントA", "01", "PartiallyMet", "NotMet", REGISTER_DATE_TEXT, "U001")
+                .build());
+        SES_AI_M_TENANT tenant = new SES_AI_M_TENANT(TENANT_ID);
+        assertThat(tenant.selectByPk(connection)).isTrue();
+
+        assertThat(tenant.isSuspended()).isFalse();
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * "02" 以外のステータス区分の値は稼働扱いとし、停止と判定しないことを確かめる。 旧データや未設定の行で誤って取込を止めないため、停止は "02" だけに限ることを守る。
+       *
+       * @given tenant_status_cd が NullSource と ValueSource の各値で、null、空文字、"00"、"1" のいずれか
+       * @when isSuspended を呼び出す
+       * @then falseを返す
+       */
+      @ParameterizedTest
+      @NullSource
+      @ValueSource(strings = {"", "00", "1"})
+      void ステータス区分が00や1や空文字やnullの場合_falseを返す(final String statusCd) {
+        SES_AI_M_TENANT tenant = new SES_AI_M_TENANT(TENANT_ID);
+        tenant.setTenantStatusCd(statusCd);
+
+        assertThat(tenant.isSuspended()).isFalse();
+      }
+
+      /**
+       * テナント情報の行が無い場合に、停止と判定しないことを確かめる。 存在しないテナントを停止扱いにすると、取込の判定が誤るため稼働扱いにすることを守る。
+       *
+       * @given テナントIDが "T001"、SELECT の結果が 0 行で selectByPk が false を返す
+       * @when isSuspended を呼び出す
+       * @then falseを返す
+       */
+      @MockDbConnection
+      @Test
+      void テナント情報の行が無い場合_falseを返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(connection, MockResultSetBuilder.builder().columns(COLUMNS).build());
+        SES_AI_M_TENANT tenant = new SES_AI_M_TENANT(TENANT_ID);
+        assertThat(tenant.selectByPk(connection)).isFalse();
+
+        assertThat(tenant.isSuspended()).isFalse();
       }
     }
   }
