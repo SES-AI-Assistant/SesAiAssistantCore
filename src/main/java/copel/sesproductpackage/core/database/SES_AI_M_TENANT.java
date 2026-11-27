@@ -5,6 +5,7 @@ import copel.sesproductpackage.core.api.gpt.schema.entity.MatchEvaluateResponseS
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.unit.TenantStatus;
 import java.sql.Connection;
 import java.sql.SQLException;
 import lombok.Data;
@@ -179,5 +180,16 @@ public class SES_AI_M_TENANT extends EntityBase {
     EvaluateType wantThreshold =
         want == EvaluateType.FullyMet || want == EvaluateType.PartiallyMet ? want : null;
     return new FilteringRules(mustThreshold, wantThreshold, true);
+  }
+
+  /**
+   * テナントが停止中かを判定する。
+   *
+   * <p>判定は {@link TenantStatus#isSuspended()} に委譲する。停止中のコード値以外は稼働扱いとし、取込を止めない。
+   *
+   * @return ステータス区分が停止中の場合 true
+   */
+  public boolean isSuspended() {
+    return TenantStatus.getEnum(this.tenantStatusCd).isSuspended();
   }
 }
