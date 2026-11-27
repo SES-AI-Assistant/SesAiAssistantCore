@@ -374,23 +374,39 @@ class SchemaGeneratorTest {
       }
 
       /**
-       * スキルシートの案件の項目が、案件ごとの開始、終了、スキルと内容だけを持つスキーマを返すことを確かめる。 月数を AI に算出させない仕様を、スキーマの形で守るためである。
+       * スキルシートの案件の項目が、案件ごとの開始、終了、スキルと内容だけを持ち、年月の書式と本日の日付と必須項目を保つスキーマを返すことを確かめる。 Gemini API
+       * の状態数の上限を避けつつ、月数を AI に算出させない仕様と年月の書式を守るためである。
        *
-       * @given 入力が SkillsheetInfoSchema である
+       * @given 現在時刻が2026年11月22日で、入力が SkillsheetInfoSchema である
        * @when generate を SkillsheetInfoSchema で呼び出す
-       * @then project_experiences は maxItems が 50 で、案件の項目が start_month、end_month、skills、perspective
-       *     だけを持つ
+       * @then maxItems を持たない4項目のスキーマと、年月の書式・本日の日付・必須項目を返す
        */
       @Test
+      @FixedClock("2026-11-22T10:00:00+09:00")
       void 入力がスキルシート情報の場合_案件ごとの項目だけを持つスキーマを返す() {
         Map<String, Object> schema = SchemaGenerator.generate(SkillsheetInfoSchema.class);
         Map<String, Object> projectExperiences = property(schema, "project_experiences");
         Map<String, Object> projectItems = castMap(projectExperiences.get("items"));
+        Map<String, Object> projectProps = properties(projectItems);
 
-        assertThat(projectExperiences).containsEntry("maxItems", 50);
-        assertThat(properties(projectItems))
+        assertThat(projectExperiences).doesNotContainKey("maxItems");
+        assertThat(projectProps)
             .containsOnlyKeys("start_month", "end_month", "skills", "perspective");
         assertThat(properties(schema)).containsOnlyKeys("project_experiences");
+        assertThat(castMap(projectProps.get("start_month")))
+            .containsEntry("pattern", "^[0-9]{4}年([1-9]|1[0-2])月$")
+            .extractingByKey("description")
+            .asString()
+            .endsWith("本日は2026年11月22日である。");
+        assertThat(castMap(projectProps.get("end_month")))
+            .containsEntry("pattern", "^[0-9]{4}年([1-9]|1[0-2])月$")
+            .extractingByKey("description")
+            .asString()
+            .endsWith("本日は2026年11月22日である。");
+        assertThat(
+                SchemaGenerator.generate(SkillsheetInfoSchema.ProjectExperience.class)
+                    .get("required"))
+            .isEqualTo(List.of("start_month", "end_month", "perspective"));
       }
 
       /**
@@ -411,23 +427,30 @@ class SchemaGeneratorTest {
       }
 
       /**
-       * 案件のスキル一覧が、15件までで1件30文字以内の要素だと示すスキーマを返すことを確かめる。 AI の出力の件数と長さを絞り、登録できない長さの値を防ぐためである。
+       * 案件のスキル一覧と案件内容から件数と文字数の制約を外し、説明文で目安を示すスキーマを返すことを確かめる。 Gemini API の状態数の上限を超える不具合を防ぎつつ、AI
+       * に簡潔な出力を促すためである。
        *
        * @given 入力が SkillsheetInfoSchema である
        * @when generate を SkillsheetInfoSchema で呼び出す
-       * @then skills は maxItems が 15 で、要素は文字列で maxLength が 30 である
+       * @then skills と perspective の上限の制約を外し、説明文で文字数の目安を示すスキーマを返す
        */
       @Test
-      void 入力がスキルシート情報の場合_スキル一覧の件数と要素の文字数を制限するスキーマを返す() {
+      void 入力がスキルシート情報の場合_上限の制約を外し説明文でスキルと案件内容の目安を示すスキーマを返す() {
         Map<String, Object> schema = SchemaGenerator.generate(SkillsheetInfoSchema.class);
         Map<String, Object> projectItems =
             castMap(property(schema, "project_experiences").get("items"));
         Map<String, Object> skills = property(projectItems, "skills");
+        Map<String, Object> perspective = property(projectItems, "perspective");
 
-        assertThat(skills).containsEntry("maxItems", 15);
+        assertThat(skills).doesNotContainKey("maxItems");
         assertThat(castMap(skills.get("items")))
             .containsEntry("type", "string")
-            .containsEntry("maxLength", 30);
+            .doesNotContainKey("maxLength");
+        assertThat(String.valueOf(skills.get("description")))
+            .contains("主要なスキルに絞り、1つあたり30文字以内とすること。");
+        assertThat(perspective)
+            .doesNotContainKey("maxLength")
+            .containsEntry("description", "案件の内容を50文字以内で簡潔に記載すること。");
       }
 
       /**
