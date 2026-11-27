@@ -21,8 +21,7 @@ public class SkillsheetInfoSchema {
   @Schema(
       title = "PJ経験一覧",
       description = "スキルシートに明記された案件（プロジェクト）を1件ずつ抽出する。案件ごとに開始、終了、スキルを抽出し、月数は算出しない。記載が無い場合は空リストとする。",
-      itemType = ProjectExperience.class,
-      maxItems = 50)
+      itemType = ProjectExperience.class)
   private List<ProjectExperience> projectExperiences = null;
 
   // ================================================
@@ -72,16 +71,14 @@ public class SkillsheetInfoSchema {
 
     @Schema(
         title = "使用スキル",
-        description = "この案件で使用されたスキルの名前のリスト。スキル名は記載どおりに抽出し、言い換えたり一般化したりしないこと。",
-        itemType = String.class,
-        maxItems = 15,
-        itemMaxLength = 30)
+        description =
+            "この案件で使用されたスキルの名前のリスト。主要なスキルに絞り、1つあたり30文字以内とすること。スキル名は記載どおりに抽出し、言い換えたり一般化したりしないこと。",
+        itemType = String.class)
     private List<String> skills;
 
     @Schema(
         title = "内容",
-        description = "案件内容",
-        maxLength = 50,
+        description = "案件の内容を50文字以内で簡潔に記載すること。",
         required = true,
         example = "大規模通信システムにおいてSEとして20人規模の基本設計工程のとりまとめ、設計レビューを実施")
     private String perspective;

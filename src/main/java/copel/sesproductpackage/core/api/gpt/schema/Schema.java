@@ -256,13 +256,4 @@ public @interface Schema {
    * @return 本日の日付を説明文に付ける場合true。デフォルトはfalse
    */
   boolean todayInDescription() default false;
-
-  /**
-   * 配列要素の最大文字数（単純型の要素用）.
-   *
-   * <p>JSON Schemaの items の "maxLength" プロパティにマッピングされます。 要素型が単純型（文字列など）の配列に指定します。
-   *
-   * @return 要素の最大文字数。デフォルトは-1（未指定）
-   */
-  int itemMaxLength() default -1;
 }
