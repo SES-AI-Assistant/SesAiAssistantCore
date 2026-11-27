@@ -376,9 +376,6 @@ public final class SchemaGenerator {
       }
     } else {
       itemsSchema.put("type", getJsonType(itemType));
-      if (schema != null && schema.itemMaxLength() >= 0) {
-        itemsSchema.put("maxLength", schema.itemMaxLength());
-      }
     }
 
     fieldSchema.put("items", itemsSchema);
