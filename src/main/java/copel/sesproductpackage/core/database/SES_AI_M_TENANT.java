@@ -5,6 +5,7 @@ import copel.sesproductpackage.core.api.gpt.schema.entity.MatchEvaluateResponseS
 import copel.sesproductpackage.core.database.base.Column;
 import copel.sesproductpackage.core.database.base.EntityBase;
 import copel.sesproductpackage.core.unit.OriginalDateTime;
+import copel.sesproductpackage.core.unit.TenantStatus;
 import java.sql.Connection;
 import java.sql.SQLException;
 import lombok.Data;
@@ -45,20 +46,6 @@ public class SES_AI_M_TENANT extends EntityBase {
 
   /** DELETE文. */
   private static final String DELETE_SQL = "DELETE FROM SES_AI_M_TENANT WHERE tenant_id = ?";
-
-  /**
-   * ステータス区分のコード値「稼働中」。テナントの取込とマッチングを通常どおり行う状態を表す。
-   *
-   * <p>テーブル定義書のステータス区分（tenant_status_cd）の '01' に対応する。
-   */
-  public static final String STATUS_CD_ACTIVE = "01";
-
-  /**
-   * ステータス区分のコード値「停止中」。テナント単位で取込を止める状態を表す。
-   *
-   * <p>テーブル定義書のステータス区分（tenant_status_cd）の '02' に対応する。判定は {@link #isSuspended()} を使うこと。
-   */
-  public static final String STATUS_CD_SUSPENDED = "02";
 
   /** テナント名 / tenant_name */
   @Column(physicalName = "tenant_name", logicalName = "テナント名")
@@ -198,12 +185,11 @@ public class SES_AI_M_TENANT extends EntityBase {
   /**
    * テナントが停止中かを判定する。
    *
-   * <p>ステータス区分が {@link #STATUS_CD_SUSPENDED} の場合だけ停止中とみなす。'01'、'00'、'1'、null、空文字など '02'
-   * 以外の値は稼働扱いにし、取込を止めない。 ステータス区分が未設定や想定外の値の行で、誤って取込を止めないための判定である。
+   * <p>判定は {@link TenantStatus#isSuspended()} に委譲する。停止中のコード値以外は稼働扱いとし、取込を止めない。
    *
-   * @return ステータス区分が '02' の場合 true
+   * @return ステータス区分が停止中の場合 true
    */
   public boolean isSuspended() {
-    return STATUS_CD_SUSPENDED.equals(this.tenantStatusCd);
+    return TenantStatus.getEnum(this.tenantStatusCd).isSuspended();
   }
 }
