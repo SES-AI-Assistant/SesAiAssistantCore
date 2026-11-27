@@ -112,6 +112,30 @@ class SkillsheetInfoSchemaTest {
       }
 
       /**
+       * 途中の空白や英字の間のドットの有無だけが異なるスキルを1行にまとめ、最初の表記を使うことを確かめる。 MySQL と my sql や NodeJS と Node.js
+       * が別々に集計されることを防ぐためである。
+       *
+       * @given スキル "MySQL"、"my sql"、"My SQL" の各案件と "NodeJS"、"Node.JS"、"Node.js" の各案件がそれぞれ3か月
+       * @when toSummaryText を実行する
+       * @then "・MySQL: 9ヶ月" と "・NodeJS: 9ヶ月" にまとめた要約を返す
+       */
+      @Test
+      void 途中の空白や英字の間のドットだけが異なるスキルの場合_1行にまとめた要約を返す() {
+        SkillsheetInfoSchema schema =
+            schemaOf(
+                project("2020年1月", "2020年3月", SHORT_PERSPECTIVE, "MySQL", "NodeJS"),
+                project("2020年4月", "2020年6月", SHORT_PERSPECTIVE, "my sql", "Node.JS"),
+                project("2020年7月", "2020年9月", SHORT_PERSPECTIVE, "My SQL", "Node.js"));
+
+        assertThat(schema.toSummaryText())
+            .startsWith("■スキル・経験\n・MySQL: 9ヶ月\n・NodeJS: 9ヶ月\n■直近のPJ経験")
+            .doesNotContain("my sql")
+            .doesNotContain("My SQL")
+            .doesNotContain("Node.JS")
+            .doesNotContain("Node.js");
+      }
+
+      /**
        * Java8 と Java11 を別のスキルとして、それぞれ行に分けることを確かめる。 バージョンの違う技術の経験を混ぜないためである。
        *
        * @given スキル "Java8" の案件と "Java11" の案件が、それぞれ3か月で重ならない
