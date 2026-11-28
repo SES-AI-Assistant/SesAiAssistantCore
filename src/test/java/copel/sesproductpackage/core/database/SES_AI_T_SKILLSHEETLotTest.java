@@ -545,6 +545,33 @@ class SES_AI_T_SKILLSHEETLotTest {
             .contains("ORDER BY register_date ASC, file_id ASC");
         assertThat(lot.isEmpty()).isTrue();
       }
+
+      /**
+       * 期限切れ抽出のSQLに、同じテナントのスキルシートのウォッチ除外が含まれることを確かめる。 ウォッチ中のスキルシートを削除すると、ウォッチの対象が表示されなくなる。
+       *
+       * @given SELECT の結果が 0 行、経過日数 30、オフセット 0、件数 100 で、除外の判定は抽出SQLの NOT EXISTS 条件が担う契約テスト
+       * @when selectExpiredSkillsheetsWithoutTenantId を接続で実行する
+       * @then 同じテナントの ttl が現在時刻より後のウォッチを NOT EXISTS で除くSQLを準備し、空の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void ttlが未来のウォッチがあるスキルシートの場合_ウォッチを除くSQLで空の一覧を返す(final Connection connection)
+          throws SQLException {
+        JdbcMocks.stubQuery(connection, MockResultSetBuilder.builder().columns("file_id").build());
+        SES_AI_T_SKILLSHEETLot lot = new SES_AI_T_SKILLSHEETLot();
+
+        lot.selectExpiredSkillsheetsWithoutTenantId(connection, 30, 0, 100);
+
+        verify(connection)
+            .prepareStatement(
+                contains(
+                    "AND NOT EXISTS (SELECT 1 FROM SES_AI_T_WATCH w "
+                        + "WHERE w.target_id = SES_AI_T_SKILLSHEET.file_id "
+                        + "AND w.target_type = 'SKILLSHEET' "
+                        + "AND w.tenant_id = SES_AI_T_SKILLSHEET.tenant_id "
+                        + "AND w.ttl IS NOT NULL AND w.ttl > NOW())"));
+        assertThat(lot.isEmpty()).isTrue();
+      }
     }
   }
 

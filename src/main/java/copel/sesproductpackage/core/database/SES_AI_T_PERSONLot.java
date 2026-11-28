@@ -68,12 +68,20 @@ public class SES_AI_T_PERSONLot extends SesAiTableLotBase<SES_AI_T_PERSON> {
    *
    * <p>マッチングの存在確認は {@code NOT IN} ではなく相関の {@code NOT EXISTS} にする。{@code NOT IN} は副問い合わせに NULL
    * が1件でもあると 全件が不一致になり、期限切れの要員を1件も取得できなくなるため。同じテナントのマッチングだけを除外する。
+   *
+   * <p>ウォッチ中の要員も除外する。ウォッチの ttl が切れるまで要員を残し、ウォッチ中に要員が消えて表示できなくなるのを防ぐため。同じテナントの、ttl
+   * が現在時刻より後のウォッチだけを対象にする。
    */
   private static final String SELECT_EXPIRED_PERSONS_NOT_IN_MATCH_WITHOUT_TENANT_SUFFIX =
       " days') < NOW())) "
           + "  AND NOT EXISTS (SELECT 1 FROM SES_AI_T_MATCH m "
           + "WHERE m.person_id = SES_AI_T_PERSON.person_id "
           + "AND m.tenant_id = SES_AI_T_PERSON.tenant_id) "
+          + "  AND NOT EXISTS (SELECT 1 FROM SES_AI_T_WATCH w "
+          + "WHERE w.target_id = SES_AI_T_PERSON.person_id "
+          + "AND w.target_type = 'PERSON' "
+          + "AND w.tenant_id = SES_AI_T_PERSON.tenant_id "
+          + "AND w.ttl IS NOT NULL AND w.ttl > NOW()) "
           + "ORDER BY register_date ASC, person_id ASC "
           + "LIMIT ? OFFSET ?";
 
