@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -17,8 +18,12 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /** {@link SES_AI_T_WATCHLot} の単体テスト。 */
 class SES_AI_T_WATCHLotTest {
@@ -422,6 +427,282 @@ class SES_AI_T_WATCHLotTest {
 
         assertThat(lot.isEmpty()).isTrue();
         verify(connection, never()).prepareStatement(anyString());
+      }
+    }
+  }
+
+  @Nested
+  class selectWatchedTargetIds {
+
+    @Nested
+    class 正常系 {
+
+      /**
+       * ウォッチ中の対象IDだけを集合に入れて返すことを確かめる。 TTL 削除の対象から、ウォッチ中の案件を外すために使う。
+       *
+       * @given 対象種別 JOB、SELECT の結果が対象ID "J001" の1行
+       * @when selectWatchedTargetIds を接続、テナントID "T001"、対象種別 JOB、対象ID "J001" と "J002" で実行する
+       * @then 対象ID "J001" だけを含む集合を返す
+       */
+      @MockDbConnection
+      @Test
+      void 結果に対象IDがある場合_その対象IDだけを含む集合を返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(connection, oneRow("U001", "J001", TENANT_ID));
+
+        Set<String> watched =
+            new SES_AI_T_WATCHLot()
+                .selectWatchedTargetIds(
+                    connection, TENANT_ID, TargetType.JOB, List.of("J001", "J002"));
+
+        assertThat(watched).containsExactly("J001");
+      }
+
+      /**
+       * 同じ対象に複数ユーザーのウォッチがある場合、対象IDを1件にまとめて返すことを確かめる。 呼び出し側は対象IDの有無だけを判定に使う。
+       *
+       * @given 対象種別 JOB、SELECT の結果がユーザー "U001" と "U002" の対象ID "J001" の2行
+       * @when selectWatchedTargetIds を接続、テナントID "T001"、対象種別 JOB、対象ID "J001" で実行する
+       * @then 対象ID "J001" を1件だけ含む集合を返す
+       */
+      @MockDbConnection
+      @Test
+      void 同じ対象に複数ユーザーのウォッチがある場合_対象IDを1件にまとめた集合を返す(final Connection connection)
+          throws SQLException {
+        JdbcMocks.stubQuery(
+            connection,
+            MockResultSetBuilder.builder()
+                .columns(COLUMNS)
+                .row("U001", "J001", "JOB", "メモ", DATE_TEXT, "U000", DATE_TEXT, TENANT_ID)
+                .row("U002", "J001", "JOB", "メモ", DATE_TEXT, "U000", DATE_TEXT, TENANT_ID)
+                .build());
+
+        Set<String> watched =
+            new SES_AI_T_WATCHLot()
+                .selectWatchedTargetIds(connection, TENANT_ID, TargetType.JOB, List.of("J001"));
+
+        assertThat(watched).containsExactly("J001");
+      }
+
+      /**
+       * ウォッチ中のユーザーが1人だけ残っている場合に、対象をウォッチ中として返すことを確かめる。 2人のうち1人の期限が切れていても、残る1人のウォッチで対象を守る。
+       *
+       * @given SELECT の結果がユーザー "U002" の対象ID "J001" の1行、ユーザー "U001" の ttl は現在時刻より前で結果に含まれない
+       * @when selectWatchedTargetIds を接続、テナントID "T001"、対象種別 JOB、対象ID "J001" で実行する
+       * @then 対象ID "J001" を含む集合を返す
+       */
+      @MockDbConnection
+      @Test
+      void ウォッチ中のユーザーが1人だけの場合_対象IDを含む集合を返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(connection, oneRow("U002", "J001", TENANT_ID));
+
+        Set<String> watched =
+            new SES_AI_T_WATCHLot()
+                .selectWatchedTargetIds(connection, TENANT_ID, TargetType.JOB, List.of("J001"));
+
+        assertThat(watched).containsExactly("J001");
+      }
+
+      /**
+       * 全ユーザーのウォッチの期限が切れている場合に、対象をウォッチ中とせず空の集合を返すことを確かめる。 期限切れのウォッチだけで対象を守ると、TTL 削除が止まってしまう。
+       *
+       * @given SELECT の結果が 0 行、対象ID "J001" の全ユーザーのウォッチの ttl が現在時刻より前
+       * @when selectWatchedTargetIds を接続、テナントID "T001"、対象種別 JOB、対象ID "J001" で実行する
+       * @then 空の集合を返す
+       */
+      @MockDbConnection
+      @Test
+      void ウォッチ中のユーザーが1人もいない場合_空の集合を返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(connection, MockResultSetBuilder.builder().columns(COLUMNS).build());
+
+        Set<String> watched =
+            new SES_AI_T_WATCHLot()
+                .selectWatchedTargetIds(connection, TENANT_ID, TargetType.JOB, List.of("J001"));
+
+        assertThat(watched).isEmpty();
+      }
+    }
+
+    @Nested
+    class 異常系 {
+
+      /**
+       * DB 接続が null の場合に判定を拒否することを確かめる。 接続が無いまま SQL を実行できない。
+       *
+       * @given 接続が null、対象ID "J001"
+       * @when selectWatchedTargetIds を null の接続で実行する
+       * @then IllegalArgumentExceptionを投げる
+       */
+      @Test
+      void 接続がnullの場合_IllegalArgumentExceptionを投げる() {
+        assertThatThrownBy(
+                () ->
+                    new SES_AI_T_WATCHLot()
+                        .selectWatchedTargetIds(null, TENANT_ID, TargetType.JOB, List.of("J001")))
+            .isInstanceOf(IllegalArgumentException.class);
+      }
+    }
+
+    @Nested
+    class 境界値 {
+
+      /**
+       * 有効期限が現在時刻より1秒後のウォッチを、ウォッチ中として扱うことを確かめる。 ttl が現在時刻より後なら、まだ有効なウォッチである。
+       *
+       * @given SELECT の結果が対象ID "J001" の1行、ttl が "2026-01-15 10:00:01"
+       * @when selectWatchedTargetIds を接続、テナントID "T001"、対象種別 JOB、対象ID "J001" で実行する
+       * @then 対象ID "J001" を含む集合を返す
+       */
+      @MockDbConnection
+      @Test
+      void 有効期限が現在時刻より後の行の場合_対象IDを含む集合を返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(
+            connection,
+            MockResultSetBuilder.builder()
+                .columns(COLUMNS)
+                .row(
+                    "U001",
+                    "J001",
+                    "JOB",
+                    "メモ",
+                    DATE_TEXT,
+                    "U000",
+                    "2026-01-15 10:00:01",
+                    TENANT_ID)
+                .build());
+
+        Set<String> watched =
+            new SES_AI_T_WATCHLot()
+                .selectWatchedTargetIds(connection, TENANT_ID, TargetType.JOB, List.of("J001"));
+
+        assertThat(watched).containsExactly("J001");
+      }
+
+      /**
+       * 有効期限が NULL と現在時刻ちょうどのウォッチを、ウォッチ中の条件から除くSQLを使うことを確かめる。 期限の無いウォッチや期限切れ直前のウォッチで TTL
+       * 削除を止めると、削除されない対象が残る。
+       *
+       * @given 対象ID "J001"、対象種別 JOB
+       * @when selectWatchedTargetIds を接続、テナントID "T001"、対象種別 JOB、対象ID "J001" で実行する
+       * @then ttl が NULL を除き現在時刻より後に限る条件を含むSQLで空の集合を返す
+       */
+      @MockDbConnection
+      @Test
+      void 有効期限のNULLと現在時刻ちょうどを除くSQLの場合_空の集合を返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(connection, MockResultSetBuilder.builder().columns(COLUMNS).build());
+
+        Set<String> watched =
+            new SES_AI_T_WATCHLot()
+                .selectWatchedTargetIds(connection, TENANT_ID, TargetType.JOB, List.of("J001"));
+
+        verify(connection).prepareStatement(contains("AND ttl IS NOT NULL AND ttl > NOW()"));
+        assertThat(watched).isEmpty();
+      }
+
+      /**
+       * 対象IDが null の場合に判定を行わず、空の集合を返すことを確かめる。 対象の無い判定は全対象をウォッチ中と誤認させない。
+       *
+       * @given 対象IDが null、対象種別が JOB
+       * @when selectWatchedTargetIds を接続、テナントID "T001"、対象種別 JOB、対象ID null で実行する
+       * @then 空の集合を返し、SQL の準備を呼ばない
+       */
+      @MockDbConnection
+      @Test
+      void 対象IDがnullの場合_空の集合を返す(final Connection connection) throws SQLException {
+        Set<String> watched =
+            new SES_AI_T_WATCHLot()
+                .selectWatchedTargetIds(connection, TENANT_ID, TargetType.JOB, null);
+
+        assertThat(watched).isEmpty();
+        verify(connection, never()).prepareStatement(anyString());
+      }
+
+      /**
+       * 対象IDが空の一覧の場合に判定を行わず、空の集合を返すことを確かめる。 IN 句を空にした SQL は実行できない。
+       *
+       * @given 対象IDの一覧が空、対象種別が JOB
+       * @when selectWatchedTargetIds を接続、テナントID "T001"、対象種別 JOB、空の一覧で実行する
+       * @then 空の集合を返し、SQL の準備を呼ばない
+       */
+      @MockDbConnection
+      @Test
+      void 対象IDの一覧が空の場合_空の集合を返す(final Connection connection) throws SQLException {
+        Set<String> watched =
+            new SES_AI_T_WATCHLot()
+                .selectWatchedTargetIds(connection, TENANT_ID, TargetType.JOB, List.of());
+
+        assertThat(watched).isEmpty();
+        verify(connection, never()).prepareStatement(anyString());
+      }
+
+      /**
+       * 対象種別が null の場合に判定を行わず、空の集合を返すことを確かめる。 対象種別の無い判定は種別の違うウォッチを対象にする。
+       *
+       * @given 対象IDが "J001"、対象種別が null
+       * @when selectWatchedTargetIds を接続、テナントID "T001"、対象種別 null、対象ID "J001" で実行する
+       * @then 空の集合を返し、SQL の準備を呼ばない
+       */
+      @MockDbConnection
+      @Test
+      void 対象種別がnullの場合_空の集合を返す(final Connection connection) throws SQLException {
+        Set<String> watched =
+            new SES_AI_T_WATCHLot()
+                .selectWatchedTargetIds(connection, TENANT_ID, null, List.of("J001"));
+
+        assertThat(watched).isEmpty();
+        verify(connection, never()).prepareStatement(anyString());
+      }
+
+      /**
+       * 対象IDが500件を超える場合に、500件ごとに分けて問い合わせることを確かめる。 1回の問い合わせの IN 句が JDBC のバインド数の上限を超えると、判定が失敗する。
+       *
+       * @given 対象IDが 501 件、SELECT の結果が 0 行
+       * @when selectWatchedTargetIds を接続、テナントID "T001"、対象種別 JOB、501 件の対象IDで実行する
+       * @then 2回に分けた問い合わせの結果の集合を返す
+       */
+      @MockDbConnection
+      @Test
+      void 対象IDが501件の場合_2回に分けた問い合わせの結果の集合を返す(final Connection connection) throws SQLException {
+        PreparedStatement statement =
+            JdbcMocks.stubQuery(
+                connection, MockResultSetBuilder.builder().columns(COLUMNS).build());
+        List<String> targetIds = IntStream.rangeClosed(1, 501).mapToObj(i -> "J" + i).toList();
+        ArgumentCaptor<String> sql = ArgumentCaptor.forClass(String.class);
+
+        Set<String> watched =
+            new SES_AI_T_WATCHLot()
+                .selectWatchedTargetIds(connection, TENANT_ID, TargetType.JOB, targetIds);
+
+        verify(connection, times(2)).prepareStatement(sql.capture());
+        assertThat(sql.getAllValues().get(1)).contains("target_id IN (?)");
+        verify(statement).setString(2, "J501");
+        assertThat(watched).isEmpty();
+      }
+    }
+
+    @Nested
+    class テナント隔離 {
+
+      /**
+       * 判定の条件にテナントIDを渡し、他テナントのウォッチを数えないことを確かめる。 他テナントの同じ対象IDのウォッチで案件を守ると、判定がテナントをまたぐ。
+       *
+       * @given テナント "T002" のウォッチの対象ID "J001" は、テナント "T001" の SELECT の結果に含まれない
+       * @when selectWatchedTargetIds を接続、テナントID "T001"、対象種別 JOB、対象ID "J001" で実行する
+       * @then テナントIDの条件を含むSQLで、3番目のバインド値に "T001" を渡し、空の集合を返す
+       */
+      @MockDbConnection
+      @Test
+      void テナントIDがT001の場合_T001で絞り込んだ空の集合を返す(final Connection connection) throws SQLException {
+        PreparedStatement statement =
+            JdbcMocks.stubQuery(
+                connection, MockResultSetBuilder.builder().columns(COLUMNS).build());
+
+        Set<String> watched =
+            new SES_AI_T_WATCHLot()
+                .selectWatchedTargetIds(connection, TENANT_ID, TargetType.JOB, List.of("J001"));
+
+        verify(connection).prepareStatement(contains("AND tenant_id = ?"));
+        verify(statement).setString(3, TENANT_ID);
+        assertThat(watched).isEmpty();
       }
     }
   }

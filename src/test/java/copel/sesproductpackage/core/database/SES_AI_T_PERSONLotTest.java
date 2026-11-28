@@ -32,6 +32,14 @@ class SES_AI_T_PERSONLotTest {
   /** テナントID。 */
   private static final String TENANT_ID = "T001";
 
+  /** 同じテナントの、ttl が現在時刻より後のウォッチを除く条件。期限切れ要員の検索 SQL に含まれる。 */
+  private static final String WATCH_EXCLUSION_SQL =
+      "AND NOT EXISTS (SELECT 1 FROM SES_AI_T_WATCH w "
+          + "WHERE w.target_id = SES_AI_T_PERSON.person_id "
+          + "AND w.target_type = 'PERSON' "
+          + "AND w.tenant_id = SES_AI_T_PERSON.tenant_id "
+          + "AND w.ttl IS NOT NULL AND w.ttl > NOW())";
+
   /** 取得結果の列距離を含まない。 */
   private static final String[] COLUMNS = {
     "person_id",
@@ -497,6 +505,47 @@ class SES_AI_T_PERSONLotTest {
             .doesNotContain("OR (register_date IS NULL)")
             .contains("ORDER BY register_date ASC, person_id ASC");
         assertThat(lot.isEmpty()).isTrue();
+      }
+
+      /**
+       * 期限切れ抽出のSQLに、同じテナントのウォッチ除外が含まれることを確かめる。 ウォッチ中の要員を削除すると、ウォッチの対象が表示されなくなる。
+       *
+       * @given SELECT の結果が 0 行、経過日数 30、オフセット 0、件数 100 で、除外の判定は抽出SQLの NOT EXISTS 条件が担う契約テスト
+       * @when selectExpiredPersonsNotInMatchWithoutTenantId を接続で実行する
+       * @then 同じテナントの ttl が現在時刻より後のウォッチを NOT EXISTS で除くSQLを準備し、空の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void ttlが未来のウォッチがある要員の場合_ウォッチを除くSQLで空の一覧を返す(final Connection connection) throws SQLException {
+        JdbcMocks.stubQuery(connection, MockResultSetBuilder.builder().columns(COLUMNS).build());
+        SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
+
+        lot.selectExpiredPersonsNotInMatchWithoutTenantId(connection, 30, 0, 100);
+
+        verify(connection).prepareStatement(contains(WATCH_EXCLUSION_SQL));
+        assertThat(lot.isEmpty()).isTrue();
+      }
+
+      /**
+       * ウォッチが無い期限切れの要員を、従来どおりマッチ使用中の除外と合わせて抽出することを確かめる。 ウォッチの除外を足しても、対象の要員の削除は止まらない。
+       *
+       * @given SELECT の結果が 1 行、経過日数 30、オフセット 0、件数 100、同じ要員のウォッチが無い
+       * @when selectExpiredPersonsNotInMatchWithoutTenantId を接続で実行する
+       * @then マッチとウォッチの NOT EXISTS を含むSQLを準備し、1件の一覧を返す
+       */
+      @MockDbConnection
+      @Test
+      void ウォッチが無い期限切れの要員の場合_マッチとウォッチの除外を含むSQLで1件の一覧を返す(final Connection connection)
+          throws SQLException {
+        JdbcMocks.stubQuery(connection, row(false));
+        SES_AI_T_PERSONLot lot = new SES_AI_T_PERSONLot();
+
+        lot.selectExpiredPersonsNotInMatchWithoutTenantId(connection, 30, 0, 100);
+
+        verify(connection)
+            .prepareStatement(contains("AND NOT EXISTS (SELECT 1 FROM SES_AI_T_MATCH m"));
+        verify(connection).prepareStatement(contains(WATCH_EXCLUSION_SQL));
+        assertThat(lot.size()).isEqualTo(1);
       }
     }
   }

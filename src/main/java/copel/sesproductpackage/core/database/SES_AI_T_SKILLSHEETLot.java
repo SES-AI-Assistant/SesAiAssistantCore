@@ -38,9 +38,21 @@ public class SES_AI_T_SKILLSHEETLot extends EntityLotBase<SES_AI_T_SKILLSHEET> {
           + "WHERE ((ttl IS NOT NULL AND ttl < NOW()) "
           + "   OR (ttl IS NULL AND register_date IS NOT NULL AND (register_date + INTERVAL '";
 
-  /** 期限切れスキルシート取得SQL後半（テナントIDなし、バッチ用）. */
+  /**
+   * 期限切れスキルシート取得SQL後半（テナントIDなし、バッチ用）.
+   *
+   * <p>ウォッチ中のスキルシート（対象IDがファイルID）は除外する。ウォッチの ttl が切れるまで残し、ウォッチ中に消えて表示できなくなるのを防ぐため。同じテナントの、ttl
+   * が現在時刻より後のウォッチだけを対象にする。
+   */
   private static final String SELECT_EXPIRED_SKILLSHEETS_WITHOUT_TENANT_SUFFIX =
-      " days') < NOW())) " + "ORDER BY register_date ASC, file_id ASC " + "LIMIT ? OFFSET ?";
+      " days') < NOW())) "
+          + "  AND NOT EXISTS (SELECT 1 FROM SES_AI_T_WATCH w "
+          + "WHERE w.target_id = SES_AI_T_SKILLSHEET.file_id "
+          + "AND w.target_type = 'SKILLSHEET' "
+          + "AND w.tenant_id = SES_AI_T_SKILLSHEET.tenant_id "
+          + "AND w.ttl IS NOT NULL AND w.ttl > NOW()) "
+          + "ORDER BY register_date ASC, file_id ASC "
+          + "LIMIT ? OFFSET ?";
 
   /** 要員に紐づくスキルシート取得SQL（テナントIDなし、バッチ用）. */
   private static final String SELECT_BUNDLED_WITH_PERSON_WITHOUT_TENANT_SQL =

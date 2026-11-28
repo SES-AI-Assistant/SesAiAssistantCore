@@ -7,9 +7,13 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 【Entityクラス】 ウォッチ管理テーブル(SES_AI_T_WATCH)のLotクラス.
@@ -17,6 +21,25 @@ import java.util.Map;
  * @author Copel Co., Ltd.
  */
 public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
+
+  /**
+   * ウォッチ中の対象IDを求めるSQL前半（テナント条件は末尾に付く。対象IDのプレースホルダの後ろに閉じ括弧を付けて使う）.
+   *
+   * <p>ウォッチ中は、ttl が現在時刻より後であること。ttl が NULL のウォッチと、ttl が現在時刻ちょうどのウォッチは含めない。 TTL 削除の {@code ttl <
+   * NOW()} と同じ DB の時刻で判定し、削除と判定が食い違わないようにする。
+   */
+  private static final String SELECT_WATCHED_TARGET_IDS_SQL_PREFIX =
+      "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id "
+          + "FROM SES_AI_T_WATCH WHERE target_type = ? AND ttl IS NOT NULL AND ttl > NOW() "
+          + "AND target_id IN (";
+
+  /**
+   * 1回の問い合わせで IN 句に渡す対象IDの件数の上限.
+   *
+   * <p>IN 句は対象IDの件数だけプレースホルダを使う。件数が多いと JDBC のバインド数の上限を超えるため、この件数ごとに問い合わせを分ける。
+   */
+  private static final int WATCHED_CHECK_CHUNK_SIZE = 500;
+
   /** 全件SELECT文. */
   private static final String SELECT_ALL_SQL =
       "SELECT user_id, target_id, target_type, memo, register_date, register_user, ttl, tenant_id "
@@ -144,6 +167,62 @@ public class SES_AI_T_WATCHLot extends EntityLotBase<SES_AI_T_WATCH> {
               return paramIndex + 2;
             });
     this.entityLot = results;
+  }
+
+  /**
+   * 指定テナントで、対象種別と一致し、ウォッチ中の対象IDの集合を返します.
+   *
+   * <p>ウォッチ中は、同じテナントと対象IDのウォッチのうち ttl が現在時刻より後のものが1件でもあること。複数ユーザーのうち1人でも該当すればウォッチ中とする。 他テナントのウォッチは
+   * tenant_id の条件で読まない。対象IDの件数が多い場合は {@code WATCHED_CHECK_CHUNK_SIZE} 件ごとに問い合わせを分ける。
+   *
+   * <p>このメソッドは Lot の保持するレコードを変えない。TTL 削除の対象から外す判定に使う。
+   *
+   * @param connection DBコネクション
+   * @param tenantId テナントID
+   * @param targetType 対象種別（JOB・PERSON・SKILLSHEET）。null の場合は空の集合を返す
+   * @param targetIds 判定する対象IDの一覧。null または空の場合は空の集合を返す
+   * @return ウォッチ中の対象IDの集合。ウォッチ中の対象が無い場合は空の集合
+   * @throws SQLException DB 操作（SQL の実行・結果の読み取り）に失敗した場合
+   * @throws IllegalArgumentException DBコネクションが null の場合、またはテナントIDが null か空文字の場合（対象IDが1件以上ある場合）
+   */
+  public Set<String> selectWatchedTargetIds(
+      final Connection connection,
+      final String tenantId,
+      final TargetType targetType,
+      final Collection<String> targetIds)
+      throws SQLException {
+    requireConnection(connection);
+    Set<String> watchedTargetIds = new HashSet<>();
+    if (targetType == null || targetIds == null || targetIds.isEmpty()) {
+      return watchedTargetIds;
+    }
+    List<String> ids = new ArrayList<>(targetIds);
+    for (int from = 0; from < ids.size(); from += WATCHED_CHECK_CHUNK_SIZE) {
+      List<String> chunk = ids.subList(from, Math.min(from + WATCHED_CHECK_CHUNK_SIZE, ids.size()));
+      String sql =
+          SELECT_WATCHED_TARGET_IDS_SQL_PREFIX
+              + String.join(", ", Collections.nCopies(chunk.size(), "?"))
+              + ")";
+      List<SES_AI_T_WATCH> results =
+          executeQuery(
+              connection,
+              sql,
+              tenantId,
+              this::mapResultSet,
+              (stmt, paramIndex) -> {
+                stmt.setString(paramIndex, targetType.name());
+                int next = paramIndex + 1;
+                for (String targetId : chunk) {
+                  stmt.setString(next, targetId);
+                  next++;
+                }
+                return next;
+              });
+      for (SES_AI_T_WATCH watch : results) {
+        watchedTargetIds.add(watch.getTargetId());
+      }
+    }
+    return watchedTargetIds;
   }
 
   /**
